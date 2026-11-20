@@ -1,0 +1,3 @@
+Implemented Fortinet advisory support for FortiOS CVE detection and enrichment. Fortinet-only CPE matches are included, advisory metadata is stored in CVE results, confidence is ranked across Fortinet, NVD, and JVN, and reports can select Fortinet titles, summaries, scores, and URLs. Updated `go-cve-dictionary` to a version with Fortinet models.
+
+The detector, models, and reporter tests pass; the server compiles. Testing used an offline temporary modfile for transitive versions missing from the local cache, so the exact dependency set in the checked-out `go.mod` was not verified offline.

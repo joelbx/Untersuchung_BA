@@ -1,0 +1,3 @@
+Updated Red Hat family scanning to use OVAL for CVE detection, carry package fix states through to results, and add advisories only when their identifiers match the supported distribution. Updated the locally cached `goval-dictionary` dependency so `AffectedResolution` is available.
+
+`GOPROXY=off GOSUMDB=off go test ./oval ./gost` passes, including the new focused tests. The full repository test run was interrupted while compiling unrelated dependencies.

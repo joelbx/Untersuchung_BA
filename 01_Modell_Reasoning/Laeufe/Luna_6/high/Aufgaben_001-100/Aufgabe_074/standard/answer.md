@@ -1,0 +1,3 @@
+Updated [fn_to_cli.py](/app/scripts/solr_builder/solr_builder/fn_to_cli.py) to support `Path` and typed lists, optional list flags, explicit `parse_args(args)`, and returning sync or async function results. Added documentation for positional and flagged arguments.
+
+The focused existing tests pass: **4 passed**. Inline checks also passed for required `list[int]`, optional `list[Path]`, and async return values.

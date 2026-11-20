@@ -1,0 +1,3 @@
+Added `billing_mode` to the DynamoDB backend. New tables default to `pay_per_request`; `provisioned` uses the configured read and write capacity. On-demand table creation omits provisioned throughput, and initialization disables autoscaling with a log message when the table is or will be on-demand. The table status check now returns the existing table’s billing mode. I also updated the [backend documentation](/app/docs/pages/reference/backends.mdx) and added focused tests.
+
+`go test ./lib/backend/dynamo -count=1` and `git diff --check` passed. The AWS integration test was skipped because `TELEPORT_DYNAMODB_TEST` was unset. No delegation was used.

@@ -1,0 +1,3 @@
+Implemented support for rule `segment` values as either a string or a `{keys, operator}` object. Parsing rejects invalid shapes, single key objects use `OR_SEGMENT_OPERATOR`, and rule exports use the object form. Updated import, snapshot, SQL persistence, and the requested YAML fixtures.
+
+Verification passed: `go test ./internal/ext ./internal/storage/fs ./internal/storage/sql -count=1` and `git diff --check`.

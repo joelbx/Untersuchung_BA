@@ -1,0 +1,5 @@
+The issue is localized, but the requested fix is **not implemented**. This run’s fault-localization constraint prohibited changes to project source and tests.
+
+[Rule](/app/internal/ext/common.go) still represents rule segments with three separate fields. [The importer](/app/internal/ext/importer.go) and [exporter](/app/internal/ext/exporter.go) map those fields directly, so they cannot round-trip the requested `segment: {keys, operator}` form. [The snapshot builder](/app/internal/storage/fs/snapshot.go), [SQL rule persistence](/app/internal/storage/sql/common/rule.go), and [SQL rollout persistence](/app/internal/storage/sql/common/rollout.go) also need to extract both forms and force `OR_SEGMENT_OPERATOR` for a single key. The export and readonly YAML fixtures still use the old rule syntax.
+
+The fix should reject unsupported segment shapes and empty key lists, accept strings and valid objects, and always export rules in object form. One uncertainty is whether the old top-level `segments` field must remain accepted. Existing local tests passed; they do not cover the new format. Findings are recorded in `.codex-role-output/checkpoint.md`.

@@ -1,0 +1,3 @@
+Implemented `flipt.is_auth_method(input, name)` in [extentions.go](/app/internal/server/authz/engine/ext/extentions.go). It maps all supported names to the proto enum values, including `k8s` and `kubernetes`, and returns the requested errors for missing authentication and unsupported names. Both authorization backends load the built-in. A [policy example](/app/examples/authorization/README.md) documents its use.
+
+The authorization tests pass: `GOPROXY=off GOSUMDB=off go test ./internal/server/authz/...`. To propagate the requested errors, both backends now use strict built-in error mode, which also makes errors from other Rego built-ins fatal.

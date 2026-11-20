@@ -1,0 +1,3 @@
+Implemented Redis TLS support in [RedisCacheConfig](/app/internal/config/cache.go) and the new [redis.NewClient](/app/internal/cache/redis/client.go). The client supports a CA file, inline certificate data, system trust, and optional certificate verification bypass, with TLS 1.2 as the minimum. Configuration rejects both CA options together with the required error message.
+
+Added YAML fixtures, schema updates, constructor tests, and `api/cachetls` to the integration registry and GitHub Actions matrix. Config and command tests pass; the constructor tests pass. The container backed Redis and integration suites could not run because Docker is unavailable here.

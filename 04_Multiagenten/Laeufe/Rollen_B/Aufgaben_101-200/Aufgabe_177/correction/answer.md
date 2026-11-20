@@ -1,0 +1,3 @@
+Fixed the existing-room gap: sending a message in a two-person private room now rechecks the recipient’s current chat settings and explicit blocks. Added regression coverage for changed settings, blocks, and the admin exception.
+
+The reviewer’s exact test command passed: `./node_modules/.bin/mocha test/messaging.js test/user.js` — **356 passing**. Local Redis was started for the run and shut down afterward. No test failures remain.

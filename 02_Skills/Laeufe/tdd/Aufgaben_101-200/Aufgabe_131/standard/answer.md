@@ -1,0 +1,3 @@
+Implemented bounded event polling in [usePollEvents.ts](/app/packages/components/payments/client-extensions/usePollEvents.ts). It calls the event manager every 5000 ms for up to five attempts, supports optional property and action matching, and unsubscribes on early completion or after the final attempt. Existing no-argument callers still work.
+
+Added [tests](/app/packages/components/payments/client-extensions/usePollEvents.test.ts) for timing, event filtering, cleanup, and late events. Type checking passed; the component suite passed with 851 tests (28 skipped).

@@ -1,0 +1,346 @@
+diff --git a/internal/cleanup/cleanup.go b/internal/cleanup/cleanup.go
+index 64e6e5b..30f3a91 100644
+--- a/internal/cleanup/cleanup.go
++++ b/internal/cleanup/cleanup.go
+@@ -43,10 +43,11 @@ func (s *AuthenticationService) Run(ctx context.Context) {
+ 
+ 	for _, info := range s.config.Methods.AllMethods() {
+ 		logger := s.logger.With(zap.Stringer("method", info.Method))
++		if !info.Enabled || !info.RequiresDatabase {
++			continue
++		}
+ 		if info.Cleanup == nil {
+-			if info.Enabled {
+-				logger.Debug("cleanup for auth method not defined (skipping)")
+-			}
++			logger.Debug("cleanup for auth method not defined (skipping)")
+ 
+ 			continue
+ 		}
+diff --git a/internal/cleanup/cleanup_test.go b/internal/cleanup/cleanup_test.go
+index 6eedc41..467f04d 100644
+--- a/internal/cleanup/cleanup_test.go
++++ b/internal/cleanup/cleanup_test.go
+@@ -66,6 +66,9 @@ func TestCleanup(t *testing.T) {
+ 
+ 	for _, info := range authConfig.Methods.AllMethods() {
+ 		info := info
++		if !info.RequiresDatabase {
++			continue
++		}
+ 		t.Run(fmt.Sprintf("Authentication Method %q", info.Method), func(t *testing.T) {
+ 			t.Parallel()
+ 
+@@ -103,3 +106,23 @@ func TestCleanup(t *testing.T) {
+ 		})
+ 	}
+ }
++
++func TestCleanupSkipsJWT(t *testing.T) {
++	ctx := context.Background()
++	store := inmemauth.NewStore()
++	token, _, err := store.CreateAuthentication(ctx, &authstorage.CreateAuthenticationRequest{
++		Method:    auth.Method_METHOD_JWT,
++		ExpiresAt: timestamppb.New(time.Now().Add(-time.Minute)),
++	})
++	require.NoError(t, err)
++
++	cfg := config.AuthenticationConfig{}
++	cfg.Methods.JWT.Enabled = true
++	cfg.Methods.JWT.Cleanup = &config.AuthenticationCleanupSchedule{Interval: time.Millisecond, GracePeriod: time.Millisecond}
++	service := NewAuthenticationService(zaptest.NewLogger(t), inmemoplock.New(), store, cfg)
++	service.Run(ctx)
++	time.Sleep(100 * time.Millisecond)
++	require.NoError(t, service.Shutdown(ctx))
++	_, err = store.GetAuthenticationByClientToken(ctx, token)
++	require.NoError(t, err)
++}
+diff --git a/internal/cmd/authn.go b/internal/cmd/authn.go
+index 75c38de..3ca639b 100644
+--- a/internal/cmd/authn.go
++++ b/internal/cmd/authn.go
+@@ -29,6 +29,7 @@ import (
+ 	storageauthcache "go.flipt.io/flipt/internal/storage/authn/cache"
+ 	storageauthmemory "go.flipt.io/flipt/internal/storage/authn/memory"
+ 	authsql "go.flipt.io/flipt/internal/storage/authn/sql"
++	"go.flipt.io/flipt/internal/storage/oplock"
+ 	oplocksql "go.flipt.io/flipt/internal/storage/oplock/sql"
+ 	rpcauth "go.flipt.io/flipt/rpc/flipt/auth"
+ 	"go.uber.org/zap"
+@@ -48,35 +49,31 @@ func authenticationGRPC(
+ 		return nil
+ 	}
+ 
+-	// NOTE: we skip attempting to connect to any database in the situation that either the git, local, or object
+-	// FS backends are configured.
+-	// All that is required to establish a connection for authentication is to either make auth required
+-	// or configure at-least one authentication method (e.g. enable token method).
+-	if !cfg.Authentication.Enabled() && (cfg.Storage.Type != config.DatabaseStorageType) {
+-		return grpcRegisterers{
+-			public.NewServer(logger, cfg.Authentication),
+-			authn.NewServer(logger, storageauthmemory.NewStore()),
+-		}, nil, shutdown, nil
+-	}
+-
+-	_, builder, driver, dbShutdown, err := getDB(ctx, logger, cfg, forceMigrate)
+-	if err != nil {
+-		return nil, nil, nil, err
+-	}
+-
+ 	var (
+ 		authCfg                        = cfg.Authentication
+-		store        storageauth.Store = authsql.NewStore(driver, builder, logger)
+-		oplock                         = oplocksql.New(logger, driver, builder)
+-		publicServer                   = public.NewServer(logger, authCfg)
++		store        storageauth.Store = storageauthmemory.NewStore()
++		lock         oplock.Service
++		publicServer = public.NewServer(logger, authCfg)
+ 	)
+ 
+-	if cfg.Cache.Enabled {
+-		cacher, _, err := getCache(ctx, cfg)
++	// Database storage already opens a connection for flag state. Other storage
++	// backends only need one when an enabled authentication method persists data.
++	if cfg.Storage.Type == "" || cfg.Storage.Type == config.DatabaseStorageType || authCfg.RequiresDatabase() {
++		_, builder, driver, dbShutdown, err := getDB(ctx, logger, cfg, forceMigrate)
+ 		if err != nil {
+ 			return nil, nil, nil, err
+ 		}
+-		store = storageauthcache.NewStore(store, cacher, logger)
++		shutdown = dbShutdown
++		store = authsql.NewStore(driver, builder, logger)
++		lock = oplocksql.New(logger, driver, builder)
++
++		if cfg.Cache.Enabled {
++			cacher, _, err := getCache(ctx, cfg)
++			if err != nil {
++				return nil, nil, nil, err
++			}
++			store = storageauthcache.NewStore(store, cacher, logger)
++		}
+ 	}
+ 
+ 	authServer := authn.NewServer(logger, store, authn.WithAuditLoggingEnabled(tokenDeletedEnabled))
+@@ -151,10 +148,11 @@ func authenticationGRPC(
+ 			var ks jwt.KeySet
+ 
+ 			if authJWT.Method.JWKSURL != "" {
+-				ks, err = jwt.NewJSONWebKeySet(ctx, authJWT.Method.JWKSURL, "")
++				keySet, err := jwt.NewJSONWebKeySet(ctx, authJWT.Method.JWKSURL, "")
+ 				if err != nil {
+ 					return nil, nil, nil, fmt.Errorf("failed to create JSON web key set: %w", err)
+ 				}
++				ks = keySet
+ 			} else if authJWT.Method.PublicKeyFile != "" {
+ 				keyPEMBlock, err := os.ReadFile(authJWT.Method.PublicKeyFile)
+ 				if err != nil {
+@@ -230,12 +228,13 @@ func authenticationGRPC(
+ 	if authCfg.ShouldRunCleanup() {
+ 		cleanupAuthService := cleanup.NewAuthenticationService(
+ 			logger,
+-			oplock,
++			lock,
+ 			store,
+ 			authCfg,
+ 		)
+ 		cleanupAuthService.Run(ctx)
+ 
++		dbShutdown := shutdown
+ 		shutdown = func(ctx context.Context) error {
+ 			logger.Info("shutting down authentication cleanup service...")
+ 
+diff --git a/internal/cmd/authn_test.go b/internal/cmd/authn_test.go
+new file mode 100644
+index 0000000..67a7479
+--- /dev/null
++++ b/internal/cmd/authn_test.go
+@@ -0,0 +1,55 @@
++package cmd
++
++import (
++	"context"
++	"crypto/rand"
++	"crypto/rsa"
++	"crypto/x509"
++	"encoding/pem"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"go.flipt.io/flipt/internal/config"
++	"go.uber.org/zap/zaptest"
++)
++
++func TestAuthenticationGRPCJWTWithoutDatabase(t *testing.T) {
++	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
++	if err != nil {
++		t.Fatal(err)
++	}
++	keyPath := filepath.Join(t.TempDir(), "public.pem")
++	publicKey, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if err := os.WriteFile(keyPath, pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicKey}), 0600); err != nil {
++		t.Fatal(err)
++	}
++
++	for _, storageType := range []config.StorageType{config.LocalStorageType, config.GitStorageType, config.OCIStorageType} {
++		t.Run(string(storageType), func(t *testing.T) {
++			cfg := &config.Config{}
++			cfg.Storage.Type = storageType
++			cfg.Database.URL = "invalid-database-url"
++			cfg.Authentication.Required = true
++			cfg.Authentication.Methods.JWT.Enabled = true
++			cfg.Authentication.Methods.JWT.Method.PublicKeyFile = keyPath
++
++			register, interceptors, shutdown, err := authenticationGRPC(context.Background(), zaptest.NewLogger(t), cfg, false, false)
++			if err != nil {
++				t.Fatal(err)
++			}
++			if len(register) != 2 {
++				t.Errorf("got %d registerers, want 2", len(register))
++			}
++			if len(interceptors) == 0 {
++				t.Error("JWT authentication middleware was not installed")
++			}
++			if err := shutdown(context.Background()); err != nil {
++				t.Fatal(err)
++			}
++		})
++	}
++}
+diff --git a/internal/config/authentication.go b/internal/config/authentication.go
+index 9bc4f2d..161f8b1 100644
+--- a/internal/config/authentication.go
++++ b/internal/config/authentication.go
+@@ -80,16 +80,25 @@ func (c AuthenticationConfig) IsZero() bool {
+ }
+ 
+ // ShouldRunCleanup returns true if the cleanup background process should be started.
+-// It returns true given at-least 1 method is enabled and it's associated schedule
+-// has been configured (non-nil).
++// It returns true when an enabled database-backed method has a schedule.
+ func (c AuthenticationConfig) ShouldRunCleanup() (shouldCleanup bool) {
+ 	for _, info := range c.Methods.AllMethods() {
+-		shouldCleanup = shouldCleanup || (info.Enabled && info.Cleanup != nil)
++		shouldCleanup = shouldCleanup || (info.Enabled && info.RequiresDatabase && info.Cleanup != nil)
+ 	}
+ 
+ 	return
+ }
+ 
++// RequiresDatabase reports whether any enabled authentication method needs persistent storage.
++func (c AuthenticationConfig) RequiresDatabase() bool {
++	for _, info := range c.Methods.AllMethods() {
++		if info.Enabled && info.RequiresDatabase {
++			return true
++		}
++	}
++	return false
++}
++
+ func (c *AuthenticationConfig) setDefaults(v *viper.Viper) error {
+ 	methods := map[string]any{}
+ 
+@@ -291,6 +300,7 @@ func (s StaticAuthenticationMethodInfo) SetCleanup(t *testing.T, c Authenticatio
+ type AuthenticationMethodInfo struct {
+ 	Method            auth.Method
+ 	SessionCompatible bool
++	RequiresDatabase  bool
+ 	Metadata          *structpb.Struct
+ }
+ 
+@@ -364,6 +374,7 @@ func (a AuthenticationMethodTokenConfig) info() AuthenticationMethodInfo {
+ 	return AuthenticationMethodInfo{
+ 		Method:            auth.Method_METHOD_TOKEN,
+ 		SessionCompatible: false,
++		RequiresDatabase:  true,
+ 	}
+ }
+ 
+@@ -390,6 +401,7 @@ func (a AuthenticationMethodOIDCConfig) info() AuthenticationMethodInfo {
+ 	info := AuthenticationMethodInfo{
+ 		Method:            auth.Method_METHOD_OIDC,
+ 		SessionCompatible: true,
++		RequiresDatabase:  true,
+ 	}
+ 
+ 	var (
+@@ -482,6 +494,7 @@ func (a AuthenticationMethodKubernetesConfig) info() AuthenticationMethodInfo {
+ 	return AuthenticationMethodInfo{
+ 		Method:            auth.Method_METHOD_KUBERNETES,
+ 		SessionCompatible: false,
++		RequiresDatabase:  true,
+ 	}
+ }
+ 
+@@ -505,6 +518,7 @@ func (a AuthenticationMethodGithubConfig) info() AuthenticationMethodInfo {
+ 	info := AuthenticationMethodInfo{
+ 		Method:            auth.Method_METHOD_GITHUB,
+ 		SessionCompatible: true,
++		RequiresDatabase:  true,
+ 	}
+ 
+ 	var metadata = make(map[string]any)
+@@ -576,6 +590,7 @@ func (a AuthenticationMethodJWTConfig) info() AuthenticationMethodInfo {
+ 	return AuthenticationMethodInfo{
+ 		Method:            auth.Method_METHOD_JWT,
+ 		SessionCompatible: false,
++		RequiresDatabase:  false,
+ 	}
+ }
+ 
+diff --git a/internal/config/authentication_database_test.go b/internal/config/authentication_database_test.go
+new file mode 100644
+index 0000000..5118f92
+--- /dev/null
++++ b/internal/config/authentication_database_test.go
+@@ -0,0 +1,47 @@
++package config
++
++import (
++	"testing"
++	"time"
++)
++
++func TestAuthenticationDatabaseRequirements(t *testing.T) {
++	schedule := &AuthenticationCleanupSchedule{Interval: time.Hour, GracePeriod: time.Minute}
++	cfg := AuthenticationConfig{}
++	if cfg.RequiresDatabase() || cfg.ShouldRunCleanup() {
++		t.Fatal("disabled authentication should not require a database or cleanup")
++	}
++	for _, method := range cfg.Methods.AllMethods() {
++		if method.RequiresDatabase != (method.Name() != "jwt") {
++			t.Errorf("%s: unexpected database requirement", method.Name())
++		}
++		t.Run(method.Name(), func(t *testing.T) {
++			methodCfg := AuthenticationConfig{}
++			for _, candidate := range methodCfg.Methods.AllMethods() {
++				if candidate.Method == method.Method {
++					candidate.Enable(t)
++					candidate.SetCleanup(t, *schedule)
++				}
++			}
++			if got := methodCfg.RequiresDatabase(); got != method.RequiresDatabase {
++				t.Errorf("RequiresDatabase() = %t, want %t", got, method.RequiresDatabase)
++			}
++			if got := methodCfg.ShouldRunCleanup(); got != method.RequiresDatabase {
++				t.Errorf("ShouldRunCleanup() = %t, want %t", got, method.RequiresDatabase)
++			}
++		})
++	}
++	cfg.Methods.JWT.Enabled = true
++	cfg.Methods.JWT.Cleanup = schedule
++	if cfg.RequiresDatabase() || cfg.ShouldRunCleanup() {
++		t.Fatal("JWT alone should not require a database or cleanup")
++	}
++	cfg.Methods.Token.Cleanup = schedule
++	if cfg.RequiresDatabase() || cfg.ShouldRunCleanup() {
++		t.Fatal("disabled token method should not require a database or cleanup")
++	}
++	cfg.Methods.Token.Enabled = true
++	if !cfg.RequiresDatabase() || !cfg.ShouldRunCleanup() {
++		t.Fatal("enabled token method with cleanup should require database and cleanup")
++	}
++}

@@ -1,0 +1,3 @@
+Moved MIME suffix resolution to the module-level `extra_suffixes_workaround` in [webview.py](/app/qutebrowser/browser/webengine/webview.py). It returns only missing extensions within the affected Qt version range. `chooseFiles` now merges and deduplicates those extensions with the original suffixes without using instance state.
+
+Updated [webview tests](/app/tests/unit/browser/webengine/test_webview.py). All 23 focused tests passed, and `git diff --check` passed. No delegation was used.

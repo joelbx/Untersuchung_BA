@@ -1,0 +1,3 @@
+Task: Restrict configurable `meta.config.systemTags` to privileged users when assigning tags.
+Status: Implemented comma-separated admin setting, normalized reserved-tag detection, privilege enforcement in topic creation/edit/queue validation, and socket tag eligibility restriction. Added regression coverage for unprivileged creation/edit, privileged creation, and socket eligibility.
+Verification: Focused existing topic privilege and category whitelist tests passed (10 passing); ESLint and git diff --check passed. A broader filtered test run hit a pre-existing tag-search fixture dependency because its prerequisite tests were filtered out.

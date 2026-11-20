@@ -1,0 +1,1 @@
+Progress: Fixed the reviewed React key collision by rendering with notification IDs while keeping resolved keys for deduplication. Notification now watches descendant links and applies rel/target when links are inserted or changed. Added regressions for both cases. Reviewer commands passed: notification tests (4 tests) and component type check. git diff --check passed.

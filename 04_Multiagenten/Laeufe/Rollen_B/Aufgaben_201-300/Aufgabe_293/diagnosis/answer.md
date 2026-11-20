@@ -1,0 +1,8 @@
+I found the fault locations, but this run was restricted to diagnosis, so I did not edit project source or tests.
+
+- [internal/config/storage.go](/app/internal/config/storage.go:97) validates OCI references with ORAS, which does not produce the required unsupported-scheme error. It also dereferences a missing `oci` section and has no `PollInterval` field. The existing OCI parser has the required scheme wording, but importing it here would create a package cycle.
+- [config/flipt.schema.cue](/app/config/flipt.schema.cue:169) lacks `bundles_directory` and `poll_interval`. The [JSON schema](/app/config/flipt.schema.json:472) also excludes `oci` from the storage type enum. Authentication fields are already present.
+- [internal/oci/file.go](/app/internal/oci/file.go:80) does not accept the required `dir` argument. Its private default-directory helper is not the requested `config.DefaultBundleDir()`.
+- [internal/cmd/grpc.go](/app/internal/cmd/grpc.go:208) has no OCI storage case, so the server cannot start with this backend. [build/testing/integration.go](/app/build/testing/integration.go:25) and the [CI workflow](/app/.github/workflows/integration-test.yml:51) both lack `fs/oci`.
+
+The fix should cover exact missing-repository and unsupported-scheme errors, duration parsing, configured bundle root and credentials, server startup, and integration registration. I did not run tests; the appropriate default data-directory path remains to be confirmed during implementation.

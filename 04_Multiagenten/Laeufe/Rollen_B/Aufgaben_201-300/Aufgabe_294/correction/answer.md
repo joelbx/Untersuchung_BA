@@ -1,0 +1,3 @@
+Fixed the extraction issue. Both `_extract_tar_file` and `_extract_tar_dir` now check that the resolved parent stays inside the collection before creating missing directories, then check again before writing. Added a regression test confirming that nested file and directory entries cannot create directories through a symlink outside the destination.
+
+Both reviewer test commands passed: 63 collection tests and 151 galaxy tests. `git diff --check` passed. TEST_ENVIRONMENT_PROBLEM: none.

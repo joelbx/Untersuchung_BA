@@ -1,0 +1,3 @@
+Centralized storage units in [size.ts](/app/packages/shared/lib/helpers/size.ts). Member provisioning, CSV import, organization setup, shared limits, and storage displays now use those definitions. Drive plans now start at `sizeUnits.TB`; the other requested defaults and slider steps use `sizeUnits.GB`.
+
+**Verification:** 83 tests passed, including a new test for the Drive allocation. ESLint and `git diff --check` passed. Both package type checks still fail on an OpenPGP type mismatch in the unedited [crypto API file](/app/packages/crypto/lib/worker/api.ts:579).

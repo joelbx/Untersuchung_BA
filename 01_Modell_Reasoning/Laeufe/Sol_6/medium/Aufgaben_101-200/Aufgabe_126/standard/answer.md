@@ -1,0 +1,3 @@
+Resolved the assistant HTML and Markdown issue. The composer’s message ID now flows through model preparation, result rendering, and editor insertion. URL placeholders restore links and images only for that message; unknown or cross-message links lose their URL while keeping visible text. Conversion also preserves `class` and `style` on links and images and repairs nested lists before Markdown conversion.
+
+All 20 relevant tests passed, and lint passed. The app type check remains blocked by an unrelated OpenPGP type conflict in `packages/crypto/lib/worker/api.ts`; it reported no errors in the changed files.

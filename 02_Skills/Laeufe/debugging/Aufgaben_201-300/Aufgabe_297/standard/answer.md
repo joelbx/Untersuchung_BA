@@ -1,0 +1,3 @@
+Implemented reverse proxy login in the checked-out repository. Administrators can configure a username header and a proxy whitelist with IPv4 or IPv6 CIDR ranges; an empty whitelist disables the feature. Trusted requests receive an auth payload that initializes the frontend session, while untrusted requests receive no `auth` field. New proxy users are created on first login, with the first user made admin. Nested map log fields now redact sensitive values.
+
+Verification passed: `go test ./... -count=1`, all 35 frontend tests, formatting, and `git diff --check`.

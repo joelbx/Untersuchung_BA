@@ -1,0 +1,3 @@
+Added `guessDateFromText` and wired it into CSV and vCard date handling. It parses ISO and common text dates, preserves existing valid `Date` objects, and leaves unparseable dates unset. Regression tests cover parsing and vCard calendar date serialization.
+
+The focused contact tests passed (13/13), as did TypeScript and `git diff --check`. The full shared suite had 872 passes and two unrelated failures in cookie and base64 tests. No delegation was used.

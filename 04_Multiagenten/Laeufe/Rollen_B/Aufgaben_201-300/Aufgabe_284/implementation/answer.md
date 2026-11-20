@@ -1,0 +1,3 @@
+Updated `reversetunnel.Server` to keep one `localSite` and use it for local connection validation, site operations, reconnect advice, and proxy fan-out. The local site now reuses the server’s existing auth client, access point, and peer client, avoiding a second resource cache. Added tests for cache reuse and cluster validation.
+
+Verification passed: `go test ./lib/reversetunnel -count=1` and `git diff --check`.

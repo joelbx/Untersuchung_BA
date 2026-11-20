@@ -1,0 +1,3 @@
+Implemented Redis cache TLS configuration with `ca_cert_path`, `ca_cert_bytes`, and `insecure_skip_tls`. The new [NewClient](/app/internal/cache/redis/client.go) applies a TLS 1.2 minimum, uses the configured CA or system roots, and rejects conflicting CA sources with the required error message. I also added YAML fixtures, schema entries, and an `api/cachetls` integration case to the GitHub Actions matrix.
+
+The config, schema, and client TLS tests pass. The integration case and command package compile; the Dagger-backed integration case was not run here.

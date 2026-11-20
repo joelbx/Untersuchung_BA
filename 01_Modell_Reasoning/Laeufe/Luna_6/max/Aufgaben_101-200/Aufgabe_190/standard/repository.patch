@@ -1,0 +1,994 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index c28a2e2..1b62e0a 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -31,6 +31,7 @@ from copy import copy
+ from time import sleep
+ from typing import TYPE_CHECKING, Any, Final
+ from urllib.parse import urlparse
++from uuid import uuid4
+ 
+ import requests
+ import web
+@@ -38,9 +39,8 @@ import web
+ from infogami import config
+ from openlibrary import accounts
+ from openlibrary.catalog.add_book.load_book import (
+-    build_query,
+-    east_in_by_statement,
+-    import_author,
++    author_import_record_to_author,
++    import_record_to_edition,
+ )
+ from openlibrary.catalog.add_book.match import editions_match, mk_norm
+ from openlibrary.catalog.utils import (
+@@ -80,6 +80,10 @@ SOURCE_RECORDS_REQUIRING_DATE_SCRUTINY: Final = ["amazon", "bwb", "promise"]
+ ALLOWED_COVER_HOSTS: Final = (
+     "books.google.com",
+     "commons.wikimedia.org",
++    "ecx.images-amazon.com",
++    "images.amazon.com",
++    "images-eu.ssl-images-amazon.com",
++    "images-na.ssl-images-amazon.com",
+     "m.media-amazon.com",
+ )
+ 
+@@ -162,9 +166,20 @@ def is_redirect(thing):
+     """
+     if not thing:
+         return False
++    if isinstance(thing, dict):
++        return thing.get('type', {}).get('key') == '/type/redirect'
+     return thing.type.key == '/type/redirect'
+ 
+ 
++def _record_dict(record):
++    result = (
++        record.dict() if callable(getattr(record, 'dict', None)) else dict(record)
++    )
++    if key := getattr(record, 'key', None):
++        result.setdefault('key', key)
++    return result
++
++
+ def split_subtitle(full_title: str):
+     """
+     Splits a title into (title, subtitle),
+@@ -214,7 +229,18 @@ def find_matching_work(e):
+                 return wkey
+ 
+ 
+-def build_author_reply(authors_in, edits, source):
++def _new_import_key(type_key: str, save: bool) -> str:
++    if save:
++        return web.ctx.site.new_key(type_key)
++    prefix = {
++        '/type/author': '/authors/__new__',
++        '/type/edition': '/books/__new__',
++        '/type/work': '/works/__new__',
++    }[type_key]
++    return prefix + str(uuid4())
++
++
++def load_author_import_records(authors_in, edits, source, save: bool = True):
+     """
+     Steps through an import record's authors, and creates new records if new,
+     adding them to 'edits' to be saved later.
+@@ -222,29 +248,48 @@ def build_author_reply(authors_in, edits, source):
+     :param list authors_in: import author dicts [{"name:" "Bob"}, ...], maybe dates
+     :param list edits: list of Things to be saved later. Is modified by this method.
+     :param str source: Source record e.g. marc:marc_ex/part01.dat:26456929:680
++    :param bool save: whether author candidates should receive permanent keys
+     :rtype: tuple
+-    :return: (list, list) authors [{"key": "/author/OL..A"}, ...], author_reply
++    :return: (authors, author_reply)
+     """
+     authors = []
+     author_reply = []
+     for a in authors_in:
+-        new_author = 'key' not in a
++        author = a
++        author_type = author.get('type') if isinstance(author, dict) else None
++        author_type_key = (
++            author_type.get('key')
++            if isinstance(author_type, dict)
++            else author_type
++        )
++        if isinstance(author, dict) and author_type_key != '/type/author':
++            author = author_import_record_to_author(author)
++        key = author.get('key') if hasattr(author, 'get') else getattr(author, 'key', None)
++        new_author = not key
+         if new_author:
+-            a['key'] = web.ctx.site.new_key('/type/author')
+-            a['source_records'] = [source]
+-            edits.append(a)
+-        authors.append({'key': a['key']})
++            key = _new_import_key('/type/author', save)
++            author = _record_dict(author)
++            author['key'] = key
++            author['source_records'] = [source]
++            edits.append(author)
++        authors.append({'key': key})
++        name = author.get('name') if hasattr(author, 'get') else getattr(author, 'name', None)
+         author_reply.append(
+             {
+-                'key': a['key'],
+-                'name': a['name'],
++                'key': key,
++                'name': name,
+                 'status': ('created' if new_author else 'matched'),
+             }
+         )
+     return (authors, author_reply)
+ 
+ 
+-def new_work(edition: dict, rec: dict, cover_id=None) -> dict:
++def build_author_reply(authors_in, edits, source):
++    """Backward-compatible wrapper for the former helper name."""
++    return load_author_import_records(authors_in, edits, source)
++
++
++def new_work(edition: dict, rec: dict, cover_id=None, save: bool = True) -> dict:
+     """
+     :param dict edition: New OL Edition
+     :param dict rec: Edition import data
+@@ -272,7 +317,7 @@ def new_work(edition: dict, rec: dict, cover_id=None) -> dict:
+     if 'description' in rec:
+         w['description'] = {'type': '/type/text', 'value': rec['description']}
+ 
+-    wkey = web.ctx.site.new_key('/type/work')
++    wkey = _new_import_key('/type/work', save)
+     if edition.get('covers'):
+         w['covers'] = edition['covers']
+     w['key'] = wkey
+@@ -576,20 +621,55 @@ def process_cover_url(
+     if not (cover_url := edition.pop("cover", None)):
+         return None, edition
+ 
+-    parsed_url = urlparse(url=cover_url)
+-
+-    if parsed_url.netloc.casefold() in (
+-        host.casefold() for host in allowed_cover_hosts
+-    ):
++    if check_cover_url_host(cover_url, allowed_cover_hosts):
+         return cover_url, edition
+ 
+     return None, edition
+ 
+ 
++def check_cover_url_host(
++    cover_url: str | None, allowed_cover_hosts: Iterable[str]
++) -> bool:
++    """Return whether a cover URL's hostname is in the allowed host list."""
++    if not cover_url:
++        return False
++    try:
++        parsed_url = urlparse(cover_url)
++        hostname = parsed_url.hostname
++        _ = parsed_url.port  # Accessing port validates any explicit port value.
++    except (TypeError, ValueError):
++        return False
++    if not hostname:
++        return False
++    hostname = hostname.casefold().rstrip('.')
++    return hostname in {host.casefold().rstrip('.') for host in allowed_cover_hosts}
++
++
++def _include_preview_data(
++    reply: dict, save: bool, edits: list | None = None, cover_accepted: bool = False
++) -> dict:
++    if not save:
++        reply.update(
++            preview=True,
++            edits=[_record_dict(record) for record in (edits or [])],
++            cover_accepted=cover_accepted,
++        )
++    return reply
++
++
++def _import_failure(error: Exception, save: bool, rec: dict) -> dict:
++    return _include_preview_data(
++        {'success': False, 'error': str(error)},
++        save,
++        cover_accepted=check_cover_url_host(rec.get('cover'), ALLOWED_COVER_HOSTS),
++    )
++
++
+ def load_data(
+     rec: dict,
+     account_key: str | None = None,
+     existing_edition: "Edition | None" = None,
++    save: bool = True,
+ ):
+     """
+     Adds a new Edition to Open Library, or overwrites existing_edition with rec data.
+@@ -620,13 +700,13 @@ def load_data(
+ 
+     try:
+         # get an OL style edition dict
+-        rec_as_edition = build_query(rec)
++        rec_as_edition = import_record_to_edition(rec)
+         edition: dict[str, Any]
+         if existing_edition:
+             # Note: This will overwrite any fields in the existing edition. This is ok for
+             # now, because we'll really only come here when overwriting a promise
+             # item
+-            edition = existing_edition.dict() | rec_as_edition
++            edition = _record_dict(existing_edition) | rec_as_edition
+ 
+             # Preserve source_records to avoid data loss.
+             edition['source_records'] = existing_edition.get(
+@@ -641,39 +721,29 @@ def load_data(
+             edition = rec_as_edition
+ 
+     except InvalidLanguage as e:
+-        return {
+-            'success': False,
+-            'error': str(e),
+-        }
++        return _import_failure(e, save, rec)
+ 
+     if not (edition_key := edition.get('key')):
+-        edition_key = web.ctx.site.new_key('/type/edition')
++        edition_key = _new_import_key('/type/edition', save)
+ 
++    raw_cover_url = edition.get('cover')
++    cover_accepted = check_cover_url_host(raw_cover_url, ALLOWED_COVER_HOSTS)
+     cover_url, edition = process_cover_url(
+         edition=edition, allowed_cover_hosts=ALLOWED_COVER_HOSTS
+     )
+ 
+     cover_id = None
+-    if cover_url:
++    if cover_url and save:
+         cover_id = add_cover(cover_url, edition_key, account_key=account_key)
+     if cover_id:
+         edition['covers'] = [cover_id]
+ 
+     edits: list[dict] = []  # Things (Edition, Work, Authors) to be saved
+     reply = {}
+-    # edition.authors may have already been processed by import_authors() in build_query(),
+-    # but not necessarily
+-    author_in = [
+-        (
+-            import_author(a, eastern=east_in_by_statement(rec, a))
+-            if isinstance(a, dict)
+-            else a
+-        )
+-        for a in edition.get('authors', [])
+-    ]
+-    # build_author_reply() adds authors to edits
+-    (authors, author_reply) = build_author_reply(
+-        author_in, edits, rec['source_records'][0]
++    # The edition builder normalizes every author through the same converter
++    # used by matched-edition imports.
++    (authors, author_reply) = load_author_import_records(
++        edition.get('authors', []), edits, rec['source_records'][0], save=save
+     )
+ 
+     if authors:
+@@ -686,27 +756,32 @@ def load_data(
+     if not work_key and 'authors' in edition:
+         work_key = find_matching_work(edition)
+     if work_key:
+-        work = web.ctx.site.get(work_key)
++        existing_work = web.ctx.site.get(work_key)
++        if existing_work is None:
++            work_key = None
++        else:
++            work = _record_dict(existing_work)
+         work_state = 'matched'
+         need_update = False
+-        for k in subject_fields:
+-            if k not in rec:
+-                continue
+-            for s in rec[k]:
+-                if normalize(s) not in [
+-                    normalize(existing) for existing in work.get(k, [])
+-                ]:
+-                    work.setdefault(k, []).append(s)
+-                    need_update = True
+-        if cover_id:
+-            work.setdefault('covers', []).append(cover_id)
+-            need_update = True
+-        if need_update:
+-            work_state = 'modified'
+-            edits.append(work.dict())
+-    else:
++        if work_key:
++            for k in subject_fields:
++                if k not in rec:
++                    continue
++                for s in rec[k]:
++                    if normalize(s) not in [
++                        normalize(existing) for existing in work.get(k, [])
++                    ]:
++                        work.setdefault(k, []).append(s)
++                        need_update = True
++            if cover_id:
++                work.setdefault('covers', []).append(cover_id)
++                need_update = True
++            if need_update:
++                work_state = 'modified'
++                edits.append(work)
++    if not work_key:
+         # Create new work
+-        work = new_work(edition, rec, cover_id)
++        work = new_work(edition, rec, cover_id, save=save)
+         work_state = 'created'
+         work_key = work['key']
+         edits.append(work)
+@@ -718,11 +793,12 @@ def load_data(
+     edits.append(edition)
+ 
+     comment = "overwrite existing edition" if existing_edition else "import new book"
+-    web.ctx.site.save_many(edits, comment=comment, action='add-book')
++    if save:
++        web.ctx.site.save_many(edits, comment=comment, action='add-book')
+ 
+     # Writes back `openlibrary_edition` and `openlibrary_work` to
+     # archive.org item after successful import:
+-    if 'ocaid' in rec:
++    if save and 'ocaid' in rec:
+         update_ia_metadata_for_ol_edition(edition_key.split('/')[-1])
+ 
+     reply['success'] = True
+@@ -732,7 +808,7 @@ def load_data(
+         else {'key': edition_key, 'status': 'created'}
+     )
+     reply['work'] = {'key': work_key, 'status': work_state}
+-    return reply
++    return _include_preview_data(reply, save, edits, cover_accepted)
+ 
+ 
+ def normalize_import_record(rec: dict) -> None:
+@@ -824,7 +900,11 @@ def find_match(rec: dict, edition_pool: dict) -> str | None:
+ 
+ 
+ def update_edition_with_rec_data(
+-    rec: dict, account_key: str | None, edition: "Edition"
++    rec: dict,
++    account_key: str | None,
++    edition: "Edition",
++    save: bool = True,
++    rec_as_edition: dict | None = None,
+ ) -> bool:
+     """
+     Enrich the Edition by adding certain fields present in rec but absent
+@@ -834,15 +914,21 @@ def update_edition_with_rec_data(
+     """
+     need_edition_save = False
+     # Add cover to edition
+-    if 'cover' in rec and not edition.get_covers():
+-        cover_url = rec['cover']
+-        cover_id = add_cover(cover_url, edition.key, account_key=account_key)
+-        if cover_id:
+-            edition['covers'] = [cover_id]
+-            need_edition_save = True
++    if 'cover' in rec and check_cover_url_host(rec.get('cover'), ALLOWED_COVER_HOSTS):
++        has_covers = (
++            edition.get_covers()
++            if callable(getattr(edition, 'get_covers', None))
++            else edition.get('covers', [])
++        )
++        if save and not has_covers:
++            edition_key = edition.key if hasattr(edition, 'key') else edition.get('key')
++            cover_id = add_cover(rec['cover'], edition_key, account_key=account_key)
++            if cover_id:
++                edition['covers'] = [cover_id]
++                need_edition_save = True
+ 
+     # Add ocaid to edition (str), if needed
+-    if 'ocaid' in rec and not edition.ocaid:
++    if 'ocaid' in rec and not edition.get('ocaid'):
+         edition['ocaid'] = rec['ocaid']
+         need_edition_save = True
+ 
+@@ -854,8 +940,9 @@ def update_edition_with_rec_data(
+         'oclc_numbers',
+         'source_records',
+         'languages',
++        'translated_from',
+     ]
+-    edition_dict: dict = edition.dict()
++    edition_dict: dict = _record_dict(edition)
+     for field in edition_list_fields:
+         if field not in rec:
+             continue
+@@ -864,7 +951,7 @@ def update_edition_with_rec_data(
+         rec_values = rec.get(field, [])
+ 
+         # Languages in `rec` are ['eng'], etc., but import requires dict-style.
+-        if field == 'languages':
++        if field in ('languages', 'translated_from'):
+             formatted_languages = format_languages(languages=rec_values)
+             supplemented_values = existing_values + [
+                 lang for lang in formatted_languages if lang not in existing_values
+@@ -890,16 +977,21 @@ def update_edition_with_rec_data(
+         if f not in rec or not rec[f]:
+             continue
+         if f not in edition:
+-            edition[f] = rec[f]
++            edition[f] = (
++                rec_as_edition[f]
++                if f == 'description' and rec_as_edition and f in rec_as_edition
++                else rec[f]
++            )
+             need_edition_save = True
+ 
+     # Add new identifiers (dict values, so different treatment from lists above.)
+     if 'identifiers' in rec:
+-        identifiers = defaultdict(list, edition.dict().get('identifiers', {}))
++        edition_dict = _record_dict(edition)
++        identifiers = defaultdict(list, edition_dict.get('identifiers', {}))
+         for k, vals in rec['identifiers'].items():
+             identifiers[k].extend(vals)
+             identifiers[k] = list(set(identifiers[k]))
+-        if edition.dict().get('identifiers') != identifiers:
++        if edition_dict.get('identifiers') != identifiers:
+             edition['identifiers'] = identifiers
+             need_edition_save = True
+ 
+@@ -907,7 +999,11 @@ def update_edition_with_rec_data(
+ 
+ 
+ def update_work_with_rec_data(
+-    rec: dict, edition: "Edition", work: dict[str, Any], need_work_save: bool
++    rec: dict,
++    edition: "Edition",
++    work: dict[str, Any],
++    need_work_save: bool,
++    author_refs: list[dict] | None = None,
+ ) -> bool:
+     """
+     Enrich the Work by adding certain fields present in rec but absent
+@@ -928,8 +1024,13 @@ def update_work_with_rec_data(
+             need_work_save = True
+ 
+     # Add cover to work, if needed
+-    if not work.get('covers') and edition.get_covers():
+-        work['covers'] = [edition['covers'][0]]
++    edition_covers = (
++        edition.get_covers()
++        if callable(getattr(edition, 'get_covers', None))
++        else edition.get('covers', [])
++    )
++    if not work.get('covers') and edition_covers:
++        work['covers'] = [edition_covers[0]]
+         need_work_save = True
+ 
+     # Add description to work, if needed
+@@ -939,12 +1040,17 @@ def update_work_with_rec_data(
+ 
+     # Add authors to work, if needed
+     if not work.get('authors'):
+-        authors = [import_author(a) for a in rec.get('authors', [])]
+-        work['authors'] = [
+-            {'type': {'key': '/type/author_role'}, 'author': a.get('key')}
+-            for a in authors
+-            if a.get('key')
+-        ]
++        author_refs = author_refs or []
++        work['authors'] = []
++        for index, author in enumerate(author_refs):
++            role = safeget(lambda: rec['authors'][index].get('role'))
++            author_role = {
++                'type': {'key': '/type/author_role'},
++                'author': author['key'],
++            }
++            if role:
++                author_role['role'] = role
++            work['authors'].append(author_role)
+         if work.get('authors'):
+             need_work_save = True
+ 
+@@ -968,7 +1074,12 @@ def should_overwrite_promise_item(
+     return bool(safeget(lambda: edition['source_records'][0], '').startswith("promise"))
+ 
+ 
+-def load(rec: dict, account_key=None, from_marc_record: bool = False) -> dict:
++def load(
++    rec: dict,
++    account_key=None,
++    from_marc_record: bool = False,
++    save: bool = True,
++) -> dict:
+     """Given a record, tries to add/match that edition in the system.
+ 
+     Record is a dictionary containing all the metadata of the edition.
+@@ -991,35 +1102,44 @@ def load(rec: dict, account_key=None, from_marc_record: bool = False) -> dict:
+     edition_pool = build_pool(rec)
+     if not edition_pool:
+         # No match candidates found, add edition
+-        return load_data(rec, account_key=account_key)
++        return load_data(rec, account_key=account_key, save=save)
+ 
+     match = find_match(rec, edition_pool)
+     if not match:
+         # No match found, add edition
+-        return load_data(rec, account_key=account_key)
++        return load_data(rec, account_key=account_key, save=save)
+ 
+     # We have an edition match at this point
+     need_work_save = need_edition_save = False
+     work: dict[str, Any]
+-    existing_edition: Edition = web.ctx.site.get(match)
++    existing_edition: Edition | dict = web.ctx.site.get(match)
++    if not save:
++        existing_edition = _record_dict(existing_edition)
++        existing_edition.setdefault('key', match)
+ 
+     # check for, and resolve, author redirects
+-    for a in existing_edition.authors:
+-        while is_redirect(a):
+-            if a in existing_edition.authors:
+-                existing_edition.authors.remove(a)
+-            a = web.ctx.site.get(a.location)
+-            if not is_redirect(a):
+-                existing_edition.authors.append(a)
+-
+-    if existing_edition.get('works'):
+-        work = existing_edition.works[0].dict()
+-        work_created = False
+-    else:
+-        # Found an edition without a work
+-        work_created = need_work_save = need_edition_save = True
+-        work = new_work(existing_edition.dict(), rec)
+-        existing_edition.works = [{'key': work['key']}]
++    resolved_authors = []
++    for author_ref in existing_edition.get('authors', []) or []:
++        author_key = (
++            author_ref.get('key')
++            if isinstance(author_ref, dict)
++            else getattr(author_ref, 'key', None)
++        )
++        author = (
++            author_ref
++            if not isinstance(author_ref, dict) and is_redirect(author_ref)
++            else web.ctx.site.get(author_key)
++        )
++        seen_author_keys = set()
++        while author and is_redirect(author):
++            if author.key in seen_author_keys:
++                break
++            seen_author_keys.add(author.key)
++            author = web.ctx.site.get(author.location)
++        if author:
++            resolved_authors.append({'key': author.key})
++    if resolved_authors:
++        existing_edition['authors'] = resolved_authors
+ 
+     # Send revision 1 promise item editions to the same pipeline as new editions
+     # because we want to overwrite most of their data.
+@@ -1027,17 +1147,59 @@ def load(rec: dict, account_key=None, from_marc_record: bool = False) -> dict:
+         edition=existing_edition, from_marc_record=from_marc_record
+     ):
+         return load_data(
+-            rec, account_key=account_key, existing_edition=existing_edition
++            rec,
++            account_key=account_key,
++            existing_edition=existing_edition,
++            save=save,
+         )
+ 
++    existing_works = existing_edition.get('works') or []
++    if existing_works:
++        work_key = (
++            existing_works[0].get('key')
++            if isinstance(existing_works[0], dict)
++            else existing_works[0].key
++        )
++        work = _record_dict(web.ctx.site.get(work_key))
++        work_created = False
++    else:
++        # Found an edition without a work
++        work_created = need_work_save = need_edition_save = True
++        work = new_work(_record_dict(existing_edition), rec, save=save)
++        existing_edition['works'] = [{'key': work['key']}]
++
++    try:
++        rec_as_edition = import_record_to_edition(rec)
++    except InvalidLanguage as e:
++        return _import_failure(e, save, rec)
++
+     need_edition_save = update_edition_with_rec_data(
+-        rec=rec, account_key=account_key, edition=existing_edition
+-    )
++        rec=rec,
++        account_key=account_key,
++        edition=existing_edition,
++        save=save,
++        rec_as_edition=rec_as_edition,
++    ) or need_edition_save
++
++    author_edits = []
++    author_refs = []
++    author_reply = []
++    if not work.get('authors') and rec_as_edition.get('authors'):
++        author_refs, author_reply = load_author_import_records(
++            rec_as_edition['authors'],
++            author_edits,
++            rec['source_records'][0],
++            save=save,
++        )
+     need_work_save = update_work_with_rec_data(
+-        rec=rec, edition=existing_edition, work=work, need_work_save=need_work_save
++        rec=rec,
++        edition=existing_edition,
++        work=work,
++        need_work_save=need_work_save,
++        author_refs=author_refs,
+     )
+ 
+-    edits = []
++    edits = author_edits
+     reply = {
+         'success': True,
+         'edition': {'key': match, 'status': 'matched'},
+@@ -1050,13 +1212,20 @@ def load(rec: dict, account_key=None, from_marc_record: bool = False) -> dict:
+     if need_work_save:
+         reply['work']['status'] = 'created' if work_created else 'modified'  # type: ignore[index]
+         edits.append(work)
+-    if edits:
++    if edits and save:
+         web.ctx.site.save_many(
+             edits, comment='import existing book', action='edit-book'
+         )
+-    if 'ocaid' in rec:
++    if save and 'ocaid' in rec:
+         update_ia_metadata_for_ol_edition(match.split('/')[-1])
+-    return reply
++    if author_reply:
++        reply['authors'] = author_reply
++    return _include_preview_data(
++        reply,
++        save,
++        edits,
++        check_cover_url_host(rec.get('cover'), ALLOWED_COVER_HOSTS),
++    )
+ 
+ 
+ def setup():
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index a8da508..2277c51 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -268,7 +268,9 @@ def remove_author_honorifics(name: str) -> str:
+     return name
+ 
+ 
+-def import_author(author: dict[str, Any], eastern=False) -> "Author | dict[str, Any]":
++def _legacy_import_author(
++    author: dict[str, Any], eastern=False
++) -> "Author | dict[str, Any]":
+     """
+     Converts an import style new-author dictionary into an
+     Open Library existing author, or new author candidate, representation.
+@@ -306,10 +308,185 @@ def import_author(author: dict[str, Any], eastern=False) -> "Author | dict[str,
+     return a
+ 
+ 
++def _author_years_match(incoming: dict[str, Any], existing: "Author") -> bool:
++    """Match every birth/death year supplied by an import record."""
++    for field in ('birth_date', 'death_date', 'date'):
++        incoming_year = extract_year(str(incoming.get(field) or ''))
++        if not incoming_year:
++            continue
++        existing_year = extract_year(str(existing.get(field) or ''))
++        if incoming_year != existing_year:
++            return False
++    return True
++
++
++def _author_name_key(name: str) -> str:
++    return ' '.join(name.casefold().split())
++
++
++def _resolve_author_redirect(author: "Author") -> "Author":
++    seen = set()
++    while author.type.key == '/type/redirect':
++        if author['key'] in seen or author['location'] in seen:
++            break
++        seen.add(author['key'])
++        author = web.ctx.site.get(author['location'])
++    return author
++
++
++def _author_records_for_query(query: dict[str, Any]) -> list["Author"]:
++    keys = list(web.ctx.site.things(query))
++    records = web.ctx.site.get_many(keys) if keys else []
++    authors = []
++    seen = set()
++    for author in records:
++        author = _resolve_author_redirect(author)
++        if author and author['key'] not in seen:
++            seen.add(author['key'])
++            authors.append(author)
++    return authors
++
++
++def _author_sort_key(author: "Author") -> tuple[int, str]:
++    try:
++        return int(extract_numeric_id_from_olid(author.key)), author.key
++    except (AttributeError, TypeError, ValueError):
++        return 2**63, str(author.get('key', ''))
++
++
++def _find_import_author(
++    author: dict[str, Any], eastern: bool = False
++) -> "Author | None":
++    """Find an author using explicit IDs, remote IDs, then increasingly broad names."""
++    if (key := author.get('key')) and (existing := web.ctx.site.get(key)):
++        existing = _resolve_author_redirect(existing)
++        if author.get('remote_ids'):
++            existing.merge_remote_ids(author['remote_ids'])
++        return existing
++
++    remote_ids = author.get('remote_ids') or {}
++    if remote_ids:
++        matches = {}
++        for identifier, value in remote_ids.items():
++            query = {
++                'type': '/type/author',
++                f'remote_ids.{identifier}': value,
++            }
++            for existing in _author_records_for_query(query):
++                matches[existing.key] = existing
++        if matches:
++            scored = []
++            for existing in matches.values():
++                # Also detects an incoming identifier that conflicts with a
++                # different identifier already stored on this author.
++                _, common_ids = existing.merge_remote_ids(remote_ids)
++                scored.append(
++                    (
++                        -(common_ids if common_ids >= 0 else 0),
++                        _author_sort_key(existing),
++                        existing,
++                    )
++                )
++            return min(scored, key=lambda item: (item[0], item[1]))[2]
++
++    name = author.get('name', '')
++    escaped_name = name.replace('*', r'\*')
++    candidate_groups = [
++        _author_records_for_query(
++            {'type': '/type/author', 'name~': escaped_name}
++        ),
++        _author_records_for_query(
++            {'type': '/type/author', 'alternate_names~': escaped_name}
++        ),
++    ]
++    tokens = name.split()
++    if tokens and author.get('entity_type') != 'org':
++        surname = tokens[0] if eastern else tokens[-1]
++        candidate_groups.append(
++            _author_records_for_query(
++                {
++                    'type': '/type/author',
++                    'name~': f'* {surname}',
++                }
++            )
++        )
++
++    normalized_name = _author_name_key(name)
++    for group_index, candidates in enumerate(candidate_groups):
++        matches = []
++        for candidate in candidates:
++            if not _author_years_match(author, candidate):
++                continue
++            if group_index == 0:
++                candidate_names = [candidate.get('name', '')]
++                if not any(
++                    _author_name_key(candidate_name) == normalized_name
++                    for candidate_name in candidate_names
++                ):
++                    continue
++            elif group_index == 1:
++                alternate_names = candidate.get('alternate_names', []) or []
++                if isinstance(alternate_names, str):
++                    alternate_names = [alternate_names]
++                if not any(
++                    _author_name_key(alternate_name) == normalized_name
++                    for alternate_name in alternate_names
++                ):
++                    continue
++            else:
++                existing_name = candidate.get('name', '')
++                existing_tokens = existing_name.split()
++                if not existing_tokens:
++                    continue
++                existing_surname = existing_tokens[0] if eastern else existing_tokens[-1]
++                if _author_name_key(existing_surname) != _author_name_key(surname):
++                    continue
++            matches.append(candidate)
++        if matches:
++            selected = min(matches, key=_author_sort_key)
++            if remote_ids:
++                selected.merge_remote_ids(remote_ids)
++            return selected
++    return None
++
++
++def author_import_record_to_author(
++    author_import_record: dict[str, Any], eastern: bool = False
++) -> "Author | dict[str, Any]":
++    """Normalize an import author and return a match or a new author candidate."""
++    assert isinstance(author_import_record, dict)
++    author = dict(author_import_record)
++    if name := author.get('name'):
++        author['name'] = remove_author_honorifics(name)
++    if personal_name := author.get('personal_name'):
++        author['personal_name'] = remove_author_honorifics(personal_name)
++    if author.get('entity_type') != 'org' and not eastern:
++        do_flip(author)
++
++    if existing := _find_import_author(author, eastern=eastern):
++        assert existing.type.key == '/type/author'
++        return existing
++
++    fields = (
++        'name',
++        'title',
++        'personal_name',
++        'birth_date',
++        'death_date',
++        'date',
++        'remote_ids',
++        'alternate_names',
++        'entity_type',
++    )
++    candidate = {'type': {'key': '/type/author'}}
++    candidate.update({field: author[field] for field in fields if field in author})
++    return candidate
++
++
+ type_map = {'description': 'text', 'notes': 'text', 'number_of_pages': 'int'}
+ 
+ 
+-def build_query(rec: dict[str, Any]) -> dict[str, Any]:
++def import_record_to_edition(rec: dict[str, Any]) -> dict[str, Any]:
+     """
+     Takes an edition record dict, rec, and returns an Open Library edition
+     suitable for saving.
+@@ -320,12 +497,18 @@ def build_query(rec: dict[str, Any]) -> dict[str, Any]:
+     }
+     for k, v in rec.items():
+         if k == 'authors':
+-            if v and v[0]:
++            if v:
+                 book['authors'] = []
+                 for author in v:
+-                    author['name'] = remove_author_honorifics(author['name'])
+-                    east = east_in_by_statement(rec, author)
+-                    book['authors'].append(import_author(author, eastern=east))
++                    if not author:
++                        continue
++                    if isinstance(author, dict):
++                        east = east_in_by_statement(rec, author)
++                        book['authors'].append(
++                            author_import_record_to_author(author, eastern=east)
++                        )
++                    else:
++                        book['authors'].append(author)
+             continue
+ 
+         if k in ('languages', 'translated_from'):
+@@ -342,3 +525,9 @@ def build_query(rec: dict[str, Any]) -> dict[str, Any]:
+         else:
+             book[k] = v
+     return book
++
++
++# Compatibility names retained for existing internal callers. New import code
++# should use the explicit conversion names above.
++import_author = _legacy_import_author
++build_query = import_record_to_edition
+diff --git a/openlibrary/catalog/add_book/tests/test_add_book.py b/openlibrary/catalog/add_book/tests/test_add_book.py
+index 64997c1..10dff5e 100644
+--- a/openlibrary/catalog/add_book/tests/test_add_book.py
++++ b/openlibrary/catalog/add_book/tests/test_add_book.py
+@@ -1296,7 +1296,7 @@ def test_covers_are_added_to_edition(mock_site, monkeypatch) -> None:
+         'authors': [{'name': 'John Smith'}],
+         'publishers': ['Black Spot'],
+         'publish_date': 'Jan 09, 2011',
+-        'cover': 'https://www.covers.org/cover.jpg',
++        'cover': 'https://m.media-amazon.com/cover.jpg',
+     }
+ 
+     monkeypatch.setattr(add_book, "add_cover", lambda _, __, account_key: 1234)
+diff --git a/openlibrary/plugins/importapi/code.py b/openlibrary/plugins/importapi/code.py
+index c0678a3..d8eb9ce 100644
+--- a/openlibrary/plugins/importapi/code.py
++++ b/openlibrary/plugins/importapi/code.py
+@@ -181,6 +181,8 @@ class importapi:
+         if not can_write():
+             raise web.HTTPError('403 Forbidden')
+ 
++        params = web.input()
++        preview = str(params.get('preview', '')).casefold() == 'true'
+         data = web.data()
+ 
+         try:
+@@ -195,7 +197,7 @@ class importapi:
+             return self.error('unknown-error', 'Failed to parse import data')
+ 
+         try:
+-            reply = add_book.load(edition)
++            reply = add_book.load(edition, save=not preview)
+             # TODO: If any records have been created, return a 201, otherwise 200
+             return json.dumps(reply)
+         except add_book.RequiredField as e:
+@@ -240,7 +242,11 @@ class ia_importapi(importapi):
+ 
+     @classmethod
+     def ia_import(
+-        cls, identifier: str, require_marc: bool = True, force_import: bool = False
++        cls,
++        identifier: str,
++        require_marc: bool = True,
++        force_import: bool = False,
++        preview: bool = False,
+     ) -> str:
+         """
+         Performs logic to fetch archive.org item + metadata,
+@@ -289,7 +295,7 @@ class ia_importapi(importapi):
+ 
+         # Add IA specific fields: ocaid, source_records, and cover
+         edition_data = cls.populate_edition_data(edition_data, identifier)
+-        return cls.load_book(edition_data, from_marc_record)
++        return cls.load_book(edition_data, from_marc_record, save=not preview)
+ 
+     def POST(self):
+         web.header('Content-Type', 'application/json')
+@@ -302,6 +308,7 @@ class ia_importapi(importapi):
+         require_marc = i.get('require_marc') != 'false'
+         force_import = i.get('force_import') == 'true'
+         bulk_marc = i.get('bulk_marc') == 'true'
++        preview = str(i.get('preview', '')).casefold() == 'true'
+ 
+         if 'identifier' not in i:
+             return self.error('bad-input', 'identifier not provided')
+@@ -363,7 +370,7 @@ class ia_importapi(importapi):
+ 
+                 except BookImportError as e:
+                     return self.error(e.error_code, e.error, **e.kwargs)
+-            result = add_book.load(edition)
++            result = add_book.load(edition, save=not preview)
+ 
+             # Add next_data to the response as location of next record:
+             result.update(next_data)
+@@ -371,7 +378,10 @@ class ia_importapi(importapi):
+ 
+         try:
+             return self.ia_import(
+-                identifier, require_marc=require_marc, force_import=force_import
++                identifier,
++                require_marc=require_marc,
++                force_import=force_import,
++                preview=preview,
+             )
+         except BookImportError as e:
+             return self.error(e.error_code, e.error, **e.kwargs)
+@@ -454,7 +464,9 @@ class ia_importapi(importapi):
+         return d
+ 
+     @staticmethod
+-    def load_book(edition_data: dict, from_marc_record: bool = False) -> str:
++    def load_book(
++        edition_data: dict, from_marc_record: bool = False, save: bool = True
++    ) -> str:
+         """
+         Takes a well constructed full Edition record and sends it to add_book
+         to check whether it is already in the system, and to add it, and a Work
+@@ -463,7 +475,9 @@ class ia_importapi(importapi):
+         :param dict edition_data: Edition record
+         :param bool from_marc_record: whether the record is based on a MARC record.
+         """
+-        result = add_book.load(edition_data, from_marc_record=from_marc_record)
++        result = add_book.load(
++            edition_data, from_marc_record=from_marc_record, save=save
++        )
+         return json.dumps(result)
+ 
+     @staticmethod

@@ -1,0 +1,3 @@
+DynamoDB audit events now write metadata to the native `FieldsMap` attribute. Reads accept both `FieldsMap` and legacy `Fields` records while a distributed lock protects a resumable batch migration. The migration validates converted content and logs progress and conversion errors.
+
+`go test ./lib/events/dynamoevents ./lib/backend -count=1` passes. The AWS integration suite remains gated by `AWSRunTests` and was not run.

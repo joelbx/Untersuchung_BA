@@ -1,0 +1,3 @@
+Implemented `nios_fixed_address` for IPv4 and IPv6 fixed addresses, including present/absent state, check mode, metadata, DHCP options, and provider validation. Added the WAPI object constants and MAC-aware lookup support in [api.py](/app/lib/ansible/module_utils/net_tools/nios/api.py:48); the new module is [nios_fixed_address.py](/app/lib/ansible/modules/net_tools/nios/nios_fixed_address.py:139).
+
+All 54 existing NIOS unit tests passed, and syntax and diff checks passed. `ansible-test` could not run because its required Python 2.6 and 3.7 interpreters are unavailable.

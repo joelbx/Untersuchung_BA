@@ -1,0 +1,2 @@
+Task: Separate configuration warnings from Config in Load result; warn for explicit deprecated keys including ui.enabled.
+Status: Complete. Implemented Result return type, removed Config.Warnings, evaluated file deprecations before defaults, added ui.enabled deprecation, and moved CLI logging to initialization. Updated existing config tests and added targeted deprecation cases. `GOPROXY=off GOTOOLCHAIN=local go test ./internal/config ./cmd/flipt` passed; `git diff --check` passed. Repository was clean at start. `rg` was unavailable; used find/grep.

@@ -1,0 +1,3 @@
+Updated the scanner to traverse absolute paths with native OS filesystem calls. It retains audio and playlist detection, directory ignore rules, and traversal error logging. Added [IsDirReadable](/app/utils/paths.go) and tests for successful and failed opens.
+
+`go test -count=1 ./scanner ./utils` passed, and `git diff --check` was clean. The Windows cross-compile could not complete because the taglib package reported `undefined: Read`; Windows-specific behavior remains unverified. The command and error are recorded in the checkpoint.

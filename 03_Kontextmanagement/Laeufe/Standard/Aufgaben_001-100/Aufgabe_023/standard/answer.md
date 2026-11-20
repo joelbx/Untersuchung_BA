@@ -1,0 +1,3 @@
+Updated authentication so each method declares whether it requires a database. JWT is database free; token, OIDC, GitHub, and Kubernetes require one. Startup now skips the auth database connection for JWT-only configurations on Local, Git, and OCI storage, while still registering JWT middleware. Cleanup runs only for enabled methods that require a database.
+
+Verified with `go test ./internal/config ./internal/cmd ./internal/cleanup` and `git diff --check`; both passed.

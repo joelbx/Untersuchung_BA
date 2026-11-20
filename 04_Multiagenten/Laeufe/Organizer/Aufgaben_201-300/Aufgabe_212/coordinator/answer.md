@@ -1,0 +1,3 @@
+Updated the WordPress WPScan ingestion in [wordpress.go](/app/detector/wordpress.go) to produce one record per vulnerability using the first CVE. Records now include Enterprise description, proof of concept, introduced version, and CVSS metrics when present, while retaining references, UTC timestamps, classification, and fix version. Missing or null optional fields leave an empty optional map.
+
+Added payload tests in [wordpress_test.go](/app/detector/wordpress_test.go). `go test ./detector -count=1` and `git diff --check` passed. No delegation was used.

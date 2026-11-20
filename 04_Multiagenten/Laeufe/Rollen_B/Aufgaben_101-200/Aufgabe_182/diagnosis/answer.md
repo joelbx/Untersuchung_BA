@@ -1,0 +1,5 @@
+The fault spans three files. In [display.py](/app/lib/ansible/utils/display.py:340), only `display()` is proxied, and it sends synthesized default kwargs. `warning()` and `deprecated()` deduplicate inside each worker. [task_queue_manager.py](/app/lib/ansible/executor/task_queue_manager.py:63) drops the method name, while [strategy/__init__.py](/app/lib/ansible/plugins/strategy/__init__.py:113) always replays messages as `display()`.
+
+The fix should proxy all three methods with the exact caller arguments, carry the method name in `DisplaySend`, and invoke that method in the parent. That lets the parent’s shared `Display` instance deduplicate warnings and deprecations across workers. One uncertainty: proxying `deprecated(..., removed=True)` may move its exception from the worker to the result thread.
+
+Two existing fork display tests pass, but one asserts the old synthesized kwargs behavior and will need updating for the requested interface. I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). This was a fault-localization pass; I did not edit project source or tests.

@@ -1,0 +1,1 @@
+Task: add filesystem :open completion. Status: implemented category, config/help, and tests. Verification: 73 completion tests passed (1 benchmark deselected); pytest launcher emits an X11 teardown error after summary. git diff --check clean.

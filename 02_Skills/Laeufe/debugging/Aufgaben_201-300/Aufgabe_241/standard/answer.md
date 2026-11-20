@@ -1,0 +1,3 @@
+Updated [VoiceBroadcastPreRecordingPip](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx) so “Go live” becomes a disabled native button during each initiation attempt and rapid activations call `start()` only once. Device selection remains anchored to the component, closes after selection, and updates the header label without a remount. Added coverage for repeated activation, completion, rejection, close, and device menu behavior.
+
+The relevant tests passed: 18 tests across 3 suites. ESLint, Prettier, and `git diff --check` passed. The full TypeScript check still fails on five existing `MatrixClient` typing errors outside the changed files; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

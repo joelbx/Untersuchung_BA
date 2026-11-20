@@ -1,0 +1,3 @@
+Implemented the unified SQLite connection setup and removed persistence’s fallback to the global database. The configured path now includes all seven required SQLite options, and transactions use the store’s connection.
+
+`go test ./db ./persistence` and `git diff --check` passed. The split `db.DB`/`dbxBuilder` wording conflicts with the issue’s stated goal of removing read/write separation, so I followed the unified connection behavior.

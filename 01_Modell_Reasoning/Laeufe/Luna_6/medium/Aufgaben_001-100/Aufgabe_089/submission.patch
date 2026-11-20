@@ -1,0 +1,199 @@
+diff --git a/internal/cue/validate.go b/internal/cue/validate.go
+index afa4f7b..8a7cce5 100644
+--- a/internal/cue/validate.go
++++ b/internal/cue/validate.go
+@@ -3,11 +3,16 @@ package cue
+ import (
+ 	_ "embed"
+ 	"errors"
++	"fmt"
++	"strings"
++
++	"go.flipt.io/flipt/internal/ext"
++	yamlv3 "gopkg.in/yaml.v3"
+ 
+ 	"cuelang.org/go/cue"
+ 	"cuelang.org/go/cue/cuecontext"
+ 	cueerrors "cuelang.org/go/cue/errors"
+-	"cuelang.org/go/encoding/yaml"
++	cueyaml "cuelang.org/go/encoding/yaml"
+ )
+ 
+ var (
+@@ -36,6 +41,35 @@ type Result struct {
+ 	Errors []Error `json:"errors"`
+ }
+ 
++type validationError struct {
++	message, file string
++	line, column  int
++}
++
++func (e validationError) Error() string {
++	return fmt.Sprintf("%s (%s %d:%d)", e.message, e.file, e.line, e.column)
++}
++
++type validationErrors []error
++
++func (e validationErrors) Error() string {
++	parts := make([]string, len(e))
++	for i := range e {
++		parts[i] = e[i].Error()
++	}
++	return strings.Join(parts, "\n")
++}
++func (e validationErrors) Unwrap() []error { return []error(e) }
++
++// Unwrap returns individual validation errors when err contains a validation error list.
++func Unwrap(err error) ([]error, bool) {
++	var multi interface{ Unwrap() []error }
++	if !errors.As(err, &multi) {
++		return nil, false
++	}
++	return multi.Unwrap(), true
++}
++
+ type FeaturesValidator struct {
+ 	cue *cue.Context
+ 	v   cue.Value
+@@ -55,43 +89,123 @@ func NewFeaturesValidator() (*FeaturesValidator, error) {
+ }
+ 
+ // Validate validates a YAML file against our cue definition of features.
+-func (v FeaturesValidator) Validate(file string, b []byte) (Result, error) {
+-	var result Result
++func (v FeaturesValidator) Validate(file string, b []byte) error {
+ 
+-	f, err := yaml.Extract("", b)
++	f, err := cueyaml.Extract("", b)
+ 	if err != nil {
+-		return result, err
++		return err
+ 	}
+ 
+ 	yv := v.cue.BuildFile(f)
+ 	if err := yv.Err(); err != nil {
+-		return Result{}, err
++		return err
+ 	}
+ 
+ 	err = v.v.
+ 		Unify(yv).
+ 		Validate(cue.All(), cue.Concrete(true))
+ 
++	var result validationErrors
+ 	for _, e := range cueerrors.Errors(err) {
+-		rerr := Error{
+-			Message: e.Error(),
+-			Location: Location{
+-				File: file,
+-			},
+-		}
++		rerr := validationError{message: e.Error(), file: file}
+ 
+ 		if pos := cueerrors.Positions(e); len(pos) > 0 {
+ 			p := pos[len(pos)-1]
+-			rerr.Location.Line = p.Line()
+-			rerr.Location.Column = p.Column()
++			rerr.line = p.Line()
++			rerr.column = p.Column()
+ 		}
+ 
+-		result.Errors = append(result.Errors, rerr)
++		result = append(result, rerr)
++	}
++	// Validate cross references with source locations from the YAML syntax tree.
++	var doc ext.Document
++	if yerr := yamlv3.Unmarshal(b, &doc); yerr == nil {
++		var root yamlv3.Node
++		_ = yamlv3.Unmarshal(b, &root)
++		locs := referenceLocations(&root)
++		segments := map[string]bool{}
++		for _, s := range doc.Segments {
++			if s != nil {
++				segments[s.Key] = true
++			}
++		}
++		ns := doc.Namespace
++		if ns == "" {
++			ns = "default"
++		}
++		for _, f := range doc.Flags {
++			if f == nil {
++				continue
++			}
++			variants := map[string]bool{}
++			for _, x := range f.Variants {
++				if x != nil {
++					variants[x.Key] = true
++				}
++			}
++			for i, r := range f.Rules {
++				if r == nil {
++					continue
++				}
++				loc := locs[fmt.Sprintf("rule:%s:%d", f.Key, i)]
++				for _, d := range r.Distributions {
++					if d != nil && !variants[d.VariantKey] {
++						result = append(result, validationError{fmt.Sprintf("flag %s/%s rule %d references unknown variant %q", ns, f.Key, i+1, d.VariantKey), file, loc.Line, loc.Column})
++					}
++				}
++				var refs []string
++				switch x := r.Segment.IsSegment.(type) {
++				case ext.SegmentKey:
++					refs = []string{string(x)}
++				case *ext.Segments:
++					refs = x.Keys
++				}
++				for _, key := range refs {
++					if !segments[key] {
++						result = append(result, validationError{fmt.Sprintf("flag %s/%s rule %d references unknown segment %q", ns, f.Key, i+1, key), file, loc.Line, loc.Column})
++					}
++				}
++			}
++		}
+ 	}
+ 
+-	if len(result.Errors) > 0 {
+-		return result, ErrValidationFailed
++	if len(result) > 0 {
++		return result
+ 	}
+ 
+-	return result, nil
++	return nil
++}
++
++type sourcePosition struct{ Line, Column int }
++func referenceLocations(root *yamlv3.Node) map[string]sourcePosition {
++	out := map[string]sourcePosition{}
++	if root == nil || len(root.Content) == 0 {
++		return out
++	}
++	get := func(n *yamlv3.Node, key string) *yamlv3.Node {
++		if n == nil {
++			return nil
++		}
++		for i := 0; i+1 < len(n.Content); i += 2 {
++			if n.Content[i].Value == key {
++				return n.Content[i+1]
++			}
++		}
++		return nil
++	}
++	flags := get(root.Content[0], "flags")
++	if flags == nil {
++		return out
++	}
++	for _, fn := range flags.Content {
++		key := get(fn, "key")
++		rules := get(fn, "rules")
++		if key == nil || rules == nil {
++			continue
++		}
++		for i, rn := range rules.Content {
++			out[fmt.Sprintf("rule:%s:%d", key.Value, i)] = pos{rn.Line, rn.Column}
++		}
++	}
++	return out
+ }

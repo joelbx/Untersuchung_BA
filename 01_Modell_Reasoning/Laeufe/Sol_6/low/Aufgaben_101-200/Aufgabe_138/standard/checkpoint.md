@@ -1,0 +1,1 @@
+Implemented storage.oci.manifest_version (1.0 or 1.1), default 1.1, validation, schema entries, and WithManifestVersion wiring into bundle creation. Added config fixtures and a bundle manifest test. Verified: go test ./internal/oci ./internal/config ./config ./internal/storage/fs/store passed; git diff --check passed.

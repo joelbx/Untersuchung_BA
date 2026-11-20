@@ -1,0 +1,3 @@
+Voice broadcast liveness now derives from the info state through [determineVoiceBroadcastLiveness.ts](/app/src/voice-broadcast/utils/determineVoiceBroadcastLiveness.ts). [VoiceBroadcastPlayback.ts](/app/src/voice-broadcast/models/VoiceBroadcastPlayback.ts) updates it only in `setInfoState`; playback controls and chunk changes no longer change it.
+
+The focused tests pass (64 tests), as do targeted ESLint and Prettier checks. The repository-wide TypeScript check still reports five errors in unrelated files.

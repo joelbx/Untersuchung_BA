@@ -1,0 +1,3 @@
+`UserPropsRepository` and its mock now require an explicit `userId` for every read and write. LastFM uses that ID for link status, unlinking, now playing, scrobbling, and session key storage. The callback now uses a short-lived signed state issued through an authenticated route, replacing the client-supplied `uid`.
+
+Regression tests cover two-user isolation and callback state validation. `GOPROXY=off go test ./...`, the UI Prettier check, and `git diff --check` passed. No delegation was used.

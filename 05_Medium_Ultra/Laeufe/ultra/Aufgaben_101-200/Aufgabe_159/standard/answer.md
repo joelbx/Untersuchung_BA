@@ -1,0 +1,3 @@
+Fixed CycloneDX PURL generation in [cyclonedx.go](/app/reporter/sbom/cyclonedx.go:261). `parsePkgName` now returns namespace, name, and subpath for Maven, PyPI, Golang, npm, and Cocoapods. Both library and GitHub manifest paths use the parsed values, with source ecosystem identifiers mapped to the corresponding PURL types.
+
+Added [tests](/app/reporter/sbom/cyclonedx_test.go:11) for the parser and emitted PURLs. The offline `go test ./reporter/...` suite and `git diff --check` passed. Two subagents reviewed the call sites and patch; neither made edits.

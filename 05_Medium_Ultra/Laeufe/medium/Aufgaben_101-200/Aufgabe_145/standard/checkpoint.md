@@ -1,0 +1,3 @@
+Task: Fix photos recovery to include regular and trashed photos, gate on both decryptions, handle errors and progress, and resume persisted in-progress state.
+Status: Complete. Both synchronized recovery hooks load trash on recovery, wait for both caches, merge share-owned trashed photo entries with regular items, count outstanding move failures, and require empty source photos before success. Persisted in-progress state resumes. Both focused Jest suites pass (10 tests each). Both TypeScript checks report only the existing openpgp/pmcrypto mismatch in packages/crypto/lib/worker/api.ts:579.
+Constraints: Local repository only; no git history, index baseline, or harness changes.

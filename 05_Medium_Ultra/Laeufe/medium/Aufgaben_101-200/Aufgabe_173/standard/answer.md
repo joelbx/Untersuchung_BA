@@ -1,0 +1,3 @@
+Implemented database service failover: the proxy keeps all matching servers, shuffles them by default, and tries the next server when a tunnel connection fails. Tests can supply a deterministic shuffle and simulate offline tunnels. `tsh db ls` now shows one entry per service name, and server logs include `HostID`.
+
+The targeted database proxy and `tsh` tests passed. The API unit test could not run because a required dependency is unavailable locally and downloads are disabled.

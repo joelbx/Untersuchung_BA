@@ -1,0 +1,1 @@
+Completed: Added bounded 5000 ms / five-attempt event polling with optional property/action subscription, early completion, cleanup, and guards against late events. PayPal V5 now waits for PaymentMethods CREATE. Five focused tests pass; component typecheck and Prettier check pass; git diff --check is clean.

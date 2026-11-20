@@ -1,0 +1,3 @@
+Implemented centralized author identifier generation in [catalog/utils](</app/openlibrary/catalog/utils/__init__.py:71>) and made [record expansion](</app/openlibrary/catalog/utils/__init__.py:353>) apply it automatically. Existing edition authors are now passed to expansion with only their name and birth/death dates in [match.py](</app/openlibrary/catalog/add_book/match.py:53>); the add-book package re-exports the shared helper.
+
+Validation: **127 passed, 2 xfailed, 1 xpassed** across the catalog utility, add-book, matching, and merge tests. `git diff --check` passed.

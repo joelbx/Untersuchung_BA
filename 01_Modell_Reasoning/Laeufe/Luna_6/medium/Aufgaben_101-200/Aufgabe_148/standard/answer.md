@@ -1,0 +1,3 @@
+Implemented `Teleport-Proxy` frame handling in the SSH multiplexer. It consumes the JSON payload and null terminator, classifies the following traffic normally, and exposes `ClientAddr` through `RemoteAddr()` when present. Connections without that field keep their socket address.
+
+Added tests for both address cases and for preserving the initial SSH identification line. `go test ./lib/multiplexer` passes.

@@ -1,0 +1,3 @@
+Implemented the file picker workaround in [webview.py](/app/qutebrowser/browser/webengine/webview.py). For affected Qt runtime versions, it adds missing suffixes from Python’s MIME mappings to the types passed to Qt, without adding duplicate extensions. Added regression tests in [test_webview.py](/app/tests/unit/browser/webengine/test_webview.py).
+
+The focused tests pass (12/12), and the WebEngine unit tests pass (128/128). The full suite did not pass in this environment: end-to-end tests could not start Chromium as root without its sandbox flag, and a broader unit run stopped on an unrelated Qt `propagateSizeHints()` warning.

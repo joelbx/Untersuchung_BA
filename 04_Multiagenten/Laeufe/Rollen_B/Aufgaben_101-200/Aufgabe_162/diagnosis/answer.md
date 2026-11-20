@@ -1,0 +1,5 @@
+The fault is in [`FormatString.to_py`](/app/qutebrowser/config/configtypes.py:1561): it validates placeholders but never checks encoding. [`String.to_py`](/app/qutebrowser/config/configtypes.py:428) already converts encoding failures into `ValidationError`. The [`content.headers.user_agent` setting](/app/qutebrowser/config/configdata.yml:639) also needs `encoding: ascii` to apply that constraint.
+
+The fix should give `FormatString` an optional encoding argument, validate the input template during `to_py`, reject non-ASCII characters with a clear `ValidationError` when ASCII is selected, and preserve current behavior when no encoding is specified. [`TestFormatString`](/app/tests/unit/config/test_configtypes.py:1814) has no encoding cases; the 67 existing focused tests pass. Template validation alone would not check text substituted into placeholders at runtime.
+
+I recorded the diagnosis in `.codex-role-output/checkpoint.md`. My assigned fault-localization role prohibits project source and test edits, so no fix was applied.

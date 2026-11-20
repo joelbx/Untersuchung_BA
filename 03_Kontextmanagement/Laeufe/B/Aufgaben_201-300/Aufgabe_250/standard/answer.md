@@ -1,0 +1,1 @@
+Implemented `luqum_replace_child` in [query_utils.py](/app/openlibrary/solr/query_utils.py) and added tests for supported parents, equal children, missing children, and unsupported parents. The relevant test suite passed: **11 tests**.

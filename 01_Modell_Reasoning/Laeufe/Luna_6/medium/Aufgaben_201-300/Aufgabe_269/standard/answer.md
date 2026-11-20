@@ -1,0 +1,3 @@
+Implemented source specific Trivy CVE content across conversion, library detection, model aggregation, and TUI references. Entries preserve per source severity, CVSS scores and vectors, references, and publication dates. The checkpoint is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+Verification passed: `go test ./contrib/trivy/pkg ./models ./detector ./tui` and `git diff --check`.

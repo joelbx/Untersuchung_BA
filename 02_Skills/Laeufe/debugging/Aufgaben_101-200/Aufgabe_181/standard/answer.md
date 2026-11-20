@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) so finished messages name the correct PID, crashes name the signal, and SIGTERM sets the state to `terminated`. SIGTERM now produces a message only in verbose mode. Added regression cases in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py).
+
+Local outcome and message checks passed. The repository tests could not run because PyQt5 is missing; that limit is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

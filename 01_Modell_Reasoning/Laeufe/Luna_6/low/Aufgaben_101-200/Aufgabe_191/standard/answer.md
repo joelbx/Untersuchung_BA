@@ -1,0 +1,3 @@
+Implemented registration-token support in [InteractiveAuthEntryComponents.tsx](/app/src/components/views/auth/InteractiveAuthEntryComponents.tsx). Both stable and MSC3231 auth types route to the new entry, which submits the advertised `type` and token, supports Enter and button submission, and includes the required focus, help text, loading, disabled, and accessible error states.
+
+Focused ESLint, Prettier, and diff checks pass. `yarn lint:types` is blocked by unrelated existing SlidingSync type errors. No InteractiveAuth-specific tests were found. Checkpoint: `.codex-role-output/checkpoint.md`.

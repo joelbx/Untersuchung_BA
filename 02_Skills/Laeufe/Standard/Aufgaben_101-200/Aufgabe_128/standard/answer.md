@@ -1,0 +1,3 @@
+Added ipset support to the `iptables` module. Rules now accept `match_set` with `match_set_flags` (`src`, `dst`, `src,dst`, or `dst,src`), generate the set match with or without an explicit `match: set`, and support `!` inversion. The module rejects incomplete pairs and empty set names.
+
+All 27 module tests pass; `git diff --check` passes. Live iptables parsing remains unverified because the `iptables` binary is unavailable.

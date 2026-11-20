@@ -1,0 +1,3 @@
+Implemented album image tracking in `/app`. Directory scans now collect every image filename, and album refreshes combine those names with sorted, distinct media directories to store full paths separated by `filepath.ListSeparator`. The [Album model](/app/model/album.go:10) exposes the field, and the [migration](/app/db/migration/20261022120000_add_album_image_files.go:13) adds `album.image_files` and triggers a full rescan.
+
+I delegated the model, migration, and scanner changes, then integrated and reviewed the patch. Model, database, persistence, and scanner tests passed with downloads disabled; `git diff --check` passed.

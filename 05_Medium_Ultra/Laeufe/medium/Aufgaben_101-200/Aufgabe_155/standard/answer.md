@@ -1,0 +1,3 @@
+Digest-based images are now supported across configuration, scanning, scan results, logging, and report identifiers. Validation requires a name and exactly one of tag or digest. Image OS detection now uses `<index>@<originalServerName>`.
+
+The config, scan, and report tests passed. Selected models tests passed; the full models suite remains blocked by an existing vet warning and a vulnerability database test that returned no findings.

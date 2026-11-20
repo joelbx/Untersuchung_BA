@@ -1,0 +1,3 @@
+Fixed the Kubernetes exec startup issue. The Kubernetes service now creates the session streaming directory and starts its uploader. The forwarder caches credentials instead of request scoped sessions, keeps audit recording alive after client disconnects, and emits final exec audit events when streaming fails.
+
+Verified with `go test ./lib/kube/proxy ./lib/service` and `git diff --check`; both passed.

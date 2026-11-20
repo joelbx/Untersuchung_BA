@@ -1,0 +1,3 @@
+Implemented the cache modes in [dataloader.py](/app/lib/ansible/parsing/dataloader.py): `'none'` bypasses the cache, while `'vaulted'` caches and reuses parsed vaulted files only. Play `vars_files` now uses vaulted-only caching, and unit coverage exercises both modes.
+
+Validation passed: 33 dataloader tests, 8 variable manager tests, and `git diff --check`. `ansible-test` could not run because `pytest-xdist` is unavailable; the tests passed when run directly with pytest.

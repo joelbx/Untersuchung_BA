@@ -1,0 +1,3 @@
+Updated the config loader to read the three DB pool options and `meta.check_for_updates` when present. `Default()` now leaves update checks disabled, so files that omit the key still load field-for-field equal to `Default()`. Added fixture coverage for pool values and explicit true and false flag values in [config tests](/app/config/config_test.go:44).
+
+Tests passed: `go test ./config -count=1` and `go test ./cmd/flipt ./storage/db -count=1`. Two subagents reviewed the loader and test coverage; I integrated and verified the patch.

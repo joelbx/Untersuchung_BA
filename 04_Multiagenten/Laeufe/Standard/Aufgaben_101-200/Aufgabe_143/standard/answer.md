@@ -1,0 +1,3 @@
+Centralized `add_db_name` in [catalog.utils](/app/openlibrary/catalog/utils/__init__.py). `expand_record` now adds an identifier to every author, using the name alone when dates are unavailable. Existing editions now pass author names and birth and death dates into expansion for the same handling.
+
+Updated the matching tests, including the nearby publication date threshold case. The catalog add_book and merge suites passed: 105 passed, 1 skipped, 2 expected failures, and 1 unexpected pass.

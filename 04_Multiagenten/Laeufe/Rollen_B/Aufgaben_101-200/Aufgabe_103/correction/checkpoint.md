@@ -1,0 +1,1 @@
+Progress: Fixed source RPM parsing for hyphenated releases with both `.src.rpm` and `-src.rpm`. Added regression coverage for `package-0-1-extra.src.rpm` and ambiguous numeric names. Corrected an epoch-prefix regression found by the first test run. Both exact reviewer-flagged test commands now pass; `git diff --check` passes. No missing dependencies or remaining test failures.

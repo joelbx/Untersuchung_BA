@@ -1,0 +1,3 @@
+Implemented the coverstore archival changes in `/app`: new batches use uncompressed ZIPs with padded paths, upload verification, batch locks, and database URLs set only after finalization. Legacy tar retrieval remains supported.
+
+The coverstore tests passed (**21 passed, 7 skipped**), and `git diff --check` passed. Existing databases will need the new `failed` and `uploaded` columns and indexes applied.

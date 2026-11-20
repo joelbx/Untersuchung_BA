@@ -1,0 +1,3 @@
+Implemented bounded event polling for new payment methods. The hook now exports `interval = 5000` and `maxPollingSteps = 5`, supports an optional property and action match, and unsubscribes when a match arrives or polling completes. PayPal V5 now polls for `PaymentMethods` with `EVENT_ACTIONS.CREATE`.
+
+Verification passed: five focused tests, the component type check, Prettier, and `git diff --check`.

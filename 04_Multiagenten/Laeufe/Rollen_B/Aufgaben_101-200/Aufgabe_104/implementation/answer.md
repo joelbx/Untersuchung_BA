@@ -1,0 +1,3 @@
+Added `metadata.check_for_updates` to the configuration loader, with a default of `true` and support for an explicit `false` in YAML and JSON. The option is documented in [config/default.yml](/app/config/default.yml), and the config tests cover both file formats and the default.
+
+`go test ./config` and `git diff --check` pass. No startup version-check consumer was found, so this patch makes the preference available to the application but does not add startup behavior.

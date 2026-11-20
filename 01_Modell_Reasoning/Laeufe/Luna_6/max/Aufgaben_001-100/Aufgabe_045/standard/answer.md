@@ -1,0 +1,3 @@
+Implemented keyword-aware FQCN validation. The collection-name validator now requires exactly two valid, non-keyword Python identifiers and returns a boolean. Dependency resolution uses that shared validator, and the legacy helpers and identifier compatibility fallback were removed from [dataclasses.py](/app/lib/ansible/galaxy/dependency_resolution/dataclasses.py:38). The helper and validator are in [_collection_finder.py](/app/lib/ansible/utils/collection_loader/_collection_finder.py:52).
+
+Verification: **87 unit tests passed** with `ansible-test`; `py_compile` and `git diff --check` passed. Manual checks covered the reported keywords and malformed names.

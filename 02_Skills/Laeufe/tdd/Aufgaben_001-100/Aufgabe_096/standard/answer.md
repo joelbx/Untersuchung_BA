@@ -1,0 +1,3 @@
+Fixed the `atomic_move()` default: newly created files are now chmod’d using `0o0600 & ~umask`, giving `0600` with umask `022`. Modules that accept `mode` now emit the requested warning when it is omitted; calling `set_mode_if_different()` for that path suppresses the warning.
+
+The focused tests passed (**66 passed**), and `git diff --check` passed. The repository-wide pytest run stopped on 18 collection errors; the unit suite ran but had widespread failures. Commands and limits are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

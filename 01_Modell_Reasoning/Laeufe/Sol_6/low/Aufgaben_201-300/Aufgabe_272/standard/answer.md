@@ -1,0 +1,3 @@
+Added a `ciphers` option to `get_url`, `uri`, and `lookup('url')`. It accepts an OpenSSL cipher string or an ordered list and passes the setting through `fetch_url`, `open_url`, and `Request`. HTTPS connections now use a shared TLS context builder, with certificate validation preserved by default and a clear error for invalid cipher settings.
+
+The relevant URL unit tests pass: **49 passed**. I could not verify the reported Python 3.10/OpenSSL 1.1.1 environment locally.

@@ -1,0 +1,3 @@
+Updated [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py) to read `/proc/sysinfo` on IBM Z and include the five requested hardware facts in `gather_facts`. It returns `{}` when the file is absent, leaves undiscovered values as `"NA"`, and removes leading zeros from the serial.
+
+Added regression coverage in [test_linux.py](/app/test/units/module_utils/facts/hardware/test_linux.py). All 21 hardware tests pass.

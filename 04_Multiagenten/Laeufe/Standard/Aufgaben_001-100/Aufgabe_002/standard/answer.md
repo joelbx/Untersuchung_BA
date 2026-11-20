@@ -1,0 +1,3 @@
+Fixed `tctl auth sign --format=kubernetes` to use an HTTPS Kubernetes proxy address on port 3026. The new `ProxyConfig.KubeAddr()` uses the first Kubernetes public address, or the first generic public address as a fallback, and errors when Kubernetes proxy support is disabled. When the local Kubernetes proxy is unavailable, `tctl` checks registered proxies, skips invalid addresses, and errors if none are usable. An explicit `--proxy` still takes precedence.
+
+Added regression tests. `go test -vet=off ./lib/service ./tool/tctl/common -count=1` and `git diff --check` pass.

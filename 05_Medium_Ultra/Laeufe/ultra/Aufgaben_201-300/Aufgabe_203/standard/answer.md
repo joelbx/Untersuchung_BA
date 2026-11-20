@@ -1,0 +1,5 @@
+Implemented the link accessibility fix. The new [ExternalLink](/app/src/components/views/elements/ExternalLink.tsx:25) defaults to secure new-tab navigation and provides a visible icon plus a screen reader cue. Settings links now use it, including the single descriptive [hosting link](/app/src/components/views/settings/ProfileSettings.tsx:166). The [Share dialog](/app/src/components/views/dialogs/ShareDialog.tsx:218) now gives its room and social links descriptive names, with new-tab cues for social links.
+
+Four existing test suites passed (14 tests, 2 snapshots). ESLint, Stylelint, localization JSON validation, and `git diff --check` passed. The full TypeScript check still reports six `ThreadEvent` errors in unchanged thread files.
+
+I delegated the component, settings migration, Share dialog work, and final audit to subagents, then integrated and verified the patch.

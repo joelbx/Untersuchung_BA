@@ -1,0 +1,3 @@
+Implemented `qcolor_to_qsscolor` in [qtutils.py](/app/qutebrowser/utils/qtutils.py:104), with coverage for named colors, RGB, and RGBA inputs in [test_qtutils.py](/app/tests/unit/utils/test_qtutils.py:35).
+
+The test run was blocked by environment issues: default pytest options trigger a removed `--strict` option, and rerunning without configured addopts aborted while initializing Qt. The new test cases began passing before the abort.

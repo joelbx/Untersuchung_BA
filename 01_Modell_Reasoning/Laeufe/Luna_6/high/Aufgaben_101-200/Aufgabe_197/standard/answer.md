@@ -1,0 +1,3 @@
+Added a Qt 6.4 variant that emits `ForegroundBrightnessThreshold` for the text threshold while preserving the existing mapping for earlier versions. Added regression coverage for the key, stringified value, and version detection in [darkmode.py](/app/qutebrowser/browser/webengine/darkmode.py) and [test_darkmode.py](/app/tests/unit/browser/webengine/test_darkmode.py).
+
+The dark mode tests passed: **39 passed** with `QTWEBENGINE_DISABLE_SANDBOX=1 QT_QPA_PLATFORM=offscreen xvfb-run -a pytest -q tests/unit/browser/webengine/test_darkmode.py`. Without those environment settings, Qt aborted during fixture startup.

@@ -1,0 +1,3 @@
+Fixed the pip module so it uses the current interpreter’s `python -m pip` when the pip package is available, even if no pip binary is on `PATH`. [pip.py](/app/lib/ansible/modules/pip.py) now keeps launchers as argv lists, falls back from modern package listing to `pip freeze`, and builds the virtualenv path prefix with `os.path.join`.
+
+Added coverage in [test_pip.py](/app/test/units/modules/test_pip.py). **All 14 pip unit tests pass**; `git diff --check` and Python compilation also pass.

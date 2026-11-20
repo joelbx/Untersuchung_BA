@@ -1,0 +1,3 @@
+Implemented reverse proxy login with a configurable username header and IPv4, IPv6, and Unix socket whitelist checks. Successful requests create a user when needed, issue a token, update the last login time, and initialize the frontend session. Untrusted requests receive no authentication payload. I also added nested map redaction and removed UI configuration logs that could expose tokens.
+
+The relevant Go tests pass: `go test ./server/app ./log ./conf`.

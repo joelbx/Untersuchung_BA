@@ -1,0 +1,3 @@
+MIME types and lossless formats now load during startup from [mime_types.yaml](/app/resources/mime_types.yaml). Operators can override it at `DataFolder/resources/mime_types.yaml`. The loader registers the configured extensions, preserves explicit `.js` and `.css` registrations, and supplies the UI’s uppercase, comma-separated lossless setting.
+
+The targeted MIME, model, server, and core tests pass. The full suite still fails in two TagLib m4a gain tag assertions that receive duplicate values; those tests do not use MIME registration.

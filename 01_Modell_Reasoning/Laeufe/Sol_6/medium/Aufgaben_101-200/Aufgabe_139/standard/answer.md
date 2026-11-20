@@ -1,0 +1,3 @@
+Updated promise imports to stage and augment incomplete records using ISBN-10 first, then a `B*` ASIN. The import API now fills missing fields from staged metadata before validation, while preserving non-empty fields. Validation accepts either complete metadata or a title, source record, and strong identifier. The batch script also records total and incomplete gauges and continues after staging lookup failures.
+
+**Verification:** 112 relevant tests passed; Ruff lint and `git diff --check` passed.

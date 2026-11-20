@@ -1,0 +1,178 @@
+diff --git a/lib/ansible/module_utils/facts/network/linux.py b/lib/ansible/module_utils/facts/network/linux.py
+index b7ae976..2abb09a 100644
+--- a/lib/ansible/module_utils/facts/network/linux.py
++++ b/lib/ansible/module_utils/facts/network/linux.py
+@@ -17,6 +17,7 @@ from __future__ import (absolute_import, division, print_function)
+ __metaclass__ = type
+ 
+ import glob
++import ipaddress
+ import os
+ import re
+ import socket
+@@ -34,6 +35,7 @@ class LinuxNetwork(Network):
+     - interface_<name> dictionary of ipv4, ipv6, and mac address information.
+     - all_ipv4_addresses and all_ipv6_addresses: lists of all configured addresses.
+     - ipv4_address and ipv6_address: the first non-local address for each family.
++    - locally_reachable_ips: host-scoped IPv4 and IPv6 addresses and prefixes.
+     """
+     platform = 'Linux'
+     INTERFACE_TYPE = {
+@@ -47,6 +49,7 @@ class LinuxNetwork(Network):
+     def populate(self, collected_facts=None):
+         network_facts = {}
+         ip_path = self.module.get_bin_path('ip')
++        network_facts['locally_reachable_ips'] = self.get_locally_reachable_ips(ip_path)
+         if ip_path is None:
+             return network_facts
+         default_ipv4, default_ipv6 = self.get_default_interfaces(ip_path,
+@@ -61,6 +64,47 @@ class LinuxNetwork(Network):
+         network_facts['all_ipv6_addresses'] = ips['all_ipv6_addresses']
+         return network_facts
+ 
++    def get_locally_reachable_ips(self, ip_path):
++        """Return addresses and prefixes on routes with Linux host scope."""
++        reachable = {'ipv4': [], 'ipv6': []}
++        if not ip_path:
++            self.module.warn('Cannot collect locally reachable IPs: ip command is unavailable')
++            return reachable
++
++        excluded_types = set(('blackhole', 'broadcast', 'multicast', 'prohibit',
++                              'throw', 'unreachable', 'anycast', 'nat'))
++        for family, flag in (('ipv4', '-4'), ('ipv6', '-6')):
++            if family == 'ipv6' and not socket.has_ipv6:
++                continue
++            command = [ip_path, flag, 'route', 'show', 'table', 'all', 'scope', 'host']
++            rc, output, err = self.module.run_command(command, errors='surrogate_then_replace')
++            if rc != 0:
++                self.module.warn('Cannot collect locally reachable %s routes: %s' %
++                                 (family, err.strip() or 'ip command failed'))
++                continue
++
++            routes = set()
++            for line in output.splitlines():
++                words = line.split()
++                if not words or words[0] in excluded_types:
++                    continue
++                destination = words[1] if words[0] == 'local' and len(words) > 1 else words[0]
++                try:
++                    network = ipaddress.ip_network(destination, strict=False)
++                except ValueError:
++                    continue
++                if network.version != (4 if family == 'ipv4' else 6):
++                    continue
++                if network.prefixlen == network.max_prefixlen:
++                    normalized = str(network.network_address)
++                else:
++                    normalized = str(network)
++                routes.add((int(network.network_address), network.prefixlen, normalized))
++            reachable[family] = [route[2] for route in sorted(routes)]
++            if not reachable[family]:
++                self.module.warn('No locally reachable %s routes were found' % family)
++        return reachable
++
+     def get_default_interfaces(self, ip_path, collected_facts=None):
+         collected_facts = collected_facts or {}
+         # Use the commands:
+@@ -324,4 +368,5 @@ class LinuxNetwork(Network):
+ class LinuxNetworkCollector(NetworkCollector):
+     _platform = 'Linux'
+     _fact_class = LinuxNetwork
++    _fact_ids = NetworkCollector._fact_ids | set(['locally_reachable_ips'])
+     required_facts = set(['distribution', 'platform'])
+diff --git a/test/units/module_utils/facts/network/test_linux_locally_reachable_ips.py b/test/units/module_utils/facts/network/test_linux_locally_reachable_ips.py
+new file mode 100644
+index 0000000..27291e3
+--- /dev/null
++++ b/test/units/module_utils/facts/network/test_linux_locally_reachable_ips.py
+@@ -0,0 +1,90 @@
++from __future__ import (absolute_import, division, print_function)
++__metaclass__ = type
++
++from units.compat.mock import Mock, patch
++
++from ansible.module_utils.facts.network.linux import LinuxNetwork, LinuxNetworkCollector
++
++
++def test_locally_reachable_ips_normalizes_deduplicates_and_sorts():
++    module = Mock()
++    outputs = {
++        '-4': '''local 192.168.1.42/24 dev lo scope host
++local 127.0.0.1 dev lo scope host
++local 192.168.1.0/24 dev lo scope host
++local 127.0.0.0/8 dev lo scope host
++10.10.0.0/16 dev lo scope host
++broadcast 192.168.1.255 dev lo scope host
++unreachable 10.0.0.0/8 scope host
++local invalid dev lo scope host
++''',
++        '-6': '''local 2001:0DB8:0:0::1/64 dev lo
++local ::1 dev lo
++local 2001:db8::/64 dev lo
++local 2001:db8::abcd dev lo
++multicast ff00::/8 dev lo
++''',
++    }
++    module.run_command.side_effect = lambda command, **kwargs: (0, outputs[command[1]], '')
++
++    with patch('ansible.module_utils.facts.network.linux.socket.has_ipv6', True):
++        result = LinuxNetwork(module).get_locally_reachable_ips('/usr/sbin/ip')
++
++    assert result == {
++        'ipv4': ['10.10.0.0/16', '127.0.0.0/8', '127.0.0.1', '192.168.1.0/24'],
++        'ipv6': ['::1', '2001:db8::/64', '2001:db8::abcd'],
++    }
++    assert module.run_command.call_count == 2
++
++
++def test_locally_reachable_ips_handles_unavailable_query():
++    module = Mock()
++    module.run_command.side_effect = [(0, 'local 127.0.0.1 dev lo scope host\n', ''),
++                                      (1, '', 'IPv6 unavailable')]
++
++    with patch('ansible.module_utils.facts.network.linux.socket.has_ipv6', True):
++        result = LinuxNetwork(module).get_locally_reachable_ips('/usr/sbin/ip')
++
++    assert result == {'ipv4': ['127.0.0.1'], 'ipv6': []}
++    module.warn.assert_called_once_with('Cannot collect locally reachable ipv6 routes: IPv6 unavailable')
++
++
++def test_locally_reachable_ips_handles_empty_routes():
++    module = Mock()
++    module.run_command.return_value = (0, '', '')
++
++    with patch('ansible.module_utils.facts.network.linux.socket.has_ipv6', False):
++        result = LinuxNetwork(module).get_locally_reachable_ips('/usr/sbin/ip')
++
++    assert result == {'ipv4': [], 'ipv6': []}
++    module.warn.assert_called_once_with('No locally reachable ipv4 routes were found')
++    assert module.run_command.call_count == 1
++
++
++def test_populate_exposes_locally_reachable_ips_with_other_network_facts():
++    module = Mock()
++    module.get_bin_path.return_value = '/usr/sbin/ip'
++    network = LinuxNetwork(module)
++    with patch.object(network, 'get_default_interfaces', return_value=({}, {})), \
++            patch.object(network, 'get_interfaces_info', return_value=({'lo': {'device': 'lo'}},
++                                                                       {'all_ipv4_addresses': [],
++                                                                        'all_ipv6_addresses': []})), \
++            patch.object(network, 'get_locally_reachable_ips', return_value={'ipv4': ['127.0.0.1'],
++                                                                            'ipv6': ['::1']}):
++        facts = network.populate()
++
++    assert facts['locally_reachable_ips'] == {'ipv4': ['127.0.0.1'], 'ipv6': ['::1']}
++    assert facts['default_ipv4'] == {}
++    assert facts['all_ipv4_addresses'] == []
++
++
++def test_populate_missing_ip_returns_empty_reachable_fact_and_warning():
++    module = Mock()
++    module.get_bin_path.return_value = None
++
++    assert LinuxNetwork(module).populate() == {'locally_reachable_ips': {'ipv4': [], 'ipv6': []}}
++    module.warn.assert_called_once_with('Cannot collect locally reachable IPs: ip command is unavailable')
++
++
++def test_linux_network_collector_advertises_locally_reachable_fact():
++    assert 'locally_reachable_ips' in LinuxNetworkCollector().fact_ids

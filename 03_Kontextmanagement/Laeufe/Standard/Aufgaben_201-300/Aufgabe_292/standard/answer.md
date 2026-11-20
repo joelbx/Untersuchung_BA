@@ -1,0 +1,3 @@
+Polling now has a managed lifecycle. The shared poller owns its context and update callback, and `Close()` cancels polling and waits for the loop to exit. Git, local, OCI, S3, and Azure Blob snapshot stores expose `Close()`; the filesystem store wrapper forwards it. Closing a store with no active poller is safe.
+
+Added tests for closing during an update, before polling starts, and immediately after startup. `go test ./internal/storage/fs/...` and `git diff --check` passed.

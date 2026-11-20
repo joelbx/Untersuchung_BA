@@ -1,0 +1,3 @@
+Updated [QtColor](/app/qutebrowser/config/configtypes.py:990) so HSV and HSVA hue percentages scale to 359, while the other channels scale to 255. It now validates each color function’s name and component count before parsing. Added regression cases in [test_configtypes.py](/app/tests/unit/config/test_configtypes.py:1236).
+
+All 54 focused color tests pass. The broader config type suite has unrelated failures involving Qt warnings, font weight, timestamp validation, and a Hypothesis fixture check.

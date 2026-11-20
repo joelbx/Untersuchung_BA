@@ -1,0 +1,3 @@
+Implemented YAML-native variant attachments in [internal/ext](/app/internal/ext/common.go) and wired the CLI import and export commands to it. Export renders stored JSON attachments as YAML structures; import converts YAML attachments back to JSON strings and accepts legacy JSON strings. Missing attachments remain empty.
+
+Fresh verification passed: `GOPROXY=off go test -count=1 ./internal/ext ./cmd/flipt ./storage/...` and `git diff --check`. The referenced YAML fixtures are absent from this checkout, so focused tests cover nested attachments and entity relationships.

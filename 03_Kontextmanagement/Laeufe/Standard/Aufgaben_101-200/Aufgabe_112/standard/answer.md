@@ -1,0 +1,3 @@
+Fortinet advisories now participate in FortiOS CPE detection and CVE enrichment. Results include advisory IDs and URLs, CVSS v3 data, CWE IDs, references, and dates. I also added Fortinet to the requested display order and updated `go-cve-dictionary` to a version with Fortinet models.
+
+The detector, model, server, and reporter tests pass. They ran with a temporary local module file because several exact transitive dependency versions are absent from the local cache; no network downloads were used.

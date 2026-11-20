@@ -1,0 +1,3 @@
+Added transparent gzip decoding to the shared HTTP utilities and exposed a `decompress` option, defaulting to `True`, in `uri` and `get_url`. Successful and HTTP error responses now provide decoded bytes; `decompress: false` preserves the compressed bytes. The change also adds `GzipDecodedReader`, request header negotiation, and the specified missing-gzip warning and error handling.
+
+The URL utility suite passed: **88 tests**. Syntax compilation and `git diff --check` also passed. No delegation was used.

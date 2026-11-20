@@ -1,0 +1,3 @@
+Added `splitBySeparator` to [recipient.ts](/app/packages/shared/lib/mail/recipient.ts) and used it in both autocomplete paste paths. It trims tokens, removes angle brackets, skips empty entries, and preserves order. `inputToRecipient` now uses the bare address for both `Name` and `Address`.
+
+Added focused [tests](/app/packages/shared/test/mail/recipient.spec.ts). Direct parser checks, Prettier, ESLint, and `git diff --check` passed. The shared Karma suite compiled but could not start because its configured Playwright Chromium binary is missing.

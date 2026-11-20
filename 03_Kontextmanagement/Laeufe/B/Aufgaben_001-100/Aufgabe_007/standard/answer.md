@@ -1,0 +1,3 @@
+Updated the [WinRM connection plugin](/app/lib/ansible/plugins/connection/winrm.py) to accept `ansible_winrm_kinit_args`, split its arguments, and use them in both Kerberos execution paths. When set, those arguments take precedence over the default `-f` delegation flag. Each authentication attempt uses a unique credential cache.
+
+The [WinRM unit tests](/app/test/units/plugins/connection/test_winrm.py) pass: 33 passed. `git diff --check` is clean.

@@ -1,0 +1,3 @@
+Implemented a member-scoped pending lock for Kick, Ban/Unban, and Mute/Unmute in [UserInfo.tsx](/app/src/components/views/right_panel/UserInfo.tsx). It blocks rapid activations synchronously, sets both `disabled` and `aria-disabled`, and releases on confirmation cancellation or when the operation settles. Existing failure dialogs remain in place.
+
+The focused suite passed: **68 tests**. ESLint and `git diff --check` passed. `yarn lint:types` reported errors in dependencies and unrelated SDK/application files; it reported none in `UserInfo.tsx`.

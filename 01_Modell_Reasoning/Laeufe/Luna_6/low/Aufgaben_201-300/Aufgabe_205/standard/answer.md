@@ -1,0 +1,3 @@
+Implemented token lifecycle utilities in [src/api/utils.js](/app/src/api/utils.js): list, generate, get, update, delete, log usage, and retrieve last-seen timestamps. Tokens are stored with numeric user IDs and millisecond timestamps, with creation, ownership, and usage indexes.
+
+Validation passed: ESLint, `node --check`, and `git diff --check`. I did not run the test suite; there are no existing tests specific to these API utilities.

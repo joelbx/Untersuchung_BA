@@ -1,0 +1,617 @@
+diff --git a/internal/oci/file.go b/internal/oci/file.go
+index ecbebb4..a86910f 100644
+--- a/internal/oci/file.go
++++ b/internal/oci/file.go
+@@ -1,6 +1,7 @@
+ package oci
+ 
+ import (
++	"compress/gzip"
+ 	"context"
+ 	"encoding/json"
+ 	"errors"
+@@ -29,6 +30,7 @@ type Store struct {
+ 	reference registry.Reference
+ 	store     oras.ReadOnlyTarget
+ 	local     oras.Target
++	localPath string
+ }
+ 
+ // NewStore constructs and configures an instance of *Store for the provided config
+@@ -65,10 +67,7 @@ func NewStore(conf *config.OCI) (*Store, error) {
+ 			return nil, fmt.Errorf("unexpected local reference: %q", conf.Repository)
+ 		}
+ 
+-		store.store, err = oci.New(path.Join(conf.BundleDirectory, ref.Repository))
+-		if err != nil {
+-			return nil, err
+-		}
++		store.localPath = path.Join(conf.BundleDirectory, ref.Repository)
+ 	default:
+ 		return nil, fmt.Errorf("unexpected repository scheme: %q should be one of [http|https|flipt]", scheme)
+ 	}
+@@ -105,9 +104,19 @@ func IfNoMatch(digest digest.Digest) containers.Option[FetchOptions] {
+ func (s *Store) Fetch(ctx context.Context, opts ...containers.Option[FetchOptions]) (*FetchResponse, error) {
+ 	var options FetchOptions
+ 	containers.ApplyAll(&options, opts...)
++	store := s.store
++	if s.localPath != "" {
++		// The OCI layout keeps its index in memory. Reopen it to observe tags
++		// updated by another process since the previous fetch.
++		var err error
++		store, err = oci.New(s.localPath)
++		if err != nil {
++			return nil, err
++		}
++	}
+ 
+ 	desc, err := oras.Copy(ctx,
+-		s.store,
++		store,
+ 		s.reference.Reference,
+ 		s.local,
+ 		s.reference.Reference,
+@@ -144,7 +153,7 @@ func (s *Store) Fetch(ctx context.Context, opts ...containers.Option[FetchOption
+ 		}
+ 	}
+ 
+-	files, err := s.fetchFiles(ctx, manifest)
++	files, err := s.fetchFiles(ctx, store, manifest)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -155,12 +164,22 @@ func (s *Store) Fetch(ctx context.Context, opts ...containers.Option[FetchOption
+ // fetchFiles retrieves the associated flipt feature content files from the content fetcher.
+ // It traverses the provided manifests and returns a slice of file instances with appropriate
+ // content type extensions.
+-func (s *Store) fetchFiles(ctx context.Context, manifest v1.Manifest) ([]fs.File, error) {
+-	var files []fs.File
++func (s *Store) fetchFiles(ctx context.Context, store oras.ReadOnlyTarget, manifest v1.Manifest) (files []fs.File, err error) {
++	defer func() {
++		if err != nil {
++			for _, file := range files {
++				_ = file.Close()
++			}
++		}
++	}()
+ 
+-	created, err := time.Parse(time.RFC3339, manifest.Annotations[v1.AnnotationCreated])
+-	if err != nil {
+-		return nil, err
++	var created time.Time
++	if value := manifest.Annotations[v1.AnnotationCreated]; value != "" {
++		var err error
++		created, err = time.Parse(time.RFC3339, value)
++		if err != nil {
++			return nil, fmt.Errorf("manifest creation time: %w", err)
++		}
+ 	}
+ 
+ 	for _, layer := range manifest.Layers {
+@@ -169,23 +188,39 @@ func (s *Store) fetchFiles(ctx context.Context, manifest v1.Manifest) ([]fs.File
+ 			return nil, fmt.Errorf("layer %q: %w", layer.Digest, err)
+ 		}
+ 
+-		if mediaType != MediaTypeFliptNamespace {
++		if mediaType != MediaTypeFliptNamespace && mediaType != MediaTypeFliptFeatures {
+ 			return nil, fmt.Errorf("layer %q: type %q: %w", layer.Digest, mediaType, ErrUnexpectedMediaType)
+ 		}
++		compressed := strings.HasSuffix(encoding, "+gzip") || encoding == "gzip"
++		if compressed {
++			encoding = strings.TrimSuffix(encoding, "+gzip")
++			if encoding == "gzip" {
++				encoding = "json"
++			}
++		}
+ 
+ 		switch encoding {
+-		case "", "json", "yaml", "yml":
++		case "json", "yaml", "yml":
+ 		default:
+ 			return nil, fmt.Errorf("layer %q: unexpected layer encoding: %q", layer.Digest, encoding)
+ 		}
+ 
+-		rc, err := s.store.Fetch(ctx, layer)
++		rc, err := store.Fetch(ctx, layer)
+ 		if err != nil {
+ 			return nil, err
+ 		}
++		if compressed {
++			reader, err := gzip.NewReader(rc)
++			if err != nil {
++				rc.Close()
++				return nil, fmt.Errorf("layer %q: gzip: %w", layer.Digest, err)
++			}
++			rc = &gzipReadCloser{Reader: reader, source: rc}
++		}
+ 
+ 		files = append(files, &File{
+ 			ReadCloser: rc,
++			namespace:  layer.Annotations[AnnotationFliptNamespace],
+ 			info: FileInfo{
+ 				desc:     layer,
+ 				encoding: encoding,
+@@ -197,6 +232,19 @@ func (s *Store) fetchFiles(ctx context.Context, manifest v1.Manifest) ([]fs.File
+ 	return files, nil
+ }
+ 
++type gzipReadCloser struct {
++	*gzip.Reader
++	source io.Closer
++}
++
++func (r *gzipReadCloser) Close() error {
++	err := r.Reader.Close()
++	if closeErr := r.source.Close(); err == nil {
++		err = closeErr
++	}
++	return err
++}
++
+ func getMediaTypeAndEncoding(layer v1.Descriptor) (mediaType, encoding string, _ error) {
+ 	var ok bool
+ 	if mediaType = layer.MediaType; mediaType == "" {
+@@ -213,9 +261,13 @@ func getMediaTypeAndEncoding(layer v1.Descriptor) (mediaType, encoding string, _
+ // File is a wrapper around a flipt feature state files contents.
+ type File struct {
+ 	io.ReadCloser
+-	info FileInfo
++	info      FileInfo
++	namespace string
+ }
+ 
++// Namespace identifies the namespace declared by the OCI layer.
++func (f *File) Namespace() string { return f.namespace }
++
+ // Seek attempts to seek the embedded read-closer.
+ // If the embedded read closer implements seek, then it delegates
+ // to that instances implementation. Alternatively, it returns
+diff --git a/internal/oci/file_test.go b/internal/oci/file_test.go
+index 2bd6554..95763a5 100644
+--- a/internal/oci/file_test.go
++++ b/internal/oci/file_test.go
+@@ -2,6 +2,7 @@ package oci
+ 
+ import (
+ 	"bytes"
++	"compress/gzip"
+ 	"context"
+ 	"fmt"
+ 	"io"
+@@ -14,9 +15,35 @@ import (
+ 	"github.com/stretchr/testify/require"
+ 	"go.flipt.io/flipt/internal/config"
+ 	"oras.land/oras-go/v2"
++	"oras.land/oras-go/v2/content/memory"
+ 	"oras.land/oras-go/v2/content/oci"
+ )
+ 
++func TestFetchFilesGzip(t *testing.T) {
++	ctx := context.Background()
++	content := []byte(`{"namespace":"team"}`)
++	var compressed bytes.Buffer
++	writer := gzip.NewWriter(&compressed)
++	_, err := writer.Write(content)
++	require.NoError(t, err)
++	require.NoError(t, writer.Close())
++	data := compressed.Bytes()
++	layer := v1.Descriptor{MediaType: MediaTypeFliptFeatures + "+json+gzip", Digest: digest.FromBytes(data), Size: int64(len(data)), Annotations: map[string]string{AnnotationFliptNamespace: "team"}}
++	store := memory.New()
++	require.NoError(t, store.Push(ctx, layer, bytes.NewReader(data)))
++	files, err := (&Store{}).fetchFiles(ctx, store, v1.Manifest{Layers: []v1.Descriptor{layer}})
++	require.NoError(t, err)
++	require.Len(t, files, 1)
++	defer files[0].Close()
++	got, err := io.ReadAll(files[0])
++	require.NoError(t, err)
++	assert.Equal(t, content, got)
++	info, err := files[0].Stat()
++	require.NoError(t, err)
++	assert.Equal(t, layer.Digest.Hex()+".json", info.Name())
++	assert.Equal(t, "team", files[0].(*File).Namespace())
++}
++
+ func TestNewStore(t *testing.T) {
+ 	t.Run("unexpected scheme", func(t *testing.T) {
+ 		_, err := NewStore(&config.OCI{
+diff --git a/internal/storage/fs/git/source.go b/internal/storage/fs/git/source.go
+index 653d61a..6596daf 100644
+--- a/internal/storage/fs/git/source.go
++++ b/internal/storage/fs/git/source.go
+@@ -94,7 +94,7 @@ func NewSource(logger *zap.Logger, url string, opts ...containers.Option[Source]
+ }
+ 
+ // Get builds a new store snapshot based on the configure Git remote and reference.
+-func (s *Source) Get() (_ *storagefs.StoreSnapshot, err error) {
++func (s *Source) Get(context.Context) (_ *storagefs.StoreSnapshot, err error) {
+ 	var fs fs.FS
+ 	if s.hash != plumbing.ZeroHash {
+ 		fs, err = gitfs.NewFromRepoHash(s.logger, s.repo, s.hash)
+@@ -147,7 +147,7 @@ func (s *Source) Subscribe(ctx context.Context, ch chan<- *storagefs.StoreSnapsh
+ 				continue
+ 			}
+ 
+-			snap, err := s.Get()
++			snap, err := s.Get(ctx)
+ 			if err != nil {
+ 				s.logger.Error("failed creating snapshot from fs", zap.Error(err))
+ 				continue
+diff --git a/internal/storage/fs/git/source_test.go b/internal/storage/fs/git/source_test.go
+index df1bebc..74c0699 100644
+--- a/internal/storage/fs/git/source_test.go
++++ b/internal/storage/fs/git/source_test.go
+@@ -31,7 +31,7 @@ func Test_SourceGet(t *testing.T) {
+ 		return
+ 	}
+ 
+-	snap, err := source.Get()
++	snap, err := source.Get(context.Background())
+ 	require.NoError(t, err)
+ 
+ 	_, err = snap.GetNamespace(context.TODO(), "production")
+@@ -66,7 +66,7 @@ func Test_SourceSubscribe(t *testing.T) {
+ 	ctx, cancel := context.WithCancel(context.Background())
+ 
+ 	// prime source
+-	_, err := source.Get()
++	_, err := source.Get(context.Background())
+ 	require.NoError(t, err)
+ 
+ 	// start subscription
+diff --git a/internal/storage/fs/local/source.go b/internal/storage/fs/local/source.go
+index d3134d7..3e4aac6 100644
+--- a/internal/storage/fs/local/source.go
++++ b/internal/storage/fs/local/source.go
+@@ -41,7 +41,7 @@ func WithPollInterval(tick time.Duration) containers.Option[Source] {
+ }
+ 
+ // Get returns an fs.FS for the local filesystem.
+-func (s *Source) Get() (*storagefs.StoreSnapshot, error) {
++func (s *Source) Get(context.Context) (*storagefs.StoreSnapshot, error) {
+ 	return storagefs.SnapshotFromFS(s.logger, os.DirFS(s.dir))
+ }
+ 
+@@ -56,7 +56,7 @@ func (s *Source) Subscribe(ctx context.Context, ch chan<- *storagefs.StoreSnapsh
+ 		case <-ctx.Done():
+ 			return
+ 		case <-ticker.C:
+-			snap, err := s.Get()
++			snap, err := s.Get(ctx)
+ 			if err != nil {
+ 				s.logger.Error("error getting file system from directory", zap.Error(err))
+ 				continue
+diff --git a/internal/storage/fs/local/source_test.go b/internal/storage/fs/local/source_test.go
+index 5c3271a..417b63b 100644
+--- a/internal/storage/fs/local/source_test.go
++++ b/internal/storage/fs/local/source_test.go
+@@ -21,7 +21,7 @@ func Test_SourceGet(t *testing.T) {
+ 	s, err := NewSource(zap.NewNop(), "testdata", WithPollInterval(5*time.Second))
+ 	assert.NoError(t, err)
+ 
+-	snap, err := s.Get()
++	snap, err := s.Get(context.Background())
+ 	assert.NoError(t, err)
+ 
+ 	_, err = snap.GetNamespace(context.TODO(), "production")
+diff --git a/internal/storage/fs/oci/source.go b/internal/storage/fs/oci/source.go
+new file mode 100644
+index 0000000..40d5eb4
+--- /dev/null
++++ b/internal/storage/fs/oci/source.go
+@@ -0,0 +1,113 @@
++package oci
++
++import (
++	"context"
++	"fmt"
++	"sync"
++	"time"
++
++	"github.com/opencontainers/go-digest"
++	"go.flipt.io/flipt/internal/containers"
++	fliptoci "go.flipt.io/flipt/internal/oci"
++	storagefs "go.flipt.io/flipt/internal/storage/fs"
++	"go.uber.org/zap"
++)
++
++// Source builds filesystem snapshots from an OCI repository.
++type Source struct {
++	mu       sync.Mutex
++	snapshot *storagefs.StoreSnapshot
++	digest   digest.Digest
++	logger   *zap.Logger
++	interval time.Duration
++	store    *fliptoci.Store
++}
++
++var _ storagefs.SnapshotSource = (*Source)(nil)
++
++// NewSource constructs an OCI snapshot source.
++func NewSource(logger *zap.Logger, store *fliptoci.Store, opts ...containers.Option[Source]) (*Source, error) {
++	if logger == nil || store == nil {
++		return nil, fmt.Errorf("OCI source requires a logger and store")
++	}
++	s := &Source{logger: logger, store: store, interval: 30 * time.Second}
++	containers.ApplyAll(s, opts...)
++	if s.interval <= 0 {
++		return nil, fmt.Errorf("OCI poll interval must be positive")
++	}
++	return s, nil
++}
++
++// WithPollInterval sets the interval between OCI fetches.
++func WithPollInterval(tick time.Duration) containers.Option[Source] {
++	return func(s *Source) { s.interval = tick }
++}
++
++func (*Source) String() string { return "oci" }
++
++// Get fetches the current OCI manifest and reuses the snapshot when its digest matches.
++func (s *Source) Get(ctx context.Context) (*storagefs.StoreSnapshot, error) {
++	s.mu.Lock()
++	defer s.mu.Unlock()
++
++	s.logger.Debug("fetching OCI snapshot")
++	response, err := s.store.Fetch(ctx, fliptoci.IfNoMatch(s.digest))
++	if err != nil {
++		s.logger.Error("failed fetching OCI snapshot", zap.Error(err))
++		return nil, err
++	}
++	if response.Matched && s.snapshot != nil {
++		s.logger.Debug("OCI snapshot unchanged", zap.String("digest", response.Digest.String()))
++		return s.snapshot, nil
++	}
++
++	snapshot, err := storagefs.SnapshotFromFiles(response.Files...)
++	if err != nil {
++		// SnapshotFromFiles closes files it reads. Close any remaining files too.
++		for _, file := range response.Files {
++			_ = file.Close()
++		}
++		s.logger.Error("failed building OCI snapshot", zap.Error(err))
++		return nil, err
++	}
++	s.snapshot, s.digest = snapshot, response.Digest
++	s.logger.Debug("updated OCI snapshot", zap.String("digest", s.digest.String()))
++	return snapshot, nil
++}
++
++// Subscribe polls for changed OCI manifests until the context is cancelled.
++func (s *Source) Subscribe(ctx context.Context, ch chan<- *storagefs.StoreSnapshot) {
++	defer close(ch)
++	ticker := time.NewTicker(s.interval)
++	defer ticker.Stop()
++	s.mu.Lock()
++	previous := s.digest
++	s.mu.Unlock()
++	for {
++		select {
++		case <-ctx.Done():
++			return
++		case <-ticker.C:
++			snapshot, err := s.Get(ctx)
++			if err != nil {
++				if ctx.Err() != nil {
++					return
++				}
++				s.logger.Error("failed polling OCI snapshot", zap.Error(err))
++				continue
++			}
++			s.mu.Lock()
++			current := s.digest
++			s.mu.Unlock()
++			if current == previous {
++				continue
++			}
++			select {
++			case ch <- snapshot:
++				previous = current
++			case <-ctx.Done():
++				return
++			}
++		}
++	}
++}
+diff --git a/internal/storage/fs/oci/source_test.go b/internal/storage/fs/oci/source_test.go
+new file mode 100644
+index 0000000..21fe25a
+--- /dev/null
++++ b/internal/storage/fs/oci/source_test.go
+@@ -0,0 +1,95 @@
++package oci
++
++import (
++	"bytes"
++	"context"
++	"fmt"
++	"path/filepath"
++	"testing"
++	"time"
++
++	"github.com/opencontainers/go-digest"
++	v1 "github.com/opencontainers/image-spec/specs-go/v1"
++	"github.com/stretchr/testify/require"
++	"go.flipt.io/flipt/internal/config"
++	fliptoci "go.flipt.io/flipt/internal/oci"
++	storagefs "go.flipt.io/flipt/internal/storage/fs"
++	"go.uber.org/zap/zaptest"
++	"oras.land/oras-go/v2"
++	"oras.land/oras-go/v2/content/oci"
++)
++
++func TestSourceReopensLocalLayout(t *testing.T) {
++	dir := t.TempDir()
++	writeManifest(t, dir, "first")
++	store, err := fliptoci.NewStore(&config.OCI{BundleDirectory: dir, Repository: "flipt://local/flags:latest"})
++	require.NoError(t, err)
++	source, err := NewSource(zaptest.NewLogger(t), store, WithPollInterval(10*time.Millisecond))
++	require.NoError(t, err)
++	ctx := context.Background()
++	first, err := source.Get(ctx)
++	require.NoError(t, err)
++	flag, err := first.GetFlag(ctx, "team", "first")
++	require.NoError(t, err)
++	require.Equal(t, "first", flag.Key)
++
++	unchanged, err := source.Get(ctx)
++	require.NoError(t, err)
++	require.Same(t, first, unchanged)
++
++	// A different OCI store writes the tag, as an external process would.
++	writeManifest(t, dir, "second")
++	second, err := source.Get(ctx)
++	require.NoError(t, err)
++	require.NotSame(t, first, second)
++	_, err = second.GetFlag(ctx, "team", "second")
++	require.NoError(t, err)
++}
++
++func TestSubscribeChangedDigest(t *testing.T) {
++	dir := t.TempDir()
++	writeManifest(t, dir, "first")
++	store, err := fliptoci.NewStore(&config.OCI{BundleDirectory: dir, Repository: "flipt://local/flags:latest"})
++	require.NoError(t, err)
++	source, err := NewSource(zaptest.NewLogger(t), store, WithPollInterval(10*time.Millisecond))
++	require.NoError(t, err)
++	_, err = source.Get(context.Background())
++	require.NoError(t, err)
++	ctx, cancel := context.WithCancel(context.Background())
++	ch := make(chan *storagefs.StoreSnapshot)
++	go source.Subscribe(ctx, ch)
++	select {
++	case <-ch:
++		t.Fatal("unchanged digest emitted a snapshot")
++	case <-time.After(40 * time.Millisecond):
++	}
++	writeManifest(t, dir, "second")
++	select {
++	case snap := <-ch:
++		_, err := snap.GetFlag(context.Background(), "team", "second")
++		require.NoError(t, err)
++	case <-time.After(time.Second):
++		t.Fatal("changed digest was not emitted")
++	}
++	cancel()
++	select {
++	case _, ok := <-ch:
++		require.False(t, ok)
++	case <-time.After(time.Second):
++		t.Fatal("subscription did not stop")
++	}
++}
++
++func writeManifest(t *testing.T, dir, key string) {
++	t.Helper()
++	layout, err := oci.New(filepath.Join(dir, "flags"))
++	require.NoError(t, err)
++	layout.AutoSaveIndex = true
++	ctx := context.Background()
++	payload := fmt.Sprintf("flags:\n  - key: %s\n    name: %s\n    enabled: true\n", key, key)
++	layer := v1.Descriptor{MediaType: fliptoci.MediaTypeFliptNamespace + "+yaml", Digest: digest.FromString(payload), Size: int64(len(payload)), Annotations: map[string]string{fliptoci.AnnotationFliptNamespace: "team"}}
++	require.NoError(t, layout.Push(ctx, layer, bytes.NewReader([]byte(payload))))
++	manifest, err := oras.PackManifest(ctx, layout, oras.PackManifestVersion1_1_RC4, fliptoci.MediaTypeFliptFeatures, oras.PackManifestOptions{Layers: []v1.Descriptor{layer}})
++	require.NoError(t, err)
++	require.NoError(t, layout.Tag(ctx, manifest, "latest"))
++}
+diff --git a/internal/storage/fs/s3/source.go b/internal/storage/fs/s3/source.go
+index da5e3be..239a1a9 100644
+--- a/internal/storage/fs/s3/source.go
++++ b/internal/storage/fs/s3/source.go
+@@ -96,7 +96,7 @@ func WithPollInterval(tick time.Duration) containers.Option[Source] {
+ }
+ 
+ // Get returns a *sourcefs.StoreSnapshot for the local filesystem.
+-func (s *Source) Get() (*storagefs.StoreSnapshot, error) {
++func (s *Source) Get(context.Context) (*storagefs.StoreSnapshot, error) {
+ 	fs, err := s3fs.New(s.logger, s.s3, s.bucket, s.prefix)
+ 	if err != nil {
+ 		return nil, err
+@@ -116,7 +116,7 @@ func (s *Source) Subscribe(ctx context.Context, ch chan<- *storagefs.StoreSnapsh
+ 		case <-ctx.Done():
+ 			return
+ 		case <-ticker.C:
+-			snap, err := s.Get()
++			snap, err := s.Get(ctx)
+ 			if err != nil {
+ 				s.logger.Error("error getting file system from directory", zap.Error(err))
+ 				continue
+diff --git a/internal/storage/fs/s3/source_test.go b/internal/storage/fs/s3/source_test.go
+index 2f0706c..e383b8c 100644
+--- a/internal/storage/fs/s3/source_test.go
++++ b/internal/storage/fs/s3/source_test.go
+@@ -28,7 +28,7 @@ func Test_SourceGet(t *testing.T) {
+ 		return
+ 	}
+ 
+-	snap, err := source.Get()
++	snap, err := source.Get(context.Background())
+ 	require.NoError(t, err)
+ 
+ 	_, err = snap.GetNamespace(context.TODO(), "production")
+@@ -44,7 +44,7 @@ func Test_SourceGetPrefix(t *testing.T) {
+ 		return
+ 	}
+ 
+-	snap, err := source.Get()
++	snap, err := source.Get(context.Background())
+ 	require.NoError(t, err)
+ 
+ 	_, err = snap.GetNamespace(context.TODO(), "production")
+@@ -60,7 +60,7 @@ func Test_SourceSubscribe(t *testing.T) {
+ 		return
+ 	}
+ 
+-	snap, err := source.Get()
++	snap, err := source.Get(context.Background())
+ 	require.NoError(t, err)
+ 
+ 	_, err = snap.GetNamespace(context.TODO(), "production")
+diff --git a/internal/storage/fs/snapshot.go b/internal/storage/fs/snapshot.go
+index 0258617..4431837 100644
+--- a/internal/storage/fs/snapshot.go
++++ b/internal/storage/fs/snapshot.go
+@@ -150,6 +150,9 @@ func SnapshotFromFiles(files ...fs.File) (*StoreSnapshot, error) {
+ 					}
+ 					return err
+ 				}
++				if namespaced, ok := fi.(interface{ Namespace() string }); ok && namespaced.Namespace() != "" {
++					doc.Namespace = namespaced.Namespace()
++				}
+ 
+ 				// set namespace to default if empty in document
+ 				if doc.Namespace == "" {
+diff --git a/internal/storage/fs/store.go b/internal/storage/fs/store.go
+index 2613f6a..925bf62 100644
+--- a/internal/storage/fs/store.go
++++ b/internal/storage/fs/store.go
+@@ -16,7 +16,7 @@ type SnapshotSource interface {
+ 	fmt.Stringer
+ 
+ 	// Get builds a single instance of a *SnapshotSource
+-	Get() (*StoreSnapshot, error)
++	Get(context.Context) (*StoreSnapshot, error)
+ 
+ 	// Subscribe feeds instances of *SnapshotSource onto the provided channel.
+ 	// It should block until the provided context is cancelled (it will be called in a goroutine).
+@@ -67,7 +67,7 @@ func NewStore(logger *zap.Logger, source SnapshotSource) (*Store, error) {
+ 	}
+ 
+ 	// get an initial snapshot from source.
+-	f, err := source.Get()
++	f, err := source.Get(context.Background())
+ 	if err != nil {
+ 		return nil, err
+ 	}
+diff --git a/internal/storage/fs/store_test.go b/internal/storage/fs/store_test.go
+index 3fa92be..296f503 100644
+--- a/internal/storage/fs/store_test.go
++++ b/internal/storage/fs/store_test.go
+@@ -58,7 +58,7 @@ func (s source) String() string {
+ }
+ 
+ // Get builds a single instance of an *StoreSnapshot
+-func (s source) Get() (*StoreSnapshot, error) {
++func (s source) Get(context.Context) (*StoreSnapshot, error) {
+ 	return s.get, nil
+ }
+ 

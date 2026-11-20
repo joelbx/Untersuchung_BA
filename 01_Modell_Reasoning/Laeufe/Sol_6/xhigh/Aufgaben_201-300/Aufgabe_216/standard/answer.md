@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to use resolved options for commands, file transfers, retries, and control paths. Reset now checks for a persistent socket with the effective connection parameters and sends `stop` only when the check succeeds. Removed SSH-specific core configuration definitions and added precedence and reset tests.
+
+Verification: 96 relevant tests passed; `git diff --check` passed.

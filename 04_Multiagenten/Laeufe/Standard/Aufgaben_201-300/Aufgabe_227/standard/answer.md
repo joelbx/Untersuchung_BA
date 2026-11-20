@@ -1,0 +1,3 @@
+Updated the MIME suffix workaround to check **runtime Qt only** at both bounds: 6.2.3 inclusive and 6.7.0 exclusive. I also clarified `version_check`’s `compiled` parameter and made `compiled=True` with `exact=True` raise `RuntimeError`.
+
+The focused tests passed (35). The full affected modules had 197 passes and two unrelated failures under Qt 6.9.1: a QDataStream status count and a QSaveFile warning.

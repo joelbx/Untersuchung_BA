@@ -1,0 +1,3 @@
+Implemented predictable `no_log` sanitization in [basic.py](/app/lib/ansible/module_utils/basic.py:435). `remove_values` now masks string values without changing keys or scalar types; `sanitize_keys` handles nested mapping keys, exact-match sentinel keys, ignore lists, and `_ansible` keys. The [uri module](/app/lib/ansible/modules/uri.py:742) applies key sanitization only when `no_log_values` is populated.
+
+Verification: **306 passed, 14 skipped** across the `basic` and `uri` unit tests using `pytest --forked`. The non-isolated broad run showed shared warning and deprecation state leaking between tests; the same tests passed with process isolation.

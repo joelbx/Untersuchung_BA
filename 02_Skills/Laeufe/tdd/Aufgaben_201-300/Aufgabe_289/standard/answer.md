@@ -1,0 +1,3 @@
+Exported `DefaultConfig()` and `DecodeHooks`, and updated `Load` to compose the exported hooks. Storage’s `Local` and `Git` fields are now pointers, with nil validation. The new regression test decodes the complete default configuration through those hooks.
+
+The `internal/config` suite passes. The repository-wide suite failed only in Redis’s `TestSet`, `TestGet`, and `TestDelete`: they could not connect to the Docker daemon. That limitation is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated collection manifest handling so an omitted `manifest` uses `Sentinel` and the file walker, while explicit `manifest: {}` and `manifest: null` select manifest directives. The walker now excludes symlinks that point outside the collection and includes internal links once.
+
+**Verification:** 124 relevant unit tests passed, including ignore pattern and symlink cases; `git diff --check` passed. No delegation was used.

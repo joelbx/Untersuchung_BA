@@ -1,0 +1,4 @@
+VERDICT: FIX
+Code defect: models/packages.go:181 changes `listenPorts` from []ListenPort objects to []string with no compatibility decoder. Existing scan results written by the prior schema (`{"listenPorts":[{"address":"127.0.0.1","port":"22","portScanSuccessOn":[]}]}`) therefore fail json.Unmarshal in report/util.go:750, while the patch's new test only covers legacy string entries. Add a compatibility decoder for both array forms, converting object entries to ListenPortStats or preserving their reachability information; keep the required public ListenPorts []string interface.
+Tests: `GOPROXY=off GOSUMDB=off go test ./models ./scan ./report` exited 0. models, scan, report each passed. Compilation emitted a non-fatal warning from github.com/mattn/go-sqlite3. No TEST_ENVIRONMENT_PROBLEM.
+Review only: no project code or tests changed.

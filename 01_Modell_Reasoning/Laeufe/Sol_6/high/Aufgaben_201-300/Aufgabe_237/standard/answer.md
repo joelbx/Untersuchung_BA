@@ -1,0 +1,3 @@
+Implemented the chat editing requirements in the checkout: the v3 `PUT` route validates content and permissions, checks message IDs, applies edits, and returns updated message data. The client now uses that route; the legacy socket path logs a deprecation warning and validates input.
+
+The messaging suite passes **76 tests**. Targeted ESLint and `git diff --check` pass. The checkout contains no `LinkProvider` or `DirectedGraph`; those names in the issue description do not map to code here.

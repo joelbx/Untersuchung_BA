@@ -1,0 +1,5 @@
+Implemented unified voice broadcast liveness feedback. `VoiceBroadcastPlayback` now derives and emits liveness changes from playback and broadcast info state, and enters buffering as soon as playback starts. The hook exposes that state; headers show red for live, grey for paused or buffering, and no badge when not live. Recording components also map paused state to grey. Added last chunk detection and updated affected snapshots.
+
+Verification: all 7 focused test suites passed (64 tests, 10 snapshots); ESLint and stylelint passed. `yarn lint:types` reports an existing unrelated TypeScript error in [notifications.ts](/app/src/utils/notifications.ts:79).
+
+Key changes: [VoiceBroadcastPlayback.ts](/app/src/voice-broadcast/models/VoiceBroadcastPlayback.ts), [VoiceBroadcastHeader.tsx](/app/src/voice-broadcast/components/atoms/VoiceBroadcastHeader.tsx), [LiveBadge.tsx](/app/src/voice-broadcast/components/atoms/LiveBadge.tsx).

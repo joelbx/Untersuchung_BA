@@ -1,0 +1,3 @@
+Popper now reports the visual placement in RTL layouts: `top` and `bottom` swap `start` and `end`, while `left`, `right`, and all LTR placements stay unchanged. I added and exported [getInvertedRTLPlacement and rtlPlacement](/app/packages/components/components/popper/utils.ts), then connected the middleware result to [usePopper](/app/packages/components/components/popper/usePopper.ts).
+
+Validation passed: 21 Popper tests, the components type check, targeted ESLint, Prettier, and `git diff --check`.

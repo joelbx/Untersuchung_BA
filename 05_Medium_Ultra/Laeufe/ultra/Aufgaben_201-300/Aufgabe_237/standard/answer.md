@@ -1,0 +1,3 @@
+Implemented the concrete chat requirements in `/app`: the v3 edit route and validation, `Messaging.messageExists` and invalid-mid handling, client JSON POST/PUT calls, and validation with a deprecation warning for socket edits. Three agents handled separate source areas; I integrated their changes and added regression tests. The messaging suite passed **76 tests**.
+
+The DirectedGraph description does not match this checkout: it contains no `LinkProvider` or link analysis code. If that refactor is still intended, please provide its repository.

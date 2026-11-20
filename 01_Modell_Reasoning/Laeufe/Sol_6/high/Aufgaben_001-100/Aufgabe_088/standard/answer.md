@@ -1,0 +1,3 @@
+Updated `getObject` and `getObjects` across MongoDB, PostgreSQL, and Redis to accept optional field names. An empty or omitted `fields` array returns the full object, including through `getObjectFields` and `getObjectsFields`. Selected fields include `null` for absent fields; object reads return `null` for missing keys, and bulk reads preserve input order.
+
+Added coverage in [hash.js](/app/test/database/hash.js). The Redis hash suite passed **60 tests**, and ESLint and `git diff --check` passed. MongoDB and PostgreSQL integration tests were not run because those services were unavailable.

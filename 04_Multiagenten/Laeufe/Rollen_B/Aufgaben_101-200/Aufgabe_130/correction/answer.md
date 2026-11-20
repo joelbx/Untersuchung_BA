@@ -1,0 +1,3 @@
+The checked-out patch addresses the crash: `RunAdmin` returns the registered device and `DeviceRegistered` outcome when enrollment fails, and `printEnrollOutcome` handles a nil device. The device-limit test verifies the error and registration. The independent review found no code defect, so I kept the patch as is.
+
+`TestCeremony_RunAdmin` passed, and `git diff --check` passed. **TEST_ENVIRONMENT_PROBLEM:** the combined test command could not compile `tsh/common` because this image lacks Linux and libc headers and the SQLite large-file declarations.

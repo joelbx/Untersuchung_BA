@@ -1,0 +1,3 @@
+Updated [update_work.py](/app/openlibrary/solr/update_work.py:754) to prioritize a public scan edition for `lending_edition_s` and keep `lending_identifier_s` matched to that edition. Expanded [test_update_work.py](/app/openlibrary/tests/solr/test_update_work.py:351) to check the availability fields, IA membership, collection union, and multiple print-disabled IDs.
+
+Validation: `pytest -q openlibrary/tests/solr/test_update_work.py` passed (56 tests); `git diff --check` passed.

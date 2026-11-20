@@ -1,0 +1,3 @@
+Updated Debian and Red Hat process scanning to use a shared `pkgPs` path. RPM ownership now associates processes by package name, so results from multiple installed versions or architectures do not trigger the spurious `FindByFQPN` warning. The parser ignores the three expected file errors and returns an error for malformed output.
+
+Added regression coverage. `go test ./scan -count=1` and `git diff --check` passed.

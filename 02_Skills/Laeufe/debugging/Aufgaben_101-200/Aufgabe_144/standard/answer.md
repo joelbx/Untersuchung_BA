@@ -1,0 +1,3 @@
+Moved edition expansion to the public `catalog.utils.expand_record()` function, moved its title helper alongside it, updated callers and tests, and removed `build_marc()` from `merge_marc.py`. The expanded record retains the existing title variants, merged ISBNs, and comparison fields.
+
+Verification: the relevant catalog suites passed with **84 passed, 8 skipped, and 2 expected failures**. Ruff and `git diff --check` passed.

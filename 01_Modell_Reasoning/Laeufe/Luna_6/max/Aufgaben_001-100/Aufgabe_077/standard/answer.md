@@ -1,0 +1,3 @@
+Implemented date-based deprecations across Python warnings and `AnsibleModule`, callback display, argument deprecation scanning, validate-modules checks, and the C# `DateTime` overload. Deprecated aliases now require exactly one of `version` or `date`; updated existing PowerShell assertions accordingly.
+
+**Verification:** 116 relevant Python unit tests passed; bytecode compilation and `git diff --check` passed. The validate-modules sanity check could not start because `voluptuous` is missing, and C# integration tests could not run because PowerShell is unavailable.

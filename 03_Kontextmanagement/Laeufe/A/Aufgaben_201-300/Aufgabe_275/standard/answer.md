@@ -1,0 +1,3 @@
+Updated [Kubernetes proxy authentication](/app/lib/kube/proxy/forwarder.go) so access related failures remain `AccessDenied`, while unrelated authorization and context setup errors retain their trace classification. Expanded [the existing authentication test](/app/lib/kube/proxy/forwarder_test.go) to check authorization denial, unsupported users, unknown local Kubernetes clusters, and remote requests without a tunnel.
+
+`go test ./lib/kube/proxy -count=1` passes.

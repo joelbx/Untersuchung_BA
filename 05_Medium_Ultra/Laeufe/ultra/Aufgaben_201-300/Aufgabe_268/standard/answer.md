@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py:82) to show the capitalized process name, exact command, error type, and process detail. Missing or nonexecutable commands now get the requested hint on non-Windows platforms. Detached start failures use the same format, and crashes produce one notification.
+
+A review agent checked the error paths, and a second agent updated the [unit tests](/app/tests/unit/misc/test_guiprocess.py:243) and [:spawn scenario](/app/tests/end2end/features/spawn.feature:9). I integrated the changes and verified that all 31 GUI process unit tests and the targeted end-to-end scenario pass.

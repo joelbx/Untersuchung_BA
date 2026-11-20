@@ -1,0 +1,3 @@
+Implemented the Trivy metadata and detection changes. OS releases now come from `Metadata.OS.Name`; `ServerName` uses `ArtifactName` for OS and library scans, with `:latest` added to untagged container images. Trivy identification now uses `ScannedBy`, and OVAL/GOST detection skips results with missing metadata or packages and unsupported scan types. Detection errors are logged and returned.
+
+Updated the parser’s existing expected results. Validation passed: `go test ./contrib/trivy/parser/v2 ./detector` and `git diff --check`.

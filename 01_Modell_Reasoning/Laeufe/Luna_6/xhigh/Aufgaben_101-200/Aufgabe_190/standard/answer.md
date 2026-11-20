@@ -1,0 +1,5 @@
+Implemented preview mode across the import pipeline and `/import` and Archive.org import endpoints. Preview returns proposed edits with UUID placeholder keys and reports `cover_accepted`; it skips record saves, cover uploads, and Archive.org writeback. Author normalization and matching, language conversion, and cover host validation are wired into the import flow.
+
+**Verification:** Import API tests passed (64). Catalog import tests passed (121); one legacy test fails because it expects an upload from `www.covers.org`, which the allowlist rejects. `ruff check`, compilation, and `git diff --check` passed.
+
+Changes are in [add_book/__init__.py](/app/openlibrary/catalog/add_book/__init__.py), [load_book.py](/app/openlibrary/catalog/add_book/load_book.py), and [importapi/code.py](/app/openlibrary/plugins/importapi/code.py).

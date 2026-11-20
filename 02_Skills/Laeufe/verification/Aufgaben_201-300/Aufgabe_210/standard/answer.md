@@ -1,0 +1,3 @@
+Updated TaskExecutor to evaluate loop items once and resolve each item’s `delegate_to` before any iteration executes. VariableManager now provides `get_delegated_vars_and_hostname`, `Task` provides `get_play`, and the loop cache workaround is removed.
+
+Verification: 35 focused unit tests passed, and the random delegated loop playbook passed. A separate existing loop control playbook failed because its registered result lacks `_ansible_delegated_vars`; that failure and its unverified baseline status are recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

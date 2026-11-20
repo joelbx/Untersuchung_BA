@@ -1,0 +1,3 @@
+Exported `DefaultConfig()` and `DecodeHooks`, and updated `Load` to compose the exported hooks. Storage’s Local and Git fields are now pointers with nil-safe validation. I also corrected a CUE schema type from `boolean` to `bool`.
+
+The config tests pass, including new checks for duration decoding and CUE schema compilation. `internal/cmd` compiles successfully. The referenced `config/schema_test.go` is not in this checkout, so its exact default-validation path could not be run.

@@ -1,0 +1,7 @@
+I found the likely cause but did not edit project files: this specialist role permits diagnosis only.
+
+[RoomViewStore.tsx](/app/src/stores/RoomViewStore.tsx:449) computes widget buttons during `ViewRoom`, before the new room ID is committed. Its module callback can therefore receive the previous room ID. [RoomView.tsx](/app/src/components/structures/RoomView.tsx:1407) has the room load hook but does not dispatch `RoomLoaded`. An options update also risks clearing a permalink target because [onRoomViewStoreUpdate](/app/src/components/structures/RoomView.tsx:690) reads only the store’s event ID.
+
+The fix should add `Action.RoomLoaded = "room_loaded"`, dispatch exactly `{ action: Action.RoomLoaded }` after room load, and make that action independently call `setViewRoomOpts()` to set `{ viewRoomOpts: { buttons: [...] } }`. Remove option recomputation from `viewRoom`. Use `roomViewStore.getInitialEventId() ?? this.state.initialEventId` for the event target.
+
+The existing [store test](/app/test/stores/RoomViewStore-test.ts:588) is labeled `Action.RoomLoaded` but dispatches `ViewRoom`; it does not verify the required behavior. I did not run tests because no source or test changes were permitted.

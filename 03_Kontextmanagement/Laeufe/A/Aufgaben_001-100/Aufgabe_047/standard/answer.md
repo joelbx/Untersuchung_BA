@@ -1,0 +1,3 @@
+Implemented per-ID seed setting and reseeding in [hasher.go](/app/utils/hasher/hasher.go). Setting a previous seed restores the previous hash; unseen IDs receive a seed automatically. Added coverage in [hasher_test.go](/app/utils/hasher/hasher_test.go).
+
+The hasher tests and race test pass. Explicit seed results are reproducible within a process; the shared `maphash` seed is regenerated when the process restarts.

@@ -1,0 +1,3 @@
+Added `${VARIABLE_NAME}` substitution as the first configuration decode hook. It resolves multiple references before type conversion, preserves values that do not match or refer to missing variables, and keeps existing `FLIPT_` overrides working. Tests cover ports, durations, strings, and unchanged values.
+
+Verified with `go test ./internal/config -count=1`, `go test ./config -count=1`, and `git diff --check`.

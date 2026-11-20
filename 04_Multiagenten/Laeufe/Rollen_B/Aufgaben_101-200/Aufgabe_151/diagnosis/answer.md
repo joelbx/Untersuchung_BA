@@ -1,0 +1,5 @@
+The likely fault is in [webview.py](/app/qutebrowser/browser/webengine/webview.py:261): both paths that call Qt’s `chooseFiles` pass accepted types through unchanged. The requested `extra_suffixes_workaround` does not exist, so affected Qt versions receive no explicit `.jpg` filter.
+
+The fix should add that helper, gate it on runtime Qt versions from 6.2.3 through 6.6.x using `version_check(..., compiled=False)`, resolve specific MIME types with `mimetypes.guess_all_extensions` and wildcards through `mimetypes.types_map`, then pass the additional suffixes to the parent file picker without duplicates. Existing [webview tests](/app/tests/unit/browser/webengine/test_webview.py) do not cover file selection.
+
+**Uncertainty:** exact extension sets depend on the local MIME database; this environment also maps `image/jpeg` to `.jpeg` and `.jfif`. Per the fault-localization task boundary, I changed no project source or tests.

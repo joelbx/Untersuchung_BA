@@ -1,0 +1,3 @@
+Fixed the admin action buttons in [UserInfo.tsx](/app/src/components/views/right_panel/UserInfo.tsx). Kick, Ban, and Mute now share a lock for the selected member from first activation through confirmation and operation settlement. All three controls set `disabled` and `aria-disabled="true"` while pending. Cancellation sends no operation; failure releases the lock and shows one error dialog.
+
+The [UserInfo tests](/app/test/components/views/right_panel/UserInfo-test.tsx) pass: 70 tests. ESLint and diff checks pass. The full type check still reports existing SDK and unrelated test errors; it reports none in the edited files.

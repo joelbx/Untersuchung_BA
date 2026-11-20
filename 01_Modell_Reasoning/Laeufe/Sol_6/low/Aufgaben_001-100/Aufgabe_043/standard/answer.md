@@ -1,0 +1,3 @@
+Moved tracing resource, provider, and exporter construction into [internal/tracing/tracing.go](/app/internal/tracing/tracing.go). The gRPC server now uses those functions and registers both provider and exporter shutdowns in its shutdown sequence. Exporters are created independently on each call, so one configuration cannot lock in later calls.
+
+Added focused tracing tests and updated the existing gRPC exporter test. `go test ./internal/tracing ./internal/cmd` passes.

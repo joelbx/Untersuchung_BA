@@ -1,0 +1,3 @@
+Updated [module_common.py](/app/lib/ansible/executor/module_common.py) so new-style Python modules use their declared shebang interpreter and arguments. Inventory and config overrides still take precedence; modules without a shebang use `/usr/bin/python`. Shebangs are rewritten only when the resolved interpreter differs, and the encoding line follows the effective shebang.
+
+Verification: all 57 module-common unit tests passed.

@@ -1,0 +1,3 @@
+Implemented Redis TLS configuration and added `redis.NewClient` with TLS 1.2, custom CA support, system CA fallback, and optional certificate verification bypass. Updated config validation, schemas, fixtures, and the `api/cachetls` integration matrix entry.
+
+`go test ./internal/config` and `go test -short ./internal/cache/redis` passed. The full Redis tests were attempted but require Docker, which is unavailable here. `git diff --check` passed.

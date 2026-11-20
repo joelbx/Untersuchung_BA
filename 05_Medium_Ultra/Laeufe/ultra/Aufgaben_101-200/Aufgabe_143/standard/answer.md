@@ -1,0 +1,3 @@
+Centralized `add_db_name` in [catalog utils](/app/openlibrary/catalog/utils/__init__.py:294) and made edition expansion call it for every author. Existing edition conversion now passes only the author’s name and available birth and death dates into expansion. The comparison tests no longer need hand-written identifiers.
+
+Verification: 129 passed, 2 xfailed, 1 xpassed; Ruff and `git diff --check` passed. One subagent updated the existing edition conversion and another added regression tests; I integrated and verified both changes.

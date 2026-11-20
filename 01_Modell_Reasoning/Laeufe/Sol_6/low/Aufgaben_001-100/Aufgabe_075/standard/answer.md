@@ -1,0 +1,3 @@
+Added a `user_props` migration and a context-scoped `UserPropsRepository`, exposed through `DataStore.UserProps`. Last.fm now stores session keys under the `sessionKeyProperty` constant, and the migration transfers existing prefixed keys. Session-key error logging now includes the request ID when available.
+
+The new test verifies that users can hold different values for the same key. `go test ./...` passed.

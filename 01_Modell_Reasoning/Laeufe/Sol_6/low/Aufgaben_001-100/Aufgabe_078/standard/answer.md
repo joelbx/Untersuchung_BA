@@ -1,0 +1,3 @@
+Updated voice broadcast playback to expose `VoiceBroadcastLiveness` and emit `LivenessChanged` only when the value changes. The header and badge now show red for live, grey for buffering or paused, and no badge for not live. Recording call sites map their boolean values to the new type.
+
+The four relevant test suites pass: 60 tests. TypeScript validation is blocked by an existing error in `src/utils/notifications.ts:79` (`TS2554`, too many arguments).

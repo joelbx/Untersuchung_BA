@@ -1,0 +1,3 @@
+Implemented Fortinet CVE detection and enrichment. Fortinet advisories can now qualify a CPE match, contribute to highest-confidence detection, populate advisory IDs and CVE metadata, and appear in the requested display order. The scanner and HTTP handler both use `FillCvesWithNvdJvnFortinet`. Updated go-cve-dictionary to a version with Fortinet models and detection methods.
+
+`git diff --check` passed. The detector, models, and server tests could not start because the offline module cache is missing `github.com/pelletier/go-toml/v2@v2.0.8`; I did not fetch dependencies. Progress is recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

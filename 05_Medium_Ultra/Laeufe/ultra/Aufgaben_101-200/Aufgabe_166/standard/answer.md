@@ -1,0 +1,3 @@
+Fixed the vaulted vars file regression. [DataLoader](/app/lib/ansible/parsing/dataloader.py:82) now supports `cache='none'` without populating its file cache and `cache='vaulted'` to reuse parsed vaulted files. [VariableManager](/app/lib/ansible/vars/manager.py:356) uses vaulted caching for `vars_files`, avoiding repeated reads and decryption while leaving plain files fresh.
+
+Delegated a read-only call-site review and focused regression tests, then integrated and verified the patch. The loader and variable manager tests passed (43), the inventory and vars tests passed (41), and `git diff --check` passed.

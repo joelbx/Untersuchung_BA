@@ -1,0 +1,3 @@
+Updated Amazon Linux detection for 2023, 2025, 2027, and 2029, added EOL mappings, and corrected OVAL lookup so those releases no longer fall back to Amazon Linux 1. ALAS2023 advisory links are also handled.
+
+`GOPROXY=off GOSUMDB=off go test -count=1 ./config ./scanner ./oval` passed, and `git diff --check` was clean. The future EOL dates could not be independently checked against AWS because external research was unavailable.

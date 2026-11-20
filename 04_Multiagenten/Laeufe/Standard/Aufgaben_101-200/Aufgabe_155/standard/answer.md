@@ -1,0 +1,3 @@
+Added digest support across image configuration, scanning, scan results, and reporting. Validation now requires a name and exactly one of tag or digest. Image references use `name:tag` or `name@digest`, and local reports can be written for registry-qualified image names.
+
+The config, scan, and report package tests pass with vet disabled; the focused model test passes. The full models suite still fails in the existing `TestScan`, and default vet flags existing conversions in `models/library.go`.

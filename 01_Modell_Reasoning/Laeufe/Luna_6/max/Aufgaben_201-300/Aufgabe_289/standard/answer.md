@@ -1,0 +1,3 @@
+Implemented the config exports and pointer changes. [config.go](/app/internal/config/config.go:17) now exposes `DecodeHooks` and `DefaultConfig()`, and `Load` composes the exported hooks without mutating their slice. [storage.go](/app/internal/config/storage.go:20) uses `*Local` and `*Git`, with validation handling missing sub-configurations. The existing test fixture now uses `DefaultConfig()`.
+
+`go test ./internal/config` and `go test ./internal/cmd` passed. The referenced `config/schema_test.go` is not present in this checkout, so I could not run that specific CUE validation test.

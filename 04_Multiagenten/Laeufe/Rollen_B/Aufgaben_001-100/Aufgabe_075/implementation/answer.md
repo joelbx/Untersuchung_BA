@@ -1,0 +1,3 @@
+Implemented user-scoped property storage. A new migration creates `user_props` and moves existing Last.fm session keys into it. The new `UserPropsRepository` scopes Put, Get, and Delete to the user in context; Last.fm now uses `sessionKeyProperty` and establishes the callback user context before saving. Property error logs include the request ID when available.
+
+Added a repository test for user isolation and missing context. `go test ./...` and `git diff --check` pass.

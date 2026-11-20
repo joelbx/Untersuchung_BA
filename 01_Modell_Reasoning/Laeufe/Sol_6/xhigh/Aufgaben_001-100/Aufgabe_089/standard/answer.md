@@ -1,0 +1,3 @@
+Updated `flipt validate` to report missing variant and segment references as individual errors with file, line, and column details. Import now checks references before writing resources, so retrying an invalid file returns the same error. `SnapshotFromFS` and `SnapshotFromPaths` validate files before building snapshots.
+
+The affected tests passed: `go test ./internal/cue ./internal/ext ./internal/storage/fs/... ./cmd/flipt`.

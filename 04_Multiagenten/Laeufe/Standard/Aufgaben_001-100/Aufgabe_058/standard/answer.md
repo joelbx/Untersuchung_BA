@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts) to enforce configuration and DNT rules, use `Anonymity` consistently, gate and await event capture, hash user and room IDs, and reset the PostHog client on logout. Updated the [analytics tests](/app/test/PosthogAnalytics-test.ts) for the async lifecycle and privacy cases.
+
+All 16 focused tests pass. The repository-wide TypeScript check still reports unrelated errors elsewhere.

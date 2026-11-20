@@ -1,0 +1,3 @@
+Added JXL MIME and extension support, and enabled HEIC, HEIF, and JXL previews on macOS/iOS Safari 17+. Both Drive upload parsers now use a specific file type first, then the extension when the type is missing or generic.
+
+The parser tests pass, and lint and formatting checks pass. The Safari compatibility test could not run because the configured Chromium binary is missing; package type checks also report errors outside these changes.

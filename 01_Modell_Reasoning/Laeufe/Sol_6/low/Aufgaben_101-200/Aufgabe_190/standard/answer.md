@@ -1,0 +1,3 @@
+Added `preview=true` to the `/import` and `/ia_import` endpoints. Preview runs the import pipeline with simulated author, work, and edition keys, returns `preview`, `edits`, and cover acceptability, and skips saving, cover uploads, and Archive.org metadata updates. The import helpers now expose the requested `save` parameter, renamed author and edition functions, and case insensitive cover host validation.
+
+Verification: 129 relevant tests passed; `git diff --check` passed.

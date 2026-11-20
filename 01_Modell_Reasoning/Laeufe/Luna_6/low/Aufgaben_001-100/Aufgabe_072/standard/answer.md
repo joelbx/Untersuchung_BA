@@ -1,0 +1,3 @@
+Implemented IDN handling in [url.ts](/app/packages/components/helpers/url.ts): `punycodeUrl` converts Unicode hostnames to ASCII, preserves URL components, and removes a trailing pathname slash. Added `getHostnameWithRegex` and updated the link handler to apply punycode conversion and notify when a link URL is missing.
+
+The focused URL tests pass: `yarn workspace @proton/components test helpers/url.test.ts --runInBand`. `git diff --check` also passes.

@@ -1,0 +1,3 @@
+Implemented `guessDateFromText` in [property.ts](/app/packages/shared/lib/contacts/property.ts) and wired it into CSV and vCard date conversion. It parses the requested ISO, month-name, and slash-separated formats. Unparseable text leaves the date unset, while an existing valid `Date` is returned unchanged. The added tests check the calendar values used for vCard serialization.
+
+Type checking, formatting, and 11 contact property specs passed. The full Karma suite bundled but could not launch its cached Chromium executable.

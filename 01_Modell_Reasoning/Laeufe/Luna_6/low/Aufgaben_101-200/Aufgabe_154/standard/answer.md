@@ -1,0 +1,3 @@
+Implemented Windows SSH stderr CLIXML replacement. The new helper decodes complete embedded blocks, falls back from UTF-8 to cp437, and preserves surrounding bytes and incomplete blocks. Updated the UTF-16-BE escape regex and switched SSH to use the helper for Windows stderr.
+
+Verification: all 17 existing PowerShell unit tests passed; focused checks passed for embedded, plain, and incomplete stderr, and for preserving valid Unicode escapes.

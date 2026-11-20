@@ -1,0 +1,3 @@
+Implemented version-aware modes for `qt.workarounds.disable_accelerated_2d_canvas`. The setting now accepts `always`, `auto`, and `never`, with `auto` as the default. In `auto`, the flag is added only on Qt 6 with a known, nonzero Chromium major below 111.
+
+Updated the [configuration schema](/app/qutebrowser/config/configdata.yml), [argument resolver](/app/qutebrowser/config/qtargs.py), and [boundary tests](/app/tests/unit/config/test_qtargs.py). The relevant test suites passed: **144 tests**.

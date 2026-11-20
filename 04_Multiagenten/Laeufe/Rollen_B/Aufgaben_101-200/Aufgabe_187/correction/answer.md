@@ -1,0 +1,3 @@
+Fixed the reviewed certificate defect. `Forwarder` now applies the same one-minute validity check to newly issued CSR certificates before returning or caching them, and a regression test covers a certificate that expires too soon.
+
+The full proxy and service test suites passed, as did both focused proxy commands and `git diff --check`. The focused service command passed with no tests matched. I reran the tests sequentially after the initial parallel run hit the workspace’s process limit.

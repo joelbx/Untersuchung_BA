@@ -1,0 +1,3 @@
+Implemented a one-second cache for `NOT_FOUND`, `NOT_ALLOWED`, and `INVALID_ID` fetch errors, keyed by `(shareId, linkId)`. Cached calls reuse the original error; successful fetch handling is unchanged. See [useLink.ts](/app/applications/drive/src/app/store/_links/useLink.ts:21).
+
+Verification passed: the existing `useLink` suite (12 tests), Drive type check, targeted ESLint, and `git diff --check`.

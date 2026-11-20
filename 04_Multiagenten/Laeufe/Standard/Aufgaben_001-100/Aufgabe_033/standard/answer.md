@@ -1,0 +1,3 @@
+U2F sign requests now include a challenge for every registered U2F device, while retaining the legacy single-challenge fields. The CLI can use any challenge in the list, and the auth client still accepts older single-challenge responses. Web endpoints pass through the enhanced payload.
+
+A two-token web login regression passed, as did the auth, client, and web test suites. The checkout contains compiled web assets but no web UI source for changing MFA device management visibility.

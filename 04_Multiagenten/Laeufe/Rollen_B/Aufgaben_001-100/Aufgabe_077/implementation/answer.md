@@ -1,0 +1,3 @@
+Implemented date based module deprecations across Python and C#. Date entries now reach `exit_json()` in call order, display includes the removal date, and the validator and C# alias path accept and check date targets. `AnsibleModule.deprecate()` raises the required assertion when both a version and date are set.
+
+Five focused Python tests passed, as did `compileall` and `git diff --check`. I could not run the C# integration test because PowerShell is unavailable, or the validator runtime check because `voluptuous` is unavailable.

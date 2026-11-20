@@ -1,0 +1,3 @@
+Implemented Project Runeberg support. Work search documents now expose `id_project_runeberg` as an array, including `[]` when absent, while other identifier fields retain their values. Added the acquisition provider and read/download templates.
+
+Verification: 60 relevant tests passed; Ruff and `git diff --check` passed. Format links point to the edition’s Runeberg download page; external URL availability was not verified.

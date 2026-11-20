@@ -1,0 +1,3 @@
+Added [mailMetricsHelper.ts](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts) with `getLabelID` to group custom labels and folders as `"custom"`, and `getPageSizeString` to return `"50"`, `"100"`, or `"200"` with a `"50"` fallback. Added `@proton/metrics` to the mail package manifest and lockfile.
+
+Verification passed: 5 focused tests, mail type check, lint, formatting, and `git diff --check`.

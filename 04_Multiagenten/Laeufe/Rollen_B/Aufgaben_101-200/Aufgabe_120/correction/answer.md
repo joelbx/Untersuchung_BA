@@ -1,0 +1,3 @@
+Fixed the archival finalization defect. Before updating cover records or deleting local zips, the batch now verifies each remote zip’s MD5 against its local file and requires all four local zips. Archiving also rejects new covers in a batch that already has uploaded records. I updated the web test’s tar assertion for zip output.
+
+The reviewer’s three test commands pass: 5 focused tests, 23 coverstore tests, and 1 webapp test. **TEST_ENVIRONMENT_PROBLEM:** seven database integration tests remain skipped because they require PostgreSQL and the `openlibrary` user.

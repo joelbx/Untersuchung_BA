@@ -1,0 +1,3 @@
+Implemented the evaluator split. `RuleStore` no longer requires `Evaluate`; `Server` now delegates to its `Evaluator` dependency, initialized by `New`. SQL evaluation handles flag validation, ordered rules and constraints, typed comparisons, and deterministic CRC32 rollout selection.
+
+Updated the existing storage test fixture for the decoupled interface. **Verification passed:** `go test ./storage ./server`. Legacy concrete evaluation helpers remain for compatibility with existing callers and tests.

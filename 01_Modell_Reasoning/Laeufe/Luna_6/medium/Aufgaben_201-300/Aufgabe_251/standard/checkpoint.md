@@ -1,0 +1,1 @@
+Checkpoint: inspect repository instructions, validation implementation, and existing tests; then refine CUE/YAML error paths and source locations, add regression coverage, and run relevant existing tests.

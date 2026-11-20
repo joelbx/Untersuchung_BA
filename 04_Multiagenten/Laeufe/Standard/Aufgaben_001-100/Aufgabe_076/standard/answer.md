@@ -1,0 +1,3 @@
+Address parsing is updated. `splitBySeparator` now returns ordered, trimmed tokens with angle brackets and empty entries removed. Both autocomplete components use it for pasted addresses, and `inputToRecipient` uses a bare bracketed email for both `Name` and `Address`.
+
+Type checks and lint passed. The shared test suite passed 835 of 837 tests, including the new parsing tests; two unrelated tests failed on cookie expiry and empty-file base64 output.

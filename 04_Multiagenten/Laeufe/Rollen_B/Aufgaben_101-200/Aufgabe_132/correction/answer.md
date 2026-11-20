@@ -1,0 +1,3 @@
+Fixed the reserved-tag check so it applies only to tags newly assigned to a topic. An unprivileged owner can now edit a topic or add an ordinary tag when a reserved tag is already present. The add-tags API still checks the full list against the tag-count limit.
+
+Added regression coverage and reran the reviewer’s exact tests: the focused test passed, and `test/topics.js` passed with 166 tests. The temporary local Redis server used for testing was stopped.

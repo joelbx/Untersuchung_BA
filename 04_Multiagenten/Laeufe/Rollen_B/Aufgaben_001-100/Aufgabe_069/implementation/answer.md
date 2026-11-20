@@ -1,0 +1,3 @@
+Implemented matcher expressions in [parse.go](/app/lib/utils/parse/parse.go), including literal, wildcard, raw regexp, `regexp.match`, and `regexp.not_match` support. The parser validates function calls, rejects matcher functions in `Variable()`, and preserves static prefixes and suffixes. Added focused coverage in [parse_test.go](/app/lib/utils/parse/parse_test.go).
+
+The parse package tests and `git diff --check` pass. The adjacent utils suite has one unrelated failure: a certificate fixture expired in 2021.

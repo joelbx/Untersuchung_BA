@@ -1,0 +1,3 @@
+Implemented ZIP based cover archival with zero-padded IDs and paths, upload verification, batch locking, and database updates that set remote URLs only after finalization. Updated retrieval to use the recorded upload state and documented the new layout in [README.md](/app/openlibrary/coverstore/README.md).
+
+Checks passed: 23 coverstore tests, Ruff, and `git diff --check`. Seven database-backed webapp tests were skipped. Live archive.org uploads were not exercised.

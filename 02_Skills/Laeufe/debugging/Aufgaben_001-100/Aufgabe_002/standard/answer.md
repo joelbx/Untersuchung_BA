@@ -1,0 +1,3 @@
+Fixed `tctl auth sign --format=kubernetes` to select an HTTPS Kubernetes proxy address on port 3026. The new [ProxyConfig.KubeAddr()](/app/lib/service/cfg.go) uses the Kubernetes public host when configured. Otherwise, `tctl` searches registered proxies, skips invalid addresses, and preserves an explicit `--proxy` value.
+
+Regression tests cover address selection and the server URL written to a kubeconfig. `go test ./lib/service ./tool/tctl/common -count=1` passed.

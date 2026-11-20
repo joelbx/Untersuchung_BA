@@ -1,0 +1,3 @@
+Added `GET /.well-known/webfinger` through the new [route](/app/src/routes/well-known.js) and [controller](/app/src/controllers/well-known.js). The handler validates the account resource, checks `view:users` for the requester or Guest, returns 400/403/404 as appropriate, and serves a WebFinger JSON response with both profile aliases and an HTML profile link.
+
+The five focused tests pass. ESLint and `git diff --check` also pass. The database backed integration suite was not run because its setup reads and logs private configuration.

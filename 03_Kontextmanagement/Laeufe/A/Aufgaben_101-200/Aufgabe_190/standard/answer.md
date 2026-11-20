@@ -1,0 +1,3 @@
+Implemented `preview=true` for the general and IA import endpoints. Preview runs the import pipeline without saving records, uploading covers, or updating Archive.org metadata. Responses include `preview: true`, simulated keys, the Edition, Work, and Author records queued for writing in `edits`, and cover acceptability.
+
+The import pipeline now exposes case-insensitive cover host validation, author normalization and matching, and normalized edition language fields. Verification: **140 focused tests passed**, Ruff passed, and `git diff --check` passed.

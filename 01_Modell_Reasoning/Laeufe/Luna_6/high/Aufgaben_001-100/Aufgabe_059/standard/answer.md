@@ -1,0 +1,3 @@
+Implemented the public `Dialog` abstraction and exported it from the components barrel. It forwards attributes and refs, uses native `<dialog>` when supported, and falls back to an accessible `div` in limited DOM environments. `ModalTwo` now uses the abstraction and marks its open container as modal.
+
+Verification passed: the focused `ModalTwo` suite (8 tests), the components TypeScript check, and `git diff --check`. Checkpoint: [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

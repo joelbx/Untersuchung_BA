@@ -1,0 +1,3 @@
+Implemented chat allow and deny lists, an incoming chat disable setting, and server-side checks for message initiation, room creation, and adding users to rooms. Explicit blocks take precedence; administrators and global moderators remain exempt from the privacy lists. The [4.3.0 upgrade](/app/src/upgrades/4.3.0/chat_allow_list.js) seeds allow lists from legacy users’ follow lists and can be rerun safely. Account settings and the API now expose the new values.
+
+Verification: 355 messaging and user tests passed. ESLint, JSON parsing, and `git diff --check` passed.

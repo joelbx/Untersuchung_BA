@@ -1,0 +1,3 @@
+Updated Red Hat family CVE detection to use OVAL package definitions, with the cached `goval-dictionary` v0.9.5. The analyser now adds advisories only for supported family IDs and carries OVAL resolution states into package fix statuses, including `NotFixedYet` and `FixedIn`. Gost no longer detects Red Hat family package CVEs.
+
+The full offline `go test ./...` suite passed. The targeted OVAL, Gost, and detector suites also passed after the test edits. No delegation was used.

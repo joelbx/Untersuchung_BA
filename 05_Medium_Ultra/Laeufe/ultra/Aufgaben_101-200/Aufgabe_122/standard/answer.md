@@ -1,0 +1,3 @@
+Implemented `storage.readOnly` across configuration and the UI. Explicit values are preserved in metadata, including `false`, and non-database storage returns the requested validation error. The [UI selector](/app/ui/src/app/meta/metaSlice.ts) now derives read-only state from config, and the [header](/app/ui/src/components/Header.tsx) shows a “Read-Only” badge with a backend-specific icon. [Authentication bootstrap](/app/internal/cmd/auth.go) skips database setup for non-database storage when authentication is disabled.
+
+Three native subagents handled config, authentication, and UI edits; I integrated and verified the patch. Offline Go tests for the affected packages passed. UI tests could not run because Node/npm is unavailable.

@@ -1,0 +1,3 @@
+Implemented import preview mode in the checked-out repository. `/import` and `/ia_import` now accept `preview=true` and return simulated keys and the Edition, Work, and Author edits without saving, updating IA metadata, or uploading covers. The change also adds case-insensitive cover host validation and the requested author and edition builder interfaces.
+
+Validation passed: **137 tests**, Ruff, and `git diff --check`. This work item is complete.

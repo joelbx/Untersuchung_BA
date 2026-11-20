@@ -1,0 +1,3 @@
+Updated [forwarder.go](/app/lib/kube/proxy/forwarder.go) so sessions reject a missing or unknown Kubernetes cluster with `trace.NotFound`, use local credentials when available, and keep one selected kube service address and server ID for the life of the session. Remote sessions dial `reversetunnel.LocalKubernetes` through `dialEndpoint` and use the certificate and Root CAs from the existing request path. Added regression coverage in [forwarder_test.go](/app/lib/kube/proxy/forwarder_test.go).
+
+The full `lib/kube/proxy` test suite and `git diff --check` passed.

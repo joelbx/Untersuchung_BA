@@ -1,0 +1,3 @@
+The repository already used a single `*sql.DB`, so no read/write split needed removing. I added the seven required SQLite settings in [db/db.go](/app/db/db.go), kept [persistence transactions](/app/persistence/persistence.go) on the supplied connection, and changed play counts and initial setup to use their transaction datastore. I did not add the `db.DB` or `dbxBuilder` interfaces because those clauses would recreate the split the issue asks to revert.
+
+I delegated the DB settings and transaction caller changes, then integrated the patch. The existing tests for `db`, `persistence`, `core/scrobbler`, `server`, and `scanner` passed with cache disabled.

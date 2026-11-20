@@ -1,0 +1,3 @@
+Added a disabled-by-default `feature_poll_history` labs setting. When enabled, [RoomSummaryCard](/app/src/components/views/right_panel/RoomSummaryCard.tsx) shows a **Polls history** button that opens the new [PollHistoryDialog](/app/src/components/views/dialogs/polls/PollHistoryDialog.tsx) with the current `roomId`.
+
+The relevant tests passed (11 tests), as did lint, formatting, style, and diff checks. The full TypeScript check is blocked by an unrelated error in `RoomCreate.tsx:50`.

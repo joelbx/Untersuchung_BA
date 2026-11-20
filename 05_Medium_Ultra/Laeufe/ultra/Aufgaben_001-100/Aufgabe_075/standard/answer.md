@@ -1,0 +1,3 @@
+Implemented the `user_props` table and context-scoped repository, exposed it through `DataStore.UserProps`, and switched Last.fm session keys to the `sessionKeyProperty` constant. The migration preserves existing Last.fm sessions, and property error logs include a request ID when available.
+
+Three native subagents handled the migration, datastore wiring, and Last.fm refactor. I reviewed the integrated changes. `GOPROXY=off GOSUMDB=off go test ./...` passed.

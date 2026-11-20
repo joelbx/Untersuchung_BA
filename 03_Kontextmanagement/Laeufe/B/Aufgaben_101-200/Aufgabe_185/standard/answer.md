@@ -1,0 +1,3 @@
+Fixed the cancellation expiry display. The expiry utility now uses the **active term** when cancellation is in progress or auto-renew is disabled, and the cancellation screens use that result for their dates. Scheduled-plan behavior remains available when renewal is enabled; free-plan behavior is unchanged.
+
+Verification passed: 41 tests across four suites, TypeScript, targeted ESLint, and `git diff --check`.

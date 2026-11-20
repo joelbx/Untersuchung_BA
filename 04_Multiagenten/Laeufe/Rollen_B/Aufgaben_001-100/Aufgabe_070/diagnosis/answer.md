@@ -1,0 +1,5 @@
+`format_languages` in [openlibrary/catalog/utils/__init__.py](/app/openlibrary/catalog/utils/__init__.py:448) only lowercases each input, checks it as a language key, and appends it. That explains both the failures for `German` and `es` and the duplicate output for repeated `eng`.
+
+The likely fix belongs there: resolve each input to a MARC code, validate the canonical key, then emit each key once in first occurrence order. [upstream/utils.py](/app/openlibrary/plugins/upstream/utils.py:819) already maps `de` to `ger`, `es` to `spa`, and `German` to `ger`. Its translated-name lookup may cover `Deutsch`, but coverage depends on site records and ambiguous names need handling. Existing [catalog tests](/app/openlibrary/tests/catalog/test_utils.py:429) cover MARC codes, empty input, and invalid input, but not these normalization cases.
+
+I updated [checkpoint.md](/app/.codex-role-output/checkpoint.md). I did not edit source or tests because the assigned specialist scope permits diagnosis only; the issue remains unresolved.

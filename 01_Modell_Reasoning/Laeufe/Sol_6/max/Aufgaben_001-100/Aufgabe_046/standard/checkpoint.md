@@ -1,0 +1,2 @@
+Task: Resolve collection and legacy module_utils dependency packaging in module_common.
+Status: Complete. Implemented queue-based resolution with legacy and collection locators, redirect shims, package initializer dependency scanning, synthetic init files, and clearer failures. Added regression tests including generated-zip runtime imports. Focused executor and collection loader tests passed (110); git diff --check passed.

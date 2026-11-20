@@ -1,0 +1,263 @@
+diff --git a/lib/ansible/executor/process/worker.py b/lib/ansible/executor/process/worker.py
+index 4e70a34..a12150a 100644
+--- a/lib/ansible/executor/process/worker.py
++++ b/lib/ansible/executor/process/worker.py
+@@ -88,7 +88,11 @@ class WorkerProcess(multiprocessing_context.Process):  # type: ignore[name-defin
+ 
+         self._save_stdin()
+         try:
+-            return super(WorkerProcess, self).start()
++            # Prevent a parent Display write from holding a stdio stream lock
++            # across fork. The child routes its Display calls through the queue
++            # and never acquires this inherited lock.
++            with display._lock:
++                return super(WorkerProcess, self).start()
+         finally:
+             self._new_stdin.close()
+ 
+@@ -121,19 +125,10 @@ class WorkerProcess(multiprocessing_context.Process):  # type: ignore[name-defin
+         to suddenly assume the role and prior state of its parent.
+         '''
+         try:
++            display.set_queue(self._final_q)
+             return self._run()
+         except BaseException as e:
+             self._hard_exit(e)
+-        finally:
+-            # This is a hack, pure and simple, to work around a potential deadlock
+-            # in ``multiprocessing.Process`` when flushing stdout/stderr during process
+-            # shutdown. We have various ``Display`` calls that may fire from a fork
+-            # so we cannot do this early. Instead, this happens at the very end
+-            # to avoid that deadlock, by simply side stepping it. This should not be
+-            # treated as a long term fix.
+-            # TODO: Evaluate overhauling ``Display`` to not write directly to stdout
+-            # and evaluate migrating away from the ``fork`` multiprocessing start method.
+-            sys.stdout = sys.stderr = open(os.devnull, 'w')
+ 
+     def _run(self):
+         '''
+diff --git a/lib/ansible/executor/task_queue_manager.py b/lib/ansible/executor/task_queue_manager.py
+index 8725a38..7e1e4fb 100644
+--- a/lib/ansible/executor/task_queue_manager.py
++++ b/lib/ansible/executor/task_queue_manager.py
+@@ -58,6 +58,12 @@ class CallbackSend:
+         self.kwargs = kwargs
+ 
+ 
++class DisplaySend:
++    def __init__(self, *args, **kwargs):
++        self.args = args
++        self.kwargs = kwargs
++
++
+ class FinalQueue(multiprocessing.queues.Queue):
+     def __init__(self, *args, **kwargs):
+         kwargs['ctx'] = multiprocessing_context
+@@ -69,6 +75,12 @@ class FinalQueue(multiprocessing.queues.Queue):
+             block=False
+         )
+ 
++    def send_display(self, *args, **kwargs):
++        self.put(
++            DisplaySend(*args, **kwargs),
++            block=False
++        )
++
+     def send_task_result(self, *args, **kwargs):
+         if isinstance(args[0], TaskResult):
+             tr = args[0]
+@@ -320,8 +332,16 @@ class TaskQueueManager:
+         try:
+             play_return = strategy.run(iterator, play_context)
+         finally:
+-            strategy.cleanup()
+-            self._cleanup_processes()
++            try:
++                # Give workers a chance to flush their queue messages before
++                # stopping the results thread. A worker still running after
++                # this grace period follows the existing shutdown policy.
++                for worker_prc in self._workers:
++                    if worker_prc and worker_prc.is_alive():
++                        worker_prc.join(timeout=C.WORKER_SHUTDOWN_POLL_DELAY)
++                self._cleanup_processes()
++            finally:
++                strategy.cleanup()
+ 
+         # now re-save the hosts that failed from the iterator to our internal list
+         for host_name in iterator.get_failed_hosts():
+@@ -337,6 +357,8 @@ class TaskQueueManager:
+         self.terminate()
+         self._final_q.close()
+         self._cleanup_processes()
++        sys.stdout.flush()
++        sys.stderr.flush()
+ 
+     def _cleanup_processes(self):
+         if hasattr(self, '_workers'):
+diff --git a/lib/ansible/plugins/strategy/__init__.py b/lib/ansible/plugins/strategy/__init__.py
+index 1d703ac..b21c1d0 100644
+--- a/lib/ansible/plugins/strategy/__init__.py
++++ b/lib/ansible/plugins/strategy/__init__.py
+@@ -41,7 +41,7 @@ from ansible.executor import action_write_locks
+ from ansible.executor.play_iterator import IteratingStates, FailedStates
+ from ansible.executor.process.worker import WorkerProcess
+ from ansible.executor.task_result import TaskResult
+-from ansible.executor.task_queue_manager import CallbackSend
++from ansible.executor.task_queue_manager import CallbackSend, DisplaySend
+ from ansible.module_utils.six import string_types
+ from ansible.module_utils._text import to_text
+ from ansible.module_utils.connection import Connection, ConnectionError
+@@ -122,6 +122,8 @@ def results_thread_main(strategy):
+                         strategy.normalize_task_result(arg)
+                         break
+                 strategy._tqm.send_callback(result.method_name, *result.args, **result.kwargs)
++            elif isinstance(result, DisplaySend):
++                display.display(*result.args, **result.kwargs)
+             elif isinstance(result, TaskResult):
+                 strategy.normalize_task_result(result)
+                 with strategy._results_lock:
+diff --git a/lib/ansible/utils/display.py b/lib/ansible/utils/display.py
+index b9d2465..73a4110 100644
+--- a/lib/ansible/utils/display.py
++++ b/lib/ansible/utils/display.py
+@@ -29,6 +29,7 @@ import random
+ import subprocess
+ import sys
+ import textwrap
++import threading
+ import time
+ 
+ from struct import unpack, pack
+@@ -202,6 +203,10 @@ class Display(metaclass=Singleton):
+ 
+     def __init__(self, verbosity=0):
+ 
++        self._lock = threading.Lock()
++        self._parent_pid = os.getpid()
++        self._final_q = None
++
+         self.columns = None
+         self.verbosity = verbosity
+ 
+@@ -241,11 +246,23 @@ class Display(metaclass=Singleton):
+                 if os.path.exists(b_cow_path):
+                     self.b_cowsay = b_cow_path
+ 
++    def set_queue(self, queue):
++        if os.getpid() == self._parent_pid:
++            raise RuntimeError('Display queue may only be set in a forked worker')
++        self._final_q = queue
++
+     def display(self, msg, color=None, stderr=False, screen_only=False, log_only=False, newline=True):
+         """ Display a message to the user
+ 
+         Note: msg *must* be a unicode string to prevent UnicodeError tracebacks.
+         """
++        if self._final_q is not None:
++            return self._final_q.send_display(msg, color=color, stderr=stderr, screen_only=screen_only, log_only=log_only, newline=newline)
++
++        with self._lock:
++            self._display(msg, color=color, stderr=stderr, screen_only=screen_only, log_only=log_only, newline=newline)
++
++    def _display(self, msg, color=None, stderr=False, screen_only=False, log_only=False, newline=True):
+ 
+         nocolor = msg
+ 
+diff --git a/test/units/executor/test_display_queue.py b/test/units/executor/test_display_queue.py
+new file mode 100644
+index 0000000..a84a3f9
+--- /dev/null
++++ b/test/units/executor/test_display_queue.py
+@@ -0,0 +1,92 @@
++# Copyright (c) 2026 Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import (absolute_import, division, print_function)
++__metaclass__ = type
++
++from queue import Queue
++from threading import Event, Thread
++from types import SimpleNamespace
++
++import pytest
++
++from ansible.executor.process.worker import WorkerProcess
++from ansible.executor.task_queue_manager import DisplaySend, FinalQueue
++from ansible.plugins.strategy import _sentinel, results_thread_main
++from ansible.utils.display import Display
++
++
++def test_worker_display_uses_queue_even_with_inherited_locked_display(monkeypatch):
++    def run_in_worker(self):
++        display = Display()
++        display.display(u'worker stdout', newline=False)
++        display.display(u'worker stderr', stderr=True)
++
++    monkeypatch.setattr(WorkerProcess, '_run', run_in_worker)
++    display = Display()
++    final_q = FinalQueue()
++
++    with pytest.raises(RuntimeError):
++        display.set_queue(final_q)
++
++    worker = WorkerProcess(final_q, None, None, None, None, SimpleNamespace(), None, None)
++    started = False
++    try:
++        # WorkerProcess.start holds the parent's display lock across fork.
++        worker.start()
++        started = True
++        worker.join(timeout=5)
++        assert worker.exitcode == 0
++    finally:
++        if started and worker.is_alive():
++            worker.terminate()
++            worker.join(timeout=5)
++
++    try:
++        first = final_q.get(timeout=5)
++        second = final_q.get(timeout=5)
++        assert isinstance(first, DisplaySend)
++        assert first.args == (u'worker stdout',)
++        assert first.kwargs['newline'] is False
++        assert isinstance(second, DisplaySend)
++        assert second.args == (u'worker stderr',)
++        assert second.kwargs['stderr'] is True
++    finally:
++        final_q.close()
++
++
++def test_results_loop_replays_all_display_events(capsys):
++    final_q = Queue()
++    final_q.put(DisplaySend(u'first', newline=False))
++    final_q.put(DisplaySend(u'second', stderr=True))
++    final_q.put(_sentinel)
++
++    results_thread_main(SimpleNamespace(_final_q=final_q))
++
++    out, err = capsys.readouterr()
++    assert out == 'first'
++    assert err == 'second\n'
++
++
++def test_parent_display_waits_for_display_lock(capsys):
++    display = Display()
++    started = Event()
++    finished = Event()
++
++    def show_message():
++        started.set()
++        display.display(u'parent message')
++        finished.set()
++
++    display._lock.acquire()
++    thread = Thread(target=show_message)
++    try:
++        thread.start()
++        assert started.wait(timeout=5)
++        assert not finished.wait(timeout=0.1)
++    finally:
++        display._lock.release()
++        thread.join(timeout=5)
++
++    assert finished.is_set()
++    assert capsys.readouterr().out == 'parent message\n'

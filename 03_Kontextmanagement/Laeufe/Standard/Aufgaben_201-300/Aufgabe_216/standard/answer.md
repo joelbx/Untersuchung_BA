@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to resolve runtime settings through `get_option()`, including transfer method, retries, timeout, command arguments, and control path. Reset now checks for a persistent master with the effective SSH command and sends `stop` only when the check succeeds. The requested SSH-specific entries were removed from core config.
+
+Verification: 24 relevant tests passed; `git diff --check` passed.

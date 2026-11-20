@@ -1,0 +1,3 @@
+Qt wrapper selection now runs during early initialization. The availability check receives the current `SelectionInfo`, records import failures, and raises `NoWrapperAvailableError` with the requested message and details when no wrapper is importable. Implicit initialization uses the same error; successful initialization returns `INFO`. I also clarified the short and verbose info formats, added exception types to import failures, and improved debug and checker output.
+
+Verification: 63 relevant tests passed, and `git diff --check` passed.

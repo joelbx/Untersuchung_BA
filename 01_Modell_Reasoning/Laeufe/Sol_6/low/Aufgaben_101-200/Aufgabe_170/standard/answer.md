@@ -1,0 +1,3 @@
+Edition matching now expands raw records automatically. The merge module provides `add_db_name`, `expand_record`, and `threshold_match`; the existing utility imports remain available. Expansion builds title variants, combines ISBN fields, filters invalid publication countries, and enriches author and contributor names.
+
+The relevant tests passed: **11 passed, 2 expected failures**. New tests cover raw records, missing authors, contributor matches, and title matching without ISBNs.

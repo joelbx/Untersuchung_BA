@@ -1,0 +1,3 @@
+Resolved the requested behavior across module parameter and traceback handling, deprecations, lookup messages, legacy YAML constructors, Templar `None` overrides, `timedout`, and early CLI errors. Added focused regression tests. I made the changes directly; **no delegation was used**.
+
+Validation: **178 passed, 1 skipped** in the focused suite; **9 passed** in the task executor suite. `git diff --check` and compilation passed. A broader module-utils run did not pass because of stdin-capture fixture errors and deprecation assertions following the controller-side warning path.

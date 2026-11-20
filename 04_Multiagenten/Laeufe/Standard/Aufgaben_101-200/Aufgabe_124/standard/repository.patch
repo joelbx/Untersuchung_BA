@@ -1,0 +1,345 @@
+diff --git a/docs/pages/includes/config-reference/auth-service.yaml b/docs/pages/includes/config-reference/auth-service.yaml
+index d93c946..eb20c0a 100644
+--- a/docs/pages/includes/config-reference/auth-service.yaml
++++ b/docs/pages/includes/config-reference/auth-service.yaml
+@@ -46,11 +46,15 @@ teleport:
+ 
+         # DynamoDB-specific section:
+ 
++        # Capacity mode for newly created tables. Defaults to pay_per_request.
++        # Existing tables keep their billing mode. On-demand usage can increase AWS charges.
++        billing_mode: [pay_per_request|provisioned]
++
+         # continuous_backups is used to enable continuous backups.
+         continuous_backups: [true|false]
+ 
+         # auto_scaling is used to enable (and define settings for) auto
+-        # scaling.
++        # scaling on provisioned tables.
+         # default: false
+         auto_scaling:  [true|false]
+ 
+diff --git a/docs/pages/reference/backends.mdx b/docs/pages/reference/backends.mdx
+index 65364ec..c2066c7 100644
+--- a/docs/pages/reference/backends.mdx
++++ b/docs/pages/reference/backends.mdx
+@@ -541,7 +541,12 @@ teleport:
+     # default: false
+     continuous_backups: [true|false]
+ 
+-    # auto_scaling is used to optionally enable (and define settings for) auto scaling.
++    # Capacity mode for newly created tables. Defaults to pay_per_request.
++    # Existing tables keep their current billing mode. On-demand usage has no
++    # provisioned capacity limit and can increase AWS charges.
++    billing_mode: [pay_per_request|provisioned]
++
++    # auto_scaling applies only to provisioned tables.
+     # default: false
+     auto_scaling:  [true|false]
+     # Minimum/maximum read capacity in units
+diff --git a/lib/backend/dynamo/README.md b/lib/backend/dynamo/README.md
+index f0a70f1..88366f4 100644
+--- a/lib/backend/dynamo/README.md
++++ b/lib/backend/dynamo/README.md
+@@ -7,8 +7,10 @@ This package enables Teleport auth server to store secrets in
+ 
+ WARNING: Using DynamoDB involves recurring charge from AWS.
+ 
+-The table created by the backend will provision 5/5 R/W capacity.
+-It should be covered by the free tier.
++New tables use on-demand capacity by default. This mode has no provisioned
++capacity limit and AWS charges can increase with usage. Set
++`billing_mode: provisioned` to create a table with configured read and write
++capacity units. Existing tables retain their current billing mode.
+ 
+ ### Running tests
+ 
+diff --git a/lib/backend/dynamo/billing_test.go b/lib/backend/dynamo/billing_test.go
+new file mode 100644
+index 0000000..8ccbb04
+--- /dev/null
++++ b/lib/backend/dynamo/billing_test.go
+@@ -0,0 +1,109 @@
++package dynamo
++
++import (
++	"context"
++	"testing"
++
++	"github.com/aws/aws-sdk-go/aws"
++	"github.com/aws/aws-sdk-go/aws/awserr"
++	"github.com/aws/aws-sdk-go/aws/request"
++	"github.com/aws/aws-sdk-go/service/dynamodb"
++	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
++	"github.com/sirupsen/logrus"
++	"github.com/stretchr/testify/require"
++)
++
++type billingTestClient struct {
++	dynamodbiface.DynamoDBAPI
++	created     *dynamodb.CreateTableInput
++	described   *dynamodb.DescribeTableOutput
++	describeErr error
++}
++
++func (c *billingTestClient) CreateTableWithContext(_ aws.Context, input *dynamodb.CreateTableInput, _ ...request.Option) (*dynamodb.CreateTableOutput, error) {
++	c.created = input
++	return &dynamodb.CreateTableOutput{}, nil
++}
++
++func (c *billingTestClient) WaitUntilTableExistsWithContext(_ aws.Context, _ *dynamodb.DescribeTableInput, _ ...request.WaiterOption) error {
++	return nil
++}
++
++func (c *billingTestClient) DescribeTableWithContext(_ aws.Context, _ *dynamodb.DescribeTableInput, _ ...request.Option) (*dynamodb.DescribeTableOutput, error) {
++	return c.described, c.describeErr
++}
++
++func TestBillingModeDefaultsAndValidation(t *testing.T) {
++	for _, tc := range []struct {
++		mode  string
++		want  string
++		valid bool
++	}{
++		{"", billingModePayPerRequest, true},
++		{billingModePayPerRequest, billingModePayPerRequest, true},
++		{billingModeProvisioned, billingModeProvisioned, true},
++		{"invalid", "invalid", false},
++	} {
++		cfg := Config{TableName: "test-table", BillingMode: tc.mode}
++		err := cfg.CheckAndSetDefaults()
++		if tc.valid {
++			require.NoError(t, err)
++			require.Equal(t, tc.want, cfg.BillingMode)
++		} else {
++			require.Error(t, err)
++		}
++	}
++}
++
++func TestCreateTableBillingMode(t *testing.T) {
++	for _, tc := range []struct {
++		mode       string
++		awsMode    string
++		throughput bool
++	}{
++		{billingModePayPerRequest, dynamodb.BillingModePayPerRequest, false},
++		{billingModeProvisioned, dynamodb.BillingModeProvisioned, true},
++	} {
++		t.Run(tc.mode, func(t *testing.T) {
++			client := &billingTestClient{}
++			b := &Backend{Entry: logrus.NewEntry(logrus.New()), Config: Config{
++				BillingMode: tc.mode, ReadCapacityUnits: 17, WriteCapacityUnits: 23,
++			}, svc: client}
++			require.NoError(t, b.createTable(context.Background(), "test-table", fullPathKey))
++			require.Equal(t, tc.awsMode, aws.StringValue(client.created.BillingMode))
++			if tc.throughput {
++				require.Equal(t, int64(17), aws.Int64Value(client.created.ProvisionedThroughput.ReadCapacityUnits))
++				require.Equal(t, int64(23), aws.Int64Value(client.created.ProvisionedThroughput.WriteCapacityUnits))
++			} else {
++				require.Nil(t, client.created.ProvisionedThroughput)
++			}
++		})
++	}
++}
++
++func TestGetTableStatusBillingMode(t *testing.T) {
++	for _, tc := range []struct {
++		name   string
++		client billingTestClient
++		status tableStatus
++		mode   string
++	}{
++		{"on demand", billingTestClient{described: &dynamodb.DescribeTableOutput{Table: &dynamodb.TableDescription{
++			BillingModeSummary: &dynamodb.BillingModeSummary{BillingMode: aws.String(dynamodb.BillingModePayPerRequest)},
++		}}}, tableStatusOK, dynamodb.BillingModePayPerRequest},
++		{"legacy provisioned", billingTestClient{described: &dynamodb.DescribeTableOutput{Table: &dynamodb.TableDescription{}}}, tableStatusOK, ""},
++		{"missing", billingTestClient{describeErr: awserr.New(dynamodb.ErrCodeResourceNotFoundException, "missing", nil)}, tableStatusMissing, ""},
++		{"migration", billingTestClient{described: &dynamodb.DescribeTableOutput{Table: &dynamodb.TableDescription{
++			AttributeDefinitions: []*dynamodb.AttributeDefinition{{AttributeName: aws.String(oldPathAttr)}},
++			BillingModeSummary:   &dynamodb.BillingModeSummary{BillingMode: aws.String(dynamodb.BillingModePayPerRequest)},
++		}}}, tableStatusNeedsMigration, ""},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			b := &Backend{svc: &tc.client}
++			status, mode, err := b.getTableStatus(context.Background(), "test-table")
++			require.NoError(t, err)
++			require.Equal(t, tc.status, status)
++			require.Equal(t, tc.mode, mode)
++		})
++	}
++}
+diff --git a/lib/backend/dynamo/configure_test.go b/lib/backend/dynamo/configure_test.go
+index 57fab58..a107313 100644
+--- a/lib/backend/dynamo/configure_test.go
++++ b/lib/backend/dynamo/configure_test.go
+@@ -27,6 +27,7 @@ import (
+ 	"github.com/aws/aws-sdk-go/aws"
+ 	"github.com/aws/aws-sdk-go/service/applicationautoscaling"
+ 	"github.com/aws/aws-sdk-go/service/dynamodb"
++	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+ 	"github.com/google/uuid"
+ 	"github.com/gravitational/trace"
+ 	"github.com/stretchr/testify/require"
+@@ -37,7 +38,7 @@ import (
+ func TestContinuousBackups(t *testing.T) {
+ 	// Create new backend with continuous backups enabled.
+ 	b, err := New(context.Background(), map[string]interface{}{
+-		"table_name":         uuid.New() + "-test",
++		"table_name":         uuid.New().String() + "-test",
+ 		"continuous_backups": true,
+ 	})
+ 	require.NoError(t, err)
+@@ -57,7 +58,8 @@ func TestContinuousBackups(t *testing.T) {
+ func TestAutoScaling(t *testing.T) {
+ 	// Create new backend with auto scaling enabled.
+ 	b, err := New(context.Background(), map[string]interface{}{
+-		"table_name":         uuid.New() + "-test",
++		"table_name":         uuid.New().String() + "-test",
++		"billing_mode":       "provisioned",
+ 		"auto_scaling":       true,
+ 		"read_min_capacity":  10,
+ 		"read_max_capacity":  20,
+@@ -87,7 +89,7 @@ func TestAutoScaling(t *testing.T) {
+ }
+ 
+ // getContinuousBackups gets the state of continuous backups.
+-func getContinuousBackups(ctx context.Context, svc *dynamodb.DynamoDB, tableName string) (bool, error) {
++func getContinuousBackups(ctx context.Context, svc dynamodbiface.DynamoDBAPI, tableName string) (bool, error) {
+ 	resp, err := svc.DescribeContinuousBackupsWithContext(ctx, &dynamodb.DescribeContinuousBackupsInput{
+ 		TableName: aws.String(tableName),
+ 	})
+@@ -148,7 +150,7 @@ func getAutoScaling(ctx context.Context, svc *applicationautoscaling.Application
+ }
+ 
+ // deleteTable will remove a table.
+-func deleteTable(ctx context.Context, svc *dynamodb.DynamoDB, tableName string) error {
++func deleteTable(ctx context.Context, svc dynamodbiface.DynamoDBAPI, tableName string) error {
+ 	_, err := svc.DeleteTableWithContext(ctx, &dynamodb.DeleteTableInput{
+ 		TableName: aws.String(tableName),
+ 	})
+diff --git a/lib/backend/dynamo/dynamodbbk.go b/lib/backend/dynamo/dynamodbbk.go
+index 506994b..47b86ff 100644
+--- a/lib/backend/dynamo/dynamodbbk.go
++++ b/lib/backend/dynamo/dynamodbbk.go
+@@ -57,6 +57,8 @@ type Config struct {
+ 	SecretKey string `json:"secret_key,omitempty"`
+ 	// TableName where to store K/V in DynamoDB
+ 	TableName string `json:"table_name,omitempty"`
++	// BillingMode controls the capacity mode of newly created tables.
++	BillingMode string `json:"billing_mode,omitempty"`
+ 	// ReadCapacityUnits is Dynamodb read capacity units
+ 	ReadCapacityUnits int64 `json:"read_capacity_units"`
+ 	// WriteCapacityUnits is Dynamodb write capacity units
+@@ -101,6 +103,12 @@ func (cfg *Config) CheckAndSetDefaults() error {
+ 	if cfg.TableName == "" {
+ 		return trace.BadParameter("DynamoDB: table_name is not specified")
+ 	}
++	if cfg.BillingMode == "" {
++		cfg.BillingMode = billingModePayPerRequest
++	}
++	if cfg.BillingMode != billingModePayPerRequest && cfg.BillingMode != billingModeProvisioned {
++		return trace.BadParameter("DynamoDB: invalid billing_mode %q (expected %q or %q)", cfg.BillingMode, billingModePayPerRequest, billingModeProvisioned)
++	}
+ 
+ 	if cfg.ReadCapacityUnits == 0 {
+ 		cfg.ReadCapacityUnits = DefaultReadCapacityUnits
+@@ -151,6 +159,9 @@ type keyLookup struct {
+ }
+ 
+ const (
++	billingModePayPerRequest = "pay_per_request"
++	billingModeProvisioned   = "provisioned"
++
+ 	// hashKey is actually the name of the partition. This backend
+ 	// places all objects in the same DynamoDB partition
+ 	hashKey = "teleport"
+@@ -262,14 +273,21 @@ func New(ctx context.Context, params backend.Params) (*Backend, error) {
+ 	b.streams = streams
+ 
+ 	// check if the table exists?
+-	ts, err := b.getTableStatus(ctx, b.TableName)
++	ts, tableBillingMode, err := b.getTableStatus(ctx, b.TableName)
+ 	if err != nil {
+ 		return nil, trace.Wrap(err)
+ 	}
+ 	switch ts {
+ 	case tableStatusOK:
+-		break
++		if tableBillingMode == dynamodb.BillingModePayPerRequest && b.EnableAutoScaling {
++			b.Infof("auto_scaling is ignored because table %q is on-demand.", b.TableName)
++			b.EnableAutoScaling = false
++		}
+ 	case tableStatusMissing:
++		if b.BillingMode == billingModePayPerRequest && b.EnableAutoScaling {
++			b.Infof("auto_scaling is ignored because table %q will be on-demand.", b.TableName)
++			b.EnableAutoScaling = false
++		}
+ 		err = b.createTable(ctx, b.TableName, fullPathKey)
+ 	case tableStatusNeedsMigration:
+ 		return nil, trace.BadParameter("unsupported schema")
+@@ -624,23 +642,26 @@ func (b *Backend) newLease(item backend.Item) *backend.Lease {
+ }
+ 
+ // getTableStatus checks if a given table exists
+-func (b *Backend) getTableStatus(ctx context.Context, tableName string) (tableStatus, error) {
++func (b *Backend) getTableStatus(ctx context.Context, tableName string) (tableStatus, string, error) {
+ 	td, err := b.svc.DescribeTableWithContext(ctx, &dynamodb.DescribeTableInput{
+ 		TableName: aws.String(tableName),
+ 	})
+ 	err = convertError(err)
+ 	if err != nil {
+ 		if trace.IsNotFound(err) {
+-			return tableStatusMissing, nil
++			return tableStatusMissing, "", nil
+ 		}
+-		return tableStatusError, trace.Wrap(err)
++		return tableStatusError, "", trace.Wrap(err)
+ 	}
+ 	for _, attr := range td.Table.AttributeDefinitions {
+ 		if *attr.AttributeName == oldPathAttr {
+-			return tableStatusNeedsMigration, nil
++			return tableStatusNeedsMigration, "", nil
+ 		}
+ 	}
+-	return tableStatusOK, nil
++	if td.Table.BillingModeSummary == nil {
++		return tableStatusOK, "", nil
++	}
++	return tableStatusOK, aws.StringValue(td.Table.BillingModeSummary.BillingMode), nil
+ }
+ 
+ // createTable creates a DynamoDB table with a requested name and applies
+@@ -655,9 +676,19 @@ func (b *Backend) getTableStatus(ctx context.Context, tableName string) (tableSt
+ // following docs partial:
+ // docs/pages/includes/dynamodb-iam-policy.mdx
+ func (b *Backend) createTable(ctx context.Context, tableName string, rangeKey string) error {
+-	pThroughput := dynamodb.ProvisionedThroughput{
+-		ReadCapacityUnits:  aws.Int64(b.ReadCapacityUnits),
+-		WriteCapacityUnits: aws.Int64(b.WriteCapacityUnits),
++	var billingMode string
++	var pThroughput *dynamodb.ProvisionedThroughput
++	switch b.BillingMode {
++	case billingModePayPerRequest:
++		billingMode = dynamodb.BillingModePayPerRequest
++	case billingModeProvisioned:
++		billingMode = dynamodb.BillingModeProvisioned
++		pThroughput = &dynamodb.ProvisionedThroughput{
++			ReadCapacityUnits:  aws.Int64(b.ReadCapacityUnits),
++			WriteCapacityUnits: aws.Int64(b.WriteCapacityUnits),
++		}
++	default:
++		return trace.BadParameter("DynamoDB: invalid billing_mode %q", b.BillingMode)
+ 	}
+ 	def := []*dynamodb.AttributeDefinition{
+ 		{
+@@ -683,7 +714,8 @@ func (b *Backend) createTable(ctx context.Context, tableName string, rangeKey st
+ 		TableName:             aws.String(tableName),
+ 		AttributeDefinitions:  def,
+ 		KeySchema:             elems,
+-		ProvisionedThroughput: &pThroughput,
++		BillingMode:           aws.String(billingMode),
++		ProvisionedThroughput: pThroughput,
+ 	}
+ 	_, err := b.svc.CreateTableWithContext(ctx, &c)
+ 	if err != nil {

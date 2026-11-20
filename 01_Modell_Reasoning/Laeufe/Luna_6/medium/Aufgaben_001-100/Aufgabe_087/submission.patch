@@ -1,0 +1,308 @@
+diff --git a/cmd/flipt/main.go b/cmd/flipt/main.go
+index 14d08b7..102a983 100644
+--- a/cmd/flipt/main.go
++++ b/cmd/flipt/main.go
+@@ -35,6 +35,7 @@ import (
+ 	"github.com/markphelps/flipt/storage/sql/postgres"
+ 	"github.com/markphelps/flipt/storage/sql/sqlite"
+ 	"github.com/markphelps/flipt/swagger"
++	"github.com/markphelps/flipt/telemetry"
+ 	"github.com/markphelps/flipt/ui"
+ 	"github.com/phyber/negroni-gzip/gzip"
+ 	"github.com/prometheus/client_golang/prometheus/promhttp"
+@@ -213,6 +214,7 @@ func main() {
+ }
+ 
+ func run(_ []string) error {
++	telemetry.FliptVersion = version
+ 	color.Cyan(banner)
+ 	fmt.Println()
+ 
+@@ -268,6 +270,11 @@ func run(_ []string) error {
+ 	}
+ 
+ 	g, ctx := errgroup.WithContext(ctx)
++	if reporter, err := telemetry.NewReporter(cfg, l); err != nil {
++		l.WithError(err).Warn("initializing telemetry")
++	} else if reporter != nil {
++		g.Go(func() error { reporter.Start(ctx); return nil })
++	}
+ 
+ 	var (
+ 		grpcServer *grpc.Server
+diff --git a/config/config.go b/config/config.go
+index a0957f7..33d1c67 100644
+--- a/config/config.go
++++ b/config/config.go
+@@ -116,7 +116,9 @@ type DatabaseConfig struct {
+ }
+ 
+ type MetaConfig struct {
+-	CheckForUpdates bool `json:"checkForUpdates"`
++	CheckForUpdates  bool   `json:"checkForUpdates"`
++	TelemetryEnabled bool   `json:"telemetryEnabled"`
++	StateDirectory   string `json:"stateDirectory,omitempty"`
+ }
+ 
+ type Scheme uint
+@@ -188,7 +190,8 @@ func Default() *Config {
+ 		},
+ 
+ 		Meta: MetaConfig{
+-			CheckForUpdates: true,
++			CheckForUpdates:  true,
++			TelemetryEnabled: true,
+ 		},
+ 	}
+ }
+@@ -238,7 +241,9 @@ const (
+ 	dbProtocol        = "db.protocol"
+ 
+ 	// Meta
+-	metaCheckForUpdates = "meta.check_for_updates"
++	metaCheckForUpdates  = "meta.check_for_updates"
++	metaTelemetryEnabled = "meta.telemetry_enabled"
++	metaStateDirectory   = "meta.state_directory"
+ )
+ 
+ func Load(path string) (*Config, error) {
+@@ -384,6 +389,12 @@ func Load(path string) (*Config, error) {
+ 	if viper.IsSet(metaCheckForUpdates) {
+ 		cfg.Meta.CheckForUpdates = viper.GetBool(metaCheckForUpdates)
+ 	}
++	if viper.IsSet(metaTelemetryEnabled) {
++		cfg.Meta.TelemetryEnabled = viper.GetBool(metaTelemetryEnabled)
++	}
++	if viper.IsSet(metaStateDirectory) {
++		cfg.Meta.StateDirectory = viper.GetString(metaStateDirectory)
++	}
+ 
+ 	if err := cfg.validate(); err != nil {
+ 		return &Config{}, err
+diff --git a/config/config_test.go b/config/config_test.go
+index a942fc1..ab1a3fc 100644
+--- a/config/config_test.go
++++ b/config/config_test.go
+@@ -112,7 +112,8 @@ func TestLoad(t *testing.T) {
+ 				},
+ 
+ 				Meta: MetaConfig{
+-					CheckForUpdates: true,
++					CheckForUpdates:  true,
++					TelemetryEnabled: true,
+ 				},
+ 			},
+ 		},
+@@ -162,7 +163,8 @@ func TestLoad(t *testing.T) {
+ 					ConnMaxLifetime: 30 * time.Minute,
+ 				},
+ 				Meta: MetaConfig{
+-					CheckForUpdates: false,
++					CheckForUpdates:  false,
++					TelemetryEnabled: false,
+ 				},
+ 			},
+ 		},
+diff --git a/config/testdata/advanced.yml b/config/testdata/advanced.yml
+index a1761ac..9940698 100644
+--- a/config/testdata/advanced.yml
++++ b/config/testdata/advanced.yml
+@@ -38,3 +38,4 @@ db:
+ 
+ meta:
+   check_for_updates: false
++  telemetry_enabled: false
+diff --git a/internal/info/flipt.go b/internal/info/flipt.go
+new file mode 100644
+index 0000000..fa22da7
+--- /dev/null
++++ b/internal/info/flipt.go
+@@ -0,0 +1,17 @@
++package info
++
++import (
++	"encoding/json"
++	"net/http"
++)
++
++type Flipt struct {
++	Version string `json:"version"`
++}
++
++func (f Flipt) ServeHTTP(w http.ResponseWriter, r *http.Request) {
++	w.Header().Set("Content-Type", "application/json")
++	if err := json.NewEncoder(w).Encode(f); err != nil {
++		http.Error(w, err.Error(), http.StatusInternalServerError)
++	}
++}
+diff --git a/telemetry/telemetry.go b/telemetry/telemetry.go
+new file mode 100644
+index 0000000..6f8c6d5
+--- /dev/null
++++ b/telemetry/telemetry.go
+@@ -0,0 +1,165 @@
++package telemetry
++
++import (
++	"bytes"
++	"context"
++	"encoding/json"
++	"fmt"
++	"net/http"
++	"os"
++	"path/filepath"
++	"time"
++
++	"github.com/gofrs/uuid"
++	"github.com/markphelps/flipt/config"
++	"github.com/sirupsen/logrus"
++)
++
++const (
++	schemaVersion = "1.0"
++	interval      = 4 * time.Hour
++	endpoint      = "https://telemetry.flipt.io/v1/track"
++)
++
++// FliptVersion should be set by the application at startup.
++var FliptVersion = "dev"
++
++type state struct {
++	Version       string `json:"version"`
++	UUID          string `json:"uuid"`
++	LastTimestamp string `json:"lastTimestamp"`
++}
++
++type Reporter struct {
++	statePath string
++	state     state
++	logger    logrus.FieldLogger
++	client    *http.Client
++}
++
++type event struct {
++	AnonymousID string                 `json:"anonymousId"`
++	Event       string                 `json:"event"`
++	Properties  map[string]interface{} `json:"properties"`
++}
++
++// NewReporter initializes persistent anonymous telemetry state.
++func NewReporter(cfg *config.Config, logger logrus.FieldLogger) (*Reporter, error) {
++	if cfg == nil || !cfg.Meta.TelemetryEnabled {
++		return nil, nil
++	}
++	dir := cfg.Meta.StateDirectory
++	if dir == "" {
++		var err error
++		dir, err = os.UserConfigDir()
++		if err != nil {
++			return nil, err
++		}
++		dir = filepath.Join(dir, "flipt")
++	}
++	if info, err := os.Stat(dir); err == nil && !info.IsDir() {
++		return nil, nil
++	}
++	if err := os.MkdirAll(dir, 0700); err != nil {
++		return nil, err
++	}
++	info, err := os.Stat(dir)
++	if err != nil {
++		return nil, err
++	}
++	if !info.IsDir() {
++		return nil, nil
++	}
++	r := &Reporter{statePath: filepath.Join(dir, "telemetry.json"), logger: logger, client: &http.Client{Timeout: 10 * time.Second}}
++	data, err := os.ReadFile(r.statePath)
++	if err == nil {
++		_ = json.Unmarshal(data, &r.state)
++	} else if !os.IsNotExist(err) {
++		return nil, err
++	}
++	if _, err := uuid.FromString(r.state.UUID); err != nil {
++		u, err := uuid.NewV4()
++		if err != nil {
++			return nil, err
++		}
++		r.state.UUID = u.String()
++	}
++	r.state.Version = schemaVersion
++	if r.state.LastTimestamp == "" {
++		r.state.LastTimestamp = time.Time{}.UTC().Format(time.RFC3339)
++	}
++	if err := r.saveState(); err != nil {
++		return nil, err
++	}
++	return r, nil
++}
++
++func (r *Reporter) saveState() error {
++	data, err := json.MarshalIndent(r.state, "", "  ")
++	if err != nil {
++		return err
++	}
++	tmp := r.statePath + ".tmp"
++	if err := os.WriteFile(tmp, data, 0600); err != nil {
++		return err
++	}
++	return os.Rename(tmp, r.statePath)
++}
++
++// Start sends an event immediately when due, then checks every four hours.
++func (r *Reporter) Start(ctx context.Context) {
++	if r == nil {
++		return
++	}
++	if err := r.Report(ctx); err != nil && r.logger != nil {
++		r.logger.WithError(err).Warn("reporting telemetry")
++	}
++	ticker := time.NewTicker(interval)
++	defer ticker.Stop()
++	for {
++		select {
++		case <-ctx.Done():
++			return
++		case <-ticker.C:
++			if err := r.Report(ctx); err != nil && r.logger != nil {
++				r.logger.WithError(err).Warn("reporting telemetry")
++			}
++		}
++	}
++}
++
++// Report sends one anonymous ping and persists its successful timestamp.
++func (r *Reporter) Report(ctx context.Context) error {
++	if r == nil {
++		return nil
++	}
++	var last time.Time
++	if parsed, err := time.Parse(time.RFC3339, r.state.LastTimestamp); err == nil {
++		last = parsed
++	}
++	if !last.IsZero() && time.Since(last) < interval {
++		return nil
++	}
++	payload := event{AnonymousID: r.state.UUID, Event: "flipt.ping", Properties: map[string]interface{}{
++		"uuid": r.state.UUID, "version": schemaVersion, "flipt": map[string]string{"version": FliptVersion},
++	}}
++	data, err := json.Marshal(payload)
++	if err != nil {
++		return err
++	}
++	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(data))
++	if err != nil {
++		return err
++	}
++	req.Header.Set("Content-Type", "application/json")
++	resp, err := r.client.Do(req)
++	if err != nil {
++		return err
++	}
++	defer resp.Body.Close()
++	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
++		return fmt.Errorf("telemetry endpoint returned %s", resp.Status)
++	}
++	r.state.LastTimestamp = time.Now().UTC().Format(time.RFC3339)
++	return r.saveState()
++}

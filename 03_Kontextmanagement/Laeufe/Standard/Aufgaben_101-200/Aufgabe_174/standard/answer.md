@@ -1,0 +1,3 @@
+Forked workers now send `Display.display` calls through `FinalQueue` as `DisplaySend` events. The strategy results thread replays them in the parent, where a lock protects output. I removed the worker’s shutdown redirection and added stdout and stderr flushes to `TaskQueueManager.cleanup`.
+
+The fork and queue test plus related existing tests passed (5 passed). Each existing warning test passes alone; running them together exposes their shared singleton warning cache.

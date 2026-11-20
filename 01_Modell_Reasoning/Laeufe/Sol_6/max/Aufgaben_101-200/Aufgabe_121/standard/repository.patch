@@ -1,0 +1,400 @@
+diff --git a/examples/authorization/README.md b/examples/authorization/README.md
+new file mode 100644
+index 0000000..8429a93
+--- /dev/null
++++ b/examples/authorization/README.md
+@@ -0,0 +1,29 @@
++# Scoping authorization policies by authentication method
++
++Use `flipt.is_auth_method(input, method)` in a Rego policy to check the numeric `input.authentication.method` value through a readable name. For example:
++
++```rego
++package flipt.authz.v1
++
++import rego.v1
++
++default allow := false
++
++allow if {
++    flipt.is_auth_method(input, "token")
++    input.authentication.metadata["io.flipt.auth.role"] == "admin"
++}
++```
++
++The second argument must be one of these strings:
++
++| Name | Authentication method code |
++| --- | ---: |
++| `token` | 1 |
++| `oidc` | 2 |
++| `kubernetes`, `k8s` | 3 |
++| `github` | 4 |
++| `jwt` | 5 |
++| `cloud` | 6 |
++
++These codes come from `rpc/flipt/auth/auth.proto`. The function returns `true` for a match and `false` for a different method. It reports an error if `authentication` is missing or the name is unsupported.
+diff --git a/internal/server/authz/engine/bundle/engine.go b/internal/server/authz/engine/bundle/engine.go
+index c81293f..6dcd8fd 100644
+--- a/internal/server/authz/engine/bundle/engine.go
++++ b/internal/server/authz/engine/bundle/engine.go
+@@ -10,6 +10,7 @@ import (
+ 	"github.com/open-policy-agent/opa/storage/inmem"
+ 	"go.flipt.io/flipt/internal/config"
+ 	"go.flipt.io/flipt/internal/server/authz"
++	_ "go.flipt.io/flipt/internal/server/authz/engine/ext"
+ 	"go.uber.org/zap"
+ )
+ 
+@@ -71,8 +72,9 @@ func NewEngine(ctx context.Context, logger *zap.Logger, cfg *config.Config) (*En
+ func (e *Engine) IsAllowed(ctx context.Context, input map[string]interface{}) (bool, error) {
+ 	e.logger.Debug("evaluating policy", zap.Any("input", input))
+ 	dec, err := e.opa.Decision(ctx, sdk.DecisionOptions{
+-		Path:  "flipt/authz/v1/allow",
+-		Input: input,
++		Path:                "flipt/authz/v1/allow",
++		Input:               input,
++		StrictBuiltinErrors: true,
+ 	})
+ 
+ 	if err != nil {
+diff --git a/internal/server/authz/engine/bundle/engine_test.go b/internal/server/authz/engine/bundle/engine_test.go
+index fc94e45..c04ee8b 100644
+--- a/internal/server/authz/engine/bundle/engine_test.go
++++ b/internal/server/authz/engine/bundle/engine_test.go
+@@ -13,6 +13,7 @@ import (
+ 	"github.com/open-policy-agent/opa/storage/inmem"
+ 	"github.com/stretchr/testify/assert"
+ 	"github.com/stretchr/testify/require"
++	"go.flipt.io/flipt/rpc/flipt/auth"
+ 	"go.uber.org/zap/zaptest"
+ )
+ 
+@@ -245,3 +246,46 @@ func TestEngine_IsAllowed(t *testing.T) {
+ 
+ 	assert.NoError(t, engine.Shutdown(ctx))
+ }
++
++func TestEngine_IsAuthMethod(t *testing.T) {
++	ctx := context.Background()
++	policy := `package flipt.authz.v1
++import rego.v1
++default allow := false
++allow if {
++    flipt.is_auth_method(input, input.request.method)
++}`
++	server := sdktest.MustNewServer(sdktest.MockBundle("/bundles/bundle.tar.gz", map[string]string{"main.rego": policy}))
++	t.Cleanup(server.Stop)
++
++	config := fmt.Sprintf(`{
++    "services": {"test": {"url": %q}},
++    "bundles": {"test": {"resource": "/bundles/bundle.tar.gz"}}
++}`, server.URL())
++	opa, err := sdk.New(ctx, sdk.Options{Config: strings.NewReader(config), Store: inmem.New()})
++	require.NoError(t, err)
++	engine := &Engine{opa: opa, logger: zaptest.NewLogger(t)}
++	t.Cleanup(func() { require.NoError(t, engine.Shutdown(ctx)) })
++
++	input := map[string]any{
++		"authentication": &auth.Authentication{Method: auth.Method_METHOD_TOKEN, Metadata: map[string]string{"io.flipt.auth.role": "admin"}},
++		"request":        map[string]any{"method": "token"},
++	}
++	allowed, err := engine.IsAllowed(ctx, input)
++	require.NoError(t, err)
++	require.True(t, allowed)
++
++	input["request"] = map[string]any{"method": "jwt"}
++	allowed, err = engine.IsAllowed(ctx, input)
++	require.NoError(t, err)
++	require.False(t, allowed)
++
++	input["request"] = map[string]any{"method": "password"}
++	_, err = engine.IsAllowed(ctx, input)
++	require.ErrorContains(t, err, "unsupported auth method: \"password\"")
++
++	delete(input, "authentication")
++	input["request"] = map[string]any{"method": "token"}
++	_, err = engine.IsAllowed(ctx, input)
++	require.ErrorContains(t, err, "no authentication found")
++}
+diff --git a/internal/server/authz/engine/ext/extentions.go b/internal/server/authz/engine/ext/extentions.go
+new file mode 100644
+index 0000000..f5c6c9a
+--- /dev/null
++++ b/internal/server/authz/engine/ext/extentions.go
+@@ -0,0 +1,63 @@
++// Package ext registers Flipt built-ins for authorization policies.
++package ext
++
++import (
++	"errors"
++	"fmt"
++
++	"github.com/open-policy-agent/opa/ast"
++	"github.com/open-policy-agent/opa/rego"
++	"github.com/open-policy-agent/opa/topdown/builtins"
++	"github.com/open-policy-agent/opa/types"
++	"go.flipt.io/flipt/rpc/flipt/auth"
++)
++
++var authMethods = map[string]auth.Method{
++	"token":      auth.Method_METHOD_TOKEN,
++	"oidc":       auth.Method_METHOD_OIDC,
++	"kubernetes": auth.Method_METHOD_KUBERNETES,
++	"k8s":        auth.Method_METHOD_KUBERNETES,
++	"github":     auth.Method_METHOD_GITHUB,
++	"jwt":        auth.Method_METHOD_JWT,
++	"cloud":      auth.Method_METHOD_CLOUD,
++}
++
++var errNoAuthentication = errors.New("no authentication found")
++
++func init() {
++	rego.RegisterBuiltin2(&rego.Function{
++		Name:        "flipt.is_auth_method",
++		Description: "Returns whether input.authentication.method matches the named authentication method.",
++		Decl:        types.NewFunction(types.Args(types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)), types.S), types.B),
++	}, isAuthMethod)
++}
++
++func isAuthMethod(_ rego.BuiltinContext, input, key *ast.Term) (*ast.Term, error) {
++	obj, ok := input.Value.(ast.Object)
++	if !ok {
++		return nil, builtins.NewOperandTypeErr(1, input.Value, "object")
++	}
++
++	authentication := obj.Get(ast.StringTerm("authentication"))
++	if authentication == nil {
++		return nil, errNoAuthentication
++	}
++
++	authenticationObj, ok := authentication.Value.(ast.Object)
++	if !ok {
++		return nil, errNoAuthentication
++	}
++
++	methodName, ok := key.Value.(ast.String)
++	if !ok {
++		return nil, builtins.NewOperandTypeErr(2, key.Value, "string")
++	}
++
++	method, ok := authMethods[string(methodName)]
++	if !ok {
++		return nil, fmt.Errorf("unsupported auth method: %q", string(methodName))
++	}
++
++	actualMethod := authenticationObj.Get(ast.StringTerm("method"))
++	return ast.BooleanTerm(actualMethod != nil && actualMethod.Equal(ast.IntNumberTerm(int(method)))), nil
++}
+diff --git a/internal/server/authz/engine/ext/extentions_test.go b/internal/server/authz/engine/ext/extentions_test.go
+new file mode 100644
+index 0000000..1758dd0
+--- /dev/null
++++ b/internal/server/authz/engine/ext/extentions_test.go
+@@ -0,0 +1,78 @@
++package ext
++
++import (
++	"context"
++	"testing"
++
++	"github.com/open-policy-agent/opa/ast"
++	"github.com/open-policy-agent/opa/rego"
++	"github.com/stretchr/testify/require"
++	"go.flipt.io/flipt/rpc/flipt/auth"
++)
++
++func TestIsAuthMethod(t *testing.T) {
++	tests := []struct {
++		name   string
++		method auth.Method
++	}{
++		{"token", auth.Method_METHOD_TOKEN},
++		{"oidc", auth.Method_METHOD_OIDC},
++		{"kubernetes", auth.Method_METHOD_KUBERNETES},
++		{"k8s", auth.Method_METHOD_KUBERNETES},
++		{"github", auth.Method_METHOD_GITHUB},
++		{"jwt", auth.Method_METHOD_JWT},
++		{"cloud", auth.Method_METHOD_CLOUD},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			input := authInput(ast.IntNumberTerm(int(tt.method)))
++			result, err := isAuthMethod(rego.BuiltinContext{}, input, ast.StringTerm(tt.name))
++			require.NoError(t, err)
++			require.Equal(t, ast.BooleanTerm(true), result)
++
++			input = authInput(ast.IntNumberTerm(int(auth.Method_METHOD_NONE)))
++			result, err = isAuthMethod(rego.BuiltinContext{}, input, ast.StringTerm(tt.name))
++			require.NoError(t, err)
++			require.Equal(t, ast.BooleanTerm(false), result)
++		})
++	}
++}
++
++func TestIsAuthMethodRegoSignature(t *testing.T) {
++	result, err := rego.New(
++		rego.Query(`flipt.is_auth_method({"authentication": {"method": 1}}, "token")`),
++		rego.StrictBuiltinErrors(true),
++	).Eval(context.Background())
++	require.NoError(t, err)
++	require.Len(t, result, 1)
++	require.Equal(t, true, result[0].Expressions[0].Value)
++
++	for _, query := range []string{
++		`flipt.is_auth_method({"authentication": {"method": 1}})`,
++		`flipt.is_auth_method({"authentication": {"method": 1}}, 1)`,
++	} {
++		t.Run(query, func(t *testing.T) {
++			_, err := rego.New(rego.Query(query)).Eval(context.Background())
++			require.Error(t, err)
++		})
++	}
++}
++
++func TestIsAuthMethodErrors(t *testing.T) {
++	result, err := isAuthMethod(rego.BuiltinContext{}, ast.ObjectTerm(), ast.StringTerm("token"))
++	require.Nil(t, result)
++	require.EqualError(t, err, "no authentication found")
++
++	result, err = isAuthMethod(rego.BuiltinContext{}, authInput(ast.IntNumberTerm(1)), ast.StringTerm("password"))
++	require.Nil(t, result)
++	require.ErrorContains(t, err, "unsupported auth method")
++	require.ErrorContains(t, err, "password")
++}
++
++func authInput(method *ast.Term) *ast.Term {
++	return ast.ObjectTerm([2]*ast.Term{
++		ast.StringTerm("authentication"),
++		ast.ObjectTerm([2]*ast.Term{ast.StringTerm("method"), method}),
++	})
++}
+diff --git a/internal/server/authz/engine/rego/engine.go b/internal/server/authz/engine/rego/engine.go
+index 55c58b5..b798d13 100644
+--- a/internal/server/authz/engine/rego/engine.go
++++ b/internal/server/authz/engine/rego/engine.go
+@@ -13,6 +13,7 @@ import (
+ 	"go.flipt.io/flipt/internal/config"
+ 	"go.flipt.io/flipt/internal/containers"
+ 	"go.flipt.io/flipt/internal/server/authz"
++	_ "go.flipt.io/flipt/internal/server/authz/engine/ext"
+ 	"go.flipt.io/flipt/internal/server/authz/engine/rego/source"
+ 	"go.flipt.io/flipt/internal/server/authz/engine/rego/source/cloud"
+ 	"go.flipt.io/flipt/internal/server/authz/engine/rego/source/filesystem"
+@@ -197,6 +198,7 @@ func (e *Engine) updatePolicy(ctx context.Context) error {
+ 		rego.Query("data.flipt.authz.v1.allow"),
+ 		rego.Module("policy.rego", string(policy)),
+ 		rego.Store(e.store),
++		rego.StrictBuiltinErrors(true),
+ 	)
+ 
+ 	e.query, err = r.PrepareForEval(ctx)
+diff --git a/internal/server/authz/engine/rego/engine_test.go b/internal/server/authz/engine/rego/engine_test.go
+index 91378b3..9790043 100644
+--- a/internal/server/authz/engine/rego/engine_test.go
++++ b/internal/server/authz/engine/rego/engine_test.go
+@@ -9,6 +9,7 @@ import (
+ 
+ 	"github.com/stretchr/testify/require"
+ 	"go.flipt.io/flipt/internal/server/authz/engine/rego/source"
++	"go.flipt.io/flipt/rpc/flipt/auth"
+ 	"go.uber.org/zap/zaptest"
+ )
+ 
+@@ -26,6 +27,96 @@ func TestEngine_NewEngine(t *testing.T) {
+ 	require.NotNil(t, engine)
+ }
+ 
++func TestEngine_IsAuthMethod(t *testing.T) {
++	ctx, cancel := context.WithCancel(context.Background())
++	t.Cleanup(cancel)
++
++	policy := `package flipt.authz.v1
++import rego.v1
++default allow := false
++allow if {
++    flipt.is_auth_method(input, input.request.method)
++}`
++	engine, err := newEngine(ctx, zaptest.NewLogger(t), withPolicySource(policySource(policy)))
++	require.NoError(t, err)
++
++	tests := []struct {
++		name     string
++		method   auth.Method
++		expected bool
++	}{
++		{"token", auth.Method_METHOD_TOKEN, true},
++		{"oidc", auth.Method_METHOD_OIDC, true},
++		{"kubernetes", auth.Method_METHOD_KUBERNETES, true},
++		{"k8s", auth.Method_METHOD_KUBERNETES, true},
++		{"github", auth.Method_METHOD_GITHUB, true},
++		{"jwt", auth.Method_METHOD_JWT, true},
++		{"cloud", auth.Method_METHOD_CLOUD, true},
++		{"wrong method", auth.Method_METHOD_TOKEN, false},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			methodName := tt.name
++			if tt.name == "wrong method" {
++				methodName = "jwt"
++			}
++
++			allowed, err := engine.IsAllowed(ctx, map[string]any{
++				"authentication": &auth.Authentication{Method: tt.method, Metadata: map[string]string{"io.flipt.auth.role": "admin"}},
++				"request":        map[string]any{"method": methodName},
++			})
++			require.NoError(t, err)
++			require.Equal(t, tt.expected, allowed)
++		})
++	}
++
++	for _, tt := range []struct {
++		name  string
++		input map[string]any
++		want  string
++	}{
++		{"missing authentication", map[string]any{"request": map[string]any{"method": "token"}}, "no authentication found"},
++		{"unsupported method", map[string]any{"authentication": &auth.Authentication{Method: auth.Method_METHOD_TOKEN}, "request": map[string]any{"method": "password"}}, "unsupported auth method: \"password\""},
++	} {
++		t.Run(tt.name, func(t *testing.T) {
++			_, err := engine.IsAllowed(ctx, tt.input)
++			require.ErrorContains(t, err, tt.want)
++		})
++	}
++}
++
++func TestEngine_IsAuthMethodWithRole(t *testing.T) {
++	ctx, cancel := context.WithCancel(context.Background())
++	t.Cleanup(cancel)
++
++	policy := `package flipt.authz.v1
++import rego.v1
++default allow := false
++allow if {
++    flipt.is_auth_method(input, "token")
++    input.authentication.metadata["io.flipt.auth.role"] == "admin"
++}`
++	engine, err := newEngine(ctx, zaptest.NewLogger(t), withPolicySource(policySource(policy)))
++	require.NoError(t, err)
++
++	for _, tt := range []struct {
++		role string
++		want bool
++	}{
++		{"admin", true},
++		{"viewer", false},
++	} {
++		t.Run(tt.role, func(t *testing.T) {
++			allowed, err := engine.IsAllowed(ctx, map[string]any{
++				"authentication": &auth.Authentication{Method: auth.Method_METHOD_TOKEN, Metadata: map[string]string{"io.flipt.auth.role": tt.role}},
++			})
++			require.NoError(t, err)
++			require.Equal(t, tt.want, allowed)
++		})
++	}
++}
++
+ func TestEngine_IsAllowed(t *testing.T) {
+ 	var tests = []struct {
+ 		name     string

@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts) to use `Anonymity` state, enforce DNT, validate configuration, guard capture during initialization, await tracking, hash user and room IDs, and reset privacy state on logout. Expanded the [tests](/app/test/PosthogAnalytics-test.ts) for those behaviors.
+
+Verification: 18 focused tests pass; ESLint and `git diff --check` pass. The repository-wide TypeScript check still fails on unrelated existing errors. No delegation was used.

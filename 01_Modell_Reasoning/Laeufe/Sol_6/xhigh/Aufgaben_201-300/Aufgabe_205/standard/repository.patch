@@ -1,0 +1,216 @@
+diff --git a/src/api/utils.js b/src/api/utils.js
+index 63d5473..6268bff 100644
+--- a/src/api/utils.js
++++ b/src/api/utils.js
+@@ -1,13 +1,111 @@
+ 'use strict';
+ 
+ const db = require('../database');
++const user = require('../user');
++const { generateUUID } = require('../utils');
+ 
+ const utils = module.exports;
+ 
+-// internal token management utilities only
++// Internal token management utilities. The token string is also returned so
++// callers can associate metadata with a token when listing several of them.
++const tokens = {};
++utils.tokens = tokens;
+ 
+-utils.log = async (token) => {
++tokens.list = async () => {
++	const tokenIds = await db.getSortedSetRange('tokens:createtime', 0, -1);
++	return await tokens.get(tokenIds);
++};
++
++tokens.get = async (tokenIds) => {
++	if (tokenIds === null || tokenIds === undefined) {
++		throw new Error('[[error:invalid-data]]');
++	}
++	const single = !Array.isArray(tokenIds);
++	const ids = single ? [tokenIds] : tokenIds;
++	if (ids.some(token => typeof token !== 'string' || !token)) {
++		throw new Error('[[error:invalid-data]]');
++	}
++	if (!ids.length) {
++		return [];
++	}
++
++	const [objects, lastSeen] = await Promise.all([
++		db.getObjects(ids.map(token => `token:${token}`)),
++		tokens.getLastSeen(ids),
++	]);
++	const result = objects.map((data, index) => {
++		if (!data) {
++			return null;
++		}
++		return {
++			token: ids[index],
++			uid: Number(data.uid),
++			description: data.description || '',
++			timestamp: Number(data.timestamp),
++			lastSeen: lastSeen[index],
++		};
++	});
++	return single ? result[0] : result;
++};
++
++tokens.generate = async ({ uid, description = '' } = {}) => {
++	const numericUid = Number(uid);
++	if (
++		(typeof uid !== 'number' && typeof uid !== 'string') ||
++		(typeof uid === 'string' && !uid.trim()) ||
++		!Number.isSafeInteger(numericUid) || numericUid < 0
++	) {
++		throw new Error('[[error:invalid-data]]');
++	}
++	if (numericUid !== 0 && !await user.exists(numericUid)) {
++		throw new Error('[[error:no-user]]');
++	}
++
++	const token = generateUUID();
++	const timestamp = Date.now();
++	await db.setObject(`token:${token}`, { uid: numericUid, description, timestamp });
++	await Promise.all([
++		db.sortedSetAdd('tokens:createtime', timestamp, token),
++		db.sortedSetAdd('tokens:uid', numericUid, token),
++	]);
++	return token;
++};
++
++tokens.update = async (token, { description } = {}) => {
++	if (typeof token !== 'string' || !token || description === undefined) {
++		throw new Error('[[error:invalid-data]]');
++	}
++	if (!await db.getObject(`token:${token}`)) {
++		throw new Error('[[error:invalid-data]]');
++	}
++	await db.setObjectField(`token:${token}`, 'description', description);
++	return await tokens.get(token);
++};
++
++tokens.delete = async (token) => {
++	await Promise.all([
++		db.delete(`token:${token}`),
++		db.sortedSetRemove(['tokens:createtime', 'tokens:uid', 'tokens:lastSeen'], token),
++	]);
++};
++
++tokens.log = async (token) => {
+ 	await db.sortedSetAdd('tokens:lastSeen', Date.now(), token);
+ };
+ 
+-utils.getLastSeen = async tokens => await db.sortedSetScores('tokens:lastSeen', tokens);
++tokens.getLastSeen = async (tokenIds) => {
++	if (!Array.isArray(tokenIds)) {
++		throw new Error('[[error:invalid-data]]');
++	}
++	if (!tokenIds.length) {
++		return [];
++	}
++	const scores = await db.sortedSetScores('tokens:lastSeen', tokenIds);
++	return scores.map(score => (
++		score === null || score === undefined || !Number.isFinite(Number(score)) ? null : Number(score)
++	));
++};
++
++// Keep the existing call sites for API usage logging and settings display.
++utils.log = tokens.log;
++utils.getLastSeen = tokens.getLastSeen;
+diff --git a/src/routes/authentication.js b/src/routes/authentication.js
+index e2b1cd7..715a97c 100644
+--- a/src/routes/authentication.js
++++ b/src/routes/authentication.js
+@@ -10,6 +10,7 @@ const meta = require('../meta');
+ const controllers = require('../controllers');
+ const helpers = require('../controllers/helpers');
+ const plugins = require('../plugins');
++const tokenUtils = require('../api/utils').tokens;
+ const { generateToken } = require('../middleware/csrf');
+ 
+ let loginStrategies = [];
+@@ -45,8 +46,11 @@ Auth.getLoginStrategies = function () {
+ };
+ 
+ Auth.verifyToken = async function (token, done) {
+-	const { tokens = [] } = await meta.settings.get('core.api');
+-	const tokenObj = tokens.find(t => t.token === token);
++	let tokenObj = await tokenUtils.get(token);
++	if (!tokenObj) {
++		const { tokens = [] } = await meta.settings.get('core.api');
++		tokenObj = tokens.find(t => t.token === token);
++	}
+ 	const uid = tokenObj ? tokenObj.uid : undefined;
+ 
+ 	if (uid !== undefined) {
+diff --git a/test/authentication.js b/test/authentication.js
+index 7bb9968..679eb20 100644
+--- a/test/authentication.js
++++ b/test/authentication.js
+@@ -16,6 +16,7 @@ const meta = require('../src/meta');
+ const plugins = require('../src/plugins');
+ const privileges = require('../src/privileges');
+ const helpers = require('./helpers');
++const tokenUtils = require('../src/api/utils').tokens;
+ 
+ describe('authentication', () => {
+ 	const jar = request.jar();
+@@ -670,5 +671,58 @@ describe('authentication', () => {
+ 			assert.strictEqual(res.statusCode, 200);
+ 			assert.strictEqual(body.username, 'apiUserTarget');
+ 		});
++
++		it('should manage stored API tokens throughout their lifecycle', async () => {
++			assert.deepStrictEqual(await tokenUtils.list(), []);
++			assert.deepStrictEqual(await tokenUtils.get([]), []);
++			assert.deepStrictEqual(await tokenUtils.getLastSeen([]), []);
++			await assert.rejects(tokenUtils.get(null), /\[\[error:invalid-data\]\]/);
++			await assert.rejects(tokenUtils.generate({ uid: 999999 }), /\[\[error:no-user\]\]/);
++
++			const token = await tokenUtils.generate({ uid: String(newUid), description: 'initial' });
++			const master = await tokenUtils.generate({ uid: 0 });
++			try {
++				const details = await tokenUtils.get(token);
++				assert.strictEqual(details.token, token);
++				assert.strictEqual(details.uid, newUid);
++				assert.strictEqual(details.description, 'initial');
++				assert(Number.isFinite(details.timestamp));
++				assert(Math.abs(Date.now() - details.timestamp) < 5000);
++				assert.strictEqual(details.lastSeen, null);
++				assert.deepStrictEqual(await tokenUtils.get([token, master]), [details, await tokenUtils.get(master)]);
++				assert.strictEqual((await tokenUtils.get(master)).uid, 0);
++				assert.strictEqual(await db.sortedSetScore('tokens:createtime', token), details.timestamp);
++				assert.strictEqual(await db.sortedSetScore('tokens:uid', token), newUid);
++
++				const listed = await tokenUtils.list();
++				assert(listed.some(item => item.token === token));
++				assert(listed.every((item, index) => !index || listed[index - 1].timestamp <= item.timestamp));
++
++				const { res } = await helpers.request('get', '/api/self', {
++					json: true,
++					headers: { Authorization: `Bearer ${token}` },
++				});
++				assert.strictEqual(res.statusCode, 200);
++				await tokenUtils.log(token);
++				assert(Number.isFinite((await tokenUtils.get(token)).lastSeen));
++				const seen = await tokenUtils.getLastSeen([master, token]);
++				assert.deepStrictEqual(seen, [null, (await tokenUtils.get(token)).lastSeen]);
++
++				const updated = await tokenUtils.update(token, { description: 'changed' });
++				assert.strictEqual(updated.description, 'changed');
++				assert.strictEqual(updated.uid, details.uid);
++				assert.strictEqual(updated.timestamp, details.timestamp);
++				assert(Number.isFinite(updated.lastSeen));
++			} finally {
++				await Promise.all([tokenUtils.delete(token), tokenUtils.delete(master)]);
++			}
++			assert.strictEqual(await tokenUtils.get(token), null);
++			assert.strictEqual(await db.getObject(`token:${token}`), null);
++			const scores = await Promise.all(['tokens:createtime', 'tokens:uid', 'tokens:lastSeen'].map(
++				index => db.sortedSetScore(index, token)
++			));
++			assert.deepStrictEqual(scores, [null, null, null]);
++			assert.deepStrictEqual(await tokenUtils.list(), []);
++		});
+ 	});
+ });

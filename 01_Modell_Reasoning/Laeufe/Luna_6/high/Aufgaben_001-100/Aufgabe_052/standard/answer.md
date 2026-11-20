@@ -1,0 +1,3 @@
+Implemented the token accounting API in [tokencount.go](/app/lib/ai/model/tokencount.go). `Chat.Complete` and `Agent.PlanAndExecute` now return a non-nil `*model.TokenCount`; the agent aggregates prompt and streamed completion usage across planning steps. Assist now uses that aggregate after consuming the stream.
+
+Verification: `go test ./lib/ai/...` passes. `go test ./lib/assist/...` could not compile because the environment lacks `linux/hidraw.h` and `gnu/libc-version.h`.

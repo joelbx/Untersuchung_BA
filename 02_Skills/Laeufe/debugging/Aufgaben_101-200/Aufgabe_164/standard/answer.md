@@ -1,0 +1,3 @@
+Fixed the import failure. YAML imports now use the v3 decoder, so nested metadata and attachments decode into JSON compatible structures without the old conversion helper. JSON imports accept one leading line whose first character is `#`; additional or misplaced comment lines still fail. Regression tests also verify that namespace key, name, and description are applied.
+
+`go test ./internal/ext -count=1` passed. The CLI package compiled successfully with `go test ./cmd/flipt -run 'TestImport' -count=1` (it has no test files). `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` support for new rooms. The shared policy helper gives server forced-on policy precedence, and the room dialog now locks the encryption control while policy loads, displays the enforced value, and submits the value shown.
+
+The focused tests pass (18 tests), as do targeted ESLint and Prettier checks. The full TypeScript check remains blocked by an unrelated existing error in [Unread.ts](/app/src/Unread.ts:167).

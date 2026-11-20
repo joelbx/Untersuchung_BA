@@ -1,0 +1,3 @@
+Updated [the Solr builder](/app/openlibrary/solr/update_work.py:743) to prefer a public IA edition for `lending_edition_s` and keep `lending_identifier_s` paired with it. It now treats `lendinglibrary` editions as borrowable and produces stable collection and print-disabled aggregates. [Regression tests](/app/openlibrary/tests/solr/test_update_work.py:352) cover mixed editions and edition order.
+
+All 61 Solr tests pass. Targeted lint and `git diff --check` pass; a broader lint run reports existing issues outside the changed lines.

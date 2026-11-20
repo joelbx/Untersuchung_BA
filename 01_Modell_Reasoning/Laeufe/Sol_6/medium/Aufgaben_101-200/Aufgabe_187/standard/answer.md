@@ -1,0 +1,3 @@
+Fixed the Kubernetes interactive session failure. The Kubernetes service now initializes the session uploader at startup, creating the required streaming directory. The forwarder caches only short lived credentials, rebuilds request scoped sessions, and uses the server context to emit audit events after a client disconnects.
+
+Updated routing, configuration names, heartbeat authentication, and exec error handling. `go test ./lib/kube/proxy ./lib/service` and `git diff --check` pass.

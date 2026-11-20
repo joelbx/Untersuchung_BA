@@ -1,0 +1,3 @@
+Updated [make_work](/app/openlibrary/plugins/upstream/addbook.py:69) to return a `web.Storage` work when either author field is missing, with `authors=[]`. It now preserves a supplied `cover_url`, applies the requested defaults, and includes the requested type annotations. Added [regression tests](/app/openlibrary/plugins/upstream/tests/test_addbook.py:9).
+
+The addbook tests passed (15), and `pytest -q openlibrary` passed (1,293 passed). Repository-wide `pytest -q` could not collect tests because pytest registered `/app/infogami/conftest.py` twice; that limitation is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

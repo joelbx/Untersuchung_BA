@@ -1,0 +1,3 @@
+Implemented token-only invitation registration. The form now submits the URL token; registration uses token-keyed invitation metadata to join groups, confirms the email only when it matches the invitation, and cleans up linked invitation records.
+
+The invitation suite passes (31 tests), and ESLint passes. The full user test file has one failure in an email confirmation test that also fails when run alone.

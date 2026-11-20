@@ -1,0 +1,3 @@
+Added `-wp-ignore-inactive` to the scan, report, server, and TUI commands, with a `WpIgnoreInactive` config field. When enabled, inactive WordPress plugins and themes are excluded from scan results and vulnerability lookups. Added a test covering filtering and the all-inactive case.
+
+Verification passed: `GOPROXY=off GOSUMDB=off go test ./wordpress ./config ./commands ./scan ./report` and `git diff --check`.

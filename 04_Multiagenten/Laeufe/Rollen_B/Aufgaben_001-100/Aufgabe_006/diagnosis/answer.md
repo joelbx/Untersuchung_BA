@@ -1,0 +1,7 @@
+The requested `fanoutbuffer` package is absent. The likely location is `lib/utils/fanoutbuffer/buffer.go`, alongside the repository’s other generic concurrency utilities. Go 1.21 and `clockwork` are already in [go.mod](/app/go.mod).
+
+The current [services fanout](/app/lib/services/fanout.go:315) gives each watcher a fixed channel of 64 events by default. When that channel fills, [emit](/app/lib/services/fanout.go:379) returns an overflow error, and [Emit](/app/lib/services/fanout.go:163) removes the watcher. It has no shared backlog or grace period. The [existing tests](/app/lib/services/fanout_test.go:30) cover watcher close, initialization, and registration, but not the requested cursor behavior.
+
+A fix should cover ordered reads from multiple independent cursors, ring overflow into a backlog, clock controlled grace expiry, cleanup after all cursors advance or close, and wakeups on append, cursor close, buffer close, and context cancellation. The issue leaves zero length reads and cursor creation after buffer closure unspecified.
+
+I recorded the findings in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). No source or tests were changed: my assigned fault localization role permits inspection and diagnosis only.

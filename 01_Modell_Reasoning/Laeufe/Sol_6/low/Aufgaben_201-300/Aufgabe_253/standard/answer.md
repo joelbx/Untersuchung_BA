@@ -1,0 +1,3 @@
+Updated [GuiProcess](/app/qutebrowser/misc/guiprocess.py) to surface stdout and stderr while the process runs. Each nonempty stream now gets a final summary, with informational stdout before error-level stderr; empty streams produce no output messages.
+
+Updated the [tests](/app/tests/unit/misc/test_guiprocess.py), including a check that stderr appears before the process exits. All 41 tests in that file pass.

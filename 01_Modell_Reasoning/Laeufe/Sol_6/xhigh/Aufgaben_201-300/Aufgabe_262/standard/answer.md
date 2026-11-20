@@ -1,0 +1,3 @@
+Book imports now use `process_cover_url` to remove the `cover` field and pass its URL to `add_cover` only when its HTTP or HTTPS hostname matches `ALLOWED_COVER_HOSTS`, ignoring case. The check applies to both new and matched editions in [add_book/__init__.py](/app/openlibrary/catalog/add_book/__init__.py:79).
+
+Tests in [test_add_book.py](/app/openlibrary/catalog/add_book/tests/test_add_book.py:54) cover valid, unsupported, and malformed URLs and both import paths. The add-book suite passed: **152 passed, 1 expected failure**. Ruff lint and `git diff --check` passed.

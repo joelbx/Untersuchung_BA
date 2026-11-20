@@ -1,0 +1,3 @@
+Updated the message composer so replaced-room notices use paragraphs and clearly state that the room is no longer active. The reply preview now names the sender, and it and the search bar use a shared, accessible cancel button.
+
+The relevant tests passed (16/16), as did ESLint and Stylelint. The type check still reports existing errors in `matrix-js-sdk` and room settings files; it reports no errors in the changed files.

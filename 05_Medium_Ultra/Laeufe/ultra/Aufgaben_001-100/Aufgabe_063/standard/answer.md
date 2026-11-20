@@ -1,0 +1,5 @@
+Implemented `proxy_service.kube_listen_addr` in [config parsing](/app/lib/config/fileconf.go:819) and [runtime configuration](/app/lib/config/configuration.go:548). It enables the Kubernetes proxy, uses port 3026 when omitted, and rejects an explicitly enabled legacy block. An explicitly disabled legacy block can coexist with the shorthand.
+
+I also corrected standalone Kubernetes listener parsing, added the missing service warning, updated [client address resolution](/app/lib/client/api.go:689) to use the web proxy host for wildcard addresses while prioritizing public addresses, and documented the shorthand. Client resolution, warning tests, and docs were delegated to subagents; I integrated and reviewed their changes.
+
+Verification passed: `go test ./lib/config ./lib/client ./lib/service` and `git diff --check`.

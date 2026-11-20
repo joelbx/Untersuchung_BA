@@ -1,0 +1,5 @@
+Implemented the public session fix in both Drive copies. [getLastActivePersistedUserSession](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts) now returns the valid persisted session with the highest `persistedAt`, including its UID and local ID. An opt-in strict read in [persistedSessionStorage.ts](/app/packages/shared/lib/authentication/persistedSessionStorage.ts) makes malformed data and storage failures return `null` with an error report.
+
+The public session provider now resumes that session and restores auth and user state. The public user hook reads the local ID from auth, telemetry uses the selected UID, and the old `LAST_ACTIVE_PING` dependency is removed.
+
+**Verification:** 43 focused tests passed across 8 suites; `git diff --check` passed. Type checks remain blocked by an unrelated OpenPGP type error in [api.ts](/app/packages/crypto/lib/worker/api.ts:579). I delegated the helper, provider, and telemetry changes to three agents, then reviewed and tested the integrated patch.

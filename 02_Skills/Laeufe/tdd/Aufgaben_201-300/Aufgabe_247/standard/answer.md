@@ -1,0 +1,3 @@
+Updated `SocketPosts.getUpvoters` to check `topics:read` across every requested post’s category before returning data, while allowing administrators through. It now resolves distinct upvoter UIDs in one lookup, preserves username order, and returns a cutoff of 6 with five explicit names and an `otherCount`. The frontend uses the returned cutoff and enables HTML tooltips.
+
+The posts and tooltip tests passed (130 tests), as did lint. The full `npm test` run stopped at an unrelated `test/api.js` failure: `GET /api/admin/extend/plugins` returned 500 after a proxy request failed with HTTP 403.

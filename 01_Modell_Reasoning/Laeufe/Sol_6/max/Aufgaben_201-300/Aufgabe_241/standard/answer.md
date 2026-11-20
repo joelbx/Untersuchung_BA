@@ -1,0 +1,3 @@
+Updated [VoiceBroadcastPreRecordingPip](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx) so Go live disables immediately and calls `start()` once per initiation attempt. The device menu opens only once, closes on selection, and updates the header label. The close control now has an accessible label.
+
+All 34 relevant tests pass; lint and formatting pass. The full TypeScript check remains blocked by unrelated `MatrixClient` errors elsewhere in the repository.

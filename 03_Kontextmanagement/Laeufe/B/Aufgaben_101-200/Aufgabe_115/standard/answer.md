@@ -1,0 +1,1 @@
+Implemented MARC contributor role mapping and preserved each author’s role and order when creating works. Work creation now raises an exception if author counts differ. Updated the affected fixtures and added coverage; all 167 relevant tests pass. This work item is complete.

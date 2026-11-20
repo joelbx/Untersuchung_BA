@@ -1,0 +1,5 @@
+The logged failure comes from [Album.ImageFiles](/app/model/album.go:48): the column is nullable, but the model scans it into a `string`. The same mismatch affects nullable timestamps in [Album](/app/model/album.go:55), [Artist](/app/model/artist.go:24), and [Share](/app/model/share.go:16).
+
+A fix should give those nullable fields an absent state, add `gg.P` and `gg.V` in [gg.go](/app/utils/gg/gg.go), and update timestamp writes and reads in the scanner, external metadata, and sharing paths. `P` must preserve zero values as pointers; `V` must return a zero value for nil. The `image_files` field needs separate nullable handling to resolve the specific logged error. I did not verify a database reproduction, and the existing repository tests do not cover these NULL scans.
+
+My assigned specialist role permits diagnosis only, so I left project source and tests unchanged. Findings are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

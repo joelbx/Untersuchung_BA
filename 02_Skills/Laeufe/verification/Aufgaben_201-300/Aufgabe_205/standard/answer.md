@@ -1,0 +1,3 @@
+Implemented the token lifecycle interface in [src/api/utils.js](/app/src/api/utils.js), with a focused test in [test/api-utils-tokens.js](/app/test/api-utils-tokens.js). The interface covers creation, ordered listing, retrieval, description updates, deletion, usage logging, and last-seen lookup.
+
+Verification: 2 focused tests passed; ESLint, syntax checks, and `git diff --check` passed. Live database behavior remains unverified because the existing API integration suite reads private database configuration.

@@ -1,0 +1,3 @@
+Updated the IA metadata importer to put ISBN-10 and ISBN-13 values in separate lists and split `Place: Publisher` entries into `publish_places` and `publishers`. The public helpers are in [utils.py](/app/openlibrary/plugins/upstream/utils.py). Empty or unusable values are omitted, and the raw `isbn` and `publisher` fields are no longer emitted.
+
+The affected tests pass: **26 passed**. `git diff --check` also passes.

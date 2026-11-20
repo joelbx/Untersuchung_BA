@@ -1,0 +1,3 @@
+Added [SimpleCache[V]](/app/utils/cache/simple_cache.go) and migrated the scrobbler, genre repository, and HTTP client to it. The adapter keeps `ttlcache` in one place, returns typed values, filters expired keys, and uses a consistent policy that does not extend TTL on reads. The HTTP cache retains its 100 entry limit.
+
+Added [cache contract tests](/app/utils/cache/simple_cache_test.go). `go test ./utils/cache ./core/scrobbler ./scanner` and `git diff --check` pass.

@@ -1,0 +1,3 @@
+Lockfile scans now keep each file’s results separate. Vulnerability entries carry the lockfile path, duplicate CVEs retain findings from every file, and TUI and plain text reports resolve versions by both path and library name. I updated the pinned Fanal and Trivy dependencies for the required analyzer and driver APIs.
+
+The affected tests passed offline, including new two lockfile and report regression tests. Every package also compiled successfully.

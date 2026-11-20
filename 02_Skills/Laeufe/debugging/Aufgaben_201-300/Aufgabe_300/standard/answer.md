@@ -1,0 +1,3 @@
+Implemented `override-validation=true` for import POST requests. The flag now passes through `load()` to `validate_record()` and bypasses the publication year, “Independently Published,” and required ISBN checks. Default validation and required field checks remain active. Added the case-insensitive `is_promise_item()` utility.
+
+Verification: 148 relevant tests passed, with 1 expected xfail. `git diff --check` passed. Ruff reports a `Mapping` import warning that I confirmed exists in the repository baseline.

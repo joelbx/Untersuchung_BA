@@ -1,0 +1,5 @@
+Implemented the device limit handling. `RunAdmin` now preserves the registered device on enrollment errors, and `printEnrollOutcome` handles a nil device safely. The test environment exposes `Service` with a synchronized limit toggle, and a regression test verifies registration succeeds before enrollment is denied.
+
+`go test ./lib/devicetrust/enroll ./lib/devicetrust/testenv` passed, and `git diff --check` passed. The `tool/tsh/common` tests could not be completed because Linux dependencies require missing system headers (`linux/hidraw.h` and `gnu/libc-version.h`).
+
+Changes are in [enroll.go](/app/lib/devicetrust/enroll/enroll.go), [enroll_test.go](/app/lib/devicetrust/enroll/enroll_test.go), [fake_device_service.go](/app/lib/devicetrust/testenv/fake_device_service.go), [testenv.go](/app/lib/devicetrust/testenv/testenv.go), and [device.go](/app/tool/tsh/common/device.go).

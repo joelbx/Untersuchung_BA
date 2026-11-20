@@ -1,0 +1,3 @@
+Implemented the external link component and applied it to both hosting signup links in Profile Settings. It uses a decorative, screen reader hidden icon, forwards anchor props, and defaults to `target="_blank"` with `rel="noreferrer noopener"`. The room share link now has the localized accessible name “Link to room.”
+
+Validation: `yarn lint:style` and `git diff --check` passed. `yarn lint:types` is blocked by existing TypeScript errors in `ThreadView.tsx` and `ThreadNotificationState.ts`.

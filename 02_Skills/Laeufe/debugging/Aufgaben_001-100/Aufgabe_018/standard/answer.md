@@ -1,0 +1,3 @@
+Fixed configuration decoding so scalar strings targeting `[]string` split on spaces, tabs, and newlines. Repeated and surrounding whitespace is ignored; an empty string produces an empty, non nil slice. YAML and ENV values now use the same behavior. The hook leaves other source values and target types unchanged.
+
+Added regression tests and updated the advanced fixture. `go test ./internal/config -count=1` passed. The broader `go test ./internal/... -count=1` exited 1 because Redis tests require an unavailable Docker daemon; the config package passed. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

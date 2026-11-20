@@ -1,0 +1,2 @@
+Task: revert scanner directory traversal from fs.FS to native OS filesystem paths.
+Status: complete. Native absolute-path traversal and audio enumeration use OS calls; utils.IsDirReadable probes and closes directories; Windows system folders are ignored. Results close before walker errors are sent so Scan can receive failures. Verification: GOPROXY=off GOSUMDB=off go test ./scanner ./utils (passed); git diff --check (passed).

@@ -1,0 +1,3 @@
+Fixed terminal restoration for `tsh login`. A canceled or timed out password read now restores the terminal and returns an empty result with the context error. `ContextReader.Close` also restores the terminal when a password read is active, and `tsh` calls the new `NotifyExit` function before exiting.
+
+Added tests for cancellation, deadline expiry, and closing during a password read. `go test ./lib/utils/prompt` and `git diff --check` passed.

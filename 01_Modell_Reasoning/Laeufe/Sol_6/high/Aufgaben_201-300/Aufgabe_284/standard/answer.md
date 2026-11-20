@@ -1,0 +1,3 @@
+Updated `reversetunnel.Server` to own one `localSite` and use it directly for connection registration, lookups, reconnect advisories, tunnel-close handling, and proxy fan-out. The local site now reuses the proxy’s existing access point instead of creating a second resource cache. Service connections reject empty or mismatched certificate cluster names with `trace.BadParameter`.
+
+Added tests for cache reuse, cluster validation, and single-site behavior. `go test ./lib/reversetunnel -count=1` and `git diff --check` passed.

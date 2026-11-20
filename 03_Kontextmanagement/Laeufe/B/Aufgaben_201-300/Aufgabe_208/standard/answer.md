@@ -1,0 +1,3 @@
+Fixed email confirmation expiry and resend behavior in [email.js](/app/src/user/email.js). Pending checks now return booleans, both stored confirmation keys use the configured expiry, the new TTL function returns the live remaining milliseconds, and resend eligibility follows the configured interval. Explicit expiry clears both keys. I added the expiry setting and regression coverage.
+
+Validation passed: **7 focused tests**, ESLint, JSON parsing, and `git diff --check`.

@@ -1,0 +1,3 @@
+Updated collection build and install to preserve symlinks whose targets stay inside the collection, copy external file links as regular files, and reject escaping extraction paths. Tar helpers now expose both the member and its readable stream.
+
+Verification: 63 collection tests and 19 focused Galaxy CLI tests passed. The broader CLI run had four warning-count assertion failures in tests that mock collection installation.

@@ -1,0 +1,3 @@
+Implemented the room button fix. `RoomView` dispatches `{ action: Action.RoomLoaded }` after loading, and `RoomViewStore` recomputes buttons on that action using the current room ID. The room view also falls back to its current event ID so a store update does not clear the permalink target.
+
+The RoomViewStore suite passed all 36 tests; targeted ESLint and `git diff --check` passed. The full TypeScript check could not finish because Node ran out of heap memory.

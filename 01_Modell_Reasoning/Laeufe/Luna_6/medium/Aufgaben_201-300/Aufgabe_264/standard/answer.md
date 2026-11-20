@@ -1,0 +1,3 @@
+Implemented bounded retries for HTTP 429, 500, and 502 in [meraki.py](/app/lib/ansible/module_utils/network/meraki/meraki.py). Persistent 429 responses raise `RateLimitException`; persistent 500/502 responses raise `InternalErrorException`; other HTTP errors raise `HTTPError`. The module keeps the latest response code in `status` and warns when rate limiting triggered retries.
+
+Updated the Meraki unit tests. All 7 passed with `python -m pytest -q test/units/module_utils/network/meraki/test_meraki.py`. `git diff --check` also passed.

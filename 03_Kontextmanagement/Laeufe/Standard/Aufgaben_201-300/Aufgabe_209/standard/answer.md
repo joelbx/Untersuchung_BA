@@ -1,0 +1,3 @@
+The calendar subscription modal now uses `MAX_LENGTHS_API.CALENDAR_URL` to block URLs over 10,000 characters. It trims input, uses one submit-disabled condition in both modal flows, and shows a single warning in the requested priority order. I also moved the `ResizeObserver` mocks into the Calendar, Components, and Mail Jest setup files and removed the inline definitions.
+
+The relevant tests passed: **21 tests across five suites**. `git diff --check` passed. ESLint could not complete because Node ran out of heap memory.

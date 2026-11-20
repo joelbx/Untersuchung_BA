@@ -1,0 +1,4 @@
+VERDICT: FIX
+Code defect: ui/src/app/Layout.tsx:43-55 never redirects when URL namespace is not in the filtered list; ui/src/app/namespaces/namespacesSlice.ts:18-21 initializes to default and :33-40 does not update currentNamespace. A saved /namespaces/default/... URL therefore stays on default for a user authorized only for local/staging, so child requests can still get 403. Correction: after list load, select an accessible namespace and replace the unauthorized route, updating the stored selection; preserve valid deep links.
+Tests: go test ./internal/server/authz/... ./internal/server -run 'Test(Engine_Namespaces|Engine_IsAllowed|AuthorizationRequiredInterceptor|FormatNamespaces|ListNamespaces)' -count=1 => exit 0; authz, bundle, rego, middleware, server packages passed; ext and source packages had no test files.
+TEST_ENVIRONMENT_PROBLEM: none.

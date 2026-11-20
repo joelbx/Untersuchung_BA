@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) so QtWebEngine combines CLI, `qt.args`, and configuration features into one `--enable-features=` argument. Added regression coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+The relevant test run passed: **81 passed, 1 deselected**. The full file could not complete because the unrelated Chromium version test segfaults during QtWebEngine initialization; the command and error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

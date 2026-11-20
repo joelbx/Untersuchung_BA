@@ -1,0 +1,3 @@
+Fixed IA publisher/place parsing and moved ISBN classification to [openlibrary/utils/isbn.py](/app/openlibrary/utils/isbn.py). ImportAPI now normalizes publisher strings to lists, splits location and publisher data through the new parser, and classifies trimmed ISBNs by length. The upstream utility retains a compatibility import for existing callers.
+
+Verification: **35 focused tests passed** across ImportAPI, upstream utilities, and ISBN utilities.

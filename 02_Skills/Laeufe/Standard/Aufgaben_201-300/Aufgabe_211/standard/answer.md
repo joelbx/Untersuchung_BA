@@ -1,0 +1,3 @@
+Implemented upload cleanup for purged posts and topics. Purging now deletes files with no remaining post references, including resized copies. An ACP setting, `preserveOrphanedUploads`, lets administrators keep them; its default is off. `Posts.uploads.deleteFromDisk` accepts a path or list of paths, rejects other input types, and ignores invalid or traversal paths.
+
+Verification passed: 249 upload and topic tests, 21 focused upload tests after the final change, ESLint, and `git diff --check`.

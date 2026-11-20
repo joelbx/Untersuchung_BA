@@ -1,0 +1,3 @@
+RemoteCluster now persists its status and latest heartbeat. When the final tunnel is removed, it reports Offline while retaining the last heartbeat; removing a newer tunnel no longer moves the heartbeat backward.
+
+I added `Presence.UpdateRemoteCluster`, backend storage with expiry preservation, and the corresponding auth client path. The regression tests and full `lib/services/local` test package pass.

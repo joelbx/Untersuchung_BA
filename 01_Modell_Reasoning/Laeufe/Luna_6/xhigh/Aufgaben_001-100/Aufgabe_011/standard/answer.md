@@ -1,0 +1,5 @@
+Implemented the requested fixes across module utilities, YAML constructors, templating, lookups, deprecations, the `timedout` test, and early CLI errors. Internal missing-value checks now use a shared `_UNSET` sentinel.
+
+Focused tests: **463 passed, 1 skipped, 1 deselected**; `git diff --check` passed. The deselected `test_dedupe_with_traceback` failed in the initial run because its module mock uses controller mode, which routes deprecations to `Display` instead of the target-side accumulator. The other tests in that file passed.
+
+Key changes: [basic.py](/app/lib/ansible/module_utils/basic.py:337), [objects.py](/app/lib/ansible/parsing/yaml/objects.py:12), [Templar](/app/lib/ansible/template/__init__.py:148), [display.py](/app/lib/ansible/utils/display.py:746), [CLI](/app/lib/ansible/cli/__init__.py:94).

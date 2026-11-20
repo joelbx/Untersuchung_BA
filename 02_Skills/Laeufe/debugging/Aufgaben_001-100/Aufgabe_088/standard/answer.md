@@ -1,0 +1,3 @@
+Updated `getObject` and `getObjects` across MongoDB, Postgres, and Redis to accept optional `fields`. Empty arrays return full objects; selected reads include requested but absent fields as `null`, preserve key order, and return `null` for missing keys. The field helpers now treat an omitted argument and `[]` the same way.
+
+The Redis hash suite passed (55 tests), and ESLint and `git diff --check` passed. Live MongoDB and Postgres checks were unavailable because their server executables are not installed locally.

@@ -1,0 +1,3 @@
+Added filesystem path completion to `:open`, including `completion.favorite_paths`, configurable category ordering, and help documentation. The category suggests sorted local paths for absolute paths, `file:///` URLs, and `~` paths, and remains visible when enabled with no matches.
+
+The relevant completion tests passed: 73 passed, with one benchmark deselected. The test runner reported an X11 shutdown error after the passing summary.

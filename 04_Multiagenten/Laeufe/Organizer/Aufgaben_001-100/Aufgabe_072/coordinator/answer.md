@@ -1,0 +1,3 @@
+Implemented hostname-only Punycode conversion in [url.ts](/app/packages/components/helpers/url.ts). It preserves the other URL components and removes a trailing pathname slash. [useLinkHandler.tsx](/app/packages/components/hooks/useLinkHandler.tsx) now applies the converted URL to external links and shows an error notification when a link has no extractable URL.
+
+Verification passed: 15 URL tests, the components type check, targeted ESLint, and Prettier. No delegation was used.

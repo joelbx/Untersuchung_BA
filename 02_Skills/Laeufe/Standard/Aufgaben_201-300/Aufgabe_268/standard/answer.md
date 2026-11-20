@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) so process errors identify the capitalized process name, the exact command in single quotes, the error type, and the process detail. Non-Windows startup errors for missing or non-executable commands now include the requested hint. Detached startup failures use the same message.
+
+All 32 process unit tests passed. The matching end to end scenario could not start because this environment lacks QtWebKit; that check remains unverified.

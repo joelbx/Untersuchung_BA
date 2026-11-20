@@ -1,0 +1,3 @@
+The checked-out patch covers database service failover, deterministic candidate ordering for tests, offline tunnel simulation, and deduplication in `tsh db ls`. The review identified no code defect, so I made no further code changes.
+
+I reran all three exact test commands named in the review. The API, database access, and `tsh` tests passed. `git diff --check` passed. There are no remaining failures or test environment problems.

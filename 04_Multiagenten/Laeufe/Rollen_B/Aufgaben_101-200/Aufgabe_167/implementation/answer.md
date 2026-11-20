@@ -1,0 +1,3 @@
+Implemented OCI snapshot storage in the checked-out repository. The new source reopens local OCI layouts on each fetch, reuses snapshots when the digest is unchanged, and polls for updates. OCI layers now support namespace annotations and gzip content; gRPC storage construction and the context-aware `SnapshotSource.Get` interface are updated.
+
+Verification passed: `go test ./internal/oci ./internal/storage/fs/... ./internal/config ./internal/cmd`.

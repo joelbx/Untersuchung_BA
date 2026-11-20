@@ -1,0 +1,3 @@
+Implemented the assistant formatting and message scoping fix. The composer now passes a consistent message ID through model preparation, editor insertion, and result rendering. Links and images restore only for that message; unmatched links lose their URL while keeping visible text. Conversion also preserves link and image `class` and `style`, repairs nested lists, and enables Markdown list rendering.
+
+All 11 focused tests passed. The mail TypeScript check is still blocked by an unrelated existing `openpgp`/`pmcrypto` type mismatch in [api.ts](/app/packages/crypto/lib/worker/api.ts:579).

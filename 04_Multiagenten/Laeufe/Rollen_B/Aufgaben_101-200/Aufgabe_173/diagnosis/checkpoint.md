@@ -1,0 +1,7 @@
+# Fault localization progress
+
+The first-match selection is in `lib/srv/db/proxyserver.go` (`pickDatabaseServer`, `authorize`, `proxyContext`, `Connect`). `pickDatabaseServer` returns on the first matching `GetName()`, and `Connect` dials once, returning any dial error. A candidate list should be retained in `proxyContext`; each shuffled candidate needs its own TLS config and reverse-tunnel dial. Continue only on `trace.IsConnectionProblem` tunnel failures, log each failed candidate, and return a clear error when all are unreachable. The default shuffle can use `Clock.Now().UnixNano()` as the seed; the requested `Shuffle` hook permits deterministic tests.
+
+Other change points: `api/types/databaseserver.go` (`DatabaseServerV3.String`, `SortedDatabaseServers.Less`, new order-preserving `DeduplicateDatabaseServers`); `lib/reversetunnel/fake.go` (`FakeRemoteSite.Dial`, optional `OfflineTunnels` map keyed by `DialParams.ServerID`); `tool/tsh/db.go` (`onListDatabases` before `showDatabases`). Existing database test setup in `lib/srv/db/access_test.go` creates the fake tunnel and proxy, but no current test covers same-name failover. Production reverse-tunnel code in `lib/reversetunnel/localsite.go` returns `trace.ConnectionProblem` when database service tunnel lookup fails.
+
+Uncertainty: `Connect` wraps a successful dial in `tls.Client` without performing the handshake; failure after that point occurs outside this candidate loop. No project source or tests changed in this specialist pass.

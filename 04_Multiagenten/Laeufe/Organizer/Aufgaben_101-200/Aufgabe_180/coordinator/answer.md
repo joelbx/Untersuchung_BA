@@ -1,0 +1,3 @@
+Updated the EOL tables for Fedora 37, 38, and 40; SUSE Enterprise Desktop and Server 13 and 14; and macOS 11 and 15. Extended the Windows 10, Windows 11, and Server 2022 rollup mappings in revision order using named struct literals, and updated tests for EOL cutoffs and KB detection.
+
+`go test ./config ./scanner`, `go build ./...`, and `git diff --check` all passed. I completed the work directly; no delegation was used.

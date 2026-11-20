@@ -1,0 +1,3 @@
+Implemented separate database settings for SQLite, Postgres, and MySQL. A configured URL takes precedence; otherwise Flipt builds the connection target from validated fields and applies default ports. Application connections and migrations now use the same resolution and pool settings, and parsing and connection errors avoid exposing credentials.
+
+Updated the configuration example and tests. `GOPROXY=off go test ./...` passes. PostgreSQL and MySQL were checked through connection setup; no live server connection was tested.

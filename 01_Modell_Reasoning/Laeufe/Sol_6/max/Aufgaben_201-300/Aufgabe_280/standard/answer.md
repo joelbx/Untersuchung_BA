@@ -1,0 +1,3 @@
+Exported `NamespaceEnv` and `ReleaseNameEnv` and used them for the backend’s environment reads in [kubernetes.go](/app/lib/backend/kubernetes/kubernetes.go). `NewWithClient()` validates both required variables and returns the quoted variable name when either is empty.
+
+Updated [kubernetes_test.go](/app/lib/backend/kubernetes/kubernetes_test.go) to set required variables explicitly and check configuration and error cases. The Kubernetes backend tests pass.

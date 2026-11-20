@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) so QtWebEngine combines user and configuration features into one `--enable-features=` argument. Other backends retain their existing arguments. Added regression coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+Verification: 81 relevant tests passed; the regression cases failed against the original code and passed with the patch. The full test file could not complete because its existing `test_new_chromium` test segfaults in QtWebEngine. `flake8` is unavailable locally. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,2 @@
+Task: Resolve Windows stderr CLIXML decoding in the checked-out repository.
+Status: Implemented line-scanned CLIXML replacement in SSH stderr, UTF-8/cp437 parsing, and corrected the UTF-16-BE escape matcher. Added coverage for surrounding text, multiline blocks, multiple blocks, nested headers, invalid/incomplete XML, cp437, Unicode escapes, and Windows exec_command. Relevant unit tests passed (51 tests); git diff --check passed.

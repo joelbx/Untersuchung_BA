@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py) to skip digits in percent-encoded triplets, preserve encoded URL data, reject invalid counts and decrements below zero, and leave ports unchanged. It now defaults to the path and follows the issue’s final match-order rule: the first eligible number in path, query, anchor, then host. Updated [tests](/app/tests/unit/utils/test_urlutils.py) for those requirements.
+
+Verification: 417 passed, 1 skipped with `QT_QPA_PLATFORM=offscreen`; `git diff --check` passed.

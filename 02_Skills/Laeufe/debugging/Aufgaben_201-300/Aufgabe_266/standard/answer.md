@@ -1,0 +1,3 @@
+Added `STAGED_SOURCES` and `ImportItem.find_staged_or_pending` in [imports.py](/app/openlibrary/core/imports.py). The method returns matching `import_item` rows for `{source}:{identifier}` IDs with `staged` or `pending` status. Updated [Edition.from_isbn](/app/openlibrary/core/models.py) to use the local lookup with both ISBN-13 and ISBN-10.
+
+Verification: 16 relevant tests passed; Ruff lint and `git diff --check` passed.

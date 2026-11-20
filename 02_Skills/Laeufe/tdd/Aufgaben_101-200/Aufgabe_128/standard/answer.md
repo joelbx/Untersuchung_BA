@@ -1,0 +1,3 @@
+Added ipset support to the [iptables module](/app/lib/ansible/modules/iptables.py): `match_set` and `match_set_flags` must be supplied together, the flags are limited to the four requested values, and rules include `-m set --match-set` with inversion support. Added [unit tests](/app/test/units/modules/test_iptables.py) for implicit and explicit set matches, inversion, and invalid inputs.
+
+All 26 iptables tests pass. The repository wide suite encountered unrelated failures and collection errors and was stopped; its partial results are recorded in the [checkpoint](/app/.codex-role-output/checkpoint.md).

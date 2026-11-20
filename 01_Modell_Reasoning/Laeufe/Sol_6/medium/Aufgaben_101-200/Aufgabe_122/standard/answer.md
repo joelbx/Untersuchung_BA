@@ -1,0 +1,3 @@
+Added `storage.readOnly` to backend configuration and frontend types. Validation now rejects an explicitly set value on non-database storage, including `false`, with the required error message. The UI selector uses the flag when present and defaults to read-only for non-database storage; the header’s “Read-Only” badge now shows the active backend’s icon. Authentication bootstrap also skips database access when authentication is disabled and storage is not database-backed. The requested fixture is included.
+
+`go test ./internal/config ./internal/cmd ./config` and `git diff --check` passed. UI tests could not run because the repository’s UI dependencies are absent.

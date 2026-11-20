@@ -1,0 +1,3 @@
+Implemented the List and Seed typing updates, including `SeedDict`, subject seed detection and normalization, normalized duplicate checks, mapping seed resolution, and an export result that always contains `authors`, `works`, and `editions`. Added the requested return annotations to `urlsafe()` and `_get_ol_base_url()`.
+
+Validation: `compileall` and `git diff --check` passed. The relevant test run had 9 passes and one failure because the test’s mocked `web.ctx` lacks `env`. `test_listapi.py` could not collect because `cookielib` is unavailable in this Python environment. The checkpoint is at `.codex-role-output/checkpoint.md`.

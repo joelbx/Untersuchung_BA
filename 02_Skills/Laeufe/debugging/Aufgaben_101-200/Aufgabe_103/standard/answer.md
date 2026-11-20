@@ -1,0 +1,3 @@
+Fixed RPM parsing in [redhatbase.go](/app/scanner/redhatbase.go). Installed-package and repoquery lines now preserve an empty release field while still accepting tab separators. Source RPM parsing handles empty and hyphenated releases, and rejects malformed filenames. Update candidates also treat `(none)` as an absent epoch.
+
+Added regression coverage in [redhatbase_regression_test.go](/app/scanner/redhatbase_regression_test.go) and updated an existing source RPM expectation in [redhatbase_test.go](/app/scanner/redhatbase_test.go). `go test ./scanner -count=1` and `git diff --check` passed.

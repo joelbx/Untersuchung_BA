@@ -1,0 +1,3 @@
+Implemented chat allow and deny lists, an incoming-chat disable setting, and server-side checks for direct messages and room creation. The upgrade seeds allow lists from follows for accounts that used the old setting and preserves later choices when rerun.
+
+The focused user and messaging suites passed: **357 tests**. ESLint and `git diff --check` passed. The full `npm test` run stopped after 306 passes at an unrelated plugin API test: its external fetch failed, causing HTTP 500.

@@ -1,0 +1,3 @@
+Updated `FnToCLI` to convert `Path` arguments and lists of `int`, `str`, `float`, or `Path`. Required lists are positional; lists with defaults use `--<parameter_name>`, and omitted optional lists retain their `None` default. `parse_args` now accepts a sequence of CLI arguments, and `run` returns the wrapped function’s result, including for async functions.
+
+The focused test suite passed: **7 tests**.

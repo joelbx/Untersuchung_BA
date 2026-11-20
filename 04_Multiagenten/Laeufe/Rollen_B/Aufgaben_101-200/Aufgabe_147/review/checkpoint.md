@@ -1,0 +1,4 @@
+VERDICT: FIX
+CODE DEFECT: `src/misc/DeviceConfig.ts` now loads theme only from `_themeId` (line 118). The previous loader fell back to legacy `_theme`; migrating a config with `_theme` but no `_themeId` defaults it to light and writes that value, losing the saved theme. Correction: during migration copy legacy `_theme` to `_themeId` when `_themeId` is absent, then persist under `_themeId`.
+Additional edge case: an array `_credentials` with missing/non-numeric `_version` skips conversion and is loaded as an empty Map (lines 106-116, 287-292); migrate based on the array shape or retain it without destructive rewrite.
+TESTS: `npm run testclient` exited 0: all 3071 assertions passed (old style total 3563). `npm run types` exited 0. Existing tests do not cover the legacy theme fallback or missing-version credentials shape.

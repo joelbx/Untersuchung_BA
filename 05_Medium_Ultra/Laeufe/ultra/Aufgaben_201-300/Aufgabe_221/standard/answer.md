@@ -1,0 +1,3 @@
+Implemented Best Book Awards backend support: persistent nominations with read and uniqueness checks in [Bestbook](/app/openlibrary/core/bestbook.py), the new [database table](/app/openlibrary/core/schema.sql:13), JSON [award and count APIs](/app/openlibrary/plugins/openlibrary/api.py:354), and Work, redirect, and anonymization integration.
+
+I delegated the API, model, and workflow changes to three agents, then integrated and verified them. **69 relevant tests passed**; Ruff and `git diff --check` passed. Existing databases need the new table DDL applied.

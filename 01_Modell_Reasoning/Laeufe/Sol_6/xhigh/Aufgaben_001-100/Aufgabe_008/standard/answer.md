@@ -1,0 +1,3 @@
+Added a 30-second failed-fetch cache to [useLink.ts](/app/applications/drive/src/app/store/_links/useLink.ts). For `NOT_FOUND`, `NOT_ALLOWED`, and `INVALID_ID`, repeated fetches for the same share and link now return the cached error without another API request. Other links and retryable errors are unaffected.
+
+Added coverage in [useLink.test.ts](/app/applications/drive/src/app/store/_links/useLink.test.ts). All 18 tests pass; TypeScript, ESLint, and Prettier checks pass.

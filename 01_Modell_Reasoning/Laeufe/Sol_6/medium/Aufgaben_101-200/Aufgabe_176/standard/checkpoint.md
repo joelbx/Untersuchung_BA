@@ -1,0 +1,3 @@
+Task: Fix incdec_number URL numeric matching, decrement validation, and encoded data preservation.
+Status: Implemented encoded segment matching, count and operation validation, port exclusion, and zero padding. Updated and expanded unit tests. Focused incdec tests: 197 passed. Full URL utility file reached unrelated Qt qapp setup and aborted after 400+ tests; xvfb-run had the same Qt abort. Diff check passed.
+Selection rule: retained established last-match behavior, consistent with existing tests and the repeated last-number requirements; the issue's final bullet states a conflicting first-match rule.

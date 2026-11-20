@@ -1,0 +1,3 @@
+Forked workers now send `Display.display` calls through `FinalQueue`; the parent results thread replays them under a display lock. I removed the worker’s shutdown redirection and added stdout and stderr flushes to `TaskQueueManager.cleanup`.
+
+The relevant suite passed **86 tests** with **9 skipped** when the warning tests were excluded. The full run had two warning test failures caused by shared `Display` singleton state; running that module alone also reproduced a duplicate warning suppression failure.

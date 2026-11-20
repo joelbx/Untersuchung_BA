@@ -1,0 +1,3 @@
+Added `isShareAvailable(signal, shareId)` to [useDefaultShare](/app/applications/drive/src/app/store/_shares/useDefaultShare.ts). It forwards the signal to `getShare` and returns `false` for locked or soft-deleted shares. [FolderContainer](/app/applications/drive/src/app/containers/FolderContainer.tsx) now redirects unavailable folder routes to the root.
+
+Verification passed: 7 focused tests, including the existing default-share creation cases; the Drive type check; Prettier; and `git diff --check`.

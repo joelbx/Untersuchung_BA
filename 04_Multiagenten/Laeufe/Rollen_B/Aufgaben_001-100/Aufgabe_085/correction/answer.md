@@ -1,0 +1,3 @@
+Fixed the two reviewed defects. Each diff CVE now retains package versions from its own scan, even when a new and a resolved CVE share a package name. Slack, Telegram, Chatwork, and Syslog now show `+` or `-` with diff CVE IDs. Added regression tests for the package collision and report prefixes.
+
+The reviewer’s exact command, `GOPROXY=off GOSUMDB=off go test ./models ./report ./subcmds`, passed. `git diff --check` passed.

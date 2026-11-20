@@ -1,0 +1,3 @@
+Added `scrolling.bar=overlay`. It emits `--enable-features=OverlayScrollbar` only with QtWebEngine on Qt 5.11 or newer outside macOS. Legacy `False` now migrates to `overlay`. I also added `@js_headers` support to skip affected header scenarios on QtWebEngine 5.12–5.14 and updated flag tests to ignore argument order.
+
+Verification: 325 tests passed, 1 skipped, and end-to-end scenario collection passed. One unrelated Chromium-version test remains unverified because it segfaults in the local headless Qt environment; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

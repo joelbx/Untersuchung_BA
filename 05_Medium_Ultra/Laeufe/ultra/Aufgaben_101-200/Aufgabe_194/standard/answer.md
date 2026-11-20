@@ -1,0 +1,3 @@
+`BlocklistDownloads` now inherits from `QObject` and emits `single_download_finished(object)` and `all_downloads_finished(int)`. The host and Brave ad blockers connect their handlers before starting downloads, and an empty URL list emits a batch completion count of zero.
+
+I delegated the consumer and test updates, then integrated and verified the patch. The focused tests passed (2 passed); the ad blocker tests finished with 36 passed and 13 skipped. `git diff --check` passed.

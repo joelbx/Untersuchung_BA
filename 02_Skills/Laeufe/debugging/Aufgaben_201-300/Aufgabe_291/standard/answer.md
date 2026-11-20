@@ -1,0 +1,3 @@
+NVD CVSS v4.0 metrics are now converted into `CveContent` by metric source and returned by `Cvss40Scores()` after MITRE entries. The model already had the required v4.0 fields; I updated the cached `go-cve-dictionary` dependency so conversion can read `Nvd.Cvss40`.
+
+The new regression tests and full `models` test package pass. The broader detector and reporter check was interrupted during dependency compilation, so its result remains unverified.

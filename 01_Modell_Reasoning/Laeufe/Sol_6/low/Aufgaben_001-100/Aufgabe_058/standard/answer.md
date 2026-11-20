@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts) to use the `Anonymity` enum throughout initialization, tracking, identification, and URL redaction. Initialization now requires a valid PostHog key and host, DNT forces anonymous mode, capture checks the enabled and initialized states, and room events include a hashed ID when one is supplied. Added the requested state, anonymity, and logout methods.
+
+Updated [PosthogAnalytics-test.ts](/app/test/PosthogAnalytics-test.ts). The focused suite passes: **16/16 tests**. The repository typecheck still reports existing errors elsewhere, with none reported in the changed files.

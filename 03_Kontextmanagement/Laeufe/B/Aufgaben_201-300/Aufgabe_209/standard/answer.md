@@ -1,0 +1,3 @@
+Resolved the calendar subscription issue in `/app`. The [modal](/app/packages/components/containers/calendar/subscribeCalendarModal/SubscribeCalendarModal.tsx) now uses the centralized 10,000-character limit, trims input, blocks invalid or over-limit submissions, and shows one warning in the requested priority order. ResizeObserver test mocks now live in the Jest setup files.
+
+The new modal tests and the affected calendar and mail suites pass: **21 tests total**. ESLint, Prettier, and `git diff --check` also pass.

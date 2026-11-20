@@ -1,0 +1,3 @@
+Refactored directory traversal to use the supplied `fs.FS`, including directory reads, stats, symlink checks, ignore markers, and readability checks. `walkDirTree` now returns a results channel and an error channel. `Scan` owns the OS filesystem entry point; `getRootFolderWalker` and `utils.IsDirReadable` were removed.
+
+The scanner tests pass, including new in-memory filesystem coverage. The full Go suite still fails in three `scanner/metadata/taglib` specs concerning fixture permissions and metadata values; those failures are outside this refactor. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

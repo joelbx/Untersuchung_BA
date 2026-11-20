@@ -1,0 +1,3 @@
+Implemented `:tab-select` as the public tab selection command and renamed the completion providers to `tabs` and `other_tabs`. Updated generated help, the default `gt` binding, completion references, and relevant scenarios to use the new names. Tab index and substring matching, count precedence, and cross-window selection continue through the existing selection logic.
+
+**Verification:** 231 passed, 1 skipped in the unit completion and command runner tests. The end to end completion run was blocked by the environment’s missing QtWebKit backend. Regenerated help and `git diff --check` completed successfully.

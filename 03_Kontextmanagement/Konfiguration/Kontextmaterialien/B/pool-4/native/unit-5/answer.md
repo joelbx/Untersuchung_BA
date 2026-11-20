@@ -1,0 +1,1 @@
+Batch 5 is complete. I counted **1,153 complete records**. Line 1155 is a five-column incomplete fragment: `4-5-1154,collection-22,1979,87,`. The [JSON summary](/app/catalogue-5-summary.json) passed a second local check.

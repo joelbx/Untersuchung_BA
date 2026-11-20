@@ -1,0 +1,3 @@
+Room search now merges adjacent results whose timelines share a boundary event. [RoomSearchView.tsx](/app/src/components/structures/RoomSearchView.tsx) skips the duplicate event and records each direct match’s index; [SearchResultTile.tsx](/app/src/components/views/rooms/SearchResultTile.tsx) uses those indices for highlighting and links each match to its own event ID.
+
+Verification passed: 9 relevant Jest tests, TypeScript, targeted ESLint and Prettier, and `git diff --check`. No delegation was used.

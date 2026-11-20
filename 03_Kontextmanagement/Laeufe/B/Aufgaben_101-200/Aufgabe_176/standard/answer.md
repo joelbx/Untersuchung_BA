@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py) to use the issue’s explicit path → query → anchor → host selection order, skip numbers in percent-encoded sequences, leave ports untouched, and reject invalid counts or decrements below zero. It preserves zero padding and encoded data retained by `QUrl`.
+
+The [focused tests](/app/tests/unit/utils/test_urlutils.py) pass: **157 passed**. `git diff --check` passes. The broader test file aborted in an unrelated Qt GUI fixture.

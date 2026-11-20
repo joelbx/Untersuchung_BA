@@ -1,0 +1,3 @@
+Updated the assistant content path so the composer’s message ID reaches model preparation, preview, and editor insertion. URL restoration now accepts only links and images stored for that message, while preserving visible text when a link is dropped. The conversion path also retains `<a>` and `<img>` class and style attributes, repairs nested lists, and renders Markdown lists.
+
+All 6 focused tests, targeted lint, and `git diff --check` pass. The full TypeScript check is blocked by an unrelated OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts`.

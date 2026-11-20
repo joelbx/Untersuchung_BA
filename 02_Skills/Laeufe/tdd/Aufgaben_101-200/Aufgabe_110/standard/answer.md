@@ -1,0 +1,3 @@
+Added the download mechanism metric. Terminal stateful downloads use `meta.size`; preview downloads pass size through the report call. The new selector chooses `memory`, `sw`, or `memory_fallback`, and the counter records status, retry, and mechanism using the v1 schema.
+
+Verification passed: 640 Drive tests and 107 metrics tests, plus both package type checks and targeted lint. Five Drive tests were skipped.

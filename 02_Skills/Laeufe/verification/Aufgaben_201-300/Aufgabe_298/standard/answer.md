@@ -1,0 +1,3 @@
+Implemented opportunistic expiration in [SimpleCache](/app/utils/cache/simple_cache.go). Cache operations now trigger deadline-gated eviction, and `Keys()` and the new `Values()` method expose only active entries. Added tests for 10 ms TTLs, loader values, physical eviction, and size limits.
+
+Verification passed: `go test` for the cache, scrobbler, and scanner packages; `go test -race` for the cache; and `git diff --check`.

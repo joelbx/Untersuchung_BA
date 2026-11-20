@@ -1,0 +1,3 @@
+Updated [useMyCountry.tsx](/app/packages/components/hooks/useMyCountry.tsx) to return a country code or `undefined`, starting at `undefined`. All seven listed consumers now use the single value and retain their user-settings gates. [PhoneInput.tsx](/app/packages/components/components/v2/phone/PhoneInput.tsx) starts with no country for an undefined or empty default and adopts a later non-empty default once, only while its country is empty.
+
+All 18 targeted tests pass. Package type checking remains blocked by an OpenPGP type mismatch in an untouched crypto file.

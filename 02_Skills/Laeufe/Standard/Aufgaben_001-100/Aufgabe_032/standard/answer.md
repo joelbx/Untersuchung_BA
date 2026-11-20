@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) to emit one structured JSON launcher response, write job records atomically, and include consistent job IDs and lifecycle fields. Fork and setup errors now return structured failures; timeout records include the child PID. The immediate response also reflects the temporary directory cleanup policy.
+
+Added focused tests in [test_async_wrapper.py](/app/test/units/modules/test_async_wrapper.py). All 4 unit tests pass. Manual subprocess checks passed for success, module error, timeout, directory failure, and invalid time limit. Progress and the direct script invocation limitation are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

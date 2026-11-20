@@ -1,0 +1,3 @@
+Implemented the `.well-known` `force_disable: true` policy for new rooms. The shared policy helper gives server enforced encryption precedence when policies conflict; the room creation dialog keeps the control disabled while it checks policy, displays the enforced value, and submits that displayed value.
+
+The relevant tests pass (24 total), and lint and formatting checks pass. The full TypeScript check still reports an unrelated existing error in [Unread.ts](/app/src/Unread.ts:167).

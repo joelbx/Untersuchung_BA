@@ -1,0 +1,3 @@
+Worksearch now requests Solr JSON by default and reads facets, spelling suggestions, and documents from JSON. The XML parser and XML test fixture were removed. Facet processing now accepts value/count pairs, including the required `has_fulltext` ordering and labels.
+
+The [Worksearch tests](/app/openlibrary/plugins/worksearch/tests/test_worksearch.py) pass: **29 passed**. `git diff --check` also passes.

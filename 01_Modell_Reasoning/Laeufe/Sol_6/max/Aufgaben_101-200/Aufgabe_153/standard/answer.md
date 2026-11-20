@@ -1,0 +1,3 @@
+Fixed the new member view so it shows members and invitations for the current share only. The member and invitation stores now keep separate data for each `shareId`, including internal and external invitations. I also added [getExistingEmails](/app/applications/drive/src/app/store/_views/getExistingEmails.ts) and mirrored the changes in `packages/drive-store`.
+
+Verification passed: 21 targeted Jest tests, both Drive type checks, ESLint, and Prettier.

@@ -1,0 +1,3 @@
+Updated [WordPress ingestion](/app/detector/wordpress.go:37) to preserve the first CVE, ordered references, UTC timestamps, classification, and fix version, and to map Enterprise summary, proof of concept, introduced version, and CVSS fields. Missing or null optional fields produce an empty metadata map.
+
+Added [regression tests](/app/detector/wordpress_test.go:14) for Enterprise, omitted, and null fields. `go test ./detector` passed.

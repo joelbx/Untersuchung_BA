@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) to combine user provided and configured QtWebEngine features into one `--enable-features` argument. Non QtWebEngine arguments remain unchanged. Added coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+Verification: 82 relevant tests pass. The remaining existing `test_new_chromium` test segfaults during QtWebEngine initialization.

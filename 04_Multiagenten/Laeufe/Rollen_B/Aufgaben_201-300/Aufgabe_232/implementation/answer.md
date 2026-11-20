@@ -1,0 +1,3 @@
+Implemented OS EOL lookup and scan warnings. The scan now evaluates each target’s release, preserves warning order, and prints each warning as a `Warning: ` line in the summary. I also centralized OS family constants and major version parsing, and corrected Amazon Linux release detection.
+
+Added tests for the required mappings, date boundaries, warning messages, and summary order. `go test ./config ./util ./oval ./gost ./scan ./report` and `git diff --check` pass.

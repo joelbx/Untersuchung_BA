@@ -1,0 +1,1 @@
+Fixed `unarchive` to validate ZIP timestamps before comparing files. Malformed dates and years outside 1980–2107 now use the ZIP epoch, so the reported timestamp no longer raises `ValueError`. Added regression cases; all 12 focused tests pass, and `git diff --check` passes.

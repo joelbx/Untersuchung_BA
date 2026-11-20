@@ -1,0 +1,3 @@
+Implemented `storage.oci.manifest_version` with values `"1.0"` and `"1.1"`, a `"1.1"` default, and the required validation error for unsupported values. Bundle creation now uses the configured version through [WithManifestVersion](/app/internal/oci/file.go); both the [bundle command](/app/cmd/flipt/bundle.go) and [OCI storage path](/app/internal/storage/fs/store/store.go) pass it to the store.
+
+Three native subagents handled the configuration, OCI option, and manifest tests; I integrated the callers and final validation. Configuration, schema, OCI, and affected package tests passed. The tests verify the generated 1.0 and 1.1 manifests; no live ECR push was run.

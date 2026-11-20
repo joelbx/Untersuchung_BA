@@ -1,0 +1,3 @@
+Implemented database configuration from either `db.url` or separate protocol, host or SQLite path, port, user, password, and name fields. A nonempty URL takes precedence; both connection opening and migrations use the same resolution, validation, and pool settings. Errors now identify the relevant setting and redact database credentials. The example configuration is updated in [default.yml](/app/config/default.yml).
+
+`go test ./...` passes.

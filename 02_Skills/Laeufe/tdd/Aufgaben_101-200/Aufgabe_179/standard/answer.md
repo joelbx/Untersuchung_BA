@@ -1,0 +1,3 @@
+RemoteCluster now persists its status and last heartbeat independently of tunnel connections. Reads mark a cluster offline when its final tunnel is removed while retaining the recorded heartbeat; removing a newer tunnel no longer replaces that heartbeat with an older one. `Presence.UpdateRemoteCluster` stores the resource under `remoteClusters/<name>` and preserves its expiry.
+
+The new regression tests, the local presence package, and the existing remote cluster CRUD test pass. The repository wide `go test ./...` run did not complete: it reported existing vet errors in `lib/backend/test/suite.go` at lines 402 and 666 and was interrupted after no further output.

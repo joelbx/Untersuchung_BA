@@ -1,0 +1,3 @@
+Fixed `QtColor` so HSV/HSVA hue percentages scale to 359, while other percentages retain the 255 scale. The parser now validates supported function names and component counts before dispatching to the appropriate `QColor` constructor.
+
+Updated regression cases in [test_configtypes.py](/app/tests/unit/config/test_configtypes.py). The focused QtColor tests pass: **27 passed**. `git diff --check` passed. The full test module also exposed unrelated environment and compatibility failures, including Hypothesis fixture health checks.

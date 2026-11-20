@@ -1,0 +1,3 @@
+User properties now require an explicit `userId` for every read and write. The SQL repository and mock use that ID, and LastFM passes the authenticated user’s ID through link status, unlink, now playing, scrobbling, and session key storage. The callback verifies a signed state issued by the authenticated link route before saving a key.
+
+Verification: `go test ./...`, UI formatting, and ESLint passed. The UI build passed with `NODE_OPTIONS=--openssl-legacy-provider`; the default build hit the installed Webpack and Node OpenSSL compatibility error. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

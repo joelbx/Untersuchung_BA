@@ -1,0 +1,3 @@
+Implemented `parsePkgName` and wired it into library and GitHub manifest PURL generation in [cyclonedx.go](/app/reporter/sbom/cyclonedx.go). It returns namespace, name, and subpath for the requested ecosystems, with empty strings for fields that do not apply.
+
+Added parser cases in [cyclonedx_test.go](/app/reporter/sbom/cyclonedx_test.go). `go test ./reporter/sbom ./reporter` passed with network access disabled, and `git diff --check` passed.

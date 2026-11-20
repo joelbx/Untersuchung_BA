@@ -1,0 +1,3 @@
+GitHub and enabled OIDC providers now reject empty or whitespace only `client_id`, `client_secret`, and `redirect_address` values during startup validation. Errors name the GitHub key or the exact OIDC provider key and field. GitHub’s `read:org` requirement also returns the specified provider and field error.
+
+Added validation tests and updated the existing scope fixture. `go test ./internal/config` passes.

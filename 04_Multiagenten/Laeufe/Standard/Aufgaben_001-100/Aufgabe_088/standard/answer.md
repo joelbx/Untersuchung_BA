@@ -1,0 +1,3 @@
+Updated `getObject` and `getObjects` in MongoDB, Postgres, and Redis to accept an optional `fields` array. All four retrieval methods now return complete objects for `[]` or omitted fields, include requested missing fields as `null`, preserve input order, and return `null` for missing keys. Added regression coverage in [hash.js](/app/test/database/hash.js).
+
+The Redis hash suite passed (57 tests), and ESLint and `git diff --check` passed. MongoDB and Postgres were reviewed in code but could not be tested locally because their services were unavailable.

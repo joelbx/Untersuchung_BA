@@ -1,0 +1,599 @@
+diff --git a/lib/kube/proxy/forwarder.go b/lib/kube/proxy/forwarder.go
+index eb8ad3d..d21d28b 100644
+--- a/lib/kube/proxy/forwarder.go
++++ b/lib/kube/proxy/forwarder.go
+@@ -63,14 +63,18 @@ import (
+ type ForwarderConfig struct {
+ 	// Tunnel is the teleport reverse tunnel server
+ 	Tunnel reversetunnel.Server
++	// ReverseTunnelSrv is the reverse tunnel server used to dial cluster services.
++	ReverseTunnelSrv reversetunnel.Server
+ 	// ClusterName is a local cluster name
+ 	ClusterName string
+ 	// Keygen points to a key generator implementation
+ 	Keygen sshca.Authority
+ 	// Auth authenticates user
+-	Auth auth.Authorizer
++	Auth  auth.Authorizer
++	Authz auth.Authorizer
+ 	// Client is a proxy client
+-	Client auth.ClientI
++	Client     auth.ClientI
++	AuthClient auth.ClientI
+ 	// StreamEmitter is used to create audit streams
+ 	// and emit audit events
+ 	StreamEmitter events.StreamEmitter
+@@ -80,7 +84,8 @@ type ForwarderConfig struct {
+ 	Namespace string
+ 	// AccessPoint is a caching access point to auth server
+ 	// for caching common requests to the backend
+-	AccessPoint auth.AccessPoint
++	AccessPoint       auth.AccessPoint
++	CachingAuthClient auth.AccessPoint
+ 	// ServerID is a unique ID of a proxy server
+ 	ServerID string
+ 	// ClusterOverride if set, routes all requests
+@@ -102,7 +107,8 @@ type ForwarderConfig struct {
+ 	Clock clockwork.Clock
+ 	// PingPeriod is a period for sending ping messages on the incoming
+ 	// connection.
+-	PingPeriod time.Duration
++	PingPeriod     time.Duration
++	ConnPingPeriod time.Duration
+ 	// Component name to include in log output.
+ 	Component string
+ 	// StaticLabels is map of static labels associated with this cluster.
+@@ -115,6 +121,36 @@ type ForwarderConfig struct {
+ 
+ // CheckAndSetDefaults checks and sets default values
+ func (f *ForwarderConfig) CheckAndSetDefaults() error {
++	if f.Authz == nil {
++		f.Authz = f.Auth
++	}
++	if f.Auth == nil {
++		f.Auth = f.Authz
++	}
++	if f.AuthClient == nil {
++		f.AuthClient = f.Client
++	}
++	if f.Client == nil {
++		f.Client = f.AuthClient
++	}
++	if f.CachingAuthClient == nil {
++		f.CachingAuthClient = f.AccessPoint
++	}
++	if f.AccessPoint == nil {
++		f.AccessPoint = f.CachingAuthClient
++	}
++	if f.ReverseTunnelSrv == nil {
++		f.ReverseTunnelSrv = f.Tunnel
++	}
++	if f.Tunnel == nil {
++		f.Tunnel = f.ReverseTunnelSrv
++	}
++	if f.ConnPingPeriod == 0 {
++		f.ConnPingPeriod = f.PingPeriod
++	}
++	if f.PingPeriod == 0 {
++		f.PingPeriod = f.ConnPingPeriod
++	}
+ 	if f.Client == nil {
+ 		return trace.BadParameter("missing parameter Client")
+ 	}
+@@ -150,6 +186,7 @@ func (f *ForwarderConfig) CheckAndSetDefaults() error {
+ 	}
+ 	if f.PingPeriod == 0 {
+ 		f.PingPeriod = defaults.HighResPollingPeriod
++		f.ConnPingPeriod = f.PingPeriod
+ 	}
+ 	if f.Component == "" {
+ 		f.Component = "kube_forwarder"
+@@ -244,6 +281,11 @@ func (f *Forwarder) Close() error {
+ 	return nil
+ }
+ 
++// ServeHTTP delegates requests to the internal router.
++func (f *Forwarder) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
++	f.Router.ServeHTTP(rw, r)
++}
++
+ // authContext is a context of authenticated user,
+ // contains information about user, target cluster and authenticated groups
+ type authContext struct {
+@@ -312,6 +354,10 @@ type handlerWithAuthFuncStd func(ctx *authContext, w http.ResponseWriter, r *htt
+ 
+ // authenticate function authenticates request
+ func (f *Forwarder) authenticate(req *http.Request) (*authContext, error) {
++	authz := f.Authz
++	if f.Auth != nil {
++		authz = f.Auth
++	}
+ 	const accessDeniedMsg = "[00] access denied"
+ 
+ 	var isRemoteUser bool
+@@ -329,7 +375,7 @@ func (f *Forwarder) authenticate(req *http.Request) (*authContext, error) {
+ 		return nil, trace.AccessDenied(accessDeniedMsg)
+ 	}
+ 
+-	userContext, err := f.Auth.Authorize(req.Context())
++	userContext, err := authz.Authorize(req.Context())
+ 	if err != nil {
+ 		switch {
+ 		// propagate connection problem error so we can differentiate
+@@ -391,9 +437,13 @@ func (f *Forwarder) withAuth(handler handlerWithAuthFunc) httprouter.Handle {
+ }
+ 
+ func (f *Forwarder) setupContext(ctx auth.Context, req *http.Request, isRemoteUser bool, certExpires time.Time) (*authContext, error) {
++	accessPoint := f.CachingAuthClient
++	if accessPoint == nil {
++		accessPoint = f.AccessPoint
++	}
+ 	roles := ctx.Checker
+ 
+-	clusterConfig, err := f.AccessPoint.GetClusterConfig()
++	clusterConfig, err := accessPoint.GetClusterConfig()
+ 	if err != nil {
+ 		return nil, trace.Wrap(err)
+ 	}
+@@ -440,11 +490,11 @@ func (f *Forwarder) setupContext(ctx auth.Context, req *http.Request, isRemoteUs
+ 	if isRemoteCluster {
+ 		// Tunnel is nil for a teleport process with "kubernetes_service" but
+ 		// not "proxy_service".
+-		if f.Tunnel == nil {
++		if f.ReverseTunnelSrv == nil {
+ 			return nil, trace.BadParameter("this Teleport process can not dial Kubernetes endpoints in remote Teleport clusters; only proxy_service supports this, make sure a Teleport proxy is first in the request path")
+ 		}
+ 
+-		targetCluster, err := f.Tunnel.GetSite(teleportClusterName)
++		targetCluster, err := f.ReverseTunnelSrv.GetSite(teleportClusterName)
+ 		if err != nil {
+ 			return nil, trace.Wrap(err)
+ 		}
+@@ -458,12 +508,12 @@ func (f *Forwarder) setupContext(ctx auth.Context, req *http.Request, isRemoteUs
+ 			})
+ 		}
+ 		isRemoteClosed = targetCluster.IsClosed
+-	} else if f.Tunnel != nil {
++	} else if f.ReverseTunnelSrv != nil {
+ 		// Not a remote cluster and we have a reverse tunnel server.
+ 		// Use the local reversetunnel.Site which knows how to dial by serverID
+ 		// (for "kubernetes_service" connected over a tunnel) and falls back to
+ 		// direct dial if needed.
+-		localCluster, err := f.Tunnel.GetSite(f.ClusterName)
++		localCluster, err := f.ReverseTunnelSrv.GetSite(f.ClusterName)
+ 		if err != nil {
+ 			return nil, trace.Wrap(err)
+ 		}
+@@ -524,6 +574,10 @@ func (f *Forwarder) setupContext(ctx auth.Context, req *http.Request, isRemoteUs
+ }
+ 
+ func (f *Forwarder) authorize(ctx context.Context, actx *authContext) error {
++	accessPoint := f.CachingAuthClient
++	if accessPoint == nil {
++		accessPoint = f.AccessPoint
++	}
+ 	if actx.teleportCluster.isRemote {
+ 		// Authorization for a remote kube cluster will happen on the remote
+ 		// end (by their proxy), after that cluster has remapped used roles.
+@@ -536,7 +590,7 @@ func (f *Forwarder) authorize(ctx context.Context, actx *authContext) error {
+ 		f.log.WithField("auth_context", actx.String()).Debug("Skipping authorization due to unknown kubernetes cluster name")
+ 		return nil
+ 	}
+-	servers, err := f.AccessPoint.GetKubeServices(ctx)
++	servers, err := accessPoint.GetKubeServices(ctx)
+ 	if err != nil {
+ 		return trace.Wrap(err)
+ 	}
+@@ -613,8 +667,8 @@ func (f *Forwarder) exec(ctx *authContext, w http.ResponseWriter, req *http.Requ
+ 		tty:                utils.AsBool(q.Get("tty")),
+ 		httpRequest:        req,
+ 		httpResponseWriter: w,
+-		context:            req.Context(),
+-		pingPeriod:         f.PingPeriod,
++		context:            withoutCancel(req.Context()),
++		pingPeriod:         f.ConnPingPeriod,
+ 	}
+ 	eventPodMeta := request.eventPodMeta(request.context, sess.creds)
+ 
+@@ -637,7 +691,7 @@ func (f *Forwarder) exec(ctx *authContext, w http.ResponseWriter, req *http.Requ
+ 		recorder, err = events.NewAuditWriter(events.AuditWriterConfig{
+ 			// Audit stream is using server context, not session context,
+ 			// to make sure that session is uploaded even after it is closed
+-			Context:      request.context,
++			Context:      f.ctx,
+ 			Streamer:     streamer,
+ 			Clock:        f.Clock,
+ 			SessionID:    sessionID,
+@@ -650,7 +704,7 @@ func (f *Forwarder) exec(ctx *authContext, w http.ResponseWriter, req *http.Requ
+ 			return nil, trace.Wrap(err)
+ 		}
+ 		emitter = recorder
+-		defer recorder.Close(request.context)
++		defer recorder.Close(f.ctx)
+ 		request.onResize = func(resize remotecommand.TerminalSize) {
+ 			params := session.TerminalParams{
+ 				W: int(resize.Width),
+@@ -684,7 +738,7 @@ func (f *Forwarder) exec(ctx *authContext, w http.ResponseWriter, req *http.Requ
+ 
+ 			// Report the updated window size to the event log (this is so the sessions
+ 			// can be replayed correctly).
+-			if err := recorder.EmitAuditEvent(request.context, resizeEvent); err != nil {
++			if err := recorder.EmitAuditEvent(f.ctx, resizeEvent); err != nil {
+ 				f.log.WithError(err).Warn("Failed to emit terminal resize event.")
+ 			}
+ 		}
+@@ -728,7 +782,7 @@ func (f *Forwarder) exec(ctx *authContext, w http.ResponseWriter, req *http.Requ
+ 			KubernetesPodMetadata:     eventPodMeta,
+ 			InitialCommand:            request.cmd,
+ 		}
+-		if err := emitter.EmitAuditEvent(request.context, sessionStartEvent); err != nil {
++		if err := emitter.EmitAuditEvent(f.ctx, sessionStartEvent); err != nil {
+ 			f.log.WithError(err).Warn("Failed to emit event.")
+ 		}
+ 	}
+@@ -810,7 +864,7 @@ func (f *Forwarder) exec(ctx *authContext, w http.ResponseWriter, req *http.Requ
+ 			// Bytes received from pod by user.
+ 			BytesReceived: trackOut.Count() + trackErr.Count(),
+ 		}
+-		if err := emitter.EmitAuditEvent(request.context, sessionDataEvent); err != nil {
++		if err := emitter.EmitAuditEvent(f.ctx, sessionDataEvent); err != nil {
+ 			f.log.WithError(err).Warn("Failed to emit session data event.")
+ 		}
+ 		sessionEndEvent := &events.SessionEnd{
+@@ -844,7 +898,7 @@ func (f *Forwarder) exec(ctx *authContext, w http.ResponseWriter, req *http.Requ
+ 			KubernetesPodMetadata:     eventPodMeta,
+ 			InitialCommand:            request.cmd,
+ 		}
+-		if err := emitter.EmitAuditEvent(request.context, sessionEndEvent); err != nil {
++		if err := emitter.EmitAuditEvent(f.ctx, sessionEndEvent); err != nil {
+ 			f.log.WithError(err).Warn("Failed to emit session end event.")
+ 		}
+ 	} else {
+@@ -885,7 +939,7 @@ func (f *Forwarder) exec(ctx *authContext, w http.ResponseWriter, req *http.Requ
+ 		} else {
+ 			execEvent.Code = events.ExecCode
+ 		}
+-		if err := emitter.EmitAuditEvent(request.context, execEvent); err != nil {
++		if err := emitter.EmitAuditEvent(f.ctx, execEvent); err != nil {
+ 			f.log.WithError(err).Warn("Failed to emit event.")
+ 		}
+ 	}
+@@ -951,12 +1005,12 @@ func (f *Forwarder) portForward(ctx *authContext, w http.ResponseWriter, req *ht
+ 		podNamespace:       p.ByName("podNamespace"),
+ 		podName:            p.ByName("podName"),
+ 		ports:              q["ports"],
+-		context:            req.Context(),
++		context:            withoutCancel(req.Context()),
+ 		httpRequest:        req,
+ 		httpResponseWriter: w,
+ 		onPortForward:      onPortForward,
+ 		targetDialer:       dialer,
+-		pingPeriod:         f.PingPeriod,
++		pingPeriod:         f.ConnPingPeriod,
+ 	}
+ 	f.log.Debugf("Starting %v.", request)
+ 	err = runPortForwarding(request)
+@@ -1137,7 +1191,7 @@ func (f *Forwarder) catchAll(ctx *authContext, w http.ResponseWriter, req *http.
+ 		return nil, nil
+ 	}
+ 	r.populateEvent(event)
+-	if err := f.Client.EmitAuditEvent(req.Context(), event); err != nil {
++	if err := f.AuthClient.EmitAuditEvent(f.ctx, event); err != nil {
+ 		f.log.WithError(err).Warn("Failed to emit event.")
+ 	}
+ 
+@@ -1151,7 +1205,7 @@ func (f *Forwarder) getExecutor(ctx authContext, sess *clusterSession, req *http
+ 		dial:            sess.DialWithContext,
+ 		tlsConfig:       sess.tlsConfig,
+ 		followRedirects: true,
+-		pingPeriod:      f.PingPeriod,
++		pingPeriod:      f.ConnPingPeriod,
+ 	})
+ 	rt := http.RoundTripper(upgradeRoundTripper)
+ 	if sess.creds != nil {
+@@ -1171,7 +1225,7 @@ func (f *Forwarder) getDialer(ctx authContext, sess *clusterSession, req *http.R
+ 		dial:            sess.DialWithContext,
+ 		tlsConfig:       sess.tlsConfig,
+ 		followRedirects: true,
+-		pingPeriod:      f.PingPeriod,
++		pingPeriod:      f.ConnPingPeriod,
+ 	})
+ 	rt := http.RoundTripper(upgradeRoundTripper)
+ 	if sess.creds != nil {
+@@ -1201,6 +1255,18 @@ type clusterSession struct {
+ 	noAuditEvents bool
+ }
+ 
++type cachedKubeCredentials struct {
++	tlsConfig *tls.Config
++	creds     *kubeCreds
++}
++
++type detachedContext struct{ context.Context }
++
++func (detachedContext) Deadline() (time.Time, bool)     { return time.Time{}, false }
++func (detachedContext) Done() <-chan struct{}           { return nil }
++func (detachedContext) Err() error                      { return nil }
++func withoutCancel(ctx context.Context) context.Context { return detachedContext{ctx} }
++
+ func (s *clusterSession) monitorConn(conn net.Conn, err error) (net.Conn, error) {
+ 	if err != nil {
+ 		return nil, trace.Wrap(err)
+@@ -1292,17 +1358,37 @@ func (f *Forwarder) getOrCreateClusterSession(ctx authContext) (*clusterSession,
+ func (f *Forwarder) getClusterSession(ctx authContext) *clusterSession {
+ 	f.Lock()
+ 	defer f.Unlock()
+-	creds, ok := f.clusterSessions.Get(ctx.key())
++	credentials, ok := f.clusterSessions.Get(ctx.key())
+ 	if !ok {
+ 		return nil
+ 	}
+-	s := creds.(*clusterSession)
+-	if s.teleportCluster.isRemote && s.teleportCluster.isRemoteClosed() {
+-		f.log.Debugf("Found an existing clusterSession for remote cluster %q but it has been closed. Discarding it to create a new clusterSession.", ctx.teleportCluster.name)
++	if legacy, ok := credentials.(*clusterSession); ok && legacy.teleportCluster.isRemote && legacy.teleportCluster.isRemoteClosed != nil && legacy.teleportCluster.isRemoteClosed() {
+ 		f.clusterSessions.Remove(ctx.key())
+ 		return nil
+ 	}
+-	return s
++	creds, ok := credentials.(cachedKubeCredentials)
++	if !ok {
++		if old, legacy := credentials.(*clusterSession); legacy {
++			if old.authContext.teleportCluster.isRemote && old.authContext.teleportCluster.isRemoteClosed() {
++				f.clusterSessions.Remove(ctx.key())
++				return nil
++			}
++			return old
++		} else {
++			return nil
++		}
++	}
++	s := &clusterSession{parent: f, authContext: ctx, tlsConfig: creds.tlsConfig, creds: creds.creds}
++	if ctx.teleportCluster.isRemote {
++		s.authContext.teleportCluster.targetAddr = reversetunnel.LocalKubernetes
++	} else if creds.creds != nil {
++		s.authContext.teleportCluster.targetAddr = creds.creds.targetAddr
++	}
++	configured, err := f.configureClusterSession(s)
++	if err != nil {
++		return nil
++	}
++	return configured
+ }
+ 
+ func (f *Forwarder) serializedNewClusterSession(authContext authContext) (*clusterSession, error) {
+@@ -1350,17 +1436,23 @@ func (f *Forwarder) newClusterSessionRemoteCluster(ctx authContext) (*clusterSes
+ 		f.log.Warningf("Failed to get certificate for %v: %v.", ctx, err)
+ 		return nil, trace.AccessDenied("access denied: failed to authenticate with auth server")
+ 	}
+-	// remote clusters use special hardcoded URL,
+-	// and use a special dialer
+ 	sess.authContext.teleportCluster.targetAddr = reversetunnel.LocalKubernetes
+-	transport := f.newTransport(sess.Dial, sess.tlsConfig)
++	return f.configureClusterSession(sess)
++}
+ 
+-	sess.forwarder, err = forward.New(
+-		forward.FlushInterval(100*time.Millisecond),
+-		forward.RoundTripper(transport),
+-		forward.WebsocketDial(sess.Dial),
+-		forward.Logger(f.log),
+-	)
++func (f *Forwarder) configureClusterSession(sess *clusterSession) (*clusterSession, error) {
++	var err error
++	if sess.teleportCluster.isRemote {
++		sess.authContext.teleportCluster.targetAddr = reversetunnel.LocalKubernetes
++	}
++	var roundTripper http.RoundTripper = f.newTransport(sess.Dial, sess.tlsConfig)
++	if sess.creds != nil {
++		roundTripper, err = sess.creds.wrapTransport(roundTripper)
++		if err != nil {
++			return nil, trace.Wrap(err)
++		}
++	}
++	sess.forwarder, err = forward.New(forward.FlushInterval(100*time.Millisecond), forward.RoundTripper(roundTripper), forward.WebsocketDial(sess.Dial), forward.Logger(f.log))
+ 	if err != nil {
+ 		return nil, trace.Wrap(err)
+ 	}
+@@ -1368,7 +1460,11 @@ func (f *Forwarder) newClusterSessionRemoteCluster(ctx authContext) (*clusterSes
+ }
+ 
+ func (f *Forwarder) newClusterSessionSameCluster(ctx authContext) (*clusterSession, error) {
+-	kubeServices, err := f.AccessPoint.GetKubeServices(f.ctx)
++	client := f.CachingAuthClient
++	if client == nil {
++		client = f.AccessPoint
++	}
++	kubeServices, err := client.GetKubeServices(f.ctx)
+ 	if err != nil && !trace.IsNotFound(err) {
+ 		return nil, trace.Wrap(err)
+ 	}
+@@ -1426,22 +1522,7 @@ func (f *Forwarder) newClusterSessionLocal(ctx authContext) (*clusterSession, er
+ 	//
+ 	// When forwarding request to a remote cluster, this is not needed
+ 	// as the proxy uses client cert auth to reach out to remote proxy.
+-	transport, err := creds.wrapTransport(f.newTransport(sess.Dial, sess.tlsConfig))
+-	if err != nil {
+-		return nil, trace.Wrap(err)
+-	}
+-
+-	fwd, err := forward.New(
+-		forward.FlushInterval(100*time.Millisecond),
+-		forward.RoundTripper(transport),
+-		forward.WebsocketDial(sess.Dial),
+-		forward.Logger(f.log),
+-	)
+-	if err != nil {
+-		return nil, trace.Wrap(err)
+-	}
+-	sess.forwarder = fwd
+-	return sess, nil
++	return f.configureClusterSession(sess)
+ }
+ 
+ func (f *Forwarder) newClusterSessionDirect(ctx authContext, kubeService services.Server) (*clusterSession, error) {
+@@ -1468,18 +1549,7 @@ func (f *Forwarder) newClusterSessionDirect(ctx authContext, kubeService service
+ 		return nil, trace.AccessDenied("access denied: failed to authenticate with auth server")
+ 	}
+ 
+-	transport := f.newTransport(sess.Dial, sess.tlsConfig)
+-
+-	sess.forwarder, err = forward.New(
+-		forward.FlushInterval(100*time.Millisecond),
+-		forward.RoundTripper(transport),
+-		forward.WebsocketDial(sess.Dial),
+-		forward.Logger(f.log),
+-	)
+-	if err != nil {
+-		return nil, trace.Wrap(err)
+-	}
+-	return sess, nil
++	return f.configureClusterSession(sess)
+ }
+ 
+ func (f *Forwarder) setClusterSession(sess *clusterSession) (*clusterSession, error) {
+@@ -1488,10 +1558,16 @@ func (f *Forwarder) setClusterSession(sess *clusterSession) (*clusterSession, er
+ 
+ 	sessI, ok := f.clusterSessions.Get(sess.authContext.key())
+ 	if ok {
+-		return sessI.(*clusterSession), nil
++		cached, valid := sessI.(cachedKubeCredentials)
++		if !valid {
++			return sessI.(*clusterSession), nil
++		}
++		sess.tlsConfig, sess.creds = cached.tlsConfig, cached.creds
++		return f.configureClusterSession(sess)
+ 	}
+ 
+-	if err := f.clusterSessions.Set(sess.authContext.key(), sess, sess.authContext.sessionTTL); err != nil {
++	credentials := cachedKubeCredentials{tlsConfig: sess.tlsConfig, creds: sess.creds}
++	if err := f.clusterSessions.Set(sess.authContext.key(), credentials, sess.authContext.sessionTTL); err != nil {
+ 		return nil, trace.Wrap(err)
+ 	}
+ 	f.log.Debugf("Created new session for %v.", sess.authContext)
+@@ -1540,6 +1616,10 @@ func (f *Forwarder) getOrCreateRequestContext(key string) (context.Context, cont
+ }
+ 
+ func (f *Forwarder) requestCertificate(ctx authContext) (*tls.Config, error) {
++	client := f.AuthClient
++	if client == nil {
++		client = f.Client
++	}
+ 	f.log.Debugf("Requesting K8s cert for %v.", ctx)
+ 	keyPEM, _, err := f.Keygen.GenerateKeyPair("")
+ 	if err != nil {
+@@ -1568,7 +1648,7 @@ func (f *Forwarder) requestCertificate(ctx authContext) (*tls.Config, error) {
+ 	}
+ 	csrPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})
+ 
+-	response, err := f.Client.ProcessKubeCSR(auth.KubeCSR{
++	response, err := client.ProcessKubeCSR(auth.KubeCSR{
+ 		Username:    ctx.User.GetName(),
+ 		ClusterName: ctx.teleportCluster.name,
+ 		CSR:         csrPEM,
+diff --git a/lib/kube/proxy/forwarder_test.go b/lib/kube/proxy/forwarder_test.go
+index 35fd250..83353b7 100644
+--- a/lib/kube/proxy/forwarder_test.go
++++ b/lib/kube/proxy/forwarder_test.go
+@@ -150,8 +150,10 @@ func TestAuthenticate(t *testing.T) {
+ 	f := &Forwarder{
+ 		log: logrus.New(),
+ 		ForwarderConfig: ForwarderConfig{
+-			ClusterName: "local",
+-			AccessPoint: ap,
++			ClusterName:       "local",
++			AccessPoint:       ap,
++			CachingAuthClient: ap,
++			Authz:             mockAuthorizer{},
+ 		},
+ 	}
+ 
+@@ -414,6 +416,9 @@ func TestAuthenticate(t *testing.T) {
+ 				authz.err = trace.AccessDenied("denied!")
+ 			}
+ 			f.Auth = authz
++			f.Authz = authz
++			f.ReverseTunnelSrv = tt.tunnel
++			f.Tunnel = tt.tunnel
+ 
+ 			req := &http.Request{
+ 				Host:       "example.com",
+diff --git a/lib/kube/proxy/server.go b/lib/kube/proxy/server.go
+index e117cd6..1cdf4e0 100644
+--- a/lib/kube/proxy/server.go
++++ b/lib/kube/proxy/server.go
+@@ -132,7 +132,7 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
+ 			Mode:            srv.HeartbeatModeKube,
+ 			Context:         cfg.Context,
+ 			Component:       cfg.Component,
+-			Announcer:       cfg.Client,
++			Announcer:       cfg.AuthClient,
+ 			GetServerInfo:   server.GetServerInfo,
+ 			KeepAlivePeriod: defaults.ServerKeepAliveTTL,
+ 			AnnouncePeriod:  defaults.ServerAnnounceTTL/2 + utils.RandomDuration(defaults.ServerAnnounceTTL/10),
+diff --git a/lib/service/kubernetes.go b/lib/service/kubernetes.go
+index 51aded8..e405509 100644
+--- a/lib/service/kubernetes.go
++++ b/lib/service/kubernetes.go
+@@ -19,6 +19,8 @@ package service
+ import (
+ 	"net"
+ 	"net/http"
++	"os"
++	"path/filepath"
+ 
+ 	"github.com/gravitational/teleport"
+ 	"github.com/gravitational/teleport/lib/auth"
+@@ -67,6 +69,13 @@ func (process *TeleportProcess) initKubernetes() {
+ }
+ 
+ func (process *TeleportProcess) initKubernetesService(log *logrus.Entry, conn *Connector) (retErr error) {
++	// Async session recording writes directly into this directory. Create it
++	// before serving requests so interactive sessions do not depend on the
++	// audit uploader having been initialized in this process.
++	streamingDir := filepath.Join(process.Config.DataDir, teleport.LogsDir, teleport.ComponentUpload, events.StreamingLogsDir, defaults.Namespace)
++	if err := os.MkdirAll(streamingDir, 0755); err != nil {
++		return trace.Wrap(err)
++	}
+ 	// clean up unused descriptors passed for proxy, but not used by it
+ 	defer func() {
+ 		if err := process.closeImportedDescriptors(teleport.ComponentKube); err != nil {
+@@ -198,22 +207,22 @@ func (process *TeleportProcess) initKubernetesService(log *logrus.Entry, conn *C
+ 
+ 	kubeServer, err := kubeproxy.NewTLSServer(kubeproxy.TLSServerConfig{
+ 		ForwarderConfig: kubeproxy.ForwarderConfig{
+-			Namespace:       defaults.Namespace,
+-			Keygen:          cfg.Keygen,
+-			ClusterName:     conn.ServerIdentity.Cert.Extensions[utils.CertExtensionAuthority],
+-			Auth:            authorizer,
+-			Client:          conn.Client,
+-			StreamEmitter:   streamEmitter,
+-			DataDir:         cfg.DataDir,
+-			AccessPoint:     accessPoint,
+-			ServerID:        cfg.HostUUID,
+-			Context:         process.ExitContext(),
+-			KubeconfigPath:  cfg.Kube.KubeconfigPath,
+-			KubeClusterName: cfg.Kube.KubeClusterName,
+-			NewKubeService:  true,
+-			Component:       teleport.ComponentKube,
+-			StaticLabels:    cfg.Kube.StaticLabels,
+-			DynamicLabels:   dynLabels,
++			Namespace:         defaults.Namespace,
++			Keygen:            cfg.Keygen,
++			ClusterName:       conn.ServerIdentity.Cert.Extensions[utils.CertExtensionAuthority],
++			Authz:             authorizer,
++			AuthClient:        conn.Client,
++			StreamEmitter:     streamEmitter,
++			DataDir:           cfg.DataDir,
++			CachingAuthClient: accessPoint,
++			ServerID:          cfg.HostUUID,
++			Context:           process.ExitContext(),
++			KubeconfigPath:    cfg.Kube.KubeconfigPath,
++			KubeClusterName:   cfg.Kube.KubeClusterName,
++			NewKubeService:    true,
++			Component:         teleport.ComponentKube,
++			StaticLabels:      cfg.Kube.StaticLabels,
++			DynamicLabels:     dynLabels,
+ 		},
+ 		TLS:           tlsConfig,
+ 		AccessPoint:   accessPoint,

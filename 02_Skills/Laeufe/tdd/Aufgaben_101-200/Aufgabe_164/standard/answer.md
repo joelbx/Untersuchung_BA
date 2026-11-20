@@ -1,0 +1,3 @@
+Fixed the import failure. YAML imports now use the v3 decoder, so nested metadata reaches protobuf with string keyed maps. JSON imports accept one leading line that starts with `#`. Variant attachments now serialize directly, and regression tests cover nested metadata, attachments, and namespace key, name, and description.
+
+The `internal/ext` tests pass. The full `go test ./...` run failed in unrelated tests: Redis tests require an unavailable Docker daemon, and `Test_FS_Submodule` received `Forbidden` from its external Git URL. I recorded the results in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

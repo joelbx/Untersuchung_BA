@@ -1,0 +1,5 @@
+The timeout originates in [add_book/__init__.py](/app/openlibrary/catalog/add_book/__init__.py:301): `add_cover()` sends the supplied URL to coverstore without a request timeout and may retry ten times. Both [new or overwritten editions](/app/openlibrary/catalog/add_book/__init__.py:618) and [matched editions](/app/openlibrary/catalog/add_book/__init__.py:803) pass cover URLs to it without host validation.
+
+The fix should define `ALLOWED_COVER_HOSTS` and use a shared `process_cover_url` helper in both paths. The helper should remove `cover` when present and return its URL only for an exact, case-insensitive allowed hostname over HTTP or HTTPS. Missing `cover` should leave the dictionary unchanged. The allowed host values remain uncertain: I found no local proxy allow-list or existing constant.
+
+The [existing matched-edition test](/app/openlibrary/catalog/add_book/tests/test_add_book.py:1145) passes (1 test), but it assumes an unconditional upload from `www.covers.org` and does not cover this bug. My assigned fault-localization scope prohibited source and test edits, so the issue remains unfixed. I recorded the findings in `.codex-role-output/checkpoint.md`.

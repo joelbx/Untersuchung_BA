@@ -1,0 +1,1 @@
+Implementer progress: Verified importer emitted raw publisher/isbn and utilities were absent. Added public split helpers, wired get_ia_record to emit nonempty isbn_10/isbn_13 and publishers/publish_places, and updated/expanded focused tests. Focused importapi and upstream utility tests pass (29). git diff --check passes. Ruff is unavailable locally. No further work pending.

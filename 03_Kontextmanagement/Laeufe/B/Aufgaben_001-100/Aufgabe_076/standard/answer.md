@@ -1,0 +1,3 @@
+The address parsing issue is resolved in the checked-out files. `splitBySeparator` now removes brackets and empty tokens, and `inputToRecipient` uses the bare address for both `Name` and `Address`. Both autocomplete paste paths use the new helper.
+
+The focused shared mail tests passed (7 specs), as did the shared and components type checks and lint. The full Karma suite could not launch because its configured Chromium binary is missing.

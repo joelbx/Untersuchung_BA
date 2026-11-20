@@ -1,0 +1,3 @@
+Added optional `ident` support to `password_hash` and both hashing backends. The password lookup now defaults to `2a` for bcrypt, stores the chosen ident beside the salt, and reuses it on later runs. Added documentation and tests.
+
+**Verification:** 60 relevant tests passed. The crypt backend passes all four idents through, but this system’s `crypt` library rejects `2`; it can generate `2a`, `2y`, and `2b`.

@@ -1,0 +1,3 @@
+Added `qcolor_to_qsscolor` in [qtutils.py](/app/qutebrowser/utils/qtutils.py). It returns `rgba(r, g, b, a)` for named, RGB, and RGBA `QColor` values. The WebView and TabBar stylesheet templates now use it for configured backgrounds.
+
+The focused tests pass (5 passed), and the full `qtutils` test file passes (123 passed). The WebKit widget test was skipped because `PyQt5.QtWebKitWidgets` is unavailable. The full suite remains unverified: its configured `--strict` option prevents startup, and an override exposes repeated end-to-end setup errors from the installed `pytest-qt`. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

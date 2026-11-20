@@ -1,0 +1,3 @@
+Resolved the notifications and quick-search behavior, corrected the fork/move and merge dropdowns, and applied the requested hash, email, install, route, admin menu, and chat template fixes.
+
+I delegated the UI file groups to three agents, then reviewed and verified the combined patch. ESLint and diff checks passed, along with 66 hash, 31 notifications, three post redirect, and one SMTP test. Template compilation and a quick-search interaction check also passed. The Mongo change was not tested against a live Mongo instance.

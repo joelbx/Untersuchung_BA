@@ -1,0 +1,3 @@
+Fixed `QtColor` percentage parsing: HSV/HSVA hue percentages now scale to 359, while other percentage components scale to 255. The parser trims component whitespace and validates supported function names and component counts.
+
+Updated the QtColor tests. All 26 focused tests pass with `pytest -q -c /dev/null tests/unit/config/test_configtypes.py::TestQtColor`; `git diff --check` also passes. The null config is needed because the repository’s pytest configuration uses options unsupported by the installed pytest setup.

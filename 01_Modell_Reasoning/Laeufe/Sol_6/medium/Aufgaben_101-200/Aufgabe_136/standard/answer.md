@@ -1,0 +1,3 @@
+Updated the certificate wrappers. WebKit now accepts named `reply` and `errors` arguments while preserving existing positional error calls; construction leaves the reply untouched. Single errors render as escaped paragraphs, and multiple errors as escaped lists. The shared decision API now supports acceptance, rejection, and deferral, with Qt 5 and Qt 6 WebEngine wrappers selected through a factory.
+
+The focused tests pass (10/10), and `git diff --check` passes. All 25 WebEngine tab tests reported passing, but that test process exited with an X11 disconnect during teardown.

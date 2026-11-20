@@ -1,0 +1,3 @@
+Updated [galaxy.py](/app/lib/ansible/cli/galaxy.py) so implicit `ansible-galaxy install -r` installs both roles and collections from one file. Custom roles paths and explicit subcommands install only their selected type and report skipped items at the requested warning or verbosity level. The command also handles empty requirements and continues through transitive role dependencies.
+
+Added coverage in [test_galaxy.py](/app/test/units/cli/test_galaxy.py). **Validation:** 135 CLI galaxy tests and 146 galaxy unit tests passed against the checkout; `git diff --check` passed.

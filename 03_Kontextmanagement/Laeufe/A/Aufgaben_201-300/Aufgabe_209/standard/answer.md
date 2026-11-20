@@ -1,0 +1,3 @@
+Updated [SubscribeCalendarModal.tsx](/app/packages/components/containers/calendar/subscribeCalendarModal/SubscribeCalendarModal.tsx) to use the shared 10,000 character URL limit, block invalid or overly long URLs, and show one warning in the requested priority order. Removed the character counter and input `maxLength`. Moved the ResizeObserver test mocks into the two shared Jest setup files and removed the inline copies.
+
+Verification passed: components type check, relevant modal and calendar tests, Prettier, and `git diff --check`.

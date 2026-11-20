@@ -1,0 +1,3 @@
+Implemented separate database settings for protocol, host, port, user, password, and name. A configured `db.url` takes precedence; otherwise the application validates the fields and builds the connection target with engine specific default ports. Connections and migrations now use the same resolution path, and URL parsing errors do not expose credentials.
+
+Updated TLS certificate errors to name their full setting keys. Added focused resolver tests. `go test ./config ./storage/db ./cmd/flipt` passes.

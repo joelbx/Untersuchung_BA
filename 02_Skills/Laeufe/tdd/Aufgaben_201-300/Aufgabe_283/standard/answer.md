@@ -1,0 +1,3 @@
+Added `isFromProton(element: Element)`, which returns `true` only when `IsProton` is `1`. Updated the message and conversation types and added tests for both types with values `1` and `0`.
+
+The focused tests, type check, and formatting check passed. The full mail suite had two failures in `Mailbox.elements.test.tsx`; all 12 tests in that file passed when rerun alone. The full-suite result remains failing.

@@ -1,0 +1,3 @@
+Fixed the cancellation expiry date. The expiry utility now uses the active term when cancellation is in progress or renewal is disabled, while preserving scheduled-term behavior for renewing subscriptions and existing free-plan behavior. The cancellation screens now use that utility for their displayed dates.
+
+Verification passed: 45 relevant Jest tests, the package type check, and `git diff --check`.

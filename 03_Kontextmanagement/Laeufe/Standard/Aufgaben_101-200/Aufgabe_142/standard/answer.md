@@ -1,0 +1,3 @@
+Replaced expression parsing with a typed AST that supports nested string functions, constant inputs, strict variable validation, and boolean regex matchers. Updated trait and PAM interpolation to validate variables in nested expressions.
+
+Parser and focused service tests pass. The `lib/srv` compile check could not complete because existing dependencies require unavailable Linux HID headers and SQLite C symbols.

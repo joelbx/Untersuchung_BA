@@ -1,0 +1,3 @@
+Fixed the undefined-variable YAML error. [AnsibleDumper](/app/lib/ansible/parsing/yaml/dumper.py) now lets Jinja report `AnsibleUndefined`; [both YAML filters](/app/lib/ansible/plugins/filter/core.py) identify the failing filter and preserve the original exception; and [templating](/app/lib/ansible/template/__init__.py) surfaces it as `AnsibleUndefinedVariable`. Regression tests were added.
+
+Verification: 165 relevant tests passed and `git diff --check` passed. One existing test was excluded because this environment lacks its `mocker` fixture.

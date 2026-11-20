@@ -1,0 +1,1 @@
+Implemented opportunistic expired-item eviction and added `Values()` so keys and values expose only active entries. Loader insertions also trigger eviction. Cache tests and `git diff --check` pass.

@@ -1,0 +1,3 @@
+Refactored [Pill](/app/src/components/views/elements/Pill.tsx) into a functional component and moved permalink resolution into the public [usePermalink hook](/app/src/hooks/usePermalink.tsx). Pill now exposes the requested named exports, preserves message link URLs verbatim, and renders nothing for unrecognised links. Updated its callers to use named imports.
+
+The focused Pill and pillify tests pass (10 tests). ESLint and `git diff --check` pass. The full TypeScript check remains blocked by errors in untouched files involving matrix-js-sdk APIs; no errors were reported in the changed files.

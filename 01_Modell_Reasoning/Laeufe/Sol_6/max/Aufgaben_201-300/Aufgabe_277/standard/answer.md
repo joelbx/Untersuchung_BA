@@ -1,0 +1,3 @@
+Updated the audit [types and constructors](/app/internal/server/audit/types.go:136). `Rule.SegmentOperator` and `RolloutSegment.Operator` now have optional JSON tags. Single segments keep their key and value; multiple segment keys are comma-joined and include the operator name. Legacy single-key input remains supported.
+
+Added [JSON coverage](/app/internal/server/audit/types_test.go:176) for legacy, single, and multiple segments. `go test ./internal/server/audit/...` passed.

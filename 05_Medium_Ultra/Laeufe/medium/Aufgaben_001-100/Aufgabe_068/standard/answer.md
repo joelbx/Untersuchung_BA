@@ -1,0 +1,3 @@
+Updated the single and batch loaders, `EntityClient`, and `DefaultEntityRestCache` to carry optional owner-encrypted session keys through to decryption. Mail detail callers now supply the parent mail’s key when available. Added tests for key application before decryption and for cache forwarding, including an omitted batch key map.
+
+TypeScript checking and the focused REST client, cache, mail indexer, inbox rule, and mail facade suites passed.

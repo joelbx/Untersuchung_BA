@@ -1,0 +1,3 @@
+The admin file upload endpoint now checks that the requested folder exists as a directory under the configured `upload_path` before saving. Invalid paths return HTTP 500 with `[[error:invalid-path]]`. I added regression tests for a missing folder and a path that points to a file.
+
+ESLint, syntax checks, and `git diff --check` passed. I did not run the integration suite because its setup prints the full database configuration.

@@ -1,0 +1,3 @@
+Updated [OS EOL data](/app/config/os.go:250) for Fedora 37, 38, and 40; SUSE Enterprise Desktop and Server 13 and 14; and macOS 11 and 15. Extended the [Windows rollup mappings](/app/scanner/windows.go:2839) for builds 19045, 22621, 22631, and 20348, preserving prior entries and using named struct literals. Added EOL and kernel revision regression tests.
+
+**Verification:** `go test -p 1 -vet=off ./config ./scanner -count=1` passed, as did formatting and diff checks. Vet was disabled after parallel builds hit the container’s process limit. Three native agents handled the EOL data, Windows mappings, and tests; I reviewed the combined patch and ran the final checks.

@@ -1,0 +1,3 @@
+Implemented opt-out anonymous telemetry. It persists a random host UUID in `telemetry.json`, sends `flipt.ping` on a four-hour schedule, records successful report times, and keeps telemetry failures from interrupting server startup. I also added the [Flipt JSON info handler](/app/internal/info/flipt.go) and disabled telemetry in the advanced config example.
+
+`GOPROXY=off go test ./...` and the telemetry/info race tests pass. The [reporter](/app/telemetry/telemetry.go) defaults to `https://telemetry.flipt.io/v1/track`; that endpoint’s live availability could not be verified locally. Operators can override it with `FLIPT_META_TELEMETRY_ENDPOINT`.

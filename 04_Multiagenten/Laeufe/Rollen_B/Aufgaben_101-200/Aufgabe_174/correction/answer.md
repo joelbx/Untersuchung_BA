@@ -1,0 +1,3 @@
+Fixed the test isolation failures identified in review. The logger test now runs in a fresh interpreter, and each warning test starts with clear `Display` warning history. The forked display queue patch remains in place.
+
+All five test commands flagged by the reviewer now pass. The grouped suite reports **88 passed, 9 skipped**; `git diff --check` also passes. It emits one unrelated `ZipFile` finalizer warning.

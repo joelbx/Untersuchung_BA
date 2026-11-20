@@ -1,0 +1,7 @@
+The likely fault is in [lastActivePersistedUserSession.ts](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts:8): it prioritizes Drive ping records over `persistedAt` and finds UID and localID in separate scans, so public pages can select an older session or mismatched identifiers.
+
+The fix should select the highest `persistedAt` session from `getPersistedSessions()` as one object, then use that object throughout [usePublicSession.tsx](/app/applications/drive/src/app/store/_api/usePublicSession.tsx:47) and [telemetry.ts](/app/applications/drive/src/app/utils/telemetry.ts:198). After a successful resume, the provider also needs to set auth UID and localID. [usePublicSessionUser.ts](/app/applications/drive/src/app/store/_user/usePublicSessionUser.ts:5) should read `auth.getLocalID()`.
+
+**Uncertainty:** the shared storage parser silently skips malformed JSON, so a selector alone cannot report those parse failures as requested. `packages/drive-store` contains duplicate files that may need synchronization.
+
+I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were not changed because this role is limited to fault localization.

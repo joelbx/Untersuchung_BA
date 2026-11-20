@@ -1,0 +1,220 @@
+diff --git a/lib/events/emitter.go b/lib/events/emitter.go
+index 0fdcce6..aa1784e 100644
+--- a/lib/events/emitter.go
++++ b/lib/events/emitter.go
+@@ -18,6 +18,7 @@ package events
+ 
+ import (
+ 	"context"
++	"io"
+ 	"time"
+ 
+ 	"github.com/gravitational/teleport"
+@@ -215,6 +216,43 @@ type MultiEmitter struct {
+ 	emitters []Emitter
+ }
+ 
++// NewWriterEmitter returns an audit log and emitter writing to w.
++func NewWriterEmitter(w io.WriteCloser) *WriterEmitter {
++	return &WriterEmitter{
++		writer:    w,
++		WriterLog: NewWriterLog(utils.NopWriteCloser(w)),
++	}
++}
++
++// WriterEmitter writes audit events to an external writer.
++type WriterEmitter struct {
++	*WriterLog
++	writer io.WriteCloser
++}
++
++// EmitAuditEvent writes one JSON event per line.
++func (w *WriterEmitter) EmitAuditEvent(ctx context.Context, event AuditEvent) error {
++	line, err := utils.FastMarshal(event)
++	if err != nil {
++		return trace.Wrap(err)
++	}
++	line = append(line, '\n')
++	n, err := w.writer.Write(line)
++	if err != nil {
++		return trace.ConvertSystemError(err)
++	}
++	if n != len(line) {
++		return trace.ConvertSystemError(io.ErrShortWrite)
++	}
++	return nil
++}
++
++// Close releases the writer and the embedded audit log.
++func (w *WriterEmitter) Close() error {
++	// WriterLog uses a nonclosing wrapper so the underlying writer is closed once.
++	return trace.NewAggregate(trace.ConvertSystemError(w.writer.Close()), trace.Wrap(w.WriterLog.Close()))
++}
++
+ // EmitAuditEvent emits audit event to all emitters
+ func (m *MultiEmitter) EmitAuditEvent(ctx context.Context, event AuditEvent) error {
+ 	var errors []error
+diff --git a/lib/events/emitter_test.go b/lib/events/emitter_test.go
+index 64d0395..11a74e4 100644
+--- a/lib/events/emitter_test.go
++++ b/lib/events/emitter_test.go
+@@ -19,6 +19,8 @@ package events
+ import (
+ 	"bytes"
+ 	"context"
++	"encoding/json"
++	"errors"
+ 	"fmt"
+ 	"testing"
+ 
+@@ -27,6 +29,65 @@ import (
+ 	"github.com/stretchr/testify/require"
+ )
+ 
++type testEventWriter struct {
++	bytes.Buffer
++	closes   int
++	closeErr error
++}
++
++func (w *testEventWriter) Close() error {
++	w.closes++
++	return w.closeErr
++}
++
++type testAuditEmitter struct {
++	IAuditLog
++	events []AuditEvent
++	closes int
++}
++
++func (e *testAuditEmitter) EmitAuditEvent(ctx context.Context, event AuditEvent) error {
++	e.events = append(e.events, event)
++	return nil
++}
++
++func (e *testAuditEmitter) Close() error {
++	e.closes++
++	return nil
++}
++
++func TestWriterEmitter(t *testing.T) {
++	w := &testEventWriter{}
++	emitter := NewWriterEmitter(w)
++	event := &UserLogin{Metadata: Metadata{Type: UserLoginEvent}}
++	require.NoError(t, emitter.EmitAuditEvent(context.Background(), event))
++	require.True(t, bytes.HasSuffix(w.Bytes(), []byte("\n")))
++	var fields map[string]interface{}
++	require.NoError(t, json.Unmarshal(bytes.TrimSuffix(w.Bytes(), []byte("\n")), &fields))
++	require.Equal(t, UserLoginEvent, fields["event"])
++	require.NoError(t, emitter.Close())
++	require.Equal(t, 1, w.closes)
++
++	w.closeErr = errors.New("close failed")
++	require.Error(t, NewWriterEmitter(w).Close())
++}
++
++func TestMultiLogEmitter(t *testing.T) {
++	first, second := &testAuditEmitter{}, &testAuditEmitter{}
++	_, err := NewMultiLog(first, NewWriterLog(&testEventWriter{}))
++	require.Error(t, err)
++
++	log, err := NewMultiLog(first, second)
++	require.NoError(t, err)
++	event := &UserLogin{Metadata: Metadata{Type: UserLoginEvent}}
++	require.NoError(t, log.EmitAuditEvent(context.Background(), event))
++	require.Equal(t, []AuditEvent{event}, first.events)
++	require.Equal(t, []AuditEvent{event}, second.events)
++	require.NoError(t, log.Close())
++	require.Equal(t, 1, first.closes)
++	require.Equal(t, 1, second.closes)
++}
++
+ // TestProtoStreamer tests edge cases of proto streamer implementation
+ func TestProtoStreamer(t *testing.T) {
+ 	type testCase struct {
+diff --git a/lib/events/multilog.go b/lib/events/multilog.go
+index f932b0d..8fc0499 100644
+--- a/lib/events/multilog.go
++++ b/lib/events/multilog.go
+@@ -26,16 +26,23 @@ import (
+ )
+ 
+ // NewMultiLog returns a new instance of a multi logger
+-func NewMultiLog(loggers ...IAuditLog) *MultiLog {
+-	return &MultiLog{
+-		loggers: loggers,
++func NewMultiLog(loggers ...IAuditLog) (*MultiLog, error) {
++	emitters := make([]Emitter, 0, len(loggers))
++	for _, logger := range loggers {
++		emitter, ok := logger.(Emitter)
++		if !ok {
++			return nil, trace.BadParameter("expected emitter, but %T does not emit", logger)
++		}
++		emitters = append(emitters, emitter)
+ 	}
++	return &MultiLog{loggers: loggers, MultiEmitter: NewMultiEmitter(emitters...)}, nil
+ }
+ 
+ // MultiLog is a logger that fan outs write operations
+ // to all loggers, and performs all read and search operations
+ // on the first logger that implements the operation
+ type MultiLog struct {
++	*MultiEmitter
+ 	loggers []IAuditLog
+ }
+ 
+diff --git a/lib/service/service.go b/lib/service/service.go
+index 7248772..cbb548c 100644
+--- a/lib/service/service.go
++++ b/lib/service/service.go
+@@ -902,7 +902,7 @@ func initExternalLog(auditConfig services.AuditConfig) (events.IAuditLog, error)
+ 			}
+ 			loggers = append(loggers, logger)
+ 		case teleport.SchemeStdout:
+-			logger := events.NewWriterLog(utils.NopWriteCloser(os.Stdout))
++			logger := events.NewWriterEmitter(utils.NopWriteCloser(os.Stdout))
+ 			loggers = append(loggers, logger)
+ 		default:
+ 			return nil, trace.BadParameter(
+@@ -922,7 +922,7 @@ func initExternalLog(auditConfig services.AuditConfig) (events.IAuditLog, error)
+ 	}
+ 
+ 	if len(loggers) > 1 {
+-		return events.NewMultiLog(loggers...), nil
++		return events.NewMultiLog(loggers...)
+ 	}
+ 
+ 	return loggers[0], nil
+diff --git a/lib/service/service_test.go b/lib/service/service_test.go
+index af9066b..c38b448 100644
+--- a/lib/service/service_test.go
++++ b/lib/service/service_test.go
+@@ -26,6 +26,7 @@ import (
+ 	"github.com/gravitational/teleport"
+ 	"github.com/gravitational/teleport/lib/auth"
+ 	"github.com/gravitational/teleport/lib/defaults"
++	"github.com/gravitational/teleport/lib/events"
+ 	"github.com/gravitational/teleport/lib/services"
+ 	"github.com/gravitational/teleport/lib/utils"
+ 	"github.com/stretchr/testify/require"
+@@ -239,6 +240,9 @@ func (s *ServiceTestSuite) TestInitExternalLog(c *check.C) {
+ 		{events: []string{"file:///tmp/teleport-test/events"}},
+ 		// local-only event uri w/ localhost => ok
+ 		{events: []string{"file://localhost/tmp/teleport-test/events"}},
++		// stdout and combinations must provide an emitter to the auth service
++		{events: []string{"stdout://"}},
++		{events: []string{"file:///tmp/teleport-test/events", "stdout://"}},
+ 		// invalid host parameter => rejected
+ 		{events: []string{"file://example.com/should/fail"}, isErr: true},
+ 		// missing path specifier => rejected
+@@ -267,6 +271,9 @@ func (s *ServiceTestSuite) TestInitExternalLog(c *check.C) {
+ 			c.Assert(loggers, check.IsNil, cmt)
+ 		} else {
+ 			c.Assert(loggers, check.NotNil, cmt)
++			_, ok := loggers.(events.Emitter)
++			c.Assert(ok, check.Equals, true, cmt)
++			c.Assert(loggers.Close(), check.IsNil, cmt)
+ 		}
+ 	}
+ }

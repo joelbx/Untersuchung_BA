@@ -1,0 +1,3 @@
+Implemented the Current session kebab menu with accessible trigger state, keyboard support, destructive sign-out actions, and automatic close-on-interaction. “Sign out all other sessions” targets only non-current device IDs.
+
+The focused Jest suites passed: 52 tests across 3 suites. ESLint and `git diff --check` passed. The repository-wide TypeScript check reports unrelated existing Matrix SDK type errors; none reference the changed files.

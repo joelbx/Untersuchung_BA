@@ -1,0 +1,1 @@
+The admin upload patch rejects missing or non-directory targets under the configured upload path with HTTP 500 and `[[error:invalid-path]]`. I started the local Redis test service and reran the reviewer’s exact test command: **4 passing**. ESLint, syntax checks, and `git diff --check` also passed. No further code changes were needed.

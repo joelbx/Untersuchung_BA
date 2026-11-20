@@ -1,0 +1,3 @@
+Implemented OCI storage configuration support in [storage.go](/app/internal/config/storage.go) and the [schema](/app/config/flipt.schema.json). The loader now validates repository schemes with the requested error, rejects a missing repository, and parses the bundle directory, authentication, and poll interval. The [OCI store](/app/internal/oci/file.go) uses the supplied bundle root, and server startup wires it to the OCI filesystem source. I also registered `fs/oci` in the [integration matrix](/app/build/testing/integration.go) and CI workflow.
+
+Relevant Go tests passed, and a local CLI check built and listed a bundle from the readonly fixtures. The containerized `fs/oci` suite was compiled but not run here.

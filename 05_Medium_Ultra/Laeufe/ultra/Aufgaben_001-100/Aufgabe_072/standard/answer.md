@@ -1,0 +1,3 @@
+Implemented Punycode encoding for URL hostnames while preserving the other URL components and removing a trailing path slash. External links now use the encoded URL for confirmation or direct navigation; missing and invalid URLs trigger an error notification. The confirmation modal also recognizes `www.xn--...` hostnames.
+
+Verification passed: 22 focused tests, TypeScript, ESLint, Prettier, and `git diff --check`. Two subagents handled hook changes and test coverage; I integrated and verified the final patch.

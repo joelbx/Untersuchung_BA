@@ -1,0 +1,1 @@
+Implemented Best Book Awards persistence, read and uniqueness validation, JSON endpoints, Work helpers, redirect migration, and anonymization reporting. Redirect collisions keep the destination nomination. Focused SQLite/model/API tests passed (45); ruff and diff checks passed.

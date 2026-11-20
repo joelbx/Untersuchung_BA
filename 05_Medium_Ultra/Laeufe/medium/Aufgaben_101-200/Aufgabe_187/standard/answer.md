@@ -1,0 +1,3 @@
+Resolved the Kubernetes exec issue. The Kubernetes service now creates the streaming upload directory at startup and starts the uploader for a standalone kube agent. The forwarder creates a fresh session per request, caches only short lived credentials, and uses a server lifetime context so audit events can be recorded after a client disconnects. I also updated the forwarder configuration names, HTTP routing, heartbeat announcer, and exec error logging.
+
+The forwarder tests pass, including credential reuse, expiry, and concurrent CSR checks. The service package compiles, and `git diff --check` passes.

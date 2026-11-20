@@ -1,0 +1,3 @@
+Updated [format_languages](/app/openlibrary/catalog/utils/__init__.py) to resolve ISO-639-1 codes and English or native language names to canonical Open Library keys. It now removes duplicates while preserving the first occurrence and still raises `InvalidLanguage` for unresolved input.
+
+Added [regression tests](/app/openlibrary/catalog/add_book/tests/test_load_book.py). All 156 add-book tests pass; Ruff and `git diff --check` pass.

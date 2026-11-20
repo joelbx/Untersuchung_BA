@@ -1,0 +1,3 @@
+Fixed the OIDC login flow. Authentication validation now stores only the hostname in `Session.Domain`; state and token cookies omit the `Domain` attribute for localhost; and callback URLs remove one trailing slash before appending the path. Added regression tests for all three behaviors.
+
+The relevant tests passed: `GOPROXY=off GOSUMDB=off go test ./internal/config ./internal/server/auth/method/oidc`.

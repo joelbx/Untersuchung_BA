@@ -1,0 +1,3 @@
+Updated [forwarder.go](/app/lib/kube/proxy/forwarder.go) so sessions validate the Kubernetes cluster name, use configured local credentials before service discovery, route remote sessions through `LocalKubernetes`, and record the address selected for endpoint dialing. Added regression coverage in [forwarder_test.go](/app/lib/kube/proxy/forwarder_test.go).
+
+`go test ./lib/kube/proxy` passes. The repository-wide run did not complete; it showed an unrelated `TestAppAccessLogout` timeout before being interrupted. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

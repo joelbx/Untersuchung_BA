@@ -1,0 +1,3 @@
+Implemented exact `${VARIABLE_NAME}` substitution as the first configuration decode hook, so referenced values can be converted to ports and durations. Existing `FLIPT_` environment overrides retain precedence. Added tests for multiple references, exact matching, missing variables, and unchanged non-string values.
+
+`go test ./internal/config -count=1` passes. The full `go test ./...` run failed in Redis tests because Docker is unavailable and in `Test_FS_Submodule` because its remote request returned Forbidden. Details are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

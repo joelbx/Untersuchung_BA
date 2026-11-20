@@ -1,0 +1,3 @@
+Added a `ciphers` option to `get_url`, `uri`, and `lookup('url')`. It accepts an OpenSSL cipher string or an ordered list, passes the setting through the shared URL helpers, and reports invalid or unsupported values clearly. The TLS context is used for direct HTTPS requests, HTTP→HTTPS redirects, proxies, and Unix sockets.
+
+Verification: 135 focused tests passed; compilation and `git diff --check` passed. The CentOS 7, Python 3.10, and OpenSSL 1.1.1 runtime was unavailable here, so that environment remains unverified.

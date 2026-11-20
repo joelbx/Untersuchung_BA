@@ -1,0 +1,3 @@
+Added a 30-second cache for `NOT_FOUND`, `NOT_ALLOWED`, and `INVALID_ID` fetch errors in [useLink.ts](/app/applications/drive/src/app/store/_links/useLink.ts). Entries are scoped to the share and link, expire automatically, and preserve the original error.
+
+Added [regression tests](/app/applications/drive/src/app/store/_links/useLink.fetch.test.ts). The existing and new `useLink` suites passed (17 tests); lint, formatting, and diff checks passed.

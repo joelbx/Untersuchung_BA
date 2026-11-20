@@ -1,0 +1,3 @@
+Implemented `billing_mode` for the DynamoDB storage backend. New tables default to `pay_per_request`; `provisioned` uses the configured throughput. Initialization now checks an existing table’s billing mode and logs when it ignores `auto_scaling` for an on-demand table. The change also updates [backend tests](/app/lib/backend/dynamo/billing_mode_test.go), documentation, and Helm configuration. The separate audit events table is unaffected.
+
+Delegated test coverage, documentation, and scope review to agents, then reviewed the combined patch. Offline DynamoDB tests passed, the tagged tests passed a compile-only run, and formatting and schema checks passed. AWS integration tests were not run; Helm is unavailable locally.

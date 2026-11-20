@@ -1,0 +1,3 @@
+Replaced the ad hoc expression walk with a predicate-backed AST. Nested string functions, constant inputs, strict variable shapes and namespaces, matcher predicates, and descriptive argument errors are supported. Trait and PAM interpolation now validate variables during evaluation.
+
+`go test ./lib/utils/parse ./lib/services -count=1` and `git diff --check` passed. `lib/srv` could not build because local HID headers and SQLite C symbols are unavailable. The repository-wide test run hit those build errors and timed out, so the remaining packages are unverified. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

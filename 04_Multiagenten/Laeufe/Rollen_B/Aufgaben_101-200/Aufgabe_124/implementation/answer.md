@@ -1,0 +1,3 @@
+Implemented DynamoDB `billing_mode` support. New tables default to `pay_per_request`, which omits provisioned throughput. Setting `billing_mode: provisioned` sends the configured capacity units. Initialization now skips autoscaling and logs why when the table is on-demand, whether it already exists or is being created.
+
+Updated the autoscaling integration test to request provisioned mode, added local tests for billing configuration and table status, and documented the new default. `go test ./lib/backend/dynamo` and `git diff --check` pass. AWS-dependent integration tests were not run.

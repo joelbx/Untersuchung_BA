@@ -1,0 +1,3 @@
+Updated configuration decoding so scalar strings become `[]string` values by splitting on whitespace, including repeated spaces, tabs, and newlines. Empty strings produce a non-nil empty slice. The same behavior applies to YAML and ENV values; YAML sequences remain unchanged.
+
+Verification: `go test ./internal/config -count=1` passed. The new whitespace tests failed with the previous comma-based hook and passed after restoring the fix.

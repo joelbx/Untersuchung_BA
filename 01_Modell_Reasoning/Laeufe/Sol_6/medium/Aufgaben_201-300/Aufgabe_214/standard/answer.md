@@ -1,0 +1,3 @@
+Added per-server external `nmap` scanning with configurable scan techniques and source port. The built-in scanner remains the default when no external scanner path is set. Configuration validation now checks unsupported or multiple techniques, privilege requirements, source ports, the executable path, and required capabilities. The generated `config.toml` example includes a commented `portscan` section.
+
+Verification passed: `go test ./config ./scanner ./subcmds` and `git diff --check`.

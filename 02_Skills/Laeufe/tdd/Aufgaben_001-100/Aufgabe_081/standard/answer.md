@@ -1,0 +1,3 @@
+Fixed OIDC login cookie and callback handling. Session domain validation now stores only the hostname and propagates URL parsing errors. State and token cookies omit the `Domain` attribute for localhost, and callback URL construction removes one trailing slash from the host.
+
+The affected package tests pass. The full `go test ./...` run is incomplete: `TestSet`, `TestGet`, and `TestDelete` in the Redis cache package failed because the local Docker daemon is unavailable. The command and failure are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

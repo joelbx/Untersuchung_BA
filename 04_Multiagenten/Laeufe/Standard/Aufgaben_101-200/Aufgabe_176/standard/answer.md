@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py) to skip digits in percent-encoded triplets, preserve encoded URL data, validate the operation and count, reject decrements below zero, and leave ports untouched. It now searches for the first valid number in path, query, anchor, then host order, following the issue’s final explicit match-order requirement.
+
+Updated the [tests](/app/tests/unit/utils/test_urlutils.py) for that behavior. All 128 `TestIncDecNumber` tests pass. The broader `test_urlutils.py` run aborted during Qt application fixture startup after the affected tests had run.

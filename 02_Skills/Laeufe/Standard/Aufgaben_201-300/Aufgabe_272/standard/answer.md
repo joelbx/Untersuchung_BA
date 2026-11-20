@@ -1,0 +1,3 @@
+Added custom TLS cipher support to `get_url`, `uri`, and `lookup('url')`. Cipher strings or ordered lists now flow through `fetch_url`, `open_url`, and `Request` into the shared TLS context, including HTTPS redirects, proxies, and Unix socket handling. Invalid values produce a clear error; an unset value is passed explicitly as `None`.
+
+The URL and lookup unit suite passed: **131 tests**. Syntax and diff checks passed. The local environment uses Python 3.11 and lacks PyOpenSSL, so Python 3.10/OpenSSL 1.1.1 and the PyOpenSSL path remain unverified; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to resolve the specified options through `get_option()`, including command arguments, transfers, retries, and ControlPath settings. Removed the SSH-specific core configuration entries. Reset now checks the effective control connection before sending `stop`; if no socket is active, it logs a debug message and skips the stop.
+
+Verification: 68 connection and PlayContext tests passed, and `git diff --check` is clean.

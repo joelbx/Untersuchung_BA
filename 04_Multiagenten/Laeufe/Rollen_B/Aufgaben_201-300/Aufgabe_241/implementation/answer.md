@@ -1,0 +1,3 @@
+Updated [VoiceBroadcastPreRecordingPip.tsx](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx) so “Go live” becomes a disabled native button during initiation and rapid repeat activations are ignored. The device menu also ignores repeat activations while open; selecting a device closes it and updates the header label.
+
+The [component tests](/app/test/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip-test.tsx) now cover those transitions, including resolution, rejection, close, and reopening device selection. All 12 focused tests pass; ESLint and `git diff --check` pass. The full type check remains blocked by existing `MatrixClient` errors in unrelated files, with no errors reported in the changed files.

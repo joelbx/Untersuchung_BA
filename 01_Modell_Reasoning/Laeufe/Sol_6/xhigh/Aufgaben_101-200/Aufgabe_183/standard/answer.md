@@ -1,0 +1,3 @@
+Updated [Ubuntu lifecycle data](/app/config/os.go) so 20.04 extended support ends on 1 April 2030, and 22.04 has standard support through 1 April 2027 and extended support through 1 April 2032. Enabled 22.04 CVE processing in [GOST](/app/gost/ubuntu.go) and [OVAL](/app/oval/debian.go).
+
+Added lifecycle and release recognition tests. The `config`, `gost`, `oval`, `scanner`, and `models` test suites pass.

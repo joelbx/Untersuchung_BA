@@ -1,0 +1,3 @@
+SQLite access now uses one `*sql.DB` with the seven requested connection settings. Transactions use that connection, and the play-count and initial-setup operations now use their transaction store.
+
+Tests passed: `go test ./db ./persistence ./core/scrobbler ./server -count=1` and `git diff --check`. The request’s final requirement and interface section describe restoring read/write routing, which conflicts with the stated goal of removing it; I followed the simplification goal.

@@ -1,0 +1,3 @@
+Resolved namespace listing for users without access to `default`. Both authorization engines now evaluate viewable namespaces; the middleware passes the result to `ListNamespaces`, which filters the response and total count. The UI redirects namespace routes to an accessible namespace when needed.
+
+`go test ./internal/server/authz/... ./internal/server -count=1` passed. UI tests were not run because local UI dependencies are absent.

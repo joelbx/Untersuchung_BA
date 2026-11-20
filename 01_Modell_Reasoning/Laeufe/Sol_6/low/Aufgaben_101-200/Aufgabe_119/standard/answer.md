@@ -1,0 +1,3 @@
+Refactored `Pill` into a functional component and extracted permalink resolution into the public [usePermalink hook](/app/src/hooks/usePermalink.tsx). The [Pill module](/app/src/components/views/elements/Pill.tsx) now exports `Pill`, `PillType`, `pillRoomNotifPos`, and `pillRoomNotifLen` by name; its callers use those exports.
+
+The existing pillify tests pass (3/3). TypeScript reports errors only in unrelated files: `LoginWithQR`, `Notifications`, and `VectorPushRulesDefinitions`.

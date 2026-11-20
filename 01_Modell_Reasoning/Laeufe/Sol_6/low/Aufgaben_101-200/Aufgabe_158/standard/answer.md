@@ -1,0 +1,3 @@
+Fixed ZIP timestamp handling in [unarchive.py](/app/lib/ansible/modules/unarchive.py). The new `_valid_time_stamp` method extracts date fields with a regular expression, accepts years from 1980 through 2107, and uses the ZIP epoch for malformed or invalid dates. `is_unarchived` now uses it before comparing file times.
+
+Added regression cases in [test_unarchive.py](/app/test/units/modules/test_unarchive.py). The relevant unit suite passed: **10 tests**.

@@ -1,0 +1,3 @@
+Updated [format_languages](/app/openlibrary/catalog/utils/__init__.py) to resolve ISO 639-1 codes and English or native language names to canonical MARC keys. It now removes duplicates while preserving the first occurrence. Added cases covering the reported inputs in [test_utils.py](/app/openlibrary/tests/catalog/test_utils.py).
+
+Verification: 99 catalog utility tests and 4 add-book language tests passed; Ruff and `git diff --check` passed.

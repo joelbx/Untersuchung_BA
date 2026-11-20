@@ -1,0 +1,3 @@
+Implemented host-scoped monitoring in `/app`. [OlAsyncIOScheduler](/app/scripts/monitoring/utils.py) uses asyncio, gives scheduled jobs function-name IDs, and keeps jobs only when `HOSTNAME` matches an exact name or trailing-asterisk prefix, including short names for fully qualified hosts. [monitor.py](/app/scripts/monitoring/monitor.py) now has an async entrypoint and a host-scoped HAProxy job; [haproxy_monitor.py](/app/scripts/monitoring/haproxy_monitor.py) adds CSV metric collection and Graphite output.
+
+Verification: all 8 monitoring tests pass, Ruff passes, and a registry check showed four jobs on `ol-www0.us.archive.org` and none on `other-server`.

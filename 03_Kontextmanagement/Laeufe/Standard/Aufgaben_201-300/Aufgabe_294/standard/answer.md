@@ -1,0 +1,3 @@
+Collection builds now preserve internal file and directory symlinks in the tar without expanding linked directories in the manifest. External file links are stored as regular files. Installation restores links only when their targets stay within the collection destination, and the tar helpers return both the member and its readable stream.
+
+The relevant collection build and install tests pass: **103 passed**.

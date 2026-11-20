@@ -1,0 +1,8 @@
+Progress: Fault localization complete. No project source or tests changed.
+Findings:
+- contrib/trivy/pkg/converter.go Convert (around lines 45-82) writes a fresh CveContents map under models.Trivy for every vulnerability occurrence. It ignores Vulnerability.CVSS, VendorSeverity, SeveritySource, Type/CveID, and overwrites prior content for a repeated CVE. It does retain top-level PublishedDate/LastModifiedDate and references.
+- detector/library.go getCveContents (around lines 227-247) builds one models.Trivy record from trivy-db Vulnerability.Severity; it ignores per-vendor severity and CVSS and leaves publication/modified dates zero. DetectLibsCves (around lines 74-89) merges library fixed-ins for repeated CVEs but does not merge CveContents.
+- models/cvecontents.go type constants/AllCveContetTypes/GetCveContentTypes omit trivy:<source> values. models/vulninfos.go Titles/Summaries/Cvss2Scores/Cvss3Scores use fixed type lists, so new keys would be invisible unless registered. Cvss3Scores has a severity-derived branch that may mask populated numeric CVSS if new types are added there indiscriminately.
+- tui/tui.go around line 948 reads references from only models.Trivy. reporter/util.go isCveInfoUpdated also relies on GetCveContentTypes(current.Family), potentially missing Trivy source-specific modification dates.
+- Existing contrib/trivy/parser/v2/parser_test.go fixture has CVSS nvd+redhat data but expects a single trivy content with no scoring. There are no direct converter or getCveContents tests in this checkout.
+Uncertainty: Exact trivy-db Vulnerability field names and vendor source string set were not established from repository code alone. Source/date handling should be checked against the local dependency API before implementation.

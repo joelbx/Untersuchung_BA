@@ -1,0 +1,3 @@
+Resolved the notification issue in `/app`. String content now renders as sanitized HTML, and links receive `rel="noopener noreferrer"` and `target="_blank"`. Non-success notifications deduplicate by an explicit key, string text, or notification ID; repeated success notifications remain separate. The changes are in [Notification.tsx](/app/packages/components/containers/notifications/Notification.tsx) and [manager.tsx](/app/packages/components/containers/notifications/manager.tsx).
+
+Verification passed: 34 components test suites, TypeScript, ESLint, Prettier, and `git diff --check`.

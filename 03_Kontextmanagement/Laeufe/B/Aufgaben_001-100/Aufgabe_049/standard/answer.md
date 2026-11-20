@@ -1,0 +1,3 @@
+Resolved the ACP email validation issue. Confirmation records now use a UID-to-code key and an explicit expiration timestamp. Admin actions can recover a pending email, the user list shows all four requested statuses, and account deletion removes confirmation keys.
+
+Focused email, ACP, and admin socket tests pass; ESLint passes. The broader suites stopped at unrelated invitation and 404 assertions. This work item is complete.

@@ -1,0 +1,3 @@
+Implemented Redis cache TLS support with `ca_cert_path`, inline `ca_cert_bytes`, and `insecure_skip_tls`. The new `NewClient` constructor uses TLS 1.2 or newer and rejects configurations that provide both CA options. I added YAML loading tests, a TLS Redis integration case, and `api/cachetls` to the GitHub Actions matrix.
+
+The relevant config and cache tests pass; the startup and integration harness packages compile. The Dagger integration case was not run locally because it requires container downloads.

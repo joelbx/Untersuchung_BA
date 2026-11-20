@@ -1,0 +1,3 @@
+Updated web U2F authentication so both login and password change flows pass all registered keys to the browser U2F API, with a fallback for legacy single-key responses. All device challenges now share the nonce required by that API.
+
+The web test confirms the served page includes the adapter and a second registered key can complete login. All reviewer-listed Go tests passed; `git diff --check` passed. An interactive browser run was unavailable.

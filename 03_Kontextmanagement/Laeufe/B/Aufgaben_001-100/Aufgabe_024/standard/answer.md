@@ -1,0 +1,3 @@
+Resolved the author matching issue in the checked-out repository. Matching now compares extracted birth and death years across date formats, tries exact names before alternate names and surname, and treats asterisks in names literally. Honorific removal now accepts and returns a string, and unmatched author candidates retain their input fields.
+
+Validation: **134 relevant tests passed**, Ruff passed, and `git diff --check` passed.

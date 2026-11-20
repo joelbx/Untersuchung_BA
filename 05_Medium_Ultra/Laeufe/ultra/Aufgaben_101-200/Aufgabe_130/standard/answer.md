@@ -1,0 +1,3 @@
+Fixed the device-limit panic. `RunAdmin` now returns the registered device and `DeviceRegistered` outcome when enrollment fails, while `printEnrollOutcome` handles a nil device without crashing. The fake service exposes a device-limit switch, and regression tests cover the partial registration and CLI fallback.
+
+The enrollment and authentication tests passed, including the focused device-limit test. The CLI test could not compile in this environment because required C headers are missing. I delegated the fake-service and CLI edits plus a test audit, then reviewed and verified the combined patch.

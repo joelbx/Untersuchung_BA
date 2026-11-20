@@ -1,0 +1,3 @@
+Fixed configuration loading so startup applies `FLIPT_` environment overrides when no config file is present. `config.Load("")` now uses the existing default and override flow; file-backed loads still give environment values precedence.
+
+Added tests for empty-path defaults and for log-level and HTTP-port overrides with and without a file. The config tests passed, the command package compiled, and `git diff --check` passed.

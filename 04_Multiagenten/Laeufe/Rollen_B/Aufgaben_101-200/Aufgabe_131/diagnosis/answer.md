@@ -1,0 +1,5 @@
+The likely fix is in [usePollEvents.ts](/app/packages/components/payments/client-extensions/usePollEvents.ts:10). It already waits 5000 ms between calls and makes five calls, but it cannot subscribe to an event, stop early, or expose its timing constants.
+
+[PayPalModal.tsx](/app/packages/components/containers/payments/PayPalModal.tsx:133) starts polling after saving a new payment method. The event manager supports `call()` and `subscribe()`, and payment-method updates appear under `PaymentMethods` with an `Action`. The fix should retain no-argument polling for existing callers, allow a `PaymentMethods` and `EVENT_ACTIONS.CREATE` match, continue past unrelated events, and unsubscribe exactly once on a match or after the fifth call. A completion guard must also ignore late events and pending timer callbacks.
+
+Uncertainty: I found no existing tests for this hook, so the intended optional-argument shape is not established locally. I changed no project source or tests, as required by my fault-localization role.

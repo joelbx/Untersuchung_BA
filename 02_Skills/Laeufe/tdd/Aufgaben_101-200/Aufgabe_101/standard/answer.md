@@ -1,0 +1,3 @@
+Updated `listRemoveAll` in the Redis, MongoDB, and PostgreSQL backends to accept an array of values, remove each matching element, and preserve the order of the remaining list. Added a regression test that reads the list immediately after removal.
+
+The list suite passed (20 tests), and lint passed. The full `npm test` run stopped after 105 passing tests on an unrelated API schema failure: `PUT /users/{uid}/settings` returned HTTP 400. MongoDB and PostgreSQL integration behavior remains unverified in this environment.

@@ -1,0 +1,3 @@
+Moved `interpolate_color` and `_get_color_percentage` into [qtutils.py](/app/qutebrowser/utils/qtutils.py), and updated the download and tab progress indicators to use the new location. Interpolation still supports RGB, HSV, and HSL; it now also rejects out-of-range percentages when gradients are disabled and preserves the start color’s Qt spec.
+
+Verification: 176 relevant tests passed, and `git diff --check` passed.

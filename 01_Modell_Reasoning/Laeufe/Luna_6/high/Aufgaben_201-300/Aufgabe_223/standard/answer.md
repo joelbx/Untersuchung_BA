@@ -1,0 +1,3 @@
+Updated [module_common.py](/app/lib/ansible/executor/module_common.py) to honor shebangs in new-style Python modules, preserve interpreter arguments, apply Python interpreter overrides, and use the default only when no interpreter is declared. `modify_module` now replaces a shebang only when the resolved interpreter differs and inserts the encoding marker after an existing shebang.
+
+Added unit coverage. The relevant tests passed: **43 passed**; `git diff --check` passed.

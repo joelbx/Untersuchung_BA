@@ -1,0 +1,3 @@
+Updated validation to report missing rule variants and segments as individual errors with file, line, and column information. `flipt validate` displays those errors, and filesystem snapshots reject invalid references. Import now checks references before writing, so retrying the same invalid file produces the same error without leaving a partial import. I also corrected the three valid fixtures and added regression tests.
+
+Tests passed: `go test ./internal/storage/fs/... ./internal/cue ./internal/ext ./cmd/flipt`. `git diff --check` passed. No delegation was used.

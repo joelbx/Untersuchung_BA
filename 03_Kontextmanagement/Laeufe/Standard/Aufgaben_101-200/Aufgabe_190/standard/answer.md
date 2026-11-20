@@ -1,0 +1,3 @@
+Implemented preview mode for the import endpoints. With `preview=true`, the pipeline returns the records it would write in `edits`, uses UUID placeholder keys, and skips database saves, cover uploads, and Archive.org metadata updates. The import path also exposes cover acceptance and uses the new author and edition normalization interfaces.
+
+Updated the cover test to use an allowed host and added preview and cover validation tests. **Verification:** 132 relevant tests passed; Ruff checks passed.

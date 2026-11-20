@@ -1,0 +1,3 @@
+Implemented native `FieldsMap` writes and dual-format reads in [dynamoevents.go](/app/lib/events/dynamoevents/dynamoevents.go:193). Added a locked, batch-based migration that validates converted metadata and persists its scan cursor for resumption. Added the `FlagKey` helper in [helpers.go](/app/lib/backend/helpers.go:33).
+
+`go test -count=1 ./lib/backend ./lib/events/...` and `git diff --check` passed. The AWS-dependent DynamoDB integration tests are skipped unless their test environment is enabled.

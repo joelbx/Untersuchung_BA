@@ -1,0 +1,3 @@
+Updated the repository to carry resolution context through plugin errors and `get_with_context`, raise contextual errors for tombstones, centralize deprecation and removal messages, and use the new lookup paths in the connection, action, and Jinja callers.
+
+The focused test run passed: **207 passed**. A broader run had **12 failures** across action, network facts, SSH, and WinRM tests. I updated the action test fixture and its test passed in the focused rerun; the other failing suites were not rerun. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

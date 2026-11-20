@@ -1,0 +1,3 @@
+Added the Current session kebab menu with localized, accessible “Sign out” and conditional “Sign out all other sessions” actions. The trigger stays visible when disabled, the menu aligns below the header’s right edge, and interaction closes it and returns focus to the trigger. Bulk sign-out passes only other session IDs.
+
+Verification: 56 focused tests and 9 snapshots passed; targeted ESLint, Stylelint, and diff checks passed. The full TypeScript check still reports unrelated existing errors; it reported none in the changed components.

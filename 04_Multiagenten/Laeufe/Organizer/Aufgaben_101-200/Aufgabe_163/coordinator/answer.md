@@ -1,0 +1,3 @@
+Database configuration now accepts either `db.url` or separate protocol, host, port, user, password, and name fields. A supplied URL takes precedence. Field mode validates required settings, applies Postgres and MySQL port defaults, and builds the connection target used by both connections and migrations. Configuration and URL parsing errors identify the relevant setting without exposing credentials.
+
+`go test ./...` passed. No delegation was used.

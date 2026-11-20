@@ -1,0 +1,3 @@
+Updated [module_common.py](/app/lib/ansible/executor/module_common.py) so new-style Python modules keep their declared interpreter and arguments. Explicit inventory or config overrides still take precedence, and modules without a shebang use `/usr/bin/python`. The shebang resolver now always returns a complete shebang and interpreter.
+
+Added regression coverage for Python and non-Python shebangs, arguments, defaults, and overrides. **65 relevant tests passed**; `git diff --check` passed.

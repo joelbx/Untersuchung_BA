@@ -1,0 +1,3 @@
+Implemented `/.well-known/webfinger` in [well-known.js](/app/src/controllers/well-known.js) and registered it through the [router](/app/src/routes/well-known.js). It validates `acct:` resources against the configured hostname, checks `view:users` using the Guest role for anonymous requests, and returns a WebFinger JSON response with UID and profile aliases. Invalid resources, denied access, and unknown users return 400, 403, and 404 respectively.
+
+Added [integration tests](/app/test/well-known.js). They and the existing username lookup test passed; ESLint passed for all touched JavaScript files. Subagents reviewed route and privilege conventions and drafted the tests; I integrated and verified the changes.

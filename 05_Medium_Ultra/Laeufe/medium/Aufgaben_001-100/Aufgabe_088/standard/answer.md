@@ -1,0 +1,3 @@
+Updated `getObject` and `getObjects` across Redis, MongoDB, and Postgres to accept optional fields. Empty fields return complete objects; selected fields include `null` for absent fields. `getObjects` preserves input order and returns `null` for missing keys.
+
+The Redis database suite passed (265 tests), as did ESLint and `git diff --check`. MongoDB and Postgres integration tests could not run because those services were unavailable locally.

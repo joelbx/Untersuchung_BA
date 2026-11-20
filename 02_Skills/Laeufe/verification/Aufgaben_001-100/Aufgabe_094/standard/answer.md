@@ -1,0 +1,3 @@
+Added the public `DiagResult` and `Diag` interfaces, and made macOS Touch ID availability use the diagnostic checks. The WebAuthn round trip test now covers login with an allowed credential as well as passwordless login.
+
+`go test ./lib/auth/touchid/... -count=1` passed on Linux. The macOS build and live Touch ID flow remain unverified: the cross-build was blocked because Linux `gcc` does not support the `-arch` flag. The command, error, and remaining uncertainty are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

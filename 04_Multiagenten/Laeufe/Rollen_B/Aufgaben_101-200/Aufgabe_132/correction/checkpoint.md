@@ -1,0 +1,1 @@
+Correction complete: reserved-tag privilege validation now excludes tags already on the topic; full-list count validation remains. Added regression test for edit, addTags, reserved rejection, and max count. Exact reviewer tests rerun: focused 1 passing; full topics suite 166 passing. Temporary Redis stopped.

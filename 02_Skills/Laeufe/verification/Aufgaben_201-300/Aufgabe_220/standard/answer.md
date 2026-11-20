@@ -1,0 +1,3 @@
+Added `qcolor_to_qsscolor` in [qtutils.py](/app/qutebrowser/utils/qtutils.py) to return `rgba(r, g, b, a)`, including the default alpha value of 255. WebView and TabBar now use it in their background stylesheet templates.
+
+The utility test suite passed: **123 tests**. The TabWidget suite remains unverified because setup fails on an existing float-to-`QSize` error; WebView could not be exercised because `PyQt5.QtWebKit` is unavailable locally. These limits are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

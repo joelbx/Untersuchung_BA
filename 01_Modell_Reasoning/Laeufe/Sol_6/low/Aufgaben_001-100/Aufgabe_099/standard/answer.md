@@ -1,0 +1,3 @@
+BatchEvaluate now returns one response per input flag in order, including disabled flags with `match: false` and an empty value. Disabled flags no longer abort the batch. Each entry has a timestamp and its own duration; the outer response has the total duration.
+
+Added `ErrDisabled` and `ErrDisabledf`, migrated the protobuf timestamp and empty result types, and added a regression test. `GOPROXY=off GOFLAGS=-mod=mod go test ./...` passes.

@@ -1,0 +1,3 @@
+Added the mechanism-segmented download metric. [useDownloadMetrics](/app/applications/drive/src/app/store/_downloads/DownloadProvider/useDownloadMetrics.ts) now emits status, retry, and mechanism at terminal states. The [file saver](/app/applications/drive/src/app/store/_downloads/fileSaver/fileSaver.ts) exports `selectMechanismForDownload(size)`, and stateful and preview flows pass file sizes for selection. The counter is registered with the `web_drive_download_mechanism_success_rate_total_v1` schema.
+
+I delegated the schema, file-saver, and size-propagation changes, then integrated and verified the patch. Four focused suites passed (51 tests); Drive and metrics type checks, Prettier, and `git diff --check` passed.

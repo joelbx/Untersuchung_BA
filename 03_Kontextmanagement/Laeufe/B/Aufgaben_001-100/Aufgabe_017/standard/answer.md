@@ -1,0 +1,3 @@
+SQL Server connection diagnostics are implemented. The [SQLServerPinger](/app/lib/client/conntest/database/sqlserver.go) validates connection parameters, uses the caller’s context, and classifies connection refusal, login failure, and invalid database errors. [Protocol selection](/app/lib/client/conntest/database.go) now returns it for SQL Server and still rejects unsupported protocols.
+
+Both relevant Go test packages passed, including the new SQL Server tests.

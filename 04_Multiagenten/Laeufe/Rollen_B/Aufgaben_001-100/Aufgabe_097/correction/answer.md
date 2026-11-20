@@ -1,0 +1,3 @@
+Fixed the two review defects. The `ansible-test` entry point now accepts Python 3.12 and later, matching its error message and package requirement. The collection loader’s obsolete import and Python 2 compatibility branches are removed.
+
+The reviewer’s runnable tests pass: 3 collection extraction tests and 70 collection loader tests, with 1 skip. `git diff --check` passes. **TEST_ENVIRONMENT_PROBLEM:** the two CLI-dependent test commands still stop during collection because this environment has only Python 3.11; they need a run on Python 3.12 or later.

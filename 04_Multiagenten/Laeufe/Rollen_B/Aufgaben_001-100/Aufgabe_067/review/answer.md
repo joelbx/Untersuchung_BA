@@ -1,0 +1,7 @@
+VERDICT: FIX
+
+**Code review:** No defect found in the applied patch. [configdata.yml](/app/qutebrowser/config/configdata.yml) accepts `overlay`; [configfiles.py](/app/qutebrowser/config/configfiles.py) migrates `False` to `overlay`; and [configinit.py](/app/qutebrowser/config/configinit.py) gates the Chromium flag by backend, platform, and Qt version. The `@js_headers` marker permits collection on Qt 5.15.
+
+**Tests:** `DISPLAY=:99 QT_QPA_PLATFORM=offscreen python -m pytest --no-xvfb -q tests/unit/config/test_configinit.py::TestQtArgs tests/unit/config/test_configfiles.py::TestYamlMigrations tests/unit/browser/test_shared.py` — **132 passed**.
+
+**TEST_ENVIRONMENT_PROBLEM:** `DISPLAY=:99 QT_QPA_PLATFORM=offscreen QTWEBENGINE_DISABLE_SANDBOX=1 python -m pytest --no-xvfb --qute-bdd-webengine --tb=short -q tests/end2end/features/test_misc_bdd.py::test_acceptlanguage_header_js tests/end2end/features/test_misc_bdd.py::test_setting_a_custom_useragent_header` — **2 failed** because the browser process exited after Qt reported “Failed to create OpenGL context.” Rerun these scenarios on a display with working QtWebEngine OpenGL rendering. The required FIX verdict reflects the failed relevant tests, not an identified code defect.

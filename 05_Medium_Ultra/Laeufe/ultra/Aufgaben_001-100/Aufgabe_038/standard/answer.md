@@ -1,0 +1,3 @@
+Implemented transparent gzip decoding in [urls.py](/app/lib/ansible/module_utils/urls.py:529), including gzip error bodies and responses whose `Content-Length` describes the compressed data. `uri` and `get_url` now expose `decompress` with a default of `True`; setting it to `False` preserves compressed bytes.
+
+I delegated the module wiring and regression tests to subagents, then integrated and verified the patch. The URL utility and lookup tests passed (**103 tests**). A local HTTP check confirmed full decoding and the `decompress=False` behavior. Python 2 behavior was not run in this Python 3 environment.

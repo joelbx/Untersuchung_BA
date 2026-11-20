@@ -1,0 +1,3 @@
+Task: Fix pip module when no pip binary exists but pip is installed for the current interpreter.
+Status: Complete. _have_pip_module uses importlib.util.find_spec with imp fallback and returns false on detection errors. _get_pip returns argv for all launchers and prefers sys.executable -m pip when applicable. Listing uses argv for list --format=freeze and freeze fallback, returning a command string. Virtualenv PATH prefix uses os.path.join(env, 'bin'). Documentation and regression tests updated.
+Verification: PYTHONPATH=lib python -m pytest -q test/units/modules/test_pip.py (9 passed); git diff --check passed.

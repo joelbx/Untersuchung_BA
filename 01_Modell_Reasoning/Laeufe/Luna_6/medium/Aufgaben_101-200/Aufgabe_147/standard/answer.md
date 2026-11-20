@@ -1,0 +1,3 @@
+Updated [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts) to keep persisted fields in one config object, use the required underscored keys, restore credentials as a `Map`, preserve legacy fields during migration, and avoid writes on unchanged current configs. The global instance now receives explicit version and storage parameters.
+
+`npx tsc --noEmit --pretty false` passed. The client test runner did not complete: its build stalled while compiling the native `better-sqlite3` dependency.

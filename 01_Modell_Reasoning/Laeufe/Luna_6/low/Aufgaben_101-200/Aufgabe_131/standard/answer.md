@@ -1,0 +1,3 @@
+Implemented bounded polling in [usePollEvents.ts](/app/packages/components/payments/client-extensions/usePollEvents.ts). It exposes the 5000 ms interval and 5 attempt limit, supports optional property/action matching, and unsubscribes on a match or completion while ignoring late events.
+
+Verification: the components type check passed. The focused Jest command found no matching hook tests. The checkpoint is at `.codex-role-output/checkpoint.md`.

@@ -1,0 +1,3 @@
+Fixed `/lists/add` so POST form values are parsed independently of URL query parameters. Defaults no longer interfere with nested seeds, invalid or empty seed entries are skipped, and later assignments win during unflattening. The no-body query path remains supported.
+
+Added regression tests in [test_lists.py](/app/openlibrary/plugins/openlibrary/tests/test_lists.py) and [test_utils.py](/app/openlibrary/plugins/upstream/tests/test_utils.py). **Verification:** 34 relevant tests passed; Ruff and `git diff --check` passed.

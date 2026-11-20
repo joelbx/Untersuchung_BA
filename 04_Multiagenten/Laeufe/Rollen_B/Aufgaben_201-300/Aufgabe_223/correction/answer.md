@@ -1,0 +1,3 @@
+Fixed the two review findings. Interpreter overrides now preserve quoted shebang arguments, and shebangless old style modules receive the default Python interpreter while still honoring configured overrides. Added regression tests for both paths.
+
+The reviewer’s exact test commands passed: 53 focused tests and 59 tests across the full directory. `git diff --check` passed. The full suite emitted one `ZipFile.__del__` warning.

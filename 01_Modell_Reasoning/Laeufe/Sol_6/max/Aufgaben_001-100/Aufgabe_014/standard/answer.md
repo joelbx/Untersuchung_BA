@@ -1,0 +1,3 @@
+Updated notification loading to use `app.require`, refresh from the dropdown trigger, and discard stale responses. Fixed fork and move dropups, quick search focus and navigation behavior, merge search width, and the requested chat and admin markup. Also corrected hash field handling, email sender formatting, install guards, and post route error handling.
+
+ESLint, syntax checks, template compilation, and focused behavior checks passed. The database integration tests were unavailable: their helper prints local configuration, and Redis is not running.

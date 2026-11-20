@@ -1,0 +1,3 @@
+Raised the controller minimum to Python 3.12 across the CLI, package metadata, and ansible-test, with matching version errors and a changelog fragment. Collection extraction now passes `dirname` unchanged to `tar.getmember()` and no longer uses the private TarFile cache. I also removed controller compatibility fallbacks for older Python versions.
+
+The focused extraction tests pass (3/3), syntax checks pass, and both entry points produce the same rejection message on Python 3.11. Broader Galaxy tests could not collect because this environment has only Python 3.11.

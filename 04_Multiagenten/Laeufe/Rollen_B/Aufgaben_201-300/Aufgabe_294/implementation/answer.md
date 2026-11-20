@@ -1,0 +1,3 @@
+Updated [collection.py](/app/lib/ansible/galaxy/collection.py) so collection tar builds preserve internal file and directory symlinks, copy external file targets as regular files, and record directory links without expanding their contents. Install now checks link targets and destination paths before restoring symlinks. The tar helpers return both `TarInfo` and a readable stream.
+
+Updated [test_collection.py](/app/test/units/galaxy/test_collection.py) with build, install, and unsafe extraction coverage. **All 62 local collection tests pass**, and `git diff --check` is clean.

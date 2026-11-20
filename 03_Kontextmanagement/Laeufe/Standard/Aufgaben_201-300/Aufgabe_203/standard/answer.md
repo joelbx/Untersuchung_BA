@@ -1,0 +1,3 @@
+Added a reusable [ExternalLink component](/app/src/components/views/elements/ExternalLink.tsx) with a decorative icon, a translated screen reader cue that it opens a new tab, and secure navigation defaults. Settings links now use it, including the hosting signup link, which is one named link instead of separate text and icon links. The Share dialog’s room link has a translated “Link to room” title.
+
+ESLint, stylelint, and 25 permalink tests pass. The room settings tests are skipped by their configuration. The full TypeScript check remains blocked by six existing thread event errors outside the changed files.

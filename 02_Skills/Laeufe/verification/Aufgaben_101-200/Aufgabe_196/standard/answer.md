@@ -1,0 +1,3 @@
+Updated the assistant upsell flows to use the shared Scribe addon resolver. Both paid flows now build `planIDs` and add a Scribe addon only when one applies. Assistant modules import `SelectedPlan` and `getScribeAddonNameByPlan` from the payments/core public entrypoint.
+
+The relevant tests passed: **50 tests across 2 suites**. Formatting and lint checks passed. The full components type check remains blocked by an `openpgp` type mismatch in `packages/crypto/lib/worker/api.ts`, outside the edited files.

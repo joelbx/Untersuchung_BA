@@ -1,0 +1,3 @@
+Configuration loading now returns a [Result](/app/internal/config/config.go:48) with `Config` and `Warnings` as separate fields. Deprecation warnings are checked against keys explicitly present in the file before defaults are applied, including `ui.enabled` and deprecated cache options set to `false`. The [CLI](/app/cmd/flipt/main.go:162) logs warnings from `Result`, and the [deprecation notices](/app/DEPRECATIONS.md:35) document `ui.enabled`.
+
+The updated tests passed with `GOPROXY=off` for `./internal/config`, `./internal/cmd`, and `./cmd/flipt`. `git diff --check` also passed.

@@ -1,0 +1,3 @@
+Implemented the chat allow/deny lists, `disableIncomingMessages`, ordered server-side checks, account controls, OpenAPI updates, and the repeatable follow-list migration in [chat_allow_list.js](/app/src/upgrades/4.3.0/chat_allow_list.js:1). The legacy setting name remains only in the migration reader.
+
+**Validation:** Messaging/User tests passed (309); API/Upgrade tests passed (22); lint and syntax checks passed. A broader filtered run also selected a Flags test and failed at `test/flags.js:985`; the focused API/Upgrade run passed. Progress is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

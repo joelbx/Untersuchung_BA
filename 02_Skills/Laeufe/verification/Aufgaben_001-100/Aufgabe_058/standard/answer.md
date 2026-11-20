@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts) to use enum based anonymity, enforce DNT, validate configuration, await capture, hash identifiers, and reset the PostHog client on logout. Expanded [the focused tests](/app/test/PosthogAnalytics-test.ts) for those behaviors.
+
+Verification: 19/19 focused tests passed; focused ESLint, targeted TypeScript, and `git diff --check` passed. The repository-wide TypeScript check still fails on unrelated dependency and source errors, recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

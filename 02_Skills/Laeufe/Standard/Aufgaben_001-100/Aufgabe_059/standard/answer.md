@@ -1,0 +1,3 @@
+Added a public `Dialog` abstraction and updated `ModalTwo` to use it. The wrapper forwards attributes and refs to a native `<dialog>` when its modal API is available, and uses an accessible fallback host in limited DOM environments. `ModalTwo` now sets `open` and `aria-modal`, so its interactive children are discoverable by role in JSDOM.
+
+Verification passed: 11 relevant tests, the components TypeScript check, and `git diff --check`.

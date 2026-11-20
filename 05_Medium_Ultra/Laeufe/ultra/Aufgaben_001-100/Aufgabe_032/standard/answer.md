@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) to emit one structured JSON response from the wrapper, write job records atomically with a consistent job ID and lifecycle fields, and record fork, setup, exception, and timeout failures. Timeout records include the child PID. An unwritable job directory cannot hold a result file, so that failure is reported on stdout.
+
+A test agent added focused coverage in [test_async_wrapper.py](/app/test/units/modules/test_async_wrapper.py); a second agent reviewed the fork paths and ran integration tests. Verification passed: **12 unit tests**, the `async`, `async_fail`, and `async_extra_data` integration targets, and `git diff --check`.

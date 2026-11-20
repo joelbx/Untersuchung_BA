@@ -1,0 +1,3 @@
+I updated NVD conversion to copy CVSS v4.0 metrics into `CveContent` by source when the dictionary model exposes them. `Cvss40Scores()` now returns available MITRE entries before NVD entries. The three `CveContent` fields were already present. Tests pass: `go test ./models ./reporter/...`.
+
+**NVD ingestion remains limited:** the pinned `go-cve-dictionary` version has no `Nvd.Cvss40` field, so it cannot supply v4.0 metrics at runtime. A dependency version that provides that field is still needed to complete the issue.

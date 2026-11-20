@@ -1,0 +1,3 @@
+Fixed terminal restoration for canceled and timed out password reads, and for readers closed during a password prompt. Canceled reads can be followed by a clean read. Added `NotifyExit` and called it when `tsh` exits.
+
+The prompt tests pass, and the `tsh` test package builds. The repository-wide suite was interrupted before completion, so its result is unknown. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

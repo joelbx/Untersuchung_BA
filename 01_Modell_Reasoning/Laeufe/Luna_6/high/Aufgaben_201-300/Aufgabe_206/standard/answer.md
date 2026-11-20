@@ -1,0 +1,3 @@
+Implemented `lockPosting` in [topics.js](/app/src/controllers/write/topics.js). Topic creation and replies now use an atomic, per-user or per-guest-session lock; overlapping requests receive HTTP 400 with `bad-request`, and the lock is released after processing.
+
+ESLint passes. The existing topic test could not run because Redis at `127.0.0.1:6379` was unavailable. The checkpoint is at `.codex-role-output/checkpoint.md`.

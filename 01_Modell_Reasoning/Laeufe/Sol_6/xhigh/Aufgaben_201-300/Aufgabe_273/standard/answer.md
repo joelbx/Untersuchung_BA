@@ -1,0 +1,3 @@
+Updated [make_work()](/app/openlibrary/plugins/upstream/addbook.py:69) to return a valid `web.Storage` when either author field is missing or `None`, preserve supplied fields, and apply the requested defaults. `make_author()` now has the requested types and returns the object created by `web.ctx.site.new`. Added [regression tests](/app/openlibrary/plugins/upstream/tests/test_addbook.py:25).
+
+Verification: upstream tests passed (49 passed, 5 expected failures); `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented predictable `no_log` sanitization. `remove_values` now masks sensitive substrings in string values while leaving keys and non-string scalars unchanged. The new `sanitize_keys` masks matching keys throughout nested containers, preserves ignored and `_ansible` keys, and uses the required sentinel for exact matches. The `uri` module applies it when `no_log_values` is populated, with `NO_MODIFY_KEYS`.
+
+**Verification:** 47 focused tests passed, the converter suite passed, and `git diff --check` passed. The broader `basic` suite still has failures caused by warning state leaking between tests; the affected sanitizer and exit tests pass in isolation.

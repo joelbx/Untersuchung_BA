@@ -1,0 +1,3 @@
+Resolved delegation before loop processing. `TaskExecutor` now receives the variable manager, resolves the delegated hostname and variables once, then evaluates loop items once. Added `VariableManager.get_delegated_vars_and_hostname()` and `Task.get_play()`, and removed the loop cache workaround.
+
+Verification passed: 19 relevant unit tests, `compileall`, and `git diff --check`. The checkpoint is at `.codex-role-output/checkpoint.md`.

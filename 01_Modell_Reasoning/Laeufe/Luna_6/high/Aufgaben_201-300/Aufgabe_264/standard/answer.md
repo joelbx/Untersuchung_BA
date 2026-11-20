@@ -1,0 +1,3 @@
+Implemented bounded retries for HTTP 429, 500, and 502 in [meraki.py](/app/lib/ansible/module_utils/network/meraki/meraki.py). The request keeps `status` updated, warns with the 429 retry count, and raises the new exception classes when appropriate. Other HTTP statuses ≥400 raise `HTTPError` immediately.
+
+The focused existing suite reported **4 passed, 2 failed**. Both failures assert the old behavior: returning without raising for 404 and 429. `git diff --check` passed. The checkpoint is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

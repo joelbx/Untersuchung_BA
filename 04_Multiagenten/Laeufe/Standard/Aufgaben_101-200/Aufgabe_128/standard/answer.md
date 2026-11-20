@@ -1,0 +1,3 @@
+Added `match_set` and `match_set_flags` to the [iptables module](/app/lib/ansible/modules/iptables.py). Rules now include `-m set --match-set <name> <flags>` whether or not `match: ['set']` is specified. The module rejects either parameter on its own and supports `!` inversion of the set name. Added documentation, an SSH example, and [unit tests](/app/test/units/modules/test_iptables.py).
+
+Verification: all 26 iptables unit tests passed; `git diff --check` passed.

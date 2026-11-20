@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) to provide the same localized verification message in Current session and Device Details. Device Details now shows the card immediately after its heading; Current session delegates its status rendering to the shared component.
+
+All device settings tests pass (49 tests, 22 snapshots), and lint passes. The repository-wide type check still fails on unrelated SDK and widget errors; it reports none in the changed files.

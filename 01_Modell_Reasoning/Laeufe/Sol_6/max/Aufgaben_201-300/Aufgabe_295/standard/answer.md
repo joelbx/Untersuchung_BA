@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) with localized verified and unverified messages. [CurrentDeviceSection](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx) now uses it, and [DeviceDetails](/app/src/components/views/settings/devices/DeviceDetails.tsx) shows it directly below the device heading. The details card also has spacing and width styling.
+
+All 11 device settings test suites pass (44 tests, 22 snapshots); ESLint and stylelint pass. The full TypeScript check still reports errors in the installed Matrix SDK and unrelated files, with none in the changed files.

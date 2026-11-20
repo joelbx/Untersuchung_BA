@@ -1,0 +1,3 @@
+Updated [urlutils.py](/app/qutebrowser/utils/urlutils.py) to validate operations and positive counts, reject decrements that would go below zero, skip percent triplets, preserve encoded components, leave ports unchanged, and search path → query → anchor → host. The default scope is now path only.
+
+Validation: 19 compatible existing tests passed, as did direct checks for encoded components, underflow, and invalid counts. The legacy increment/decrement tests contain expectations that conflict with the requested segment priority and port behavior; the full test file also aborted during Qt setup.

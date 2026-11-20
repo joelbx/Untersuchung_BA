@@ -1,0 +1,3 @@
+Added a registration token entry to InteractiveAuth for both the stable and unstable Matrix stage identifiers. It shows the requested field and help text, submits the advertised type and token, and handles busy and error states.
+
+The focused Jest suite passes (4 tests), as do targeted ESLint and `git diff --check`. The full TypeScript check still fails on existing Sliding Sync errors; it reports no errors in the changed files.

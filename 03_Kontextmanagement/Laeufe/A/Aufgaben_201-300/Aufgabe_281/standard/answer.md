@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` for [Mongo](/app/src/database/mongo/hash.js) and [Redis](/app/src/database/redis/hash.js). It validates tuple input and safe integer increments, creates missing objects and fields, applies each key’s fields atomically, and invalidates cache entries for successful writes.
+
+Verification: ESLint passed; all 67 existing Redis hash tests passed. I checked the Mongo bulk write shape with a local mock; no Mongo service was available for an integration test.

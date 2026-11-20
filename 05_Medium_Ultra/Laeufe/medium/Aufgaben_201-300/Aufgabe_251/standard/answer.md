@@ -1,0 +1,3 @@
+Updated `flipt validate` to report every validation failure with a field path, descriptive message, and the offending YAML key’s file, line, and column. Text output shows readable locations; JSON output returns a structured `Result`. The command exits with a failure status and prints “validation failed” to stderr.
+
+Verification passed: `go test ./internal/cue ./cmd/flipt -count=1`, `git diff --check`, and a JSON CLI run against the invalid fixture.

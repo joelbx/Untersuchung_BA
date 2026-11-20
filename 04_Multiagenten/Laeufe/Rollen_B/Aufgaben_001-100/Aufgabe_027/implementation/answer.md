@@ -1,0 +1,3 @@
+Updated the persisted session lookup to return a number or `null`, ignore unrelated and nonnumeric keys, skip malformed values, preserve ID `0`, and leave local storage unchanged. The public bookmark view now calls `resumeSession` only when an ID exists.
+
+The focused tests pass: 18 tests across two suites. `git diff --check` passes. The Drive type check remains blocked by an OpenPGP type mismatch in an unchanged crypto file.

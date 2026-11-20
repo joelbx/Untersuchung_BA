@@ -1,0 +1,3 @@
+U2F login now generates challenges for every registered U2F device. The response keeps the legacy single challenge fields, while the CLI accepts the full challenge list so users can authenticate with any registered token. Web endpoints return the enhanced payload, and the MFA management command is hidden from help.
+
+Added compatibility and multi-device login tests. `go test ./lib/auth ./lib/client ./lib/web ./tool/tsh -count=1` passes.

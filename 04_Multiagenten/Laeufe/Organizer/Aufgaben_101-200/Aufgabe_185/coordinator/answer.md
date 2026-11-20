@@ -1,0 +1,3 @@
+Fixed the cancellation expiry display. The expiry utility now uses the active subscription term when cancellation is in progress or auto-renew is disabled, while preserving free-plan behavior. The cancellation modal, consumer and business confirmation screens, and post-cancellation screen now read their dates from that utility.
+
+Verification: 42 tests passed across four relevant suites; the components type check, Prettier check, and `git diff --check` passed. I solved this directly; there were no delegations or adoptions.

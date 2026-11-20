@@ -1,0 +1,3 @@
+Implemented host-scoped monitoring in [utils.py](/app/scripts/monitoring/utils.py) and moved the service to `OlAsyncIOScheduler` in [monitor.py](/app/scripts/monitoring/monitor.py). Jobs on disallowed hosts are skipped; registered jobs default to their function names as IDs. Added the HAProxy CSV and Graphite monitor in [haproxy_monitor.py](/app/scripts/monitoring/haproxy_monitor.py).
+
+Verification: all 8 monitoring tests passed, Ruff passed, and allowed and disallowed host import checks showed the expected jobs.

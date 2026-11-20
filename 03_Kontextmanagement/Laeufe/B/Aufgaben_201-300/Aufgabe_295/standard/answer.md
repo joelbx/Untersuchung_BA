@@ -1,0 +1,3 @@
+Implemented and exported [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx). Current session now uses it, and Device details shows it directly below the heading for either verification state.
+
+The focused device tests passed (9 tests), and targeted lint passed. The full type check remains blocked by errors in unrelated files and the installed `matrix-js-sdk`; it reported none in the changed device files.

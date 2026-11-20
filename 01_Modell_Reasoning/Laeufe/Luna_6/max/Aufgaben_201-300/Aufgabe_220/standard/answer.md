@@ -1,0 +1,3 @@
+Added `qcolor_to_qsscolor` in [qtutils.py](/app/qutebrowser/utils/qtutils.py), preserving RGB and alpha values in `rgba(r, g, b, a)` format. Exposed it to Jinja and added registered color stylesheet templates for WebView and TabBar.
+
+Validation: the Qt utility and Jinja suites passed (128 tests), and direct checks covered named colors, default alpha, explicit RGBA, and both templates. The TabBar widget suite encountered setup errors because existing `_set_icon_size` code passes floats to `QSize`. `git diff --check` passed.

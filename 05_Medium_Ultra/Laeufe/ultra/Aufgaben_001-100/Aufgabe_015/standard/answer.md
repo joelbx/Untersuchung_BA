@@ -1,0 +1,5 @@
+Implemented `feature_qr_signin_reciprocate_show` as an Experimental Labs setting that defaults to off and explains the MSC3882/MSC3886 homeserver requirement. [LoginWithQRSection](/app/src/components/views/settings/devices/LoginWithQRSection.tsx), [SecurityUserSettingsTab](/app/src/components/views/settings/tabs/user/SecurityUserSettingsTab.tsx), and [SessionManagerTab](/app/src/components/views/settings/tabs/user/SessionManagerTab.tsx) now gate QR sign-in on the flag. Tests cover showing the QR flow and closing it.
+
+Verification passed: 5 Jest suites, 67 tests, 9 snapshots, Prettier, ESLint, and `git diff --check`. The full TypeScript check reports an error in unchanged [RoomView-test.tsx](/app/test/components/structures/RoomView-test.tsx:178): a missing `eventId`.
+
+I delegated the setting, test updates, and independent review to native agents, then integrated and verified their work.

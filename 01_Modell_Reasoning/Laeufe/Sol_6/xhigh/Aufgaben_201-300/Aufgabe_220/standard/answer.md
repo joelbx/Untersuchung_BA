@@ -1,0 +1,3 @@
+Added [`qcolor_to_qsscolor`](/app/qutebrowser/utils/qtutils.py), which returns `rgba(r, g, b, a)` for named, RGB, and RGBA `QColor` values. Wired it into the WebView and TabBar background stylesheet templates.
+
+All 124 `qtutils` tests pass, and Qt accepted the generated RGBA string. TabWidget tests could not reach the changed code because setup fails on an existing float-to-`QSize` error; WebView runtime testing is unavailable locally because QtWebKit is not installed.

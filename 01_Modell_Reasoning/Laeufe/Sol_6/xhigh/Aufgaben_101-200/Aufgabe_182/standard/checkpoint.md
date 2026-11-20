@@ -1,0 +1,3 @@
+# Checkpoint
+
+Implemented global display routing for forked workers. `proxy_display` now forwards the original method name and exact caller arguments for `display`, `warning`, and `deprecated`. `FinalQueue.send_display` stores the method in `DisplaySend`, and `results_thread_main` dispatches it on the parent display object. Updated fork test and added queue/duplicate handling tests. Focused test run: 15 passed, 1 skipped. A broader selection including `test_logger` exposes an existing test-order issue: that test removes Ansible modules from `sys.modules`, so a later color test patches a different module instance and fails. The warning tests now reset the singleton warning cache between cases.

@@ -1,0 +1,3 @@
+Added `-wp-ignore-inactive` to report and TUI, with a top-level `wpIgnoreInactive` TOML setting. When enabled, `FillWordPress` removes inactive packages from the scan result before making WordPress API requests. `removeInactives` returns `nil` when nothing remains.
+
+Two subagents added focused WordPress and config loader tests; I integrated those tests and verified the CLI wiring. `go test -count=1 ./config ./wordpress ./commands ./report` passed.

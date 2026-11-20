@@ -1,0 +1,3 @@
+Added `removeTechnicalFields` in [EntityUtils.ts](/app/src/api/common/utils/EntityUtils.ts). It mutates the entity recursively, deleting keys that start with `_finalEncrypted`, `_defaultEncrypted`, or `_errors` while preserving other fields. Added coverage in [EntityUtilsTest.ts](/app/test/tests/api/common/utils/EntityUtilsTest.ts) for root fields, nested objects, arrays, and entities with no technical fields.
+
+Prettier, TypeScript, and `git diff --check` passed. The existing test suite passed with 8,682 assertions. No delegation was used.

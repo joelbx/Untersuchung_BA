@@ -1,0 +1,3 @@
+Updated [affiliate_server.py](/app/scripts/affiliate_server.py) with `PrioritizedIdentifier` for ISBNs and ASINs. It includes `stage_import`, identifier-based equality and hashing, and complete JSON serialization. Queue processing now avoids duplicate submissions and stages only requested products. The former `PrioritizedISBN` constructor remains available for existing callers.
+
+Added coverage in [test_affiliate_server.py](/app/scripts/tests/test_affiliate_server.py). All 19 affiliate tests pass; Ruff and `git diff --check` pass.

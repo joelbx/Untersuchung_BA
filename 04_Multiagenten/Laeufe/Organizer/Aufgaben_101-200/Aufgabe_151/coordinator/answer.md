@@ -1,0 +1,3 @@
+Updated [webview.py](/app/qutebrowser/browser/webengine/webview.py) so Qt 6.2.3 through 6.6.x file pickers receive missing extensions resolved from accepted MIME types, including wildcards. Extensions already present are excluded. Added focused tests in [test_webview.py](/app/tests/unit/browser/webengine/test_webview.py).
+
+The webview test file passed all 12 tests, and `git diff --check` passed. I made the changes directly; no delegation was used.

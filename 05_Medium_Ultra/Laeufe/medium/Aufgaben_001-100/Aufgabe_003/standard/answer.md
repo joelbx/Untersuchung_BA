@@ -1,0 +1,3 @@
+Added `timeOffset` support from the public and Subsonic stream endpoints through the media streamer and FFmpeg. Transcoded streams now use separate cache entries for different offsets. FFmpeg templates interpolate `%t`, and commands without that placeholder add `-ss` after the input only for nonzero offsets.
+
+Updated the mocks and call sites, and advertised the extension in OpenSubsonic. The relevant Go tests and `git diff --check` pass.

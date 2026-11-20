@@ -1,0 +1,3 @@
+Implemented the namespace access fix in `/app`. Both authorization engines now evaluate `viewable_namespaces` and reject malformed decisions. The middleware passes accessible namespaces to the service, which filters results before pagination and reports the visible total. The UI redirects saved or deep links that point to an inaccessible namespace. Role coverage and the requested checkpoint were added.
+
+The relevant Go suites and `git diff --check` passed. The UI build and tests could not run because local UI dependencies are absent and downloads were disallowed.

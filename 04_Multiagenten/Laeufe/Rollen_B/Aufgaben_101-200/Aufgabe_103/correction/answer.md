@@ -1,0 +1,3 @@
+Fixed source RPM filename parsing for hyphenated releases with both `.src.rpm` and `-src.rpm`. The parser now handles `package-0-1-extra.src.rpm` correctly and returns an error for ambiguous numeric components. I added regression cases in [redhatbase_test.go](/app/scanner/redhatbase_test.go).
+
+Both exact test commands flagged by the reviewer pass, as does `git diff --check`. No remaining failures or test environment problems.

@@ -1,0 +1,3 @@
+Added `content.javascript.log_message.excludes` so source and message glob patterns can suppress specific JavaScript messages in the UI. The new `_js_log_to_ui` helper checks `.levels` first, then exclusions; messages it does not display continue to the standard logger. Existing `content.javascript.log_message` settings migrate to `.levels`.
+
+Updated the settings documentation and added filtering tests. All 42 relevant tests passed, and `git diff --check` passed.

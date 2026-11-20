@@ -1,0 +1,3 @@
+Implemented shared verification status rendering in [DeviceVerificationStatusCard.tsx](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx). `CurrentDeviceSection` delegates to it, and `DeviceDetails` now accepts `DeviceWithVerification` and renders the status card below its heading. Updated the affected snapshots and test fixture.
+
+The relevant device and session manager suites pass: 18 tests. ESLint and `git diff --check` pass. `yarn lint:types` remains blocked by existing Matrix SDK API mismatches in unrelated files; it reports no errors in the changed files.

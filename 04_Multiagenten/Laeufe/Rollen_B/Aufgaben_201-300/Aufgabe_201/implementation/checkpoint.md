@@ -1,0 +1,3 @@
+Implementer progress: Confirmed Rule still has separate segment, segments, and operator fields in internal/ext/common.go. Tracing all consumers and fixtures before editing. No source changes yet.
+Added unified Rule.segment wrapper and value extraction; migrated importer, exporter, snapshot, SQL single-key fallback, and requested fixtures. Running formatting and tests next.
+Verified YAML v2/v3 decoding of string and object forms, invalid shape rejection, and OR fallback through new focused tests. Full local tests passed: go test ./internal/ext ./internal/storage/fs ./internal/storage/sql -count=1. git diff --check passed.

@@ -1,0 +1,3 @@
+Fixed vaulted vars-file caching. `DataLoader.load_from_file` now supports `cache='none'` without populating the file cache and `cache='vaulted'` to cache parsed vaulted files. The play vars-file loader uses vault-only caching, avoiding repeated reads and decryption. Regression tests cover both modes and repeated vars-file lookups.
+
+Verification: 340 parsing and vars unit tests passed; `git diff --check` passed. The broader test runs did not pass: the repository-wide run was killed with exit 137 after collection errors, and the unit run encountered CLI/Galaxy failures before it was stopped. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

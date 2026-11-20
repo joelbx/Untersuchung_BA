@@ -1,0 +1,3 @@
+Updated `_parse_clixml` to decode UTF-16 escape sequences, including surrogate pairs and control characters, while preserving invalid escapes and lone surrogates. It now filters by stream, handles empty `<S>` elements, concatenates entries within each block, and separates nonempty blocks with CRLF.
+
+Verification: `python -m pytest -q test/units/plugins/shell` passed (22 tests); `git diff --check` passed.

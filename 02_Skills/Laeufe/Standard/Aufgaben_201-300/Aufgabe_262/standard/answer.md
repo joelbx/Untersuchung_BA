@@ -1,0 +1,3 @@
+Book imports now skip cover URLs whose hosts are outside `ALLOWED_COVER_HOSTS`. The new `process_cover_url` helper accepts HTTP and HTTPS, compares hostnames without regard to case, and removes `cover` from the edition dictionary whether the URL is accepted or rejected. Both new and matched edition imports use it.
+
+Verification: 150 add-book tests passed, 1 was expected to fail; Ruff and `git diff --check` passed.

@@ -1,0 +1,2 @@
+Task: fix validation of variant and segment references, expose detailed validation errors, and validate files while building filesystem snapshots.
+Status: implementation complete. Validator returns one multi-error with source locations and checks rule/rollout references. CLI consumes the new interface. Import checks references before writes. Exported filesystem snapshot constructors validate each input file. Relevant tests pass: go test ./internal/cue ./internal/ext ./internal/storage/fs/... ./cmd/flipt. Git diff checked for whitespace errors.

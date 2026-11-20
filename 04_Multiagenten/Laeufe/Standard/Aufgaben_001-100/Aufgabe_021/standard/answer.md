@@ -1,0 +1,3 @@
+Updated the List and Seed models with explicit types, shared `SeedDict` typing, normalized key based membership checks, subject key helpers, and filtered export data. Added focused tests for seed formats, subject normalization, and exports.
+
+Validation passed: 17 tests, mypy on the model and plugin, Ruff, and `git diff --check`. The legacy `test_listapi.py` suite could not collect because this environment lacks `cookielib`.

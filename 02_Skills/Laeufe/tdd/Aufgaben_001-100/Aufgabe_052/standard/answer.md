@@ -1,0 +1,3 @@
+Implemented token accounting for `Chat.Complete` and `Agent.PlanAndExecute`. Both return a non-nil `*model.TokenCount`; the agent accumulates usage across steps, and streamed completions are counted with `cl100k_base` after the stream closes. Assist and web callers now use the returned totals.
+
+`go test ./lib/ai ./lib/ai/model -count=1` passed. The full suite did not complete: it hit missing system headers and C build errors, then timed out. The commands and errors are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated Worksearch to consume Solr JSON for search results and documents, default the `wt` parameter to `json`, and process flat facet value/count lists through `process_facet` and `process_facet_counts`. Updated the existing tests for the JSON document and facet formats.
+
+Verification: `pytest -q openlibrary/plugins/worksearch/tests/test_worksearch.py` passed (25 tests), and `git diff --check` passed.

@@ -1,0 +1,7 @@
+I located the missing pieces, but the issue is **not resolved**. My assigned role for this repository permits diagnosis only, so I did not change project source or tests.
+
+- [urlmodel.py](/app/qutebrowser/completion/models/urlmodel.py:57) builds `:open` categories in configured order. It needs to register a `Filesystem` category whenever enabled, even with zero matches, while preserving the current handling of empty quickmarks and bookmarks.
+- [configdata.yml](/app/qutebrowser/config/configdata.yml:1141) lacks `filesystem` in `completion.open_categories` and has no `completion.favorite_paths` option. The checked-in [settings help](/app/doc/help/settings.asciidoc:1779) also needs both documented.
+- A new `FilePathCategory` should return favorites for an empty pattern; sorted matches for absolute paths, local `file:///` URLs, and expanded `~` paths; and no rows for relative, invalid, or nonlocal input. Its path should occupy the first completion column, with `None` in the other two. The existing [model tests](/app/tests/unit/completion/test_models.py:312) provide the integration test pattern.
+
+One behavior remains ambiguous: whether selecting a suggestion typed as `file:///…` should insert a file URL or a plain path. I recorded the diagnosis in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

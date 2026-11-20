@@ -1,0 +1,3 @@
+Moved syslog configuration into the public [config/syslog package](/app/config/syslog/types.go), with a `Conf.Validate()` method and Windows-specific rejection when syslog is enabled. Config and reporter now use the new type; `config.SyslogConf` remains an alias for existing callers.
+
+The existing and new tests pass with `go test ./config/syslog ./config ./reporter`. The Windows config and syslog test binaries also cross-compile.

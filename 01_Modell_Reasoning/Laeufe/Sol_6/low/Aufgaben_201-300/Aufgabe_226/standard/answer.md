@@ -1,0 +1,3 @@
+MIME types and lossless formats now load at startup from [mime_types.yaml](/app/resources/mime_types.yaml), which operators can override through the existing resources directory. The new [MIME loader](/app/mime/mime.go) registers the configured extensions and explicit `.js` and `.css` types. The server UI now renders `mime.LosslessFormats` as a comma-separated uppercase string; the hardcoded definitions were removed.
+
+The relevant tests passed: `go test ./mime ./server ./model ./conf ./cmd`.

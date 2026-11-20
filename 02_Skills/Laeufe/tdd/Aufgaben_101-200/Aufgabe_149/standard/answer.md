@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) to recognize both feature flag prefixes. Enabled features are merged into one `--enable-features=` argument; each `--disable-features=` argument remains separate and unchanged. Added command line and configuration regression coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+All 84 Qt argument tests pass. The full suite could not pass in this environment: end to end tests require the unavailable `PyQt5.QtWebKit` module. The configuration suite also reports `test_config_init` failing for that reason. Verification details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

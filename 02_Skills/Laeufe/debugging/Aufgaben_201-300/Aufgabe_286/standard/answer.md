@@ -1,0 +1,3 @@
+Fixed startup release detection. Builds with `-rc`, `-snapshot`, or `dev` suffixes are now treated as non-releases, so they skip update checks and disable telemetry. Update checks and version comparison live in [internal/release/check.go](/app/internal/release/check.go); startup uses the returned status for console or logger messages and continues if the check fails.
+
+The new regression tests cover release classification, update availability, and URL propagation. Relevant release, startup, telemetry, and command package tests passed.

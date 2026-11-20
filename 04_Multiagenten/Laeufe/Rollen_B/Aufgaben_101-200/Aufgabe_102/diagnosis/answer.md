@@ -1,0 +1,5 @@
+The missing data belongs in [LinuxNetwork.populate()](/app/lib/ansible/module_utils/facts/network/linux.py:47). It gathers interface addresses but never queries Linux’s local routing table; the existing address lists also exclude loopback and cannot represent locally reachable prefixes.
+
+The fix should add `get_locally_reachable_ips(self, ip_path)` in [linux.py](/app/lib/ansible/module_utils/facts/network/linux.py:64), expose its `{'ipv4': [], 'ipv6': []}` result as a dedicated fact, and register that fact in [LinuxNetworkCollector._fact_ids](/app/lib/ansible/module_utils/facts/network/linux.py:324) so targeted fact gathering can select it. Coverage should include host scoped local routes in both families, canonical address or CIDR formatting, deduplication, stable ordering, and empty lists with a concise warning when a query fails.
+
+Existing Linux network tests cover collector wiring, not route parsing. The `ip` command is absent here, so live IPv6 route output remains unverified. I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were not changed under my fault localization assignment.

@@ -1,0 +1,3 @@
+Fixed IA imports so publisher metadata such as `London ; New York ; Paris : Berlitz Publishing` produces `publish_places: ["London", "New York", "Paris"]` and `publishers: ["Berlitz Publishing"]`. The parser handles bracketed values and multiple location–publisher pairs, while the import path preserves publisher names received without a colon.
+
+Moved length based ISBN classification to [openlibrary/utils/isbn.py](/app/openlibrary/utils/isbn.py) and updated ImportAPI to use it. All 64 relevant tests pass; `git diff --check` passes.

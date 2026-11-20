@@ -1,0 +1,3 @@
+Added `Config.Metadata.CheckForUpdates` in [config.go](/app/config/config.go:16). It defaults to `true` and loads `metadata.check_for_updates` from YAML or JSON. The example configs document the setting, and tests cover the default and explicit `false` values.
+
+`go test ./config` and `go test ./cmd/flipt` passed. This checkout has no startup update checker, so the new preference is available but has no runtime effect yet.

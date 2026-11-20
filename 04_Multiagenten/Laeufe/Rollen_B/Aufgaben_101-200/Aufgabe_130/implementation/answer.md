@@ -1,0 +1,3 @@
+Updated device enrollment so `RunAdmin` returns the registered device when enrollment fails, preserving the `DeviceRegistered` outcome. The CLI outcome printer also handles a nil device without panicking. The fake service now exposes a mutex protected device limit toggle and returns the expected AccessDenied message.
+
+The regression test confirms that registration succeeds, enrollment fails with a device limit error, and the device remains unenrolled. Device trust package tests pass. The `tsh` package compile check could not complete because the local system lacks `linux/hidraw.h` and `gnu/libc-version.h`.

@@ -1,0 +1,5 @@
+Implemented the mailbox reload and retry fixes. List requests now wait until tracked backend mutations finish, including label, move, read/unread, delete, and empty-label operations. Loading uses the current page and query parameters, and errors or stale responses trigger their respective delayed retries. Stale results are rejected before they can update the list.
+
+The main changes are in [useElements.ts](/app/applications/mail/src/app/hooks/mailbox/useElements.ts:98), [elementsActions.ts](/app/applications/mail/src/app/logic/elements/elementsActions.ts:19), and [elementsReducers.ts](/app/app/logic/elements/elementsReducers.ts:36).
+
+Verification passed: the mailbox element suite (12 tests), TypeScript check, ESLint on changed files, and `git diff --check`. Jest printed an open-handle notice after the passing suite; the process exited successfully.

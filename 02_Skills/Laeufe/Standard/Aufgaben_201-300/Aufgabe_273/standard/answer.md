@@ -1,0 +1,3 @@
+Updated [make_work()](/app/openlibrary/plugins/upstream/addbook.py:69) to return a `web.Storage` with an empty authors list when author fields are missing, while preserving supplied fields and applying the requested defaults. The nested `make_author()` now has the requested type annotations and returns the object created by `site.new`.
+
+Added coverage in [test_addbook.py](/app/openlibrary/plugins/upstream/tests/test_addbook.py:8). The upstream plugin suite passed: **46 passed, 5 expected failures**.

@@ -1,0 +1,3 @@
+Added filesystem completion for `:open`. The new Filesystem category follows `completion.open_categories` order, shows `completion.favorite_paths` for empty input, and suggests sorted local matches for absolute paths, `file:///` URLs, and `~` paths. The configuration and generated help are updated.
+
+Verification: completion suite **298 passed**; relevant configuration tests **157 passed**; final focused tests **79 passed**.

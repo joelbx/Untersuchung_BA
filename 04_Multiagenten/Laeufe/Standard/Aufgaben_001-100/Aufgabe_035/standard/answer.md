@@ -1,0 +1,3 @@
+Introduced `Evaluator` and moved SQL evaluation into [storage/evaluator.go](/app/storage/evaluator.go). [Server.Evaluate](/app/server/evaluator.go) now delegates through that dependency; `RuleStore` handles rule storage only.
+
+The evaluator applies rank ordered rules, typed constraints, and deterministic variant selection. I updated the existing tests and added coverage for rank precedence, rollout boundaries, and 0% distributions. `go test ./storage ./server` and `git diff --check` pass.

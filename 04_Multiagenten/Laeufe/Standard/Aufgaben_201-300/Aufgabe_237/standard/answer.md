@@ -1,0 +1,3 @@
+Implemented the chat requirements in `/app`: v3 message editing now validates content and edit permissions, checks message existence, returns the updated message, and is used by the client. The socket edit path now warns that it is deprecated and validates its input.
+
+The messaging suite passes (75 tests), and focused lint and diff checks pass. I did not add `DirectedGraph`: this checkout contains no `LinkProvider` or graph implementation, while the concrete requirements target the chat code.

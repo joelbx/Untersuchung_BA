@@ -1,0 +1,3 @@
+The notification issue is resolved. String content now renders as sanitized HTML, and notification links open in a new tab with `rel="noopener noreferrer"`. Non-success notifications deduplicate by the specified key rules; repeated success notifications remain visible.
+
+The [implementation](/app/packages/components/containers/notifications/Notification.tsx) and [tests](/app/packages/components/containers/notifications/notifications.spec.tsx) are in the checkout. Validation passed: 33 test suites, 121 tests, TypeScript, ESLint, and formatting.

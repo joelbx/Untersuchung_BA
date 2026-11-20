@@ -1,0 +1,3 @@
+Implemented `/proc/sysinfo` parsing in [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py:314). The helper returns the five requested facts with `NA` defaults, strips leading zeros from the serial, and supplies discovered values to DMI facts where they’re missing.
+
+The focused existing tests passed: **14 passed**; `git diff --check` passed. `ansible-test` could not run because pytest doesn’t recognize its `-n` option, so I ran the same test files directly with pytest.

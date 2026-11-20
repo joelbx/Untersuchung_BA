@@ -1,0 +1,3 @@
+Implemented content based JavaScript message filtering in [shared.py](/app/qutebrowser/browser/shared.py) and added the `content.javascript.log_message.levels` and `content.javascript.log_message.excludes` settings in [configdata.yml](/app/qutebrowser/config/configdata.yml). Eligible messages are shown as `JS: [source:line] message`; excluded or ineligible messages fall back to the standard logger.
+
+Validation is incomplete: `compileall` succeeded. The focused pytest run first exposed a configuration type typo, which I fixed; the rerun then aborted while initializing Qt. Disabling the rerun plugin could not proceed because the project requires it.

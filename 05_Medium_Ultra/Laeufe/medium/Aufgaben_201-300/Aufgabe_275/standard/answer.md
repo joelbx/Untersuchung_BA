@@ -1,0 +1,3 @@
+Updated [authenticate](/app/lib/kube/proxy/forwarder.go:316) so access-related failures remain `AccessDenied`, while lookup and setup failures retain their trace classification. The existing authentication tests now check both categories, including the no-tunnel `BadParameter` case. I also added the two specified [httplib wrappers](/app/lib/httplib/httplib.go:48) with configurable error writers.
+
+The full `lib/kube/proxy` and `lib/httplib` package tests passed.

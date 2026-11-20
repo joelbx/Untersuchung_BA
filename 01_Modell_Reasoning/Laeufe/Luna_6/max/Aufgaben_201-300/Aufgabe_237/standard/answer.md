@@ -1,0 +1,5 @@
+Implemented the chat message edit flow. The v3 `PUT /chats/:roomId/:mid` route now validates content, checks edit permissions, saves the edit, and returns the updated message. Client edits use `PUT`; new messages continue to use `POST`. I also added `messageExists`, the `invalid-mid` error, and validation plus a deprecation warning for socket edits.
+
+**Verification:** `test/messaging.js` passed (71 tests) with a temporary local Redis instance. Syntax checks, focused lint, and `git diff --check` passed. Full changed-file lint still reports existing errors in stub handlers, commented routes, and unused imports.
+
+Updated [chats controller](/app/src/controllers/write/chats.js), [messaging](/app/src/messaging/index.js), [chat client](/app/public/src/client/chats/messages.js), and the related route, socket, and language files.

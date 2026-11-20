@@ -1,0 +1,3 @@
+Updated the repository so rules accept `segment` as either a string or a `{keys, operator}` object. Import, export, filesystem snapshots, and SQL rule and rollout persistence now handle both forms. Exported rules use the canonical object form, and a single key uses `OR_SEGMENT_OPERATOR` regardless of the supplied operator. The requested fixtures and focused tests are included.
+
+Verification passed: `go test ./internal/ext ./internal/storage/fs ./internal/storage/sql` and `git diff --check`.

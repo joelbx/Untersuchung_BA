@@ -1,0 +1,3 @@
+Notifications now render string HTML through the existing sanitizer, and links receive `target="_blank"` and `rel="noopener noreferrer"`. React element content remains supported. Non-success notifications deduplicate by explicit key, then string text, then notification ID; repeated success notifications remain visible.
+
+The full component suite passed: 33 suites, 121 tests passed, 1 skipped. Type checking, lint, formatting, and `git diff --check` also passed. Results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

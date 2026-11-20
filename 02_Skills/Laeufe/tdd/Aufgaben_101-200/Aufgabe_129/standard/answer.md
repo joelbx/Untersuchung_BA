@@ -1,0 +1,3 @@
+Added the Current session kebab menu with accessible trigger states, destructive sign-out options, and automatic closing after an action. “Sign out” uses the existing confirmation flow; “Sign out all other sessions” passes only non-current device IDs to the bulk flow.
+
+The focused tests pass: **49 tests and 9 snapshots**. ESLint and stylelint pass. The full suite has 7 unrelated location and beacon snapshot failures involving `Symbol(shapeMode)`; type checking also reports 27 existing errors outside the changed files.

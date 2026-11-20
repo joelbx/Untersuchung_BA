@@ -1,0 +1,3 @@
+Implemented the Qt signal conversion. `BlocklistDownloads` now inherits `QObject`, accepts an optional parent, and emits `single_download_finished` and `all_downloads_finished`. Empty URL lists emit batch completion with a count of zero. Both adblock consumers and the existing unit test now connect handlers before starting downloads.
+
+Verification: **37 passed, 13 skipped** across the blockutils, adblock, and Brave adblock tests. `git diff --check` passed.

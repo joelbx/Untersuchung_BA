@@ -1,0 +1,3 @@
+Centralized `add_db_name` in [catalog/utils/__init__.py](/app/openlibrary/catalog/utils/__init__.py), and made `expand_record()` apply it to authors automatically. Existing edition matching now passes only author name and birth/death dates into expansion, which generates the identifier consistently. The old duplicate logic was removed; the `add_book` import remains available for compatibility.
+
+Verification: **120 passed, 1 xfailed, 1 xpassed** across the catalog utility and add-book tests. `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated configuration decoding so scalar strings targeting `[]string` split on whitespace, with repeated whitespace collapsed and empty input producing an empty slice. This applies through Viper’s unmarshal path to YAML and environment values; sequences and other target types pass through unchanged.
+
+Updated the advanced YAML fixture and added decode hook coverage. `go test ./internal/config` and `git diff --check` passed.

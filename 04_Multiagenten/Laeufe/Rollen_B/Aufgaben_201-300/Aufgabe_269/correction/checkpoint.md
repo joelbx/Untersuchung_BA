@@ -1,0 +1,3 @@
+Correction round: reviewed handoff. Existing patch separates Trivy CVE contents by source. Reviewer found fixed source list drops additional sources from metadata and TUI views. Inspecting code and tests, then will fix dynamic aggregation and rerun exact reviewer tests.
+Implemented CveContents.TrivySourceTypes: declared sources retain existing order, extra trivy:* keys are sorted. Metadata and TUI now use it; added regression for alpine/wolfi metadata and stable ordering. Rerunning reviewer test command.
+Verification: exact reviewer command passed (contrib/trivy/pkg, parser/v2, detector, models; tui has no test files). git diff --check passed. TEST_ENVIRONMENT_PROBLEM: none.

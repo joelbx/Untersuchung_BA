@@ -1,0 +1,2 @@
+Task: Add encoding validation to FormatString during to_py conversion, consistent with String, and verify with existing tests.
+Status: Complete. Shared String/FormatString encoding validation is implemented, and the user-agent FormatString requires ASCII. Added type, config data, and config API tests. Config type/data suite: 1140 passed, 10 xfailed. Broader config/websettings run: 133 passed, 1 skipped, 1 failure because optional PyQt5.QtWebKit is unavailable. Focused config API and user-agent websettings tests: 2 passed, 1 skipped. git diff --check passed.

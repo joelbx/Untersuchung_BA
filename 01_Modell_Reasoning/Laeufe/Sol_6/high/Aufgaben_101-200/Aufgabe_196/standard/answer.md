@@ -1,0 +1,3 @@
+Updated the assistant upsell flows to use the shared Scribe addon resolver and build a `planIDs` object that includes the base plan and adds an addon when one applies. [payments/core](/app/packages/components/payments/core/index.ts) now exports `SelectedPlan` and the resolver, and the affected imports use that public entrypoint. Added tests for plans without a Scribe addon.
+
+The focused tests passed (50 tests), as did Prettier, ESLint, and `git diff --check`. The components type check remains blocked by an error in the untouched [crypto worker](/app/packages/crypto/lib/worker/api.ts:577): incompatible types from two installed OpenPGP packages.

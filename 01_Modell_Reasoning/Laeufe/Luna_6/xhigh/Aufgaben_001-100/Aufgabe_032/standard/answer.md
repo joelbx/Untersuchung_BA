@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py:43) with centralized JSON termination, atomic job-file writes, consistent job IDs and lifecycle fields, and structured startup and timeout errors. Timeout records include the child PID, and temporary-directory cleanup policy is reflected in immediate responses.
+
+Verification passed: `ansible-test units test/units/modules/test_async_wrapper.py` (1 test), Python compilation, and `git diff --check`.

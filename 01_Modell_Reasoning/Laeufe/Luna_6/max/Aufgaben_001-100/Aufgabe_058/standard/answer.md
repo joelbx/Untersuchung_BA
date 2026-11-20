@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts:73) with explicit anonymity, enabled and initialized state, DNT enforcement, PostHog config validation, and guarded, awaited event capture. Identification and room IDs use lowercase SHA-256 hashes; logout resets PostHog when enabled and restores anonymous mode.
+
+The existing analytics tests pass (13/13), targeted ESLint passes, and `git diff --check` passes. Full type checking remains blocked by existing dependency declaration and SDK type errors; none point to `PosthogAnalytics.ts`.

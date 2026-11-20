@@ -1,0 +1,3 @@
+Implemented the chat message edit flow: `PUT /chats/:roomId/:mid` validates content, checks edit permission and message existence, applies the edit, and returns the updated message in a v3 response. The client now uses REST for both sending and editing; the legacy socket edit path logs a deprecation warning and validates its input.
+
+Verification: syntax checks, JSON parsing, `git diff --check`, and ESLint on the messaging files passed. The messaging test suite could not start because Redis at `127.0.0.1:6379` refused the connection. A broader targeted ESLint run also reported existing issues in legacy controller stubs and unused socket module imports. The untracked `appendonly.aof` was left untouched.

@@ -1,0 +1,3 @@
+HTTPS support is implemented for the REST API, UI, and gRPC. [Configuration loading](/app/cmd/flipt/config.go) now accepts a YAML path, applies `FLIPT` environment overrides, preserves HTTP defaults, and validates HTTPS certificate paths. [Server startup](/app/cmd/flipt/main.go) loads the key pair before listening and uses TLS for both endpoints. The new options are documented in [configuration.md](/app/docs/configuration.md).
+
+Verification passed: `go test ./...`. A local HTTPS smoke test returned 200 from the REST API, and the gRPC endpoint completed a verified TLS handshake.

@@ -1,0 +1,3 @@
+Resolved the author identifier issue in `/app`. [Edition expansion](/app/openlibrary/catalog/utils/__init__.py) now generates each author’s `db_name` from their name and available dates. Existing editions pass only author name and birth/death dates into expansion, and the comparator recognizes equivalent name orders.
+
+Validation: the relevant suites had **105 passing tests**; the final focused run had **10 passing tests** and one expected failure. `git diff --check` passed.

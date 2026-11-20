@@ -1,0 +1,3 @@
+Implemented Redis TLS configuration with `ca_cert_path`, `ca_cert_bytes`, and `insecure_skip_tls`. The new [NewClient](/app/internal/cache/redis/client.go) constructor uses TLS 1.2 or newer, loads a custom CA when configured, and rejects conflicting CA options. Redis startup now uses it. I also added YAML coverage and the `api/cachetls` integration case to the GitHub Actions matrix.
+
+The affected packages’ short tests and the integration runner compile check passed. The Dagger TLS integration case was not run locally; CI will verify the live connection.

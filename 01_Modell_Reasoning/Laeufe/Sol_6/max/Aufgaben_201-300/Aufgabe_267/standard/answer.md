@@ -1,0 +1,3 @@
+Added `Action.RoomLoaded` and made [RoomView](/app/src/components/structures/RoomView.tsx:1407) dispatch it after a room loads. [RoomViewStore](/app/src/stores/RoomViewStore.tsx:542) now refreshes widget buttons on that action, including when no `ViewRoom` action came first. RoomView also preserves the focused event when the store has no initial event ID.
+
+All 67 relevant Jest tests pass, as do ESLint and formatting checks. The full TypeScript check reports errors in unrelated OIDC and SDK files; none are in the changed files.

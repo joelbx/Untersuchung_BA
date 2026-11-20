@@ -1,0 +1,457 @@
+diff --git a/docs/4.4/config-reference.md b/docs/4.4/config-reference.md
+index df16d30..c5ed5bd 100644
+--- a/docs/4.4/config-reference.md
++++ b/docs/4.4/config-reference.md
+@@ -319,7 +319,11 @@ proxy_service:
+     https_key_file: /var/lib/teleport/webproxy_key.pem
+     https_cert_file: /var/lib/teleport/webproxy_cert.pem
+ 
+-    # This section configures the Kubernetes proxy service
++    # Enables the Kubernetes proxy and sets its listen address. The port
++    # defaults to 3026 when omitted. Use this or kubernetes.enabled below.
++    # kube_listen_addr: 0.0.0.0:3026
++
++    # This section configures the Kubernetes proxy service (legacy format)
+     kubernetes:
+         # Turns 'kubernetes' proxy on. Default is 'no'
+         enabled: yes
+diff --git a/lib/client/api.go b/lib/client/api.go
+index e1656c8..11680b6 100644
+--- a/lib/client/api.go
++++ b/lib/client/api.go
+@@ -690,7 +690,11 @@ func (c *Config) KubeProxyHostPort() (string, int) {
+ 	if c.KubeProxyAddr != "" {
+ 		addr, err := utils.ParseAddr(c.KubeProxyAddr)
+ 		if err == nil {
+-			return addr.Host(), addr.Port(defaults.KubeListenPort)
++			host := addr.Host()
++			if ip := net.ParseIP(host); ip != nil && ip.IsUnspecified() {
++				host, _ = c.WebProxyHostPort()
++			}
++			return host, addr.Port(defaults.KubeListenPort)
+ 		}
+ 	}
+ 
+@@ -702,7 +706,7 @@ func (c *Config) KubeProxyHostPort() (string, int) {
+ // Kubernetes clients.
+ func (c *Config) KubeClusterAddr() string {
+ 	host, port := c.KubeProxyHostPort()
+-	return fmt.Sprintf("https://%s:%d", host, port)
++	return "https://" + net.JoinHostPort(host, strconv.Itoa(port))
+ }
+ 
+ // WebProxyHostPort returns the host and port of the web proxy.
+@@ -1905,33 +1909,6 @@ func (tc *TeleportClient) UpdateTrustedCA(ctx context.Context, clusterName strin
+ // applyProxySettings updates configuration changes based on the advertised
+ // proxy settings, overriding existing fields in tc.
+ func (tc *TeleportClient) applyProxySettings(proxySettings ProxySettings) error {
+-	// Kubernetes proxy settings.
+-	if proxySettings.Kube.Enabled {
+-		switch {
+-		// PublicAddr is the first preference.
+-		case proxySettings.Kube.PublicAddr != "":
+-			if _, err := utils.ParseAddr(proxySettings.Kube.PublicAddr); err != nil {
+-				return trace.BadParameter(
+-					"failed to parse value received from the server: %q, contact your administrator for help",
+-					proxySettings.Kube.PublicAddr)
+-			}
+-			tc.KubeProxyAddr = proxySettings.Kube.PublicAddr
+-		// ListenAddr is the second preference.
+-		case proxySettings.Kube.ListenAddr != "":
+-			if _, err := utils.ParseAddr(proxySettings.Kube.ListenAddr); err != nil {
+-				return trace.BadParameter(
+-					"failed to parse value received from the server: %q, contact your administrator for help",
+-					proxySettings.Kube.ListenAddr)
+-			}
+-			tc.KubeProxyAddr = proxySettings.Kube.ListenAddr
+-		// If neither PublicAddr nor ListenAddr are passed, use the web
+-		// interface hostname with default k8s port as a guess.
+-		default:
+-			webProxyHost, _ := tc.WebProxyHostPort()
+-			tc.KubeProxyAddr = net.JoinHostPort(webProxyHost, strconv.Itoa(defaults.KubeListenPort))
+-		}
+-	}
+-
+ 	// Read in settings for HTTP endpoint of the proxy.
+ 	if proxySettings.SSH.PublicAddr != "" {
+ 		addr, err := utils.ParseAddr(proxySettings.SSH.PublicAddr)
+@@ -1975,6 +1952,29 @@ func (tc *TeleportClient) applyProxySettings(proxySettings ProxySettings) error
+ 		tc.SSHProxyAddr = net.JoinHostPort(addr.Host(), strconv.Itoa(addr.Port(defaults.SSHProxyListenPort)))
+ 	}
+ 
++	// Resolve Kubernetes addresses after the web proxy public address is applied.
++	if proxySettings.Kube.Enabled {
++		kubeAddr := proxySettings.Kube.PublicAddr
++		if kubeAddr == "" {
++			kubeAddr = proxySettings.Kube.ListenAddr
++		}
++		if kubeAddr == "" {
++			webProxyHost, _ := tc.WebProxyHostPort()
++			tc.KubeProxyAddr = net.JoinHostPort(webProxyHost, strconv.Itoa(defaults.KubeListenPort))
++		} else {
++			addr, err := utils.ParseHostPortAddr(kubeAddr, defaults.KubeListenPort)
++			if err != nil {
++				return trace.BadParameter(
++					"failed to parse value received from the server: %q, contact your administrator for help", kubeAddr)
++			}
++			host := addr.Host()
++			if ip := net.ParseIP(host); ip != nil && ip.IsUnspecified() {
++				host, _ = tc.WebProxyHostPort()
++			}
++			tc.KubeProxyAddr = net.JoinHostPort(host, strconv.Itoa(addr.Port(defaults.KubeListenPort)))
++		}
++	}
++
+ 	return nil
+ }
+ 
+diff --git a/lib/client/api_test.go b/lib/client/api_test.go
+index d3105cc..51b6ab8 100644
+--- a/lib/client/api_test.go
++++ b/lib/client/api_test.go
+@@ -70,6 +70,66 @@ func (s *APITestSuite) TestConfig(c *check.C) {
+ 	c.Assert(conf.SSHProxyAddr, check.Equals, "example.org:200")
+ }
+ 
++func (s *APITestSuite) TestKubernetesProxyAddressResolution(c *check.C) {
++	tests := []struct {
++		name     string
++		webAddr  string
++		settings ProxySettings
++		wantAddr string
++		wantURL  string
++	}{
++		{
++			name:     "public address takes precedence",
++			webAddr:  "web.example.com:3080",
++			settings: ProxySettings{Kube: KubeProxySettings{Enabled: true, PublicAddr: "kube.example.com:443", ListenAddr: "0.0.0.0:3026"}},
++			wantAddr: "kube.example.com:443",
++			wantURL:  "https://kube.example.com:443",
++		},
++		{
++			name:    "IPv4 wildcard uses advertised web host",
++			webAddr: "old.example.com:3080",
++			settings: ProxySettings{
++				Kube: KubeProxySettings{Enabled: true, ListenAddr: "0.0.0.0:8080"},
++				SSH:  SSHProxySettings{PublicAddr: "web.example.com:443"},
++			},
++			wantAddr: "web.example.com:8080",
++			wantURL:  "https://web.example.com:8080",
++		},
++		{
++			name:     "IPv6 wildcard uses web host",
++			webAddr:  "[2001:db8::1]:3080",
++			settings: ProxySettings{Kube: KubeProxySettings{Enabled: true, ListenAddr: "[::]:4040"}},
++			wantAddr: "[2001:db8::1]:4040",
++			wantURL:  "https://[2001:db8::1]:4040",
++		},
++		{
++			name:     "missing Kubernetes port uses default",
++			webAddr:  "web.example.com:3080",
++			settings: ProxySettings{Kube: KubeProxySettings{Enabled: true, ListenAddr: "0.0.0.0"}},
++			wantAddr: "web.example.com:3026",
++			wantURL:  "https://web.example.com:3026",
++		},
++		{
++			name:     "missing Kubernetes address uses web proxy",
++			webAddr:  "web.example.com:3080",
++			settings: ProxySettings{Kube: KubeProxySettings{Enabled: true}},
++			wantAddr: "web.example.com:3026",
++			wantURL:  "https://web.example.com:3026",
++		},
++	}
++
++	for _, test := range tests {
++		tc := &TeleportClient{Config: Config{WebProxyAddr: test.webAddr}}
++		c.Assert(tc.applyProxySettings(test.settings), check.IsNil, check.Commentf(test.name))
++		c.Assert(tc.KubeProxyAddr, check.Equals, test.wantAddr, check.Commentf(test.name))
++		c.Assert(tc.KubeClusterAddr(), check.Equals, test.wantURL, check.Commentf(test.name))
++	}
++
++	// Profiles created before this change may still contain wildcard addresses.
++	conf := Config{WebProxyAddr: "web.example.com:3080", KubeProxyAddr: "[::]:9000"}
++	c.Assert(conf.KubeClusterAddr(), check.Equals, "https://web.example.com:9000")
++}
++
+ func (s *APITestSuite) TestNew(c *check.C) {
+ 	conf := Config{
+ 		Host:      "localhost",
+diff --git a/lib/config/configuration.go b/lib/config/configuration.go
+index fe9d84a..38bf226 100644
+--- a/lib/config/configuration.go
++++ b/lib/config/configuration.go
+@@ -159,6 +159,9 @@ func ApplyFileConfig(fc *FileConfig, cfg *service.Config) error {
+ 	if fc == nil {
+ 		return nil
+ 	}
++	if err := fc.checkKubeProxyConfig(); err != nil {
++		return trace.Wrap(err)
++	}
+ 	// merge file-based config with defaults in 'cfg'
+ 	if fc.Auth.Disabled() {
+ 		cfg.Auth.Enabled = false
+@@ -169,8 +172,8 @@ func ApplyFileConfig(fc *FileConfig, cfg *service.Config) error {
+ 	if fc.Proxy.Disabled() {
+ 		cfg.Proxy.Enabled = false
+ 	}
+-	if fc.Kube.Enabled() {
+-		cfg.Kube.Enabled = true
++	if fc.Kube.Configured() {
++		cfg.Kube.Enabled = fc.Kube.Enabled()
+ 	}
+ 	applyString(fc.NodeName, &cfg.Hostname)
+ 
+@@ -341,11 +344,14 @@ func ApplyFileConfig(fc *FileConfig, cfg *service.Config) error {
+ 			return trace.Wrap(err)
+ 		}
+ 	}
+-	if fc.Kube.Enabled() {
++	if cfg.Kube.Enabled {
+ 		if err := applyKubeConfig(fc, cfg); err != nil {
+ 			return trace.Wrap(err)
+ 		}
+ 	}
++	if cfg.Kube.Enabled && cfg.Proxy.Enabled && fc.Proxy.KubeListenAddr == "" && fc.Proxy.Kube.ListenAddress == "" {
++		log.Warn("kubernetes_service and proxy_service are enabled, but the proxy has no Kubernetes listening address; set proxy_service.kube_listen_addr or proxy_service.kubernetes.listen_addr")
++	}
+ 
+ 	return nil
+ }
+@@ -539,16 +545,22 @@ func applyProxyConfig(fc *FileConfig, cfg *service.Config) error {
+ 	}
+ 
+ 	// apply kubernetes proxy config, by default kube proxy is disabled
+-	if fc.Proxy.Kube.Configured() {
++	if fc.Proxy.KubeListenAddr != "" {
++		cfg.Proxy.Kube.Enabled = true
++	} else if fc.Proxy.Kube.Configured() {
+ 		cfg.Proxy.Kube.Enabled = fc.Proxy.Kube.Enabled()
+ 	}
+ 	if fc.Proxy.Kube.KubeconfigFile != "" {
+ 		cfg.Proxy.Kube.KubeconfigPath = fc.Proxy.Kube.KubeconfigFile
+ 	}
+-	if fc.Proxy.Kube.ListenAddress != "" {
+-		addr, err := utils.ParseHostPortAddr(fc.Proxy.Kube.ListenAddress, int(defaults.KubeListenPort))
++	listenAddr := fc.Proxy.Kube.ListenAddress
++	if fc.Proxy.KubeListenAddr != "" {
++		listenAddr = fc.Proxy.KubeListenAddr
++	}
++	if listenAddr != "" {
++		addr, err := utils.ParseHostPortAddr(listenAddr, defaults.KubeListenPort)
+ 		if err != nil {
+-			return trace.Wrap(err)
++			return trace.BadParameter("invalid Kubernetes proxy listen address %q: %v", listenAddr, err)
+ 		}
+ 		cfg.Proxy.Kube.ListenAddr = *addr
+ 	}
+@@ -653,8 +665,8 @@ func applySSHConfig(fc *FileConfig, cfg *service.Config) error {
+ 
+ // applyKubeConfig applies file configuration for the "kubernetes_service" section.
+ func applyKubeConfig(fc *FileConfig, cfg *service.Config) error {
+-	if fc.Proxy.ListenAddress != "" {
+-		addr, err := utils.ParseHostPortAddr(fc.Proxy.ListenAddress, int(defaults.SSHProxyListenPort))
++	if fc.Kube.ListenAddress != "" {
++		addr, err := utils.ParseHostPortAddr(fc.Kube.ListenAddress, defaults.KubeListenPort)
+ 		if err != nil {
+ 			return trace.Wrap(err)
+ 		}
+diff --git a/lib/config/configuration_test.go b/lib/config/configuration_test.go
+index a583a65..eb70da4 100644
+--- a/lib/config/configuration_test.go
++++ b/lib/config/configuration_test.go
+@@ -23,6 +23,7 @@ import (
+ 	"io/ioutil"
+ 	"os"
+ 	"path/filepath"
++	"strings"
+ 	"testing"
+ 	"time"
+ 
+@@ -37,6 +38,7 @@ import (
+ 	"github.com/gravitational/teleport/lib/utils"
+ 
+ 	"github.com/gravitational/trace"
++	log "github.com/sirupsen/logrus"
+ 	"golang.org/x/crypto/ssh"
+ 	"gopkg.in/check.v1"
+ )
+@@ -418,6 +420,131 @@ func (s *ConfigTestSuite) TestApplyConfig(c *check.C) {
+ 	c.Assert(cfg.Proxy.ReverseTunnelListenAddr.FullAddress(), check.Equals, "tcp://tunnelhost:1001")
+ }
+ 
++func (s *ConfigTestSuite) TestKubernetesProxyListenConfig(c *check.C) {
++	tests := []struct {
++		name       string
++		config     string
++		enabled    bool
++		listenAddr string
++		conflict   bool
++	}{
++		{
++			name:       "shorthand with port",
++			config:     "proxy_service:\n  kube_listen_addr: 0.0.0.0:8080\n",
++			enabled:    true,
++			listenAddr: "0.0.0.0:8080",
++		},
++		{
++			name:       "shorthand with default port",
++			config:     "proxy_service:\n  kube_listen_addr: kube.example.com\n",
++			enabled:    true,
++			listenAddr: "kube.example.com:3026",
++		},
++		{
++			name:       "shorthand with IPv6 default port",
++			config:     "proxy_service:\n  kube_listen_addr: '[::]'\n",
++			enabled:    true,
++			listenAddr: "[::]:3026",
++		},
++		{
++			name:       "legacy enabled block",
++			config:     "proxy_service:\n  kubernetes:\n    enabled: yes\n    listen_addr: 127.0.0.1:4040\n",
++			enabled:    true,
++			listenAddr: "127.0.0.1:4040",
++		},
++		{
++			name:       "legacy disabled block",
++			config:     "proxy_service:\n  kubernetes:\n    enabled: no\n",
++			enabled:    false,
++			listenAddr: "0.0.0.0:3026",
++		},
++		{
++			name:       "disabled legacy block with shorthand",
++			config:     "proxy_service:\n  kube_listen_addr: localhost:8080\n  kubernetes:\n    enabled: no\n    listen_addr: localhost:9999\n",
++			enabled:    true,
++			listenAddr: "localhost:8080",
++		},
++		{
++			name:       "nested public address with shorthand",
++			config:     "proxy_service:\n  kube_listen_addr: localhost:8080\n  kubernetes:\n    public_addr: kube.example.com:3026\n",
++			enabled:    true,
++			listenAddr: "localhost:8080",
++		},
++		{
++			name:     "enabled legacy block conflicts",
++			config:   "proxy_service:\n  kube_listen_addr: localhost:8080\n  kubernetes:\n    enabled: yes\n    listen_addr: localhost:9999\n",
++			conflict: true,
++		},
++		{
++			name:     "legacy listen address conflicts",
++			config:   "proxy_service:\n  kube_listen_addr: localhost:8080\n  kubernetes:\n    listen_addr: localhost:9999\n",
++			conflict: true,
++		},
++	}
++
++	for _, test := range tests {
++		comment := check.Commentf(test.name)
++		fc, err := ReadConfig(bytes.NewBufferString(test.config))
++		if test.conflict {
++			c.Assert(err, check.NotNil, comment)
++			c.Assert(trace.IsBadParameter(err), check.Equals, true, comment)
++			c.Assert(strings.Contains(err.Error(), "kube_listen_addr") && strings.Contains(err.Error(), "kubernetes"), check.Equals, true, comment)
++			continue
++		}
++		c.Assert(err, check.IsNil, comment)
++		cfg := service.MakeDefaultConfig()
++		c.Assert(ApplyFileConfig(fc, cfg), check.IsNil, comment)
++		c.Assert(cfg.Proxy.Kube.Enabled, check.Equals, test.enabled, comment)
++		c.Assert(cfg.Proxy.Kube.ListenAddr.Addr, check.Equals, test.listenAddr, comment)
++		if len(fc.Proxy.Kube.PublicAddr) != 0 {
++			c.Assert(cfg.Proxy.Kube.PublicAddrs, check.HasLen, 1, comment)
++			c.Assert(cfg.Proxy.Kube.PublicAddrs[0].Addr, check.Equals, "kube.example.com:3026", comment)
++		}
++	}
++
++	fc := &FileConfig{Proxy: Proxy{
++		KubeListenAddr: "localhost:8080",
++		Kube:           KubeProxy{Service: Service{EnabledFlag: "yes"}},
++	}}
++	cfg := service.MakeDefaultConfig()
++	c.Assert(trace.IsBadParameter(ApplyFileConfig(fc, cfg)), check.Equals, true)
++}
++
++func (s *ConfigTestSuite) TestKubernetesServiceListenAndProxyWarning(c *check.C) {
++	var warnings bytes.Buffer
++	previousOutput := log.StandardLogger().Out
++	log.SetOutput(&warnings)
++	defer log.SetOutput(previousOutput)
++
++	fc, err := ReadConfig(bytes.NewBufferString("proxy_service:\n  enabled: yes\nkubernetes_service:\n  enabled: yes\n  listen_addr: kube.internal\n"))
++	c.Assert(err, check.IsNil)
++	cfg := service.MakeDefaultConfig()
++	c.Assert(ApplyFileConfig(fc, cfg), check.IsNil)
++	c.Assert(cfg.Kube.Enabled, check.Equals, true)
++	c.Assert(cfg.Kube.ListenAddr.Addr, check.Equals, "kube.internal:3026")
++	c.Assert(strings.Contains(warnings.String(), "proxy_service.kube_listen_addr"), check.Equals, true)
++
++	warnings.Reset()
++	fc.Proxy.KubeListenAddr = "0.0.0.0:3026"
++	cfg = service.MakeDefaultConfig()
++	c.Assert(ApplyFileConfig(fc, cfg), check.IsNil)
++	c.Assert(warnings.String(), check.Equals, "")
++
++	warnings.Reset()
++	fc.Proxy.KubeListenAddr = ""
++	fc.Proxy.EnabledFlag = "no"
++	cfg = service.MakeDefaultConfig()
++	c.Assert(ApplyFileConfig(fc, cfg), check.IsNil)
++	c.Assert(warnings.String(), check.Equals, "")
++
++	warnings.Reset()
++	fc = &FileConfig{}
++	cfg = service.MakeDefaultConfig()
++	c.Assert(ApplyFileConfig(fc, cfg), check.IsNil)
++	c.Assert(cfg.Kube.Enabled, check.Equals, false)
++	c.Assert(warnings.String(), check.Equals, "")
++}
++
+ // TestApplyConfigNoneEnabled makes sure that if a section is not enabled,
+ // it's fields are not read in.
+ func (s *ConfigTestSuite) TestApplyConfigNoneEnabled(c *check.C) {
+diff --git a/lib/config/fileconf.go b/lib/config/fileconf.go
+index ba2b6a7..82c76f9 100644
+--- a/lib/config/fileconf.go
++++ b/lib/config/fileconf.go
+@@ -94,6 +94,7 @@ var (
+ 		"data_dir":                true,
+ 		"web_listen_addr":         true,
+ 		"tunnel_listen_addr":      true,
++		"kube_listen_addr":        false,
+ 		"ssh_listen_addr":         true,
+ 		"listen_addr":             true,
+ 		"ca_cert_file":            false,
+@@ -335,6 +336,10 @@ func (conf *FileConfig) DebugDumpToYAML() string {
+ // are supported by golang.org/x/crypto/ssh. This ensures we don't start
+ // Teleport with invalid configuration.
+ func (conf *FileConfig) Check() error {
++	if err := conf.checkKubeProxyConfig(); err != nil {
++		return trace.Wrap(err)
++	}
++
+ 	var sc ssh.Config
+ 	sc.SetDefaults()
+ 
+@@ -360,6 +365,15 @@ func (conf *FileConfig) Check() error {
+ 	return nil
+ }
+ 
++// checkKubeProxyConfig rejects ambiguous Kubernetes proxy listen settings.
++func (conf *FileConfig) checkKubeProxyConfig() error {
++	if conf.Proxy.KubeListenAddr != "" && !conf.Proxy.Kube.Disabled() &&
++		(conf.Proxy.Kube.Configured() || conf.Proxy.Kube.ListenAddress != "") {
++		return trace.BadParameter("proxy_service.kube_listen_addr conflicts with proxy_service.kubernetes.enabled or proxy_service.kubernetes.listen_addr; use one Kubernetes proxy listen setting")
++	}
++	return nil
++}
++
+ // ConnectionRate configures rate limiter
+ type ConnectionRate struct {
+ 	Period  time.Duration `yaml:"period"`
+@@ -809,6 +823,8 @@ type Proxy struct {
+ 	// as only admin knows whether service is in front of trusted load balancer
+ 	// or not.
+ 	ProxyProtocol string `yaml:"proxy_protocol,omitempty"`
++	// KubeListenAddr enables the Kubernetes proxy and sets its listen address.
++	KubeListenAddr string `yaml:"kube_listen_addr,omitempty"`
+ 	// KubeProxy configures kubernetes protocol support of the proxy
+ 	Kube KubeProxy `yaml:"kubernetes,omitempty"`
+ 

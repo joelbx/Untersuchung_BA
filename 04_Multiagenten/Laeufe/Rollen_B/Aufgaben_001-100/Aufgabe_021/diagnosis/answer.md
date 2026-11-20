@@ -1,0 +1,5 @@
+I traced the issue and recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were not changed because this run is restricted to fault localization.
+
+The likely fix centers on [model.py](/app/openlibrary/core/lists/model.py:68). `add_seed()` and `remove_seed()` compare mixed seed representations directly, while `get_seeds()` and `Seed` assume non-string seeds have a `.key` attribute. In [lists.py](/app/openlibrary/plugins/openlibrary/lists.py:39), subject normalization differs between input paths. `get_export_list()` also assumes every seed has `.type.key` and omits empty export categories.
+
+The fix should normalize subject pseudo keys and membership comparisons, resolve dictionary references before wrapping them as `Seed` objects, and return all three export categories with loaded, type-filtered entries. Handling of missing references still needs an implementation decision. Targeted existing tests had 10 passes and one failure caused by missing `web.ctx.env` in that test’s setup; they do not cover mixed-format duplicates or exports.

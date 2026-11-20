@@ -1,0 +1,3 @@
+Updated DynamoDB audit events to store metadata in the native `FieldsMap` attribute. Reads still support legacy `Fields` records while a distributed-locked, resumable batch migration converts them and validates their content. Added `backend.FlagKey` for the migration flag and kept pagination checkpoints stable during conversion.
+
+`go test ./lib/events/dynamoevents ./lib/backend -count=1` passed. The AWS-dependent integration suite was skipped because it was not enabled.

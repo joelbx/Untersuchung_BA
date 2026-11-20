@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` in both hash backends. Mongo uses conditional atomic `$inc` updates; Redis uses a Lua script to validate and increment each key atomically. Both validate tuple shape, field names, and safe integer increments, then invalidate caches for updated keys.
+
+ESLint and `git diff --check` pass. `test/database/hash.js` could not run because Redis is unavailable at `127.0.0.1:6379`. The test startup created an untracked `appendonlydir/` directory; I couldn’t remove it with the available filesystem command restrictions.

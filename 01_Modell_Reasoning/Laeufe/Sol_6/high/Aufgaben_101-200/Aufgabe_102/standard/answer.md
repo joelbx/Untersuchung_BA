@@ -1,0 +1,3 @@
+Added the Linux `locally_reachable_ips` fact with separate `ipv4` and `ipv6` lists. It reads local routes, normalizes and deduplicates addresses and prefixes, and orders them consistently. When route data is unavailable, it returns empty lists with a warning.
+
+Added [unit tests](/app/test/units/module_utils/facts/network/test_linux_locally_reachable_ips.py) and a changelog entry. The relevant tests passed: **146 passed, 5 skipped**.

@@ -1,0 +1,3 @@
+Centralized author identifier generation in [catalog utilities](/app/openlibrary/catalog/utils/__init__.py:294). Edition expansion now adds it for every author, and [existing edition conversion](/app/openlibrary/catalog/add_book/match.py:50) passes author names and dates through that same path.
+
+The broader catalog tests passed: **204 passed, 1 skipped, 2 expected failures, 1 unexpected pass**. Ruff and `git diff --check` passed.

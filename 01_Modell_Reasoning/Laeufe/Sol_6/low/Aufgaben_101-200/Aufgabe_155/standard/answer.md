@@ -1,0 +1,3 @@
+Implemented digest support across image configuration, scanning, scan results, and report naming. Images now accept exactly one of tag or digest, and full references use `name:tag` or `name@digest`. Image OS detection names each scan `<index>@<serverName>`.
+
+The targeted validation and report naming tests pass; the affected packages compile. The broader test run remains blocked by an existing `TestScan` failure, and the standard run reports existing vet errors in `models/library.go`.

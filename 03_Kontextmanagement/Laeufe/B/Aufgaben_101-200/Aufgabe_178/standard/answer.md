@@ -1,0 +1,3 @@
+Added `ident` support to `password_hash` and the password lookup. The lookup defaults BCrypt to `2a` and saves the selected ident with the salt. Existing behavior without `ident` is preserved for the filter. All 60 relevant tests pass.
+
+**Limitation:** this system’s `crypt` library cannot generate legacy `$2$` hashes; that path now reports the unsupported variant instead of returning an invalid hash.

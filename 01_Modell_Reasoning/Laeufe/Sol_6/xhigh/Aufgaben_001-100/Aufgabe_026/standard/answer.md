@@ -1,0 +1,3 @@
+Updated Vuls to use every CVE content source associated with an OS family. Ubuntu reports now include both Ubuntu OVAL and Gost data in source URLs, vulnerability fields, titles, summaries, and CVSS v3 scores. Change detection also checks both sources. Added `GetCveContentTypes` while preserving the existing single-source mapping, and mapped `NEGLIGIBLE` to the LOW score and range.
+
+Regression tests were added. The existing models, detector, reporter, Gost, and OVAL test suites pass.

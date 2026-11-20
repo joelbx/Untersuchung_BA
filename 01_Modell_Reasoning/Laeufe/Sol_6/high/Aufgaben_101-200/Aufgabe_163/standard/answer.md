@@ -1,0 +1,3 @@
+Implemented separate `db.protocol`, `host` or SQLite `path`, `port`, `user`, `password`, and `name` settings. An explicit `db.url` takes precedence. Connections and migrations now derive the target internally, share validation and pool settings, and redact credentials from connection errors.
+
+Updated [config/default.yml](/app/config/default.yml) with examples. `go test ./...` and `git diff --check` pass. Live Postgres and MySQL connections were not tested; the repository tests cover their generated connection strings.

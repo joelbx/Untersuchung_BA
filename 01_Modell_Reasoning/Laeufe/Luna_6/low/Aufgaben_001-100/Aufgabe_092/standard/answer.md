@@ -1,0 +1,5 @@
+Implemented `--upgrade` / `-U` for collection installs and passed it through to dependency resolution. Upgrades bypass installed-version preference, including for transitive dependencies; existing version constraints and `--no-deps` behavior remain in the resolver. The normal install path remains unchanged, and prereleases are excluded unless `--pre` is set, except for explicitly pinned prerelease versions.
+
+The checkpoint is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+**Verification:** `git diff --check` passed. The focused unit run reported 136 passed and 4 failed in `test/units/galaxy/test_collection_install.py` and `test/units/cli/test_galaxy.py`. The failures are CLI warning-count assertions; I did not resolve them. No `upgrade.yml` or new upgrade-specific tests were added.

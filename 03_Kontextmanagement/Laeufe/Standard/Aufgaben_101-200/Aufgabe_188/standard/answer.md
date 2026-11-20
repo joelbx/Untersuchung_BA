@@ -1,0 +1,3 @@
+Storage size definitions now live in [size.ts](/app/packages/shared/lib/helpers/size.ts). I updated the requested member, provisioning, CSV, organization, and shared constant paths to use them, including `sizeUnits.TB` for Drive plan initial storage. I also replaced the gigabyte calculations found in offers, referral copy, and Drive limits.
+
+The CSV suite passed (64 tests), the size formatter spec passed (15 tests), and `git diff --check` passed. Both type checks are blocked by an unrelated `openpgp` type mismatch in [api.ts](/app/packages/crypto/lib/worker/api.ts:579).

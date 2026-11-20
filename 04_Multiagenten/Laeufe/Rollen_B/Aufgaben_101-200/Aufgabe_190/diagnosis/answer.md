@@ -1,0 +1,7 @@
+I localized the changes, but did not edit project source or tests: the assigned fault-localization role permits diagnosis only.
+
+- [add_book/__init__.py](/app/openlibrary/catalog/add_book/__init__.py:971): `load` needs to pass `save` through both new and matched edition paths. `load_data`, `new_work`, and the author reply helper currently allocate real keys or perform writes. Preview must collect the Edition, Work, and Author edits while skipping uploads, `save_many`, and Archive.org updates.
+- [load_book.py](/app/openlibrary/catalog/add_book/load_book.py:271): `import_author` and `build_query` are the rename points. Language conversion and typed descriptions already exist, but honorific removal happens only through `build_query`; other author paths can behave differently.
+- [import API handlers](/app/openlibrary/plugins/importapi/code.py:171): direct, IA, and bulk MARC requests each need to propagate `preview=true` to `load`.
+
+The [existing tests](/app/openlibrary/catalog/add_book/tests/test_add_book.py) cover cover hosts, matching, and MARC imports, but contain no preview coverage. One open design point is whether a URL with an allowed hostname and an explicit port should pass: the current cover check compares the full network location, including the port. Findings are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

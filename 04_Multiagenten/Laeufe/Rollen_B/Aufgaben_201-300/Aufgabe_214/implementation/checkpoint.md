@@ -1,0 +1,1 @@
+Implemented per-server portscan TOML configuration, validation, nmap XML scanning, native dispatch, and discovery examples. Existing scan results remain ip:port for correlation. Added focused config and scanner tests. `GOPROXY=off go test ./config ./scanner ./subcmds` and `git diff --check` pass (sqlite3 emits an existing compiler warning).

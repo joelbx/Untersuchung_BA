@@ -1,0 +1,3 @@
+Added `route_targets` to [nxos_vrf_af.py](/app/lib/ansible/modules/network/nxos/nxos_vrf_af.py:50). It supports multiple import and export values, defaults `direction` to `both`, and adds or removes only the requested entries in the selected VRF address family. The new `match_current_rt` helper compares exact configured lines. Tests cover creation, mixed changes, removal, idempotence, and address-family deletion.
+
+The focused tests passed after first failing on the missing option; all **356 NX-OS unit tests** pass. Repository-wide testing could not complete because of collection errors and unavailable dependencies; details are in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

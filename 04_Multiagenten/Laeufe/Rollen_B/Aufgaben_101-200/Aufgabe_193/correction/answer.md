@@ -1,0 +1,3 @@
+The repository patch now includes the unified requirements install behavior. In this correction round, I fixed four test assertions so Ansible’s development warning does not affect checks for collections path warnings.
+
+The previously failing default test run passes: **113 tests**. The two test commands flagged by the reviewer also pass: **113** and **19 tests**. `git diff --check` is clean. No failures remain.

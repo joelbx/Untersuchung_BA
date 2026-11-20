@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts) to use enum based anonymity, enforce DNT, validate PostHog config, gate tracking and identification, await capture, hash IDs, redact URLs by the current mode, and reset the client on logout. Added regression coverage in [PosthogAnalytics-test.ts](/app/test/PosthogAnalytics-test.ts).
+
+All 27 focused tests pass; lint and `git diff --check` pass. The full suite and project type check remain unverified because they fail on missing generated files and unrelated repository or dependency errors. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

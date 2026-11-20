@@ -1,0 +1,3 @@
+Implemented native SQLite backups in the checked-out repository. Configuration now supports `backup.path`, `backup.schedule`, and `backup.count`; startup creates the backup directory and rejects invalid schedules. The CLI provides `backup create`, `backup prune`, and `backup restore`, with confirmation for restores and for pruning when the count is zero. Scheduled backups also prune old files.
+
+Verified with `go test ./db ./conf ./cmd` and `git diff --check`. No delegation was used.

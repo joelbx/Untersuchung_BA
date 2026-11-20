@@ -1,0 +1,3 @@
+Resolved the user scoping issue in `/app`. User property reads and writes now require an explicit `userId`, and the mock stores values under a stable composite key. LastFM session keys, link status, unlink, now playing, and scrobbling use the selected user’s ID. The auth callback now verifies a signed state created by an authenticated link request before saving a session key.
+
+Added user isolation tests. The relevant Go tests, UI formatting and lint checks, and `git diff --check` all pass.

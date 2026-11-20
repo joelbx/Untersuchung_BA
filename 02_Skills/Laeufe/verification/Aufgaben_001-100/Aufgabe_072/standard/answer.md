@@ -1,0 +1,3 @@
+Implemented Punycode conversion for external HTTP(S) links. `punycodeUrl` converts the hostname while retaining the other URL components and removing a trailing pathname slash; `getHostnameWithRegex` extracts the domain label. The link hook now uses the converted destination and shows an error notification when it cannot extract or parse a link URL.
+
+Verification: 14 URL helper tests passed; TypeScript, ESLint, and `git diff --check` passed.

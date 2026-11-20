@@ -1,0 +1,3 @@
+Added exported `Hasher` and package and method `SetSeed` APIs. An ID now keeps its assigned seed, so changing it changes the hash and restoring it restores the original hash. IDs without a seed are initialized automatically.
+
+Hasher, race, database, and persistence tests pass. Hashes are reproducible within a `Hasher` instance; the `maphash` seed is process local, so identical results across restarts are not guaranteed.

@@ -1,0 +1,3 @@
+Updated the list model with typed seed inputs, consistent key based duplicate checks, type filtered exports, and support for subject strings alongside entity references. Added subject key normalization helpers and return annotations for `urlsafe()` and `_get_ol_base_url()`.
+
+Verification: 20 relevant tests passed; Ruff and `git diff --check` passed. The legacy `test_listapi.py` could not collect because `cookielib` is unavailable; that check remains unverified and is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

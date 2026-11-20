@@ -1,0 +1,3 @@
+Implemented `override-validation=true` for import POST requests. The flag now passes through `load()` to `validate_record()`, bypassing the publication year, “Independently Published,” and missing ISBN checks. Required-field checks remain active. Added the case-insensitive `is_promise_item(rec)` utility.
+
+Verification: 142 tests passed, 1 was expected to fail, and Ruff passed with an existing import warning excluded. Black was unavailable locally; that limitation is recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

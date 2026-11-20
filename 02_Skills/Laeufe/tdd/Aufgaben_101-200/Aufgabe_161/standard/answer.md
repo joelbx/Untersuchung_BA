@@ -1,0 +1,3 @@
+Worksearch now reads Solr JSON for search results, facets, spellcheck, and documents. The new facet processors handle flat value/count pairs, and `run_solr_query` defaults `wt` to `json`. Tests cover the JSON behavior and error responses.
+
+The offline suite passed: **1,058 passed**. The full suite could not collect `test_partner_batch_imports.py` because it fetches a schema from GitHub; that file remains unverified. The exact failure is recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

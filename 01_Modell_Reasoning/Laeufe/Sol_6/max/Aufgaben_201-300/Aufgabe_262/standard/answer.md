@@ -1,0 +1,3 @@
+Book imports now validate cover URLs against `ALLOWED_COVER_HOSTS` before uploading them. The new `process_cover_url` helper accepts HTTP and HTTPS URLs, compares hosts without regard to case, and removes `cover` from the dictionary whether the URL is accepted or ignored. Both new and matched edition paths use it in [add_book/__init__.py](/app/openlibrary/catalog/add_book/__init__.py).
+
+Regression tests cover both import paths in [test_add_book.py](/app/openlibrary/catalog/add_book/tests/test_add_book.py). The full `add_book` suite passed: **151 passed, 1 expected failure**. Ruff and `git diff --check` also passed.

@@ -1,0 +1,3 @@
+Moved release detection and update checking into [internal/release/check.go](/app/internal/release/check.go). Startup now treats `dev`, `snapshot`, and `rc` builds as non-releases, reports the returned version and update details in the configured output mode, and disables telemetry for non-release builds or CI. A failed update check logs a warning and does not stop startup.
+
+Relevant tests passed: `go test ./internal/release ./cmd/flipt ./internal/info ./internal/telemetry`. `git diff --check` also passed. No delegation was used.

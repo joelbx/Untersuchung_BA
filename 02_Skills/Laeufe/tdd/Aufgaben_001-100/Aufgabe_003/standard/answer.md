@@ -1,0 +1,3 @@
+Added `timeOffset` support through the streaming handlers, cache keys, and FFmpeg command generation. The handlers default missing, invalid, or negative offsets to 0. FFmpeg replaces `%t` in templates or inserts `-ss` after the input for custom commands when the offset is nonzero.
+
+The focused tests and changed packages passed. `go test ./...` remains red on three unrelated TagLib tests involving fixture counts, duplicate gain tags, and file permissions; the failures are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

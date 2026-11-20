@@ -1,0 +1,5 @@
+VERDICT: FIX
+
+**Code defect:** [paymentTokenHelper.tsx](/app/packages/components/containers/payments/paymentTokenHelper.tsx:90) now resolves `false` when approval closes or token status fails. [PayPalModal.tsx](/app/packages/components/containers/payments/PayPalModal.tsx:48) ignores that result and proceeds to save the unverified token. Require a `true` result before calling `setPaymentMethod`.
+
+**Tests:** `../../node_modules/.bin/jest containers/payments/paymentTokenHelper.test.ts containers/payments/PaymentVerificationModal.test.tsx --runInBand --ci --coverage=false` passed from `packages/components`: 2 suites, 17 tests. An earlier `yarn workspace @proton/components jest ...` attempt produced no output and was interrupted; the direct Jest run succeeded. **TEST_ENVIRONMENT_PROBLEM:** none blocking.

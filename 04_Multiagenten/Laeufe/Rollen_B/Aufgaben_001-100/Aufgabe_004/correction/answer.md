@@ -1,0 +1,3 @@
+Fixed the reviewed bridge defect in [PassBridgeFactory.ts](/app/packages/pass/lib/bridge/PassBridgeFactory.ts): a newly created vault now respects the requested cache TTL, and an expired entry triggers a fresh lookup so a removed or trashed vault is not selected indefinitely.
+
+The exact PassAliases tests passed (2 suites, 6 tests). Both `@proton/components` and `@proton/pass` type checks passed. No remaining failures or test environment problems.

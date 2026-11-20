@@ -1,0 +1,3 @@
+Updated [format_languages](/app/openlibrary/catalog/utils/__init__.py:455) to resolve ISO 639-1 codes and English or native language names to canonical MARC keys, then remove duplicates while preserving first occurrence order. Added regression coverage in [test_utils.py](/app/openlibrary/tests/catalog/test_utils.py:425), including a case where a language record corrects an existing mapping entry.
+
+Verification: 116 relevant tests passed; Ruff and `git diff --check` passed.

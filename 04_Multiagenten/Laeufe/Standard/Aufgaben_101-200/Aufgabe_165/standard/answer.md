@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` support for new rooms. The shared policy helper gives server force-enable settings precedence and warns when they conflict with `.well-known`. The room creation dialog keeps the encryption toggle disabled while the policy loads, shows any enforced value, and submits the value shown.
+
+The focused tests passed (30 total), as did ESLint and Prettier for the changed files. The full TypeScript check still reports an unrelated error in [src/Unread.ts](/app/src/Unread.ts:167).

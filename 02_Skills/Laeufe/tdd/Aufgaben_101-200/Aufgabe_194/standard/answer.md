@@ -1,0 +1,3 @@
+BlocklistDownloads now inherits `QObject` and emits `single_download_finished(object)` and `all_downloads_finished(int)`. Both blocker consumers connect their handlers before starting downloads. Tests cover multiple listeners and empty URL lists.
+
+The targeted blocker suite passed: **38 passed, 13 skipped**. The full suite could not complete because this environment lacks QtWebKit; broader unit runs also encountered an X server I/O error. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated the Kubernetes service to initialize the session uploader at startup, creating the directory needed for interactive recordings. The forwarder now builds a fresh cluster session per request, caches only short-lived credentials, serializes concurrent CSR requests, and uses its own context for audit events so client disconnects do not cancel them. I also clarified the forwarder config fields and added `ServeHTTP` delegation to its internal router.
+
+Verification passed: `go test ./lib/kube/proxy ./lib/service` and `git diff --check`.

@@ -1,0 +1,3 @@
+Updated the List and Seed code with type annotations, a shared `SeedDict`, normalized subject seed helpers, consistent duplicate detection, and an export result containing `authors`, `works`, and `editions`. Added focused tests for seed formats and subject normalization.
+
+The focused suites pass: **11 tests**. The adjacent list API test could not collect because it imports Python 2’s `cookielib` module.

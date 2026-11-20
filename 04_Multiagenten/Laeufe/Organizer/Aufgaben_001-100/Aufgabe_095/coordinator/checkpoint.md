@@ -1,0 +1,1 @@
+Completed locally without delegation. Added module-level make_date_string, reused it in check-in creation, retained method compatibility, and added patron_check_ins.is_valid for id plus year/data presence. Added focused tests. Verified: pytest -q openlibrary/plugins/upstream/tests/test_checkins.py (7 passed); git diff --check (passed).

@@ -1,0 +1,328 @@
+diff --git a/install/data/defaults.json b/install/data/defaults.json
+index acd8e9c..8a466fd 100644
+--- a/install/data/defaults.json
++++ b/install/data/defaults.json
+@@ -22,6 +22,7 @@
+     "notificationSendDelay": 60,
+     "newbiePostDelayThreshold": 3,
+     "postQueue": 0,
++    "topicBacklinks": 0,
+     "postQueueReputationThreshold": 0,
+     "groupsExemptFromPostQueue": ["administrators", "Global Moderators"],
+     "minimumPostLength": 8,
+@@ -162,4 +163,4 @@
+     "composer:allowPluginHelp": 1,
+     "maxReconnectionAttempts": 5,
+     "reconnectionDelay": 1500
+-}
+\ No newline at end of file
++}
+diff --git a/public/language/en-GB/admin/settings/post.json b/public/language/en-GB/admin/settings/post.json
+index 27493aa..f64e852 100644
+--- a/public/language/en-GB/admin/settings/post.json
++++ b/public/language/en-GB/admin/settings/post.json
+@@ -1,5 +1,7 @@
+ {
+ 	"sorting": "Post Sorting",
++	"backlinks": "Topic Backlinks",
++	"backlinks.enable": "Show links from posts that reference this topic",
+ 	"sorting.post-default": "Default Post Sorting",
+ 	"sorting.oldest-to-newest": "Oldest to Newest",
+ 	"sorting.newest-to-oldest": "Newest to Oldest",
+@@ -59,4 +61,4 @@
+ 	"ip-tracking": "IP Tracking",
+ 	"ip-tracking.each-post": "Track IP Address for each post",
+ 	"enable-post-history": "Enable Post History"
+-}
+\ No newline at end of file
++}
+diff --git a/public/language/en-GB/topic.json b/public/language/en-GB/topic.json
+index 201b6df..b6f31c6 100644
+--- a/public/language/en-GB/topic.json
++++ b/public/language/en-GB/topic.json
+@@ -46,6 +46,7 @@
+ 	"locked-by": "Locked by",
+ 	"unlocked-by": "Unlocked by",
+ 	"pinned-by": "Pinned by",
++	"backlink": "Referenced by",
+ 	"unpinned-by": "Unpinned by",
+ 	"deleted-by": "Deleted by",
+ 	"restored-by": "Restored by",
+diff --git a/src/posts/edit.js b/src/posts/edit.js
+index d704996..c4074c2 100644
+--- a/src/posts/edit.js
++++ b/src/posts/edit.js
+@@ -53,6 +53,12 @@ module.exports = function (Posts) {
+ 		]);
+ 
+ 		await Posts.setPostFields(data.pid, result.post);
++		await topics.syncBacklinks({
++			pid: postData.pid,
++			uid: postData.uid,
++			tid: postData.tid,
++			content: result.post.content,
++		});
+ 		const contentChanged = data.content !== oldContent;
+ 		if (meta.config.enablePostHistory === 1 && contentChanged) {
+ 			await Posts.diffs.save({
+diff --git a/src/topics/events.js b/src/topics/events.js
+index 0e9e641..8f1ea22 100644
+--- a/src/topics/events.js
++++ b/src/topics/events.js
+@@ -6,6 +6,7 @@ const user = require('../user');
+ const posts = require('../posts');
+ const categories = require('../categories');
+ const plugins = require('../plugins');
++const meta = require('../meta');
+ 
+ const Events = module.exports;
+ 
+@@ -53,6 +54,10 @@ Events._types = {
+ 		text: '[[topic:queued-by]]',
+ 		href: '/post-queue',
+ 	},
++	backlink: {
++		icon: 'fa-link',
++		text: '[[topic:backlink]]',
++	},
+ };
+ 
+ Events.init = async () => {
+@@ -73,6 +78,9 @@ Events.get = async (tid, uid) => {
+ 	const timestamps = eventIds.map(obj => obj.score);
+ 	eventIds = eventIds.map(obj => obj.value);
+ 	let events = await db.getObjects(keys);
++	if (!meta.config.topicBacklinks) {
++		events = events.map(event => (event && event.type === 'backlink' ? null : event));
++	}
+ 	events = await modifyEvent({ tid, uid, eventIds, timestamps, events });
+ 
+ 	return events;
+@@ -110,19 +118,26 @@ async function modifyEvent({ tid, uid, eventIds, timestamps, events }) {
+ 		});
+ 	}
+ 
++	// Keep ids and timestamps aligned when hidden or missing events are removed.
++	const visible = events.map((event, idx) => ({ event, id: eventIds[idx], timestamp: timestamps[idx] }))
++		.filter(item => item.event && Events._types.hasOwnProperty(item.event.type));
++	events = visible.map(item => item.event);
++	eventIds = visible.map(item => item.id);
++	timestamps = visible.map(item => item.timestamp);
++
+ 	const [users, fromCategories] = await Promise.all([
+ 		getUserInfo(events.map(event => event.uid).filter(Boolean)),
+ 		getCategoryInfo(events.map(event => event.fromCid).filter(Boolean)),
+ 	]);
+ 
+-	// Remove events whose types no longer exist (e.g. plugin uninstalled)
+-	events = events.filter(event => Events._types.hasOwnProperty(event.type));
+-
+ 	// Add user & metadata
+ 	events.forEach((event, idx) => {
+ 		event.id = parseInt(eventIds[idx], 10);
+ 		event.timestamp = timestamps[idx];
+ 		event.timestampISO = new Date(timestamps[idx]).toISOString();
++		if (event.type === 'backlink') {
++			event.uid = parseInt(event.uid, 10);
++		}
+ 		if (event.hasOwnProperty('uid')) {
+ 			event.user = users.get(event.uid === 'system' ? 'system' : parseInt(event.uid, 10));
+ 		}
+diff --git a/src/topics/posts.js b/src/topics/posts.js
+index 457e337..3092691 100644
+--- a/src/topics/posts.js
++++ b/src/topics/posts.js
+@@ -3,6 +3,7 @@
+ 
+ const _ = require('lodash');
+ const validator = require('validator');
++const nconf = require('nconf');
+ 
+ const db = require('../database');
+ const user = require('../user');
+@@ -12,9 +13,70 @@ const plugins = require('../plugins');
+ const utils = require('../../public/src/utils');
+ 
+ module.exports = function (Topics) {
++	Topics.syncBacklinks = async function (postData) {
++		const validId = (value, minimum) => (typeof value === 'number' || typeof value === 'string') &&
++			/^\d+$/.test(String(value)) && Number.isSafeInteger(Number(value)) && Number(value) >= minimum;
++		if (!postData || !validId(postData.pid, 1) || !validId(postData.uid, 0) ||
++			!validId(postData.tid, 1) ||
++			typeof postData.content !== 'string') {
++			throw new Error('[[error:invalid-data]]');
++		}
++
++		const key = `pid:${postData.pid}:backlinks`;
++		const previous = (await db.getSortedSetRange(key, 0, -1)).map(String);
++		const base = String(nconf.get('url') || '').replace(/\/$/, '');
++		const linkPattern = /[a-z][a-z\d+.-]*:\/\/[^\s<>"')\]]+|\/topic\/\d+(?:\/[^\s<>"')\]]*)?/gi;
++		const references = new Set();
++		for (const found of postData.content.matchAll(linkPattern)) {
++			const candidate = found[0];
++			let path;
++			if (candidate.startsWith('/')) {
++				if (!found.index || !/[\w/.-]/.test(postData.content[found.index - 1])) {
++					path = candidate;
++				}
++			} else if (base && candidate.startsWith(`${base}/topic/`)) {
++				path = candidate.slice(base.length);
++			}
++			const match = path && /^\/topic\/(\d+)(?:\/|$|[?#])/.exec(path);
++			if (match && Number(match[1]) !== Number(postData.tid) && Number(match[1]) > 0) {
++				references.add(String(Number(match[1])));
++			}
++		}
++
++		const tids = [...references];
++		const exists = await Topics.exists(tids);
++		const current = tids.filter((tid, idx) => exists[idx]);
++		const removed = previous.filter(tid => !current.includes(tid));
++		const added = current.filter(tid => !previous.includes(tid));
++
++		for (const tid of removed) {
++			/* eslint-disable no-await-in-loop */
++			const eventId = await db.getObjectField(`pid:${postData.pid}:backlink:${tid}`, 'eventId');
++			if (eventId) {
++				await Topics.events.purge(tid, [eventId]);
++			}
++			await db.delete(`pid:${postData.pid}:backlink:${tid}`);
++		}
++		if (removed.length) {
++			await db.sortedSetRemove(key, removed);
++		}
++		for (const tid of added) {
++			/* eslint-disable no-await-in-loop */
++			const [event] = await Topics.events.log(tid, {
++				type: 'backlink',
++				uid: postData.uid,
++				href: `/post/${postData.pid}`,
++			});
++			await db.setObject(`pid:${postData.pid}:backlink:${tid}`, { eventId: event.id });
++			await db.sortedSetAdd(key, Date.now(), tid);
++		}
++		return added.length + removed.length;
++	};
++
+ 	Topics.onNewPostMade = async function (postData) {
+ 		await Topics.updateLastPostTime(postData.tid, postData.timestamp);
+ 		await Topics.addPostToTopic(postData.tid, postData);
++		await Topics.syncBacklinks(postData);
+ 	};
+ 
+ 	Topics.getTopicPosts = async function (tid, set, start, stop, uid, reverse) {
+diff --git a/src/views/admin/settings/post.tpl b/src/views/admin/settings/post.tpl
+index bc9f502..e5f6be4 100644
+--- a/src/views/admin/settings/post.tpl
++++ b/src/views/admin/settings/post.tpl
+@@ -24,6 +24,20 @@
+ 	</div>
+ </div>
+ 
++<div class="row">
++	<div class="col-sm-2 col-xs-12 settings-header">[[admin/settings/post:backlinks]]</div>
++	<div class="col-sm-10 col-xs-12">
++		<form>
++			<div class="checkbox">
++				<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect">
++					<input class="mdl-switch__input" type="checkbox" data-field="topicBacklinks">
++					<span class="mdl-switch__label">[[admin/settings/post:backlinks.enable]]</span>
++				</label>
++			</div>
++		</form>
++	</div>
++</div>
++
+ <div class="row">
+ 	<div class="col-sm-2 col-xs-12 settings-header">[[admin/settings/post:length]]</div>
+ 	<div class="col-sm-10 col-xs-12">
+@@ -307,4 +321,4 @@
+ 		</form>
+ 	</div>
+ </div>
+-<!-- IMPORT admin/partials/settings/footer.tpl -->
+\ No newline at end of file
++<!-- IMPORT admin/partials/settings/footer.tpl -->
+diff --git a/test/topicBacklinks.js b/test/topicBacklinks.js
+new file mode 100644
+index 0000000..fa72b9b
+--- /dev/null
++++ b/test/topicBacklinks.js
+@@ -0,0 +1,77 @@
++'use strict';
++
++const assert = require('assert');
++const nconf = require('nconf');
++
++const db = require('./mocks/databasemock');
++const topics = require('../src/topics');
++const posts = require('../src/posts');
++const categories = require('../src/categories');
++const user = require('../src/user');
++const meta = require('../src/meta');
++
++describe('Topic Backlinks', () => {
++	let uid;
++	let cid;
++	let target;
++	let source;
++	let previousSetting;
++
++	before(async () => {
++		previousSetting = meta.config.topicBacklinks;
++		meta.config.topicBacklinks = 1;
++		uid = await user.create({ username: 'backlink-author', password: '123456' });
++		cid = (await categories.create({ name: 'Backlink Category' })).cid;
++		target = await topics.post({ title: 'Backlink target', content: 'A target topic post', uid, cid });
++	});
++
++	after(() => {
++		meta.config.topicBacklinks = previousSetting;
++	});
++
++	it('rejects invalid post data', async () => {
++		await assert.rejects(topics.syncBacklinks(), { message: '[[error:invalid-data]]' });
++		await assert.rejects(topics.syncBacklinks({ pid: 1, uid: null, tid: 1, content: '' }),
++			{ message: '[[error:invalid-data]]' });
++	});
++
++	it('adds a backlink for a new topic and keeps one association per post', async () => {
++		const { tid } = target.topicData;
++		source = await topics.post({
++			title: 'Backlink source',
++			content: `See ${nconf.get('url')}/topic/${tid}/backlink-target and /topic/${tid}`,
++			uid,
++			cid,
++		});
++		const { pid } = source.postData;
++		assert.deepStrictEqual(await db.getSortedSetRange(`pid:${pid}:backlinks`, 0, -1), [String(tid)]);
++		const events = (await topics.events.get(tid, uid)).filter(event => event.type === 'backlink');
++		assert.strictEqual(events.length, 1);
++		assert.strictEqual(events[0].href, `/post/${pid}`);
++		assert.strictEqual(events[0].uid, uid);
++		assert.strictEqual(events[0].text, '[[topic:backlink]]');
++		assert.strictEqual(await topics.syncBacklinks(source.postData), 0);
++	});
++
++	it('hides events when disabled and removes them after an edit', async () => {
++		const { tid } = target.topicData;
++		meta.config.topicBacklinks = 0;
++		assert.strictEqual((await topics.events.get(tid, uid)).filter(event => event.type === 'backlink').length, 0);
++		meta.config.topicBacklinks = 1;
++		await posts.edit({ pid: source.postData.pid, uid, content: 'This post no longer links to another topic.' });
++		assert.deepStrictEqual(await db.getSortedSetRange(`pid:${source.postData.pid}:backlinks`, 0, -1), []);
++		assert.strictEqual((await topics.events.get(tid, uid)).filter(event => event.type === 'backlink').length, 0);
++	});
++
++	it('ignores self links, missing topics, and links to another site', async () => {
++		const { pid, tid } = source.postData;
++		const changed = await topics.syncBacklinks({
++			pid,
++			uid,
++			tid,
++			content: `See /topic/${tid} and /topic/99999999, https://other.example/topic/${target.topicData.tid} and /not/topic/${target.topicData.tid}`,
++		});
++		assert.strictEqual(changed, 0);
++		assert.deepStrictEqual(await db.getSortedSetRange(`pid:${pid}:backlinks`, 0, -1), []);
++	});
++});

@@ -1,0 +1,3 @@
+Added exact `${VARIABLE_NAME}` substitution as the first configuration decode hook. It replaces values only when the variable exists, so integer ports and durations can be converted by the subsequent decoding steps. Existing `FLIPT_` overrides retain precedence.
+
+Added tests for multiple references, type conversion, override precedence, and values that must remain unchanged. The `internal/config` and `config` test suites pass offline.

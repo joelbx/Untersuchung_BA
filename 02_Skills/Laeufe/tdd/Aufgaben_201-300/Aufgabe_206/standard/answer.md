@@ -1,0 +1,3 @@
+Added a per-user or guest-session posting lock in [topics.js](/app/src/controllers/write/topics.js). Overlapping create requests now return HTTP 400 with `status.code: "bad-request"`; the accepted request returns `status.code: "ok"`. A new [regression test](/app/test/topics.js) confirms that a ten-request burst creates one topic and increments the category and global counters once.
+
+The topic test file passes (230 tests), and lint passes. The full suite stops at an unrelated `Admin Controllers → should load /admin/extend/plugins` failure: `body.installed` is missing.

@@ -1,0 +1,1 @@
+Completed album image path migration, model field, MediaFiles.Dirs, directory image collection, and album refresh propagation. Verified: go test ./scanner ./model ./db/migration (pass; taglib deprecation warning).

@@ -1,0 +1,3 @@
+Amazon imports now include unique language display names from edition metadata, excluding entries marked “Original Language.” The serializer omits `languages` when none remain, and metadata cleaning preserves the field for loading. Regression tests cover both steps.
+
+The vendor tests passed (37 tests), and the broader offline run passed (2,322 tests). The unfiltered suite could not collect `scripts/tests/test_isbndb.py` because it requests a URL through a proxy that returned 403; that file remains unverified.

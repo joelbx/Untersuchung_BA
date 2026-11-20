@@ -1,0 +1,1 @@
+Correction complete: removed empty-input bypasses for numeric and boolean typed comparisons. Updated empty/whitespace comparison cases and the integration case with a missing boolean context value. GOPROXY=off GOSUMDB=off go test ./server ./storage passed; git diff --check passed. No remaining test failures or environment problems.

@@ -1,0 +1,3 @@
+Updated Qt startup to initialize the wrapper machinery early and pass its `SelectionInfo` to the availability check. When no wrapper is importable, it now raises `NoWrapperAvailableError` with the required message and import details. Selection formatting, error spacing, and debug logging are clearer.
+
+The focused machinery and early initialization tests passed (33 tests), as did the affected version info tests (9 tests). The full version test module exited during its real Chromium version check without a pytest summary; that limit is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Added a Qt version gated workaround in [webview.py](/app/qutebrowser/browser/webengine/webview.py) that uses Python’s MIME mappings to add missing extensions to the default file picker filters. Added coverage in [test_webview.py](/app/tests/unit/browser/webengine/test_webview.py).
+
+All 13 targeted tests pass, and `git diff --check` is clean. The broader WebEngine suite aborted during Qt GUI fixture initialization, before running tests.

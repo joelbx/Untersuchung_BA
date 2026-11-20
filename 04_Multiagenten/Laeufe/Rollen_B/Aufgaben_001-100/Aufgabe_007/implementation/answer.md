@@ -1,0 +1,3 @@
+Updated the WinRM connection plugin to support `ansible_winrm_kinit_args`. It now passes custom arguments as separate tokens, lets them override the default delegation `-f` flag, and uses the same command content for subprocess and pexpect. It also handles the reported `kinit_cmd` value containing flags while preserving executable paths with spaces.
+
+Added tests for both execution paths and unique credential caches. **All 35 WinRM unit tests pass**, and `git diff --check` passes.

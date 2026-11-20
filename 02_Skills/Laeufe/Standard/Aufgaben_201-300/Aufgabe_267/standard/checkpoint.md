@@ -1,0 +1,11 @@
+# Progress
+
+- Located `RoomView`, `RoomViewStore`, and dispatcher actions. `rg` is unavailable, so local searches use `grep` and `find`.
+- Next: inspect load and option update flows, patch them, run relevant existing tests.
+
+- Patched the action enum, room load dispatch, initial event fallback, and store option recomputation. Added focused regression tests.
+- `./node_modules/.bin/jest test/stores/RoomViewStore-test.ts test/components/structures/RoomView-test.tsx --runInBand --silent`: passed (64 tests). After adding the navigation regression test, `./node_modules/.bin/jest test/stores/RoomViewStore-test.ts --runInBand --silent`: passed (36 tests).
+- `./node_modules/.bin/eslint src/dispatcher/actions.ts src/components/structures/RoomView.tsx src/stores/RoomViewStore.tsx test/components/structures/RoomView-test.tsx test/stores/RoomViewStore-test.ts --max-warnings 0`: passed. `git diff --check`: passed.
+- `./node_modules/.bin/tsc --noEmit --jsx react`: failed with `FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory` at about 2 GB heap. Type check status remains uncertain; retrying with a larger local Node heap.
+- `NODE_OPTIONS=--max-old-space-size=4096 ./node_modules/.bin/tsc --noEmit --jsx react`: exited 2. Errors were in unrelated existing files and installed dependencies: `node_modules/matrix-js-sdk/src/oidc/authorize.ts(239,39) TS2345`, `node_modules/matrix-js-sdk/src/oidc/validate.ts(175,16) TS2349`, `src/@types/common.ts(19,15) TS2305`, `src/BasePlatform.ts(475,13) TS2353`, `src/components/structures/TabbedView.tsx(71,54), (82,38), (148,45) TS7006`, `src/stores/oidc/OidcClientStore.ts(17,24) TS2724, (57,60) TS2339`, `src/utils/AutoDiscoveryUtils.tsx(22,5) TS2724, (304,49) TS2339`, `src/utils/oidc/TokenRefresher.ts(38,15) TS2345`, `src/utils/oidc/authorize.ts(57,9) TS2353`, `src/utils/oidc/registerClient.ts(56,18) TS2554`, `test/stores/oidc/OidcClientStore-test.ts(21,10) TS2724, (39,9) TS2353, (248,24) TS2339`, `test/test-utils/oidc.ts(29,9) TS2353, (52,5) TS2353`. The full project type check is not passing; no diagnostic pointed to an edited file.
+- `./node_modules/.bin/prettier --check src/dispatcher/actions.ts src/components/structures/RoomView.tsx src/stores/RoomViewStore.tsx test/components/structures/RoomView-test.tsx test/stores/RoomViewStore-test.ts`: passed.

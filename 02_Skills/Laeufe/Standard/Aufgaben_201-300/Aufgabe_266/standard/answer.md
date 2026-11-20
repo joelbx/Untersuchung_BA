@@ -1,0 +1,3 @@
+Added `ImportItem.find_staged_or_pending` with the fixed `('amazon', 'idb')` source tuple. It returns staged or pending local records for every source and identifier combination. ISBN resolution now uses that lookup with both ISBN 10 and ISBN 13 and checks both forms after import.
+
+The relevant tests passed: 17 tests across `test_imports.py` and `test_models.py`. Ruff and `git diff --check` also passed.

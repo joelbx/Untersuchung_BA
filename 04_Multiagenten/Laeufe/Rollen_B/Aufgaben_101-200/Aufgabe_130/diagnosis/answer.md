@@ -1,0 +1,5 @@
+The panic follows a successful registration: [RunAdmin](/app/lib/devicetrust/enroll/enroll.go:155) returns the nil device from the failed enrollment call while retaining `DeviceRegistered`. The CLI then calls [printEnrollOutcome](/app/tool/tsh/common/device.go:131), which dereferences that nil device.
+
+The fix should return `currentDev` on enrollment error, preserve `DeviceRegistered`, and make `printEnrollOutcome` print a fallback when device information is nil. The error should retain “device limit.” For regression coverage, [FakeDeviceService](/app/lib/devicetrust/testenv/fake_device_service.go:44) needs a mutex protected limit toggle and an `AccessDenied` response from `EnrollDevice`; [E](/app/lib/devicetrust/testenv/testenv.go:43) needs to expose that service. The existing [RunAdmin tests](/app/lib/devicetrust/enroll/enroll_test.go:30) cover successful enrollment only.
+
+Uncertainty: the actual Team plan limit path was not exercised here. I inspected repository code and tests only, and made no project source or test changes.

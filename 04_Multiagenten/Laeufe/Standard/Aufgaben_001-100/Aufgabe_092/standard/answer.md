@@ -1,0 +1,3 @@
+Implemented `-U`/`--upgrade` for `ansible-galaxy collection install`, including requirements files. The resolver now selects the latest version within each constraint, upgrades dependencies when required, respects `--no-deps` and `--pre`, and skips reinstalls when the selected version is already installed.
+
+Added unit coverage and an [upgrade.yml](/app/test/integration/targets/ansible-galaxy-collection/tasks/upgrade.yml) integration scenario. All 181 relevant unit tests pass. The integration scenario was added but not run; it requires the repository’s Pulp/Galaxy test environment.

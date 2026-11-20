@@ -1,0 +1,3 @@
+Implemented `timeOffset` support through the stream handlers, media streamer, transcoding cache key, and FFmpeg command builder. The handlers default missing or invalid values to 0; FFmpeg templates interpolate `%t`, while custom commands gain `-ss` after the input path when needed. I also updated the OpenSubsonic extension response, call sites, mocks, and tests.
+
+The targeted Go tests passed for `core/ffmpeg`, `core`, `server/public`, `server/subsonic`, and `tests`.

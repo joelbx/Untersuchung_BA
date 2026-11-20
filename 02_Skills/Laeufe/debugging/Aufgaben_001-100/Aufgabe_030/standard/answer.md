@@ -1,0 +1,3 @@
+Fixed AIX processor facts in [aix.py](/app/lib/ansible/module_utils/facts/hardware/aix.py). The code now reports a constant processor count of 1, counts available devices as cores, uses the reported threads per core or defaults to 1, calculates vCPUs, and returns the CPU type in a list.
+
+Added [AIX CPU fact tests](/app/test/units/module_utils/facts/hardware/test_aix_get_cpu_facts.py). The relevant hardware and facts tests passed: **109 passed, 5 skipped**.

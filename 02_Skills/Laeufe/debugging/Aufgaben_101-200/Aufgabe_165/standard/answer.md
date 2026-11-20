@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` for new private rooms. The shared policy helper gives server force-enable precedence on conflict. The room creation toggle reflects the enforced value, stays disabled while policy is loading, and submits the value shown to the user.
+
+All 32 targeted tests pass; ESLint and Prettier pass. The full type check is blocked by an error in untouched [Unread.ts](/app/src/Unread.ts:167).

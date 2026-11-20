@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) to surface both `stdout` and `stderr` live. At completion, it publishes a summary only for each stream that produced output, with informational `stdout` before error-level `stderr`. [Tests](/app/tests/unit/misc/test_guiprocess.py) cover live delivery, severity, ordering, and empty streams.
+
+Verification: 107 passed, 4 skipped across the `GuiProcess`, editor, and userscript tests; `git diff --check` passed. No delegation was used.

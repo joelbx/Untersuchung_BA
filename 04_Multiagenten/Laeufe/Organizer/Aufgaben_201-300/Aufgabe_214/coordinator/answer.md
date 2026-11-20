@@ -1,0 +1,3 @@
+Added per server `nmap` scanning with a native scanner fallback. [PortScanConf](/app/config/portscan.go) now maps and validates scan techniques, privileges, source ports, the scanner path, and capabilities. TOML loading sets the external scanner flag when a path is configured, and the discovery template includes a commented `portscan` example.
+
+`go test ./config ./scanner ./subcmds` and `git diff --check` passed. I worked without delegation.

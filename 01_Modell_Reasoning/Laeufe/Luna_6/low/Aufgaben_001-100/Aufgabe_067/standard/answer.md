@@ -1,0 +1,3 @@
+Implemented `scrolling.bar=overlay` with the QtWebEngine, Qt ≥ 5.11, and non-macOS gate for `--enable-features=OverlayScrollbar`. Updated boolean migration (`True` → `always`, `False` → `overlay`), added the `js_headers` marker, and adjusted flag tests to tolerate other generated arguments.
+
+`git diff --check` passes. The focused tests reported **19 passed**, but pytest exited with an X server teardown error after the passing summary. The broader config tests showed no assertion failures before the same abnormal exit. Checkpoint: [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

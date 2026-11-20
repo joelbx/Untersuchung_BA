@@ -1,0 +1,3 @@
+NVD CVSS v4.0 metrics are now converted into `CveContent` by metric source, and `Cvss40Scores()` returns available MITRE entries followed by NVD entries. The three `CveContent` v4.0 fields already existed, so they needed no change.
+
+I updated the `go-cve-dictionary` pin to a locally cached version that exposes `Nvd.Cvss40` and added conversion and aggregation tests. `go test ./models ./detector` and `git diff --check` passed.

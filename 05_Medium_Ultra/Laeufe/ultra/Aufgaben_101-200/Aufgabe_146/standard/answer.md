@@ -1,0 +1,3 @@
+Added [`get_sysinfo_facts()`](/app/lib/ansible/module_utils/facts/hardware/linux.py:415) and wired it into setup fact gathering after DMI facts. It reads IBM Z `/proc/sysinfo`, removes leading zeroes from the serial, and returns the required five keys with `"NA"` for missing values. An absent file returns `{}`.
+
+A subagent added unit tests, and another reviewed the integration. The Linux hardware test suite passed: **21 tests**. The `/proc/sysinfo` behavior was tested with mocked data; it was not run on an IBM Z host.

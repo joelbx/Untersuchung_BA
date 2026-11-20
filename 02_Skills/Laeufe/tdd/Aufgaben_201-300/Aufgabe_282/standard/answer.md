@@ -1,0 +1,3 @@
+Added `content.javascript.log_message.levels` and `content.javascript.log_message.excludes`. The new `_js_log_to_ui` helper checks enabled source and level patterns, then suppresses matching message text; excluded messages still follow the standard logger setting. The old `content.javascript.log_message` setting migrates to `.levels`.
+
+The focused test file passed: **12 passed**. The broader config run had **2,254 passes and two unrelated failures**: a Python 3.11 NUL-byte exception mismatch and a Qt initialization warning. The repository-wide run could not complete because Chromium refused to launch as root without `--no-sandbox`.

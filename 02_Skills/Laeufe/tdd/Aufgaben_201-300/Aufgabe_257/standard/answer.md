@@ -1,0 +1,3 @@
+Updated tsh so `Run` and its command handlers return errors to callers, with runtime options applied after argument parsing. Added the `SSOLoginFunc` override and passed it from tsh configuration to the client. Auth and proxy startup now propagate OS assigned listener addresses, including ports assigned from `:0`.
+
+The affected package suites pass: `go test ./tool/tsh ./lib/client ./lib/service`. The repository-wide `go test ./...` run was interrupted after several minutes without further results, so the remaining packages are unverified. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

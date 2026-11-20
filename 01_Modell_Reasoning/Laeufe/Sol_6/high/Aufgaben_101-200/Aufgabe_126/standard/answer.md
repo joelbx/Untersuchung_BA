@@ -1,0 +1,3 @@
+Implemented the assistant formatting fix. The composer’s `messageID` now reaches model preparation, preview rendering, and editor insertion. URL placeholders restore links and images only for that message; unmatched links lose the link while keeping their visible text. The conversion also preserves link and image classes and styles, repairs nested lists, and keeps code block indentation.
+
+All 14 relevant tests pass, focused ESLint passes, and `git diff --check` is clean. The repository type check still reports an unrelated OpenPGP type conflict in `packages/crypto/lib/worker/api.ts`.

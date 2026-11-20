@@ -1,0 +1,3 @@
+Resolved the JSDOM accessibility failure. `ModalTwo` now uses the public [Dialog component](/app/packages/components/components/dialog/Dialog.tsx), which forwards attributes and its ref to a native dialog when supported and uses an accessible fallback host when dialog methods are unavailable. `ModalTwo` keeps the host open while active, so interactive children are discoverable by role.
+
+Verification passed: 11 focused tests, the package TypeScript check, Prettier, and `git diff --check`.

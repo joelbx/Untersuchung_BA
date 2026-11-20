@@ -1,0 +1,3 @@
+Updated [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts) so persisted fields live in one config object. Loading a current version with a signup token leaves storage untouched; migration and missing-token creation write the complete config with the required underscored keys. Old credential arrays become userId-keyed objects in storage and a Map in memory. Added coverage in [DeviceConfigTest.ts](/app/test/client/misc/DeviceConfigTest.ts).
+
+Verification: `npm run types` passed, `npm run testclient` passed with 3,065 assertions, and `git diff --check` passed.

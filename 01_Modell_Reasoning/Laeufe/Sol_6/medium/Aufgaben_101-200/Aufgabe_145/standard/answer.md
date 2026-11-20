@@ -1,0 +1,3 @@
+Updated both copies of the photo recovery hook to load regular and trashed items together, wait for both to finish decrypting, and include trashed photo entries in the recovery count. Recovery now fails if loading, moving, or deleting fails, or if targeted photos remain; persisted in-progress recovery still resumes on initialization.
+
+Both mirrored test suites pass (10 tests each), and targeted lint passes. The full type check remains blocked by an unrelated OpenPGP type mismatch in `crypto/lib/worker/api.ts`.

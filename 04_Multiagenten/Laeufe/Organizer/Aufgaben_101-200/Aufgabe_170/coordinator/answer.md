@@ -1,0 +1,3 @@
+Edition matching now expands raw records during comparison. The new `add_db_name`, `expand_record`, and `threshold_match` functions handle missing author dates, consolidate ISBN fields, derive title variants, and apply score thresholds. The add-book matching path now passes raw records.
+
+Verification: 75 relevant tests passed; 2 existing tests remain expected failures. Ruff and `git diff --check` passed. No delegation was used.

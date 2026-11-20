@@ -1,0 +1,3 @@
+Database configuration now accepts either `db.url` or separate protocol, host or SQLite path, port, user, password, and name fields. The URL takes precedence. Connections and migrations use the same validation and target construction, with default Postgres and MySQL ports. Configuration and URL parsing errors name the setting without exposing passwords, and TLS certificate errors use qualified setting keys.
+
+Updated [config/default.yml](/app/config/default.yml) with examples. `go test ./...` and `git diff --check` pass.

@@ -1,0 +1,1 @@
+Updated [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py) to read s390 hardware facts from `/proc/sysinfo` and include them in gathered facts. Added unit coverage; **14 tests passed**, and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented address normalization in [recipient.ts](/app/packages/shared/lib/mail/recipient.ts). `splitBySeparator` now trims and unbrackets tokens, drops empties, and preserves order. `inputToRecipient` uses the bare email for both `Name` and `Address`. Both autocomplete paste handlers use the splitter, and regression tests cover the requested cases.
+
+Components tests passed: 304 tests. Type checks and formatting passed. The shared suite passed the new tests but still has two failures also present in the baseline run: `should expire cookies` and `should be an empty base64 on undefined file`.

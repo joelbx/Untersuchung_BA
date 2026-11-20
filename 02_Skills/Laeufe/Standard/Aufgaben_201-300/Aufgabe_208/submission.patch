@@ -1,0 +1,182 @@
+diff --git a/install/data/defaults.json b/install/data/defaults.json
+index f3859d2..4911883 100644
+--- a/install/data/defaults.json
++++ b/install/data/defaults.json
+@@ -146,6 +146,7 @@
+     "maximumRelatedTopics": 0,
+     "disableEmailSubscriptions": 0,
+     "emailConfirmInterval": 10,
++    "emailConfirmExpiry": 1,
+     "removeEmailNotificationImages": 0,
+     "sendValidationEmail": 1,
+     "includeUnverifiedEmails": 0,
+@@ -180,4 +181,4 @@
+     "composer:allowPluginHelp": 1,
+     "maxReconnectionAttempts": 5,
+     "reconnectionDelay": 1500
+-}
+\ No newline at end of file
++}
+diff --git a/src/user/email.js b/src/user/email.js
+index 60ed9b5..ccdbeca 100644
+--- a/src/user/email.js
++++ b/src/user/email.js
+@@ -46,21 +46,45 @@ UserEmail.remove = async function (uid, sessionId) {
+ 
+ UserEmail.isValidationPending = async (uid, email) => {
+ 	const code = await db.get(`confirm:byUid:${uid}`);
++	if (!code) {
++		return false;
++	}
++	const [confirmObj, ttlMs] = await Promise.all([
++		db.getObject(`confirm:${code}`),
++		db.pttl(`confirm:byUid:${uid}`),
++	]);
++	return !!(ttlMs > 0 && confirmObj && String(confirmObj.uid) === String(uid) &&
++		(!email || email.toLowerCase() === confirmObj.email));
++};
+ 
+-	if (email) {
+-		const confirmObj = await db.getObject(`confirm:${code}`);
+-		return confirmObj && email === confirmObj.email;
++UserEmail.getValidationExpiry = async (uid) => {
++	if (!(await UserEmail.isValidationPending(uid))) {
++		return null;
+ 	}
++	const ttlMs = await db.pttl(`confirm:byUid:${uid}`);
++	return ttlMs > 0 ? ttlMs : null;
++};
+ 
+-	return !!code;
++UserEmail.canSendValidation = async (uid, email) => {
++	if (!(await UserEmail.isValidationPending(uid, email))) {
++		return true;
++	}
++	const ttlMs = await UserEmail.getValidationExpiry(uid);
++	if (ttlMs === null) {
++		return true;
++	}
++	const intervalMs = meta.config.emailConfirmInterval * 60 * 1000;
++	const expiryMs = meta.config.emailConfirmExpiry * 24 * 60 * 60 * 1000;
++	return ttlMs + intervalMs < expiryMs;
+ };
+ 
+ UserEmail.expireValidation = async (uid) => {
+ 	const code = await db.get(`confirm:byUid:${uid}`);
+-	await db.deleteAll([
+-		`confirm:byUid:${uid}`,
+-		`confirm:${code}`,
+-	]);
++	const keys = [`confirm:byUid:${uid}`];
++	if (code) {
++		keys.push(`confirm:${code}`);
++	}
++	await db.deleteAll(keys);
+ };
+ 
+ UserEmail.sendValidationEmail = async function (uid, options) {
+@@ -97,11 +121,7 @@ UserEmail.sendValidationEmail = async function (uid, options) {
+ 	if (!options.email) {
+ 		return;
+ 	}
+-	let sent = false;
+-	if (!options.force) {
+-		sent = await UserEmail.isValidationPending(uid, options.email);
+-	}
+-	if (sent) {
++	if (!options.force && !(await UserEmail.canSendValidation(uid, options.email))) {
+ 		throw new Error(`[[error:confirm-email-already-sent, ${emailInterval}]]`);
+ 	}
+ 
+@@ -118,14 +138,16 @@ UserEmail.sendValidationEmail = async function (uid, options) {
+ 	});
+ 
+ 	await UserEmail.expireValidation(uid);
++	const expiryMs = meta.config.emailConfirmExpiry * 24 * 60 * 60 * 1000;
++	const expiresAt = Date.now() + expiryMs;
+ 	await db.set(`confirm:byUid:${uid}`, confirm_code);
+-	await db.pexpireAt(`confirm:byUid:${uid}`, Date.now() + (emailInterval * 60 * 1000));
++	await db.pexpireAt(`confirm:byUid:${uid}`, expiresAt);
+ 
+ 	await db.setObject(`confirm:${confirm_code}`, {
+ 		email: options.email.toLowerCase(),
+ 		uid: uid,
+ 	});
+-	await db.expireAt(`confirm:${confirm_code}`, Math.floor((Date.now() / 1000) + (60 * 60 * 24)));
++	await db.pexpireAt(`confirm:${confirm_code}`, expiresAt);
+ 
+ 	winston.verbose(`[user/email] Validation email for uid ${uid} sent to ${options.email}`);
+ 	events.log({
+@@ -146,7 +168,8 @@ UserEmail.sendValidationEmail = async function (uid, options) {
+ // confirm email by code sent by confirmation email
+ UserEmail.confirmByCode = async function (code, sessionId) {
+ 	const confirmObj = await db.getObject(`confirm:${code}`);
+-	if (!confirmObj || !confirmObj.uid || !confirmObj.email) {
++	if (!confirmObj || !confirmObj.uid || !confirmObj.email ||
++		await db.get(`confirm:byUid:${confirmObj.uid}`) !== code) {
+ 		throw new Error('[[error:invalid-data]]');
+ 	}
+ 
+diff --git a/test/user/emails.js b/test/user/emails.js
+index c99f47f..f067232 100644
+--- a/test/user/emails.js
++++ b/test/user/emails.js
+@@ -10,6 +10,8 @@ const helpers = require('../helpers');
+ 
+ const user = require('../../src/user');
+ const groups = require('../../src/groups');
++const meta = require('../../src/meta');
++const plugins = require('../../src/plugins');
+ 
+ describe('email confirmation (v3 api)', () => {
+ 	let userObj;
+@@ -104,4 +106,49 @@ describe('email confirmation (v3 api)', () => {
+ 		assert.deepStrictEqual(body, JSON.parse('{"status":{"code":"ok","message":"OK"},"response":{}}'));
+ 		await groups.leave('administrators', userObj.uid);
+ 	});
++
++	it('should use the live confirmation lifetime for resend eligibility and clear expired requests', async () => {
++		const expiry = meta.config.emailConfirmExpiry;
++		const interval = meta.config.emailConfirmInterval;
++		meta.config.emailConfirmExpiry = 1;
++		meta.config.emailConfirmInterval = 10;
++		plugins.hooks.register('email-expiry-test', {
++			hook: 'action:user.verify',
++			method: () => {},
++		});
++		try {
++			const uid = await user.create({ username: 'email-expiry-test', email: 'expiry@example.org' });
++			const email = 'expiry@example.org';
++			const marker = `confirm:byUid:${uid}`;
++			const code = await db.get(marker);
++			const expiryMs = 24 * 60 * 60 * 1000;
++			const intervalMs = 10 * 60 * 1000;
++
++			assert.strictEqual(await user.email.isValidationPending(uid), true);
++			assert.strictEqual(await user.email.isValidationPending(uid, email), true);
++			assert.strictEqual(await user.email.isValidationPending(uid, 'other@example.org'), false);
++			const ttl = await user.email.getValidationExpiry(uid);
++			assert(ttl > 0 && ttl <= expiryMs);
++			assert((await user.email.getValidationExpiry(uid)) <= ttl);
++			assert.strictEqual(await user.email.canSendValidation(uid, email), false);
++
++			await db.pexpireAt(marker, Date.now() + expiryMs - intervalMs + 1000);
++			assert.strictEqual(await user.email.canSendValidation(uid, email), false);
++			await db.pexpireAt(marker, Date.now() + expiryMs - intervalMs - 1000);
++			assert.strictEqual(await user.email.canSendValidation(uid, email), true);
++
++			await user.email.expireValidation(uid);
++			assert.strictEqual(await db.getObject(`confirm:${code}`), null);
++			assert.strictEqual(await user.email.isValidationPending(uid), false);
++			assert.strictEqual(await user.email.getValidationExpiry(uid), null);
++			assert.strictEqual(await user.email.canSendValidation(uid, email), true);
++			const newCode = await user.email.sendValidationEmail(uid, { email });
++			assert(newCode && newCode !== code);
++			await user.email.expireValidation(uid);
++		} finally {
++			plugins.hooks.unregister('email-expiry-test', 'action:user.verify');
++			meta.config.emailConfirmExpiry = expiry;
++			meta.config.emailConfirmInterval = interval;
++		}
++	});
+ });

@@ -1,0 +1,3 @@
+Moved Qt wrapper initialization into early startup and passed its `SelectionInfo` to the availability checker. Implicit initialization now reports failed wrapper imports through `NoWrapperAvailableError`; diagnostics, debug logging, and checker message spacing are clearer.
+
+Verification: 42 focused tests and 19 startup tests passed. The full version test run stopped during its real Chromium check; the affected version-info tests passed separately.

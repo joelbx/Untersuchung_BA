@@ -1,0 +1,3 @@
+Updated [DocCLI.tty_ify](/app/lib/ansible/cli/doc.py:84) to render `L`, `R`, and `HORIZONTALLINE`, preserve `IBM(...)` and other non-macros, and keep the existing macro formats. CLI text wrapping now preserves the horizontal rule’s newlines. A subagent added focused [tests](/app/test/units/cli/test_doc.py:13), and another reviewed the patch.
+
+Verification: 41 CLI unit tests passed, the `ansible-doc` integration target passed, and `git diff --check` passed.

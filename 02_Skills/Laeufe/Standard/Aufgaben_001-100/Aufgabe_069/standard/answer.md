@@ -1,0 +1,3 @@
+Implemented matcher support in [parse.go](/app/lib/utils/parse/parse.go). `Match` now handles literals, anchored wildcard patterns, raw regular expressions, `regexp.match`, `regexp.not_match`, and static prefixes and suffixes. It rejects variable interpolation, transformations, invalid function calls, and malformed templates. [parse_test.go](/app/lib/utils/parse/parse_test.go) covers those behaviors.
+
+The parser tests and targeted wildcard conversion test pass. The full `lib/utils` suite has one unrelated failure: an existing certificate fixture expired in 2021. The check and its exact error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

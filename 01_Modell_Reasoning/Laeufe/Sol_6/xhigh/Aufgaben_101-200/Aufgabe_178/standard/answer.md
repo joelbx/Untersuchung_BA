@@ -1,0 +1,3 @@
+Added optional `ident` support to the `password_hash` filter and both hashing paths. The password lookup now saves the chosen ident with the salt, reuses it on later runs, and defaults to `2a` for bcrypt. Filter calls without `ident` retain their backend default.
+
+**Verification:** 63 relevant unit tests passed, and `git diff --check` passed. The local system `crypt` library rejects ident `2`; that path now reports a clear error. Passlib produced all four requested idents.

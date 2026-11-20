@@ -1,0 +1,3 @@
+MARC imports now map common relator codes and abbreviations to readable roles. `$4` takes precedence over `$e`; unrecognized roles are omitted. New works preserve each parsed role with its author in order and raise an exception when author counts differ.
+
+I updated the MARC fixtures and added tests. The MARC and add-book suites passed: **289 tests**. Ruff and `git diff --check` passed. Black was unavailable, so its formatting check remains unverified.

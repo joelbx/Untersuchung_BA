@@ -1,0 +1,3 @@
+Implemented selective caching in [DataLoader.load_from_file](/app/lib/ansible/parsing/dataloader.py:80): `cache='none'` skips cache reads and writes, while `cache='vaulted'` caches decrypted vault files and reuses them. Play `vars_files` now use vaulted-only caching in [VariableManager](/app/lib/ansible/vars/manager.py:356). Added coverage in [test_dataloader.py](/app/test/units/parsing/test_dataloader.py:61).
+
+Validation: **42 tests passed** across the loader and variable manager test files. `ansible-test` could not start because pytest-xdist is unavailable; the equivalent test files passed with local pytest.

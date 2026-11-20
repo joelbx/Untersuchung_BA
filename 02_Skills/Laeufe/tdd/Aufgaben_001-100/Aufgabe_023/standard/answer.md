@@ -1,0 +1,3 @@
+JWT authentication now starts with an in-memory auth store for Local, Git, and OCI flag storage without opening a database. Each authentication method explicitly declares `RequiresDatabase`; startup and cleanup use that property for enabled methods. JWT cleanup is skipped.
+
+The changed packages pass: `GOPROXY=off go test ./internal/config ./internal/cmd ./internal/cleanup -count=1`. The full `go test ./...` run passed those packages but failed in unrelated Redis tests (`TestSet`, `TestGet`, `TestDelete`) because Docker is unavailable, and `Test_FS_Submodule` because its GitHub fixture returned `Forbidden`.

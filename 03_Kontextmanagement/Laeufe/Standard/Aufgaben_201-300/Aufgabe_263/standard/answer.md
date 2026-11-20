@@ -1,0 +1,3 @@
+DynamoDB event writes now store metadata in the native `FieldsMap` attribute. Event reads still support legacy `Fields` records. A background migration converts existing records in bounded scan pages under a distributed lock, validates their JSON content, and can resume after interruption.
+
+`go test ./lib/events/dynamoevents ./lib/backend` passes. The AWS dependent migration test was added but skipped in this environment.

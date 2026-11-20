@@ -1,0 +1,3 @@
+Implemented gzip response handling in [urls.py](/app/lib/ansible/module_utils/urls.py), including the `GzipDecodedReader`, automatic `Accept-Encoding: gzip`, decompression controls, and propagation through `open_url`, `fetch_url`, and `fetch_file`. Added the default-true `decompress` option to [uri.py](/app/lib/ansible/modules/uri.py) and [get_url.py](/app/lib/ansible/modules/get_url.py).
+
+Validation: Python compilation, a local HTTP smoke check for both decompression modes, and `git diff --check` passed. The existing URL unit suite had 41 passes and 6 failures; those assertions expect the previous fallback call count, request headers, or call arguments.

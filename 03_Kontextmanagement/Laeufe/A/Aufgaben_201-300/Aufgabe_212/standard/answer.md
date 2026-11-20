@@ -1,0 +1,3 @@
+Updated [WordPress ingestion](/app/detector/wordpress.go) to use the first CVE reference as the canonical ID and preserve WPScan’s basic and Enterprise fields, including UTC timestamps, ordered links, classification, fix version, summary, proof of concept, introduced version, and CVSS metrics. Absent optional fields produce an empty metadata map.
+
+Added [enriched and basic payload tests](/app/detector/wordpress_test.go). The focused detector tests and `git diff --check` passed.

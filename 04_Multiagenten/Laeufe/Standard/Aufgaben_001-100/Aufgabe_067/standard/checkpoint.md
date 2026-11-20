@@ -1,0 +1,3 @@
+Task: Add scrolling.bar=overlay with QtWebEngine/Qt/platform gating, migrate legacy False to overlay, preserve flag tests, support js_headers marker.
+Status: Implemented config option, Chromium flag gating, migration, documentation, parameterized unit tests, and end-to-end marker for Qt 5.12-5.14 dynamic JS header limitation. Relevant configuration suite: 319 passed, 1 skipped, 2 deselected; excluded pre-existing TestDarkMode.test_new_chromium and test_options because first causes the process to exit in this environment. End-to-end marker collection: 2 tagged scenarios selected.
+Constraints honored: local code/tests only; no git history/index changes. pytest.ini unchanged.

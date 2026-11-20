@@ -1,0 +1,3 @@
+Implemented optional TLS ciphers for `get_url`, `uri`, and `lookup('url')`. The shared URL code accepts an ordered list or OpenSSL cipher string and carries the configured context through redirects, proxies, and Unix sockets. Invalid values produce sanitized errors; unset ciphers are passed through as `None`.
+
+Module and lookup wiring and focused tests were delegated, then integrated and verified. **143 URL and lookup tests passed**; compilation and `git diff --check` passed. The reported CentOS 7 endpoint was not tested live.

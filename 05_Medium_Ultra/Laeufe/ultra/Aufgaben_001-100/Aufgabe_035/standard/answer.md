@@ -1,0 +1,3 @@
+Implemented the evaluation refactor. [EvaluatorStorage](/app/storage/evaluator.go) now owns flag lookup, ranked rule and constraint matching, typed comparisons, and deterministic CRC32 variant selection. `RuleStore` no longer exposes `Evaluate`; [Server.Evaluate](/app/server/evaluator.go) delegates through the new `Evaluator` dependency and records the request ID and duration.
+
+Server wiring and evaluator tests were delegated, then integrated and reviewed. The offline `go test ./...` suite passes, including the new operator, rank, and rollout boundary tests.

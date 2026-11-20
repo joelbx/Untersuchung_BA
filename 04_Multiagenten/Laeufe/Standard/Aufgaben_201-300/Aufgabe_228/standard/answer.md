@@ -1,0 +1,3 @@
+Added `utils.parse_version` using normalized `QVersionNumber` values and updated the Qt checks, distribution version, and crash dialog comparison to use Qt-native versions. The crash dialog shows the update note only when the parsed newest version is strictly greater.
+
+Verification: 345 focused tests passed. The remaining version utility tests had 93 pass, 4 skip, and 1 deselected because its Chromium user-agent probe exits in this environment. `git diff --check` passed.

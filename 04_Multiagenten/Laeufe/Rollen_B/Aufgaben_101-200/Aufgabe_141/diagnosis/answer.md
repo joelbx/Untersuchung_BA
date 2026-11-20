@@ -1,0 +1,5 @@
+The issue is in the report phase: [FillWordPress](/app/wordpress/wordpress.go:50) requests vulnerability data for every installed theme and plugin. The existing per-server `IgnoreInactive` setting filters CVEs later in [FilterInactiveWordPressLibs](/app/models/scanresults.go:252), after those API calls.
+
+The likely change points are [ReportCmd.SetFlags](/app/commands/report.go:97) for `-wp-ignore-inactive`, [config.Config](/app/config/config.go:78) for `WpIgnoreInactive`, and `FillWordPress` for filtering before the theme and plugin request loops. A new `removeInactives` helper should exclude packages whose status is exactly `"inactive"` and return `nil` when none remain. Core scanning and the default behavior should continue as they do now.
+
+The flag’s intended scope is somewhat unclear: WordPress inventory is collected by `scan`, while API requests happen during `report`. Registering it only on `scan` would not reduce API calls during reporting. I found no WordPress-focused tests. Under this run’s diagnosis-only constraint, I updated the checkpoint but did not edit project source or tests.

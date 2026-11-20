@@ -1,0 +1,3 @@
+Updated [ec2.go](/app/lib/utils/ec2.go) so `IsAvailable` retrieves the instance ID through the IMDS client, applies a 250 ms timeout, and accepts only valid EC2 instance ID formats. The constructor now accepts functional options, including `WithIMDSClient` for injecting a custom metadata client.
+
+Added tests in [ec2_test.go](/app/lib/utils/ec2_test.go) for valid IDs, captive portal HTML, malformed responses, errors, and timeout. The full `lib/utils` test suite passed with `GOPROXY=off GOSUMDB=off go test ./lib/utils -count=1`; `git diff --check` also passed.

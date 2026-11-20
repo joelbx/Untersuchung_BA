@@ -1,0 +1,3 @@
+Implemented JavaScript message filtering by source and message glob. The new `content.javascript.log_message.excludes` setting suppresses matching UI messages while other errors from the same source remain visible. The existing setting migrates to `.levels`, and messages that are not shown in the UI still use the standard logger.
+
+Updated [configuration](/app/qutebrowser/config/configdata.yml), [filtering code](/app/qutebrowser/browser/shared.py), and [settings documentation](/app/doc/help/settings.asciidoc). All 47 relevant tests passed.

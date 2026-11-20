@@ -1,0 +1,3 @@
+RemoteCluster now persists its status and latest heartbeat in UTC as tunnel records change. Removing the newest tunnel cannot move the heartbeat backward; removing the last sets the cluster Offline and retains that heartbeat. I added `Presence.UpdateRemoteCluster` with an expiry-preserving backend write.
+
+The full local service tests and focused auth RemoteCluster and tunnel CRUD tests passed. One agent reviewed the behavior; another added the initial regression tests, which I extended and verified.

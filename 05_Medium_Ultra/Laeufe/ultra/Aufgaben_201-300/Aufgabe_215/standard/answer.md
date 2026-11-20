@@ -1,0 +1,5 @@
+Implemented HTTPS support for the REST API, UI, and gRPC endpoint. [config.go](/app/cmd/flipt/config.go) now loads YAML with `FLIPT` environment overrides, preserves HTTP defaults, and validates HTTPS certificate paths. [main.go](/app/cmd/flipt/main.go) loads the certificate at startup and serves TLS on the configured ports. I also updated the [configuration guide](/app/docs/configuration.md) and added [configuration tests](/app/cmd/flipt/config_test.go).
+
+Verification passed: `go test -count=1 -p 1 ./...`. Live HTTPS API requests returned 200, the gRPC TLS handshake verified, and legacy HTTP requests still returned 200.
+
+Three native subagents handled configuration, server TLS, and tests/docs. I integrated their work and fixed an internal gateway dial that was returning 503 when proxy settings intercepted the local connection.

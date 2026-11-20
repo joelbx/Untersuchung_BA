@@ -1,0 +1,3 @@
+Address parsing is fixed. `splitBySeparator` now returns ordered, trimmed tokens without angle brackets or empty entries. `inputToRecipient` uses the bare email for both `Name` and `Address`, and both autocomplete paste handlers use the shared splitter.
+
+The new regression tests pass, as do shared and component type checks, lint, formatting, and `git diff --check`. The full shared suite finished with 835 passing and two unrelated failures in cookie expiry and file toBase64; both also failed before the patch.

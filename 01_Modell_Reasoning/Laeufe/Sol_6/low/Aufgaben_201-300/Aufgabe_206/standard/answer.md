@@ -1,0 +1,3 @@
+Added a per-actor posting lock to topic creation and replies. Overlapping requests from the same user or guest session now return HTTP 400 with `status.code: "bad-request"`; the accepted request returns `status.code: "ok"`.
+
+The concurrent request test passed: one of eight requests succeeded, and the topic set and category count each reflected one new topic. ESLint and `git diff --check` also passed.

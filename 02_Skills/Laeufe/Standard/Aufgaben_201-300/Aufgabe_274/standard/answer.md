@@ -1,0 +1,3 @@
+Implemented the three string modes for `qt.workarounds.disable_accelerated_2d_canvas`, with `auto` as the default. In auto mode, the flag is added only on Qt 6 when the detected Chromium major version is known and below 111. Added tests for the requested Qt versions and the Chromium 110/111 boundary.
+
+Validation: 144 relevant tests passed with `QT_QPA_PLATFORM=offscreen`. The installed runtime is Qt 5; the Qt 6 cases were simulated in tests.

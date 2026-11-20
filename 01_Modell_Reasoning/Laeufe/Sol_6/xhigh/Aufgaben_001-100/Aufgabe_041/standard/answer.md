@@ -1,0 +1,3 @@
+Removed `ListMixin` and consolidated `List`, its owner lookup, and `ListChangeset` in [core/lists/model.py](/app/openlibrary/core/lists/model.py). The new `register_models()` registers `/type/list` and the `lists` changeset type. Existing import paths remain available.
+
+**Validation:** 26 focused tests passed; Ruff and `git diff --check` passed. Broader list testing remains limited by a test missing `web.ctx.env` and an API test that cannot collect because `cookielib` is unavailable.

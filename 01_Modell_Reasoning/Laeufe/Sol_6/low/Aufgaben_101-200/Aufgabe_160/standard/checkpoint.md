@@ -1,0 +1,1 @@
+Implemented peer address exposure for gRPC and pipe inventory streams, wildcard/loopback SSH heartbeat address replacement preserving port, and focused controller test. go test ./lib/inventory and focused test pass. API module test blocked by unavailable cached dependency with GOPROXY=off. git diff --check passes.

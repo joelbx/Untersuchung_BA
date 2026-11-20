@@ -1,0 +1,3 @@
+Resolved the assistant upsell inconsistency in `/app`. Both paid flows now use the shared Scribe resolver and build a `planIDs` object that adds an addon only when one applies. `SelectedPlan` and the resolver are exported through `payments/core`, and callers use that public entry point.
+
+The focused test suite passed **11 tests**; formatting and diff checks passed. The package type check remains blocked by an unrelated OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts`.

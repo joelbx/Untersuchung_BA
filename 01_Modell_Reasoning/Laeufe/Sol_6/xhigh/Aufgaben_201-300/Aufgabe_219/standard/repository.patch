@@ -1,0 +1,254 @@
+diff --git a/internal/cmd/auth.go b/internal/cmd/auth.go
+index 1d95d8a..08d9750 100644
+--- a/internal/cmd/auth.go
++++ b/internal/cmd/auth.go
+@@ -34,6 +34,7 @@ func authenticationGRPC(
+ 	logger *zap.Logger,
+ 	cfg *config.Config,
+ 	forceMigrate bool,
++	tokenDeletedEnabled bool,
+ 	authOpts ...containers.Option[auth.InterceptorOptions],
+ ) (grpcRegisterers, []grpc.UnaryServerInterceptor, func(context.Context) error, error) {
+ 
+@@ -48,7 +49,7 @@ func authenticationGRPC(
+ 	if !cfg.Authentication.Enabled() && (cfg.Storage.Type != config.DatabaseStorageType) {
+ 		return grpcRegisterers{
+ 			public.NewServer(logger, cfg.Authentication),
+-			auth.NewServer(logger, storageauthmemory.NewStore()),
++			auth.NewServer(logger, storageauthmemory.NewStore(), auth.WithAuditLoggingEnabled(tokenDeletedEnabled)),
+ 		}, nil, shutdown, nil
+ 	}
+ 
+@@ -75,7 +76,7 @@ func authenticationGRPC(
+ 	var (
+ 		register = grpcRegisterers{
+ 			public,
+-			auth.NewServer(logger, store, auth.WithAuditLoggingEnabled(cfg.Audit.Enabled())),
++			auth.NewServer(logger, store, auth.WithAuditLoggingEnabled(tokenDeletedEnabled)),
+ 		}
+ 		interceptors []grpc.UnaryServerInterceptor
+ 	)
+diff --git a/internal/cmd/grpc.go b/internal/cmd/grpc.go
+index 45b4302..dfc8e4f 100644
+--- a/internal/cmd/grpc.go
++++ b/internal/cmd/grpc.go
+@@ -279,11 +279,20 @@ func NewGRPCServer(
+ 	skipAuthIfExcluded(metasrv, cfg.Authentication.Exclude.Metadata)
+ 	skipAuthIfExcluded(evalsrv, cfg.Authentication.Exclude.Evaluation)
+ 
++	var checker *audit.Checker
++	if cfg.Audit.Enabled() {
++		checker, err = audit.NewChecker(cfg.Audit.Events)
++		if err != nil {
++			return nil, err
++		}
++	}
++
+ 	register, authInterceptors, authShutdown, err := authenticationGRPC(
+ 		ctx,
+ 		logger,
+ 		cfg,
+ 		forceMigrate,
++		checker != nil && checker.Check("token:deleted"),
+ 		authOpts...,
+ 	)
+ 	if err != nil {
+@@ -345,11 +354,6 @@ func NewGRPCServer(
+ 	// based on audit sink configuration from the user, provision the audit sinks and add them to a slice,
+ 	// and if the slice has a non-zero length, add the audit sink interceptor
+ 	if len(sinks) > 0 {
+-		checker, err := audit.NewChecker(cfg.Audit.Events)
+-		if err != nil {
+-			return nil, err
+-		}
+-
+ 		sse := audit.NewSinkSpanExporter(logger, sinks)
+ 		tracingProvider.RegisterSpanProcessor(tracesdk.NewBatchSpanProcessor(sse, tracesdk.WithBatchTimeout(cfg.Audit.Buffer.FlushPeriod), tracesdk.WithMaxExportBatchSize(cfg.Audit.Buffer.Capacity)))
+ 
+diff --git a/internal/server/audit/checker.go b/internal/server/audit/checker.go
+index bf223ab..9b6b243 100644
+--- a/internal/server/audit/checker.go
++++ b/internal/server/audit/checker.go
+@@ -22,8 +22,9 @@ func NewChecker(eventPairs []string) (*Checker, error) {
+ 		"rollout":      {"rollout"},
+ 		"rule":         {"rule"},
+ 		"segment":      {"segment"},
++		"token":        {"token"},
+ 		"variant":      {"variant"},
+-		"*":            {"constraint", "distribution", "flag", "namespace", "rollout", "rule", "segment", "variant"},
++		"*":            {"constraint", "distribution", "flag", "namespace", "rollout", "rule", "segment", "token", "variant"},
+ 	}
+ 
+ 	verbs := map[string][]string{
+diff --git a/internal/server/audit/checker_test.go b/internal/server/audit/checker_test.go
+index 17e412f..0e90b42 100644
+--- a/internal/server/audit/checker_test.go
++++ b/internal/server/audit/checker_test.go
+@@ -26,6 +26,7 @@ func TestChecker(t *testing.T) {
+ 				"rollout:created":      true,
+ 				"rule:created":         true,
+ 				"segment:created":      true,
++				"token:created":        true,
+ 				"variant:created":      true,
+ 				"constraint:deleted":   false,
+ 				"distribution:deleted": false,
+@@ -34,6 +35,7 @@ func TestChecker(t *testing.T) {
+ 				"rollout:deleted":      false,
+ 				"rule:deleted":         false,
+ 				"segment:deleted":      false,
++				"token:deleted":        false,
+ 				"variant:deleted":      false,
+ 				"constraint:updated":   false,
+ 				"distribution:updated": false,
+@@ -107,6 +109,46 @@ func TestChecker(t *testing.T) {
+ 				"variant:updated":      false,
+ 			},
+ 		},
++		{
++			name:       "token creation",
++			eventPairs: []string{"token:created"},
++			pairs: map[string]bool{
++				"token:created": true,
++				"token:deleted": false,
++			},
++		},
++		{
++			name:       "token deletion",
++			eventPairs: []string{"token:deleted"},
++			pairs: map[string]bool{
++				"token:created": false,
++				"token:deleted": true,
++			},
++		},
++		{
++			name:       "token wildcard actions",
++			eventPairs: []string{"token:*"},
++			pairs: map[string]bool{
++				"token:created": true,
++				"token:deleted": true,
++			},
++		},
++		{
++			name:       "wildcard resource deletion",
++			eventPairs: []string{"*:deleted"},
++			pairs: map[string]bool{
++				"token:created": false,
++				"token:deleted": true,
++			},
++		},
++		{
++			name:       "all events",
++			eventPairs: []string{"*:*"},
++			pairs: map[string]bool{
++				"token:created": true,
++				"token:deleted": true,
++			},
++		},
+ 		{
+ 			name:          "error repeating event pairs",
+ 			eventPairs:    []string{"*:created", "flag:created"},
+diff --git a/internal/server/auth/server.go b/internal/server/auth/server.go
+index a15c55d..9d98b32 100644
+--- a/internal/server/auth/server.go
++++ b/internal/server/auth/server.go
+@@ -131,6 +131,7 @@ func (s *Server) ListAuthentications(ctx context.Context, r *auth.ListAuthentica
+ func (s *Server) DeleteAuthentication(ctx context.Context, req *auth.DeleteAuthenticationRequest) (*emptypb.Empty, error) {
+ 	s.logger.Debug("DeleteAuthentication", zap.String("id", req.Id))
+ 
++	var event *audit.Event
+ 	if s.enableAuditLogging {
+ 		actor := ActorFromContext(ctx)
+ 
+@@ -142,12 +143,18 @@ func (s *Server) DeleteAuthentication(ctx context.Context, req *auth.DeleteAuthe
+ 			return nil, err
+ 		}
+ 		if a.Method == auth.Method_METHOD_TOKEN {
+-			event := audit.NewEvent(audit.TokenType, audit.Delete, actor, a.Metadata)
+-			event.AddToSpan(ctx)
++			event = audit.NewEvent(audit.TokenType, audit.Delete, actor, a.Metadata)
+ 		}
+ 	}
+ 
+-	return &emptypb.Empty{}, s.store.DeleteAuthentications(ctx, storageauth.Delete(storageauth.WithID(req.Id)))
++	if err := s.store.DeleteAuthentications(ctx, storageauth.Delete(storageauth.WithID(req.Id))); err != nil {
++		return nil, err
++	}
++	if event != nil {
++		event.AddToSpan(ctx)
++	}
++
++	return &emptypb.Empty{}, nil
+ }
+ 
+ // ExpireAuthenticationSelf expires the Authentication which was derived from the request context.
+diff --git a/internal/server/auth/server_test.go b/internal/server/auth/server_test.go
+index 34ec302..be0d794 100644
+--- a/internal/server/auth/server_test.go
++++ b/internal/server/auth/server_test.go
+@@ -10,11 +10,14 @@ import (
+ 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+ 	"github.com/stretchr/testify/require"
+ 	"go.flipt.io/flipt/errors"
++	"go.flipt.io/flipt/internal/server/audit"
+ 	"go.flipt.io/flipt/internal/server/auth"
+ 	middleware "go.flipt.io/flipt/internal/server/middleware/grpc"
+ 	storageauth "go.flipt.io/flipt/internal/storage/auth"
+ 	"go.flipt.io/flipt/internal/storage/auth/memory"
+ 	rpcauth "go.flipt.io/flipt/rpc/flipt/auth"
++	"go.opentelemetry.io/otel/sdk/trace"
++	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+ 	"go.uber.org/zap/zaptest"
+ 	"google.golang.org/grpc"
+ 	"google.golang.org/grpc/codes"
+@@ -41,6 +44,51 @@ func TestActorFromContext(t *testing.T) {
+ 	require.Equal(t, actor["authentication"], authentication)
+ }
+ 
++func TestDeleteAuthenticationAudit(t *testing.T) {
++	for _, tc := range []struct {
++		name    string
++		enabled bool
++	}{
++		{name: "enabled", enabled: true},
++		{name: "disabled", enabled: false},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			store := memory.NewStore()
++			_, authentication, err := store.CreateAuthentication(context.Background(), &storageauth.CreateAuthenticationRequest{
++				Method:    rpcauth.Method_METHOD_TOKEN,
++				Metadata:  map[string]string{"name": "audit-test"},
++				ExpiresAt: timestamppb.New(time.Now().Add(time.Hour)),
++			})
++			require.NoError(t, err)
++
++			exporter := tracetest.NewInMemoryExporter()
++			provider := trace.NewTracerProvider(trace.WithSyncer(exporter))
++			ctx, span := provider.Tracer("test").Start(context.Background(), "delete")
++			server := auth.NewServer(zaptest.NewLogger(t), store, auth.WithAuditLoggingEnabled(tc.enabled))
++
++			_, err = server.DeleteAuthentication(ctx, &rpcauth.DeleteAuthenticationRequest{Id: authentication.Id})
++			require.NoError(t, err)
++			span.End()
++
++			spans := exporter.GetSpans()
++			require.Len(t, spans, 1)
++			if !tc.enabled {
++				require.Empty(t, spans[0].Events)
++				return
++			}
++
++			require.Len(t, spans[0].Events, 1)
++			require.Equal(t, "event", spans[0].Events[0].Name)
++			attrs := make(map[string]string)
++			for _, attr := range spans[0].Events[0].Attributes {
++				attrs[string(attr.Key)] = attr.Value.AsString()
++			}
++			require.Equal(t, string(audit.TokenType), attrs["flipt.event.type"])
++			require.Equal(t, string(audit.Delete), attrs["flipt.event.action"])
++		})
++	}
++}
++
+ func TestServer(t *testing.T) {
+ 	var (
+ 		logger   = zaptest.NewLogger(t)

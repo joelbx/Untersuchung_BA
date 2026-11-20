@@ -1,0 +1,3 @@
+Updated the vulnerability reporting flow so each library finding retains its lockfile path. Scanning now analyzes lockfiles individually, reports look up versions by path and name, and duplicate CVEs keep findings from every file. Unknown lockfile types return an error.
+
+`GOPROXY=off go test ./...` passed. The build emitted a warning from the upstream `go-sqlite3` C code; it did not fail any tests.

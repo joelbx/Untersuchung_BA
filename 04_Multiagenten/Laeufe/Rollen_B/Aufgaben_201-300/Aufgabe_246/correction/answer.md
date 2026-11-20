@@ -1,0 +1,3 @@
+Fixed the multi-lockfile reporting issue. Each lockfile is analyzed separately with `AnalyzeFile`, findings retain their source path, and scan results are committed only after every lockfile succeeds so a failed scan can be retried. The driver now returns an error for unknown file types.
+
+The exact five packages flagged by the reviewer, the full `go test ./...` suite, and `git diff --check` pass offline. No remaining failures or `TEST_ENVIRONMENT_PROBLEM`.

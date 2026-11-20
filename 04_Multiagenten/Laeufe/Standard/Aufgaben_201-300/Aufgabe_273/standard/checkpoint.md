@@ -1,0 +1,2 @@
+Task: Fix make_work for documents missing author fields, preserve fields, add metadata defaults, annotate make_author/make_work, and run relevant existing tests.
+Status: Complete. Updated openlibrary/plugins/upstream/addbook.py to use optional author arrays, preserve cover_url, and add requested type annotations. Added regression cases in openlibrary/plugins/upstream/tests/test_addbook.py for missing author fields and supplied metadata/author creation. Verification: pytest -q openlibrary/plugins/upstream/tests/test_addbook.py (15 passed); git diff --check passed.

@@ -1,0 +1,3 @@
+Added `locally_reachable_ips` to Linux network facts, with sorted, de-duplicated IPv4 and IPv6 entries from routes marked `scope host`. Host routes are emitted as bare IPs; prefixes use canonical CIDR notation. If a family or route data is unavailable, its list stays empty and collection continues.
+
+Compilation succeeded, and the existing network unit tests passed (5 tests). `git diff --check` also passed.

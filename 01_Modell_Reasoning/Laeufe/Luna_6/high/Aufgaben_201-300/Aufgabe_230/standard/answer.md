@@ -1,0 +1,3 @@
+Implemented `PrioritizedIdentifier` in [affiliate_server.py](/app/scripts/affiliate_server.py). It supports generic identifiers, identifier-based equality and hashing, priority ordering, `stage_import`, and JSON-compatible serialization. The old `PrioritizedISBN` name and `isbn` argument/property remain available for compatibility. Batch processing now honors the staging flag.
+
+Verification: `python -m pytest scripts/tests/test_affiliate_server.py -q` — 16 passed.

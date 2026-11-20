@@ -1,0 +1,3 @@
+Added `route_targets` to [nxos_vrf_af.py](/app/lib/ansible/modules/network/nxos/nxos_vrf_af.py), with per-entry `rt`, `direction`, and `state`. The module now adds or removes multiple route-targets in one operation, defaults `both` to import and export, and compares exact lines within the selected VRF address family to avoid unnecessary changes. It also preserves address-family creation and removal and EVPN auto handling.
+
+Added coverage in [test_nxos_vrf_af.py](/app/test/units/modules/network/nxos/test_nxos_vrf_af.py). **Verification:** all 9 focused tests passed, and `git diff --check` passed.

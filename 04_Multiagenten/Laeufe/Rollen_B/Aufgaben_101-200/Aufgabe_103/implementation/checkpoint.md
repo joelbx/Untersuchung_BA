@@ -1,0 +1,3 @@
+Implementer progress: confirmed installed-package parsers use strings.Fields and lose empty release fields; Amazon 2 dispatch relies on collapsed field count. splitFileName uses last dot/hyphen without full validation. Reviewing tests and update parser before editing.
+Implemented empty-release field preservation, shared epoch/version formatting, -src filename support, and (none) update epochs. Added focused tests; reviewing hyphenated release ambiguity and running scanner tests.
+Finished patch in scanner/redhatbase.go and tests. Focused scanner tests pass, including empty-release integration, both line formats, -src filenames, malformed filenames, and CentOS/Amazon update listings. git diff --check passes.

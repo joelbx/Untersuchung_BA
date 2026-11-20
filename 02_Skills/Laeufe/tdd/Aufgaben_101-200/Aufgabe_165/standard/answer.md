@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` for new rooms. The shared policy helper gives server force-enable precedence on conflicts; the room dialog keeps the encryption toggle locked while the decision is pending, shows the enforced value, and submits that value. Added regression tests and updated [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+Focused tests pass: **33/33**. Lint and formatting pass. The full suite has **one unrelated failing suite**, `StopGapWidget-test.ts` (“No iframe supplied”); the type check reports an existing error in `src/Unread.ts`.

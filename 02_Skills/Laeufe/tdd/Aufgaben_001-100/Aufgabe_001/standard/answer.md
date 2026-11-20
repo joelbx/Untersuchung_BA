@@ -1,0 +1,3 @@
+Syslog configuration now has a public [Conf struct](/app/config/syslog/types.go) and `Validate()` method in `config/syslog`. The existing `config.SyslogConf` name remains an alias, and Windows validation returns one error when syslog is enabled.
+
+`GOPROXY=off go test ./...` passes. The Windows syslog and config test binaries compile. A Windows reporter compile check remains blocked by an unrelated `config.TrivyOpts` error in `detector/javadb`; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

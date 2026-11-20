@@ -1,0 +1,3 @@
+Updated [getUpvoters](/app/src/socket.io/posts/votes.js) to require `topics:read` on every supplied post’s category for non-administrators, rejecting denied requests with `[[error:no-privileges]]`. It now deduplicates UID lookups, preserves username order, and returns a cutoff of 6. The [frontend tooltip](/app/public/src/client/topic/votes.js) uses the server cutoff and supports HTML.
+
+Added [integration tests](/app/test/posts.js). ESLint, `git diff --check`, and all 127 tests in `test/posts.js` pass.

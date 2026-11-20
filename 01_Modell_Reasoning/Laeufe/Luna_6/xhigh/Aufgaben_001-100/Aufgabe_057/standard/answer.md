@@ -1,0 +1,3 @@
+Implemented YAML import/export in [common.go](/app/internal/ext/common.go), [exporter.go](/app/internal/ext/exporter.go), and [importer.go](/app/internal/ext/importer.go). Attachments now export as YAML values and import as JSON strings, preserving nested maps, lists, and explicit nulls. The CLI import and export commands use these shared workflows.
+
+Validation passed: `go test ./...` and `git diff --check`. The checkout contains no existing `internal/ext` fixtures or tests.

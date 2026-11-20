@@ -1,0 +1,3 @@
+Amazon imports now include unique language display names from edition metadata, preserving Amazon’s spelling and casing. Entries marked “Original Language” are excluded, and `languages` is omitted when no values remain. The import cleaner now preserves the field. See [vendors.py](/app/openlibrary/core/vendors.py:220) and the [regression tests](/app/openlibrary/tests/core/test_vendors.py:372).
+
+Validation: 37 vendor tests passed, Ruff lint passed, and `git diff --check` passed. Black was unavailable.

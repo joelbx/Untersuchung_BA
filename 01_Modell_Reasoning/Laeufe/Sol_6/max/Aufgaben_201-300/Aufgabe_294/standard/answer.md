@@ -1,0 +1,3 @@
+Updated [collection.py](/app/lib/ansible/galaxy/collection.py) so builds preserve internal file and directory symlinks without walking linked directories, while copying external file links as regular files. Artifact installation now checks destination and link paths, restores safe symlinks, and exposes tar member metadata through the extraction helpers.
+
+Added regression tests in [test_collection.py](/app/test/units/galaxy/test_collection.py) and a [changelog fragment](/app/changelogs/fragments/galaxy-collection-symlinks.yaml). The galaxy unit suite passes: **154 tests**.

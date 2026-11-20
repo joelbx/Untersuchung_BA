@@ -1,0 +1,3 @@
+Syslog configuration now has a public [`syslog.Conf`](/app/config/syslog/types.go) type with `Validate()` in the dedicated package. Validation preserves the existing defaults and returns one error for each invalid protocol, port, severity, or facility when enabled. Windows validation returns the specified single error when enabled.
+
+Existing callers remain compatible through a [`config.SyslogConf` alias](/app/config/syslogconf_alias.go). The focused tests, existing config and reporter tests, Windows cross-compilation, and `git diff --check` all passed.

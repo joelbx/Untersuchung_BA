@@ -1,0 +1,3 @@
+Payment token creation now accepts an injectable verification function. I added `getCreatePaymentToken` and `getDefaultVerifyPayment`, moved modal creation out of `createPaymentToken`, and updated the four callers present in this checkout. A chargeable token returns immediately; a pending token uses the verifier.
+
+Type checking, the existing payment token helper tests, and `git diff --check` passed. I could not update `PaymentStep` because no `PaymentStep` file exists in this checkout.

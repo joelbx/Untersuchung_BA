@@ -1,0 +1,5 @@
+The missing piece is in [tsh.go](/app/tool/tsh/tsh.go:570): after parsing `--kube-cluster`, `tsh` reads environment defaults for `SiteName` and `HomePath`, but never reads `TELEPORT_KUBE_CLUSTER`. A read at that point should fill `KubernetesCluster` only when the CLI has left it empty. The existing kubeconfig path already uses that field to select and validate a cluster.
+
+The existing `TELEPORT_CLUSTER`/`TELEPORT_SITE` precedence and `TELEPORT_HOME` cleaning match the requirements. [tsh_test.go](/app/tool/tsh/tsh_test.go:596) covers the site cases and basic home cases; coverage is still needed for the Kubernetes variable’s unset, environment, and CLI precedence cases, plus home overriding a supplied path.
+
+Uncertainty is limited to behavior outside this configuration path; I did not run tests. This checkout’s assigned fault-localization role prohibits source and test edits, so no fix was made.

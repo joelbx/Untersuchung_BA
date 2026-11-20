@@ -1,0 +1,3 @@
+Added [mailMetricsHelper.ts](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts) with `getLabelID`, which returns `custom` for user-defined labels and folders, and `getPageSizeString`, which returns `50`, `100`, or `200` and defaults to `50` for missing or invalid settings. Added `@proton/metrics` to the Mail manifest and lockfile.
+
+All 21 focused tests pass. ESLint, Prettier, and `git diff --check` pass.

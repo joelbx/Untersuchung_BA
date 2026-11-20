@@ -1,0 +1,3 @@
+Added JXL MIME detection and enabled HEIC, HEIF, and JXL thumbnails and previews for macOS/iOS Safari 17+. Both Drive copies of `mimeTypeFromFile` now use a specific file MIME type first, then the extension when the type is empty or generic, without `ChunkFileReader`.
+
+The focused tests pass (17 tests), and lint passes. Package type checks still fail on errors in unrelated crypto, documents, and config files; they report no errors in the changed files.

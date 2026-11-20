@@ -1,0 +1,3 @@
+Added [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py) with firmware upload, compatibility filtering, online or offline upgrades, optional completion polling, check mode, and Ansible status reporting. Added [unit tests](/app/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py) and recorded verification in [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+Verification: all 8 new tests pass; 128 runnable E-Series tests pass. Three existing test files could not be collected because the local `mock` package is unavailable.

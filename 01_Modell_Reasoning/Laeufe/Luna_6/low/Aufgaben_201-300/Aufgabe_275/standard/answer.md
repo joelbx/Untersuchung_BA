@@ -1,0 +1,1 @@
+`authenticate` now checks `trace.IsAccessDenied` for errors from `setupContext`, returning access errors as `AccessDenied` and wrapping other errors to preserve their trace classification. I couldn’t complete the test updates or run the existing tests, so the fix is not fully verified. The checkpoint is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented `-wp-ignore-inactive` for `report` and `tui`, with a top-level `wpIgnoreInactive` TOML setting. [FillWordPress](/app/wordpress/wordpress.go:50) now excludes inactive plugins and themes before API requests, and saved findings are filtered when the option is enabled. The default still scans all installed components.
+
+Relevant tests passed: `go test ./config ./wordpress ./models ./commands ./report`.

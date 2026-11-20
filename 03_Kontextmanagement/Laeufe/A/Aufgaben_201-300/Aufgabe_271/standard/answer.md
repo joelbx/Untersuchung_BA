@@ -1,0 +1,1 @@
+Fixed the IA import path so it separates semicolon-delimited places from publisher names, preserves publisher lists, and classifies trimmed ISBNs by length. Added parser and import tests; the relevant test suite passed (46 tests).

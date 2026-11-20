@@ -1,0 +1,5 @@
+The Touch ID registration and passwordless login flow works in the existing fake backend test. `go test ./lib/auth/touchid -run TestRegisterAndLogin -count=1` passes, including WebAuthn response parsing, credential creation, login validation, and the returned username.
+
+The clear gap is availability checking: [api_darwin.go](/app/lib/auth/touchid/api_darwin.go:81) returns `true` unconditionally, while the requested `DiagResult` and `Diag` interfaces are absent. The likely fix belongs there and in [api.go](/app/lib/auth/touchid/api.go:75), with diagnostics covering compile support, signature, entitlements, Local Authentication policy, and Secure Enclave access. Those results should determine availability before `Register` and `Login` proceed.
+
+Actual Secure Enclave behavior remains unverified on this Linux host. I recorded the findings in `.codex-role-output/checkpoint.md`; the fault localization role prohibited changes to project source or tests.

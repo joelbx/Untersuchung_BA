@@ -1,0 +1,3 @@
+Updated `UserPropsRepository` and its mock so every operation requires an explicit, nonempty user ID. LastFM now uses that ID for session key reads and writes, including now playing and scrobbling. Link status and unlink use the authenticated user; the callback uses a short lived signed state instead of trusting a `uid` query parameter. The UI starts that flow from an authenticated request.
+
+Cross user repository and LastFM tests pass, along with the focused Go test suites and `git diff --check`.

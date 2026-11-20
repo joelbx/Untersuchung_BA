@@ -1,0 +1,3 @@
+Implemented matcher expressions in [parse.go](/app/lib/utils/parse/parse.go), including literals, anchored wildcards, regex functions, negation, prefix and suffix matching, and the required error handling. Added focused tests in [parse_test.go](/app/lib/utils/parse/parse_test.go). The parser tests pass.
+
+The broader `lib/utils` suite has one unrelated failure: a certificate fixture expired in 2021.

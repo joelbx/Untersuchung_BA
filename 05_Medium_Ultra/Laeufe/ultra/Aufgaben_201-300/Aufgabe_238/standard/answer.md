@@ -1,0 +1,3 @@
+**Resolved the `:buffer` deprecation.** [`:tab-select`](/app/qutebrowser/browser/commands.py:919) is now the registered tab selection command, with [`tabs()` and `other_tabs()`](/app/qutebrowser/completion/models/miscmodels.py:165) as its completion sources. I updated the default `gt` binding, generated help, examples, and behavior tests. No active `:buffer` references remain outside historical changelog entries.
+
+Validation: 249 unit tests passed, 1 expected failure; 16 tab selection and 3 related browser scenarios passed. The help generator and `git diff --check` also passed. Native subagents handled documentation, completion, and behavior tests; I integrated and verified their edits.

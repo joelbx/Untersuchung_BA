@@ -1,0 +1,5 @@
+**Diagnosis:** In this checkout, the YAML schema and workflows live in [cmd/flipt/export.go](/app/cmd/flipt/export.go:20) and [cmd/flipt/import.go](/app/cmd/flipt/import.go:105). `Variant.Attachment` is a string: export copies stored JSON into a YAML scalar, while import passes that scalar directly to `CreateVariant`. A YAML map or list cannot be handled through that field.
+
+The fix should use a shared YAML attachment field that accepts native values, decode stored JSON before export, and recursively normalize YAML map keys to strings before JSON encoding on import. Missing attachments should remain empty; nested arrays, objects, mixed values, and nulls need round trip coverage. The existing flag, segment, rule, and distribution relationships should be retained.
+
+**Uncertainty:** This checkout has no `internal/ext` package or the named fixtures, so their expected API and exact output could not be verified. I recorded the findings in `.codex-role-output/checkpoint.md`. Project source and tests remain unchanged under this pass’s fault localization restriction.

@@ -1,0 +1,3 @@
+Updated [getLastPersistedLocalID](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts) to return `null` when no usable session ID exists, ignore nonnumeric session keys, and preserve valid ID `0`. The [bookmark view](/app/applications/drive/src/app/store/_views/useBookmarksPublicView.ts) now resumes only when an ID exists and restores the saved key password before listing bookmarks.
+
+Both focused test suites passed (20 tests). Prettier and ESLint passed, with one existing hook dependency warning. The Drive type check remains blocked by an `openpgp`/`pmcrypto` type mismatch in untouched [worker/api.ts](/app/packages/crypto/lib/worker/api.ts:579).

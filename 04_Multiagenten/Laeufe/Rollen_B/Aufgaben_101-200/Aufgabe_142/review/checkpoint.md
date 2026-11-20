@@ -1,0 +1,3 @@
+VERDICT: FIX
+Code defect: lib/utils/parse/parse.go:78-85,114-115 rejects single braces in plain literals and static template text; e.g. NewExpression("a{b}") and NewMatcher("a{b}") fail although only malformed {{ / }} usage should be rejected. Correct by checking malformed double delimiters, allowing ordinary single braces.
+Tests: GOPROXY=off go test ./lib/utils/parse PASS; GOPROXY=off go test ./lib/services PASS. go test ./lib/utils/parse ./lib/services ./lib/srv exit 1: parse and services PASS, srv build fails on missing linux/hidraw.h and sqlite3 pread64/off64_t. GOPROXY=off CGO_ENABLED=0 go test ./lib/srv exit 1: build fails on missing bpf, hid, pkcs11, shell and sqlite3 symbols. TEST_ENVIRONMENT_PROBLEM: srv tests unavailable locally.

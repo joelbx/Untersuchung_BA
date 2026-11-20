@@ -1,0 +1,3 @@
+Updated [custom_headers](/app/qutebrowser/browser/shared.py:29) so XHR requests omit the global `Accept-Language` value when a URL has no matching domain override. The [WebEngine interceptor](/app/qutebrowser/browser/webengine/interceptor.py:190) uses that behavior only for XHR requests. Added unit coverage for the fallback and domain override cases.
+
+All 27 selected tests passed, and `git diff --check` passed. `flake8` was unavailable in the environment.

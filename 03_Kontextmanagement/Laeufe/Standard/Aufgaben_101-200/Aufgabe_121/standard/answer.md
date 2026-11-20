@@ -1,0 +1,3 @@
+Added `flipt.is_auth_method(input, "token")` as a two argument Rego built-in and loaded it in both authorization engines. It maps all seven supported labels to protobuf enum values, including `k8s` and `kubernetes` to the same value. It returns a boolean for matches and the requested errors for missing authentication and unsupported labels.
+
+Focused tests pass for the mappings, errors, argument signature, and policy evaluation.

@@ -1,0 +1,3 @@
+Implemented `SimpleCache[V]` in [simple_cache.go](/app/utils/cache/simple_cache.go) and migrated the play tracker, genre repository, and HTTP client to typed cache operations. The cache uses consistent expiration without extending TTL on reads; the HTTP client retains its 100-entry limit.
+
+Added focused cache tests. Offline tests passed for `./utils/cache`, `./scanner`, and `./core/scrobbler`; `git diff --check` passed.

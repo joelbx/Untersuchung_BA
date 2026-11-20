@@ -1,0 +1,3 @@
+Implemented the evaluation decoupling. [`RuleStore`](/app/storage/rule.go:17) no longer includes `Evaluate`; [`EvaluatorStorage`](/app/storage/evaluator.go:22) now handles SQL lookups, ranked rules, typed constraints, and deterministic CRC32 variant selection. [`Server`](/app/server/server.go:21) is wired to an `Evaluator`, and its [`Evaluate` method](/app/server/evaluator.go:12) validates required fields, generates a UUIDv4 when needed, and records request duration.
+
+`go test -count=1 ./...` passes.

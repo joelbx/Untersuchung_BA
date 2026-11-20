@@ -1,0 +1,7 @@
+The issue is in [`RoleMixin._create_role_doc`](/app/lib/ansible/cli/doc.py:232). Its inline `build_doc` closes over the entry point filter and mutates the result dictionary, so the documentation building logic cannot be tested directly.
+
+Extract it as `RoleMixin._build_doc(role, path, collection, argspec, entry_point=None)`, returning `(fqcn, doc)` or `(fqcn, None)` when there are no included entry points. `_create_role_doc` should add only non-`None` docs. The doc must retain `path` and `collection` unchanged and map included entry point names to their full specifications.
+
+Existing integration coverage checks plain role output and a filtered collection entry point in [`runme.sh`](/app/test/integration/targets/ansible-doc/runme.sh:50); [`test_doc.py`](/app/test/units/cli/test_doc.py) has no direct builder coverage. One detail needs care: the current inline function converts a `None` specification to `{}`, while the stated requirement calls for the full input specification object.
+
+I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were not changed because the assigned fault-localization role explicitly prohibits those edits.

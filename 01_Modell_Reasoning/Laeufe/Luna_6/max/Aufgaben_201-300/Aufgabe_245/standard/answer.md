@@ -1,0 +1,3 @@
+`detectScanDest` now returns an IP-to-ports map, deduplicates ports, sorts each port slice, and returns an empty map when no listeners are found. Updated [`execPortsScan`]( /app/scan/base.go ) to consume the map and scan addresses in sorted order. Added multi-port and deduplication coverage in [`base_test.go`]( /app/scan/base_test.go ).
+
+`GOPROXY=off go test ./scan` passed, and `git diff --check` passed. The checkpoint is recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented author matching by Open Library key, then external identifiers, then name and dates. Matched authors now receive nonconflicting identifiers in the save batch; conflicting IDs raise `AuthorRemoteIdConflictError`. New authors retain their identifiers, and ties use a consistent key order. I also added `SUSPECT_DATE_EXEMPT_SOURCES`.
+
+**Validation:** 183 relevant tests passed; Ruff and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated [the configuration schema](/app/qutebrowser/config/configdata.yml) to use `always`, `auto`, and `never`, with `auto` as the default. [WebEngine argument handling](/app/qutebrowser/config/qtargs.py) now passes version and CLI context to the setting resolver; `auto` adds the canvas flag only on Qt 6 with a known Chromium major version below 111.
+
+A subagent added [boundary and resolver tests](/app/tests/unit/config/test_qtargs.py), and another inspected the version and schema conventions. I reviewed their work and verified the combined patch: **146 tests passed** with `QT_QPA_PLATFORM=offscreen`; `git diff --check` passed.

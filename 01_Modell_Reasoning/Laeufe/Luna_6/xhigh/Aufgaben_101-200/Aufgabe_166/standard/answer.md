@@ -1,0 +1,3 @@
+Implemented cache policies in [dataloader.py](/app/lib/ansible/parsing/dataloader.py): `none` skips cache reads and writes, `vaulted` caches and reuses vaulted files, and existing boolean behavior remains supported. Updated [manager.py](/app/lib/ansible/vars/manager.py) so vars files use vaulted-only caching.
+
+Verification: DataLoader tests passed (31), VariableManager tests passed (8), and `git diff --check` passed. The `ansible-test` runner could not start pytest because its `-n` option is unsupported in this environment; direct pytest runs succeeded.

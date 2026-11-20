@@ -1,0 +1,3 @@
+Moved syslog configuration into the public [config/syslog package](/app/config/syslog/types.go). Its `Conf.Validate()` preserves the existing non-Windows validation behavior and returns one error when syslog is enabled on Windows. The main configuration and reporter now use the new type; `config.SyslogConf` remains an alias for existing callers.
+
+The existing configuration and reporter tests passed. The new package also cross compiled for Windows.

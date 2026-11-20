@@ -1,0 +1,3 @@
+Implemented the process-to-package lookup fix. Debian and Red Hat scans now use a shared `pkgPs` function to collect process file paths and associate processes with packages by ownership. The RPM lookup deduplicates package names across architectures, ignores the three expected file lookup messages, and returns an error for malformed output.
+
+Added an RPM parser test. `GOPROXY=off go test ./scan -count=1` and `git diff --check` pass.

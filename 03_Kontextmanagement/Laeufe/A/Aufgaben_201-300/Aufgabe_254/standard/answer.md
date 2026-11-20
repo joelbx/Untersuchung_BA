@@ -1,0 +1,3 @@
+Updated [ec2.go](/app/lib/utils/ec2.go) so `IsAvailable` retrieves the instance ID through the IMDS client within 250 ms and accepts only valid 8 or 17 character hexadecimal EC2 IDs. The constructor now accepts functional options, including `WithIMDSClient` for injection.
+
+Added regression tests in [ec2_test.go](/app/lib/utils/ec2_test.go) for captive portal HTML, malformed IDs, option errors, and timeout behavior. The focused EC2 tests pass, and `git diff --check` is clean.

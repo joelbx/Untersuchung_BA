@@ -1,0 +1,3 @@
+Implemented opportunistic expiration cleanup using an atomic eviction deadline. `Add`, `AddWithTTL`, `Get`, `GetWithLoader`, `Keys`, and the new `Values` method now trigger eviction; collection reads expose only active entries. Loader results retain their TTL, and collection reads preserve the size limit’s eviction order.
+
+Added tests for 10 ms expiration, loader reloads, and size limit behavior. `go test ./utils/cache`, `go test ./core/scrobbler`, and `git diff --check` passed.

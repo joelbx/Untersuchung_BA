@@ -1,0 +1,3 @@
+Implemented bounded event polling in [usePollEvents.ts](/app/packages/components/payments/client-extensions/usePollEvents.ts). It exports `interval = 5000` and `maxPollingSteps = 5`, optionally stops on a matching property/action event, and unsubscribes and clears pending timers when polling completes.
+
+Verification: the components package type check, targeted ESLint, and `git diff --check` passed. No existing tests specifically cover this hook.

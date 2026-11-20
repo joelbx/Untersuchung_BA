@@ -1,0 +1,3 @@
+Updated `reversetunnel.Server` to keep one `localSite`. The site now reuses the server’s existing access point and clients, and service connections reject empty or mismatched certificate cluster names.
+
+Validation passed: `go test ./lib/reversetunnel -count=1` and `git diff --check`. Progress and the resolved initial test fixture error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

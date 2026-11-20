@@ -1,0 +1,3 @@
+Updated [QtWebEngine argument building](/app/qutebrowser/config/qtargs.py:32) to merge enabled features into one `--enable-features=` entry and forward each `--disable-features=` flag unchanged. Added [tests](/app/tests/unit/config/test_qtargs.py:386) for command line and config values, comma-separated lists, and mixed flags.
+
+Verification: all 88 Qt argument tests passed; `git diff --check` passed.

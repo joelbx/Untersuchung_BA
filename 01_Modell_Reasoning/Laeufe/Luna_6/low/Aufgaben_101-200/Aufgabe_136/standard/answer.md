@@ -1,0 +1,3 @@
+Updated [certificateerror.py](/app/qutebrowser/browser/webkit/certificateerror.py) to accept optional `reply` and `errors` arguments while preserving the legacy positional errors sequence. A single error renders as an escaped paragraph; multiple errors render as an escaped unordered list. Construction and rendering do not operate on the reply.
+
+The existing WebKit certificate error tests passed (4 tests), and the file compiled successfully.

@@ -1,0 +1,3 @@
+Implemented opt-out anonymous telemetry in `/app`. It is enabled by default, supports `FLIPT_META_TELEMETRY_ENABLED` and `FLIPT_META_STATE_DIRECTORY`, persists a stable UUID in `telemetry.json`, and sends `flipt.ping` on a four-hour schedule. I also added the `info.Flipt` HTTP handler and disabled telemetry in the advanced config example.
+
+The relevant local tests pass: `go test ./config ./telemetry ./internal/info ./cmd/flipt`. Live collector delivery was not verified.

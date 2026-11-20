@@ -1,0 +1,469 @@
+diff --git a/config/flipt.schema.json b/config/flipt.schema.json
+index 5293aa9..2bb99af 100644
+--- a/config/flipt.schema.json
++++ b/config/flipt.schema.json
+@@ -938,6 +938,20 @@
+           "enum": ["jaeger", "zipkin", "otlp"],
+           "default": "jaeger"
+         },
++        "sampling_ratio": {
++          "type": "number",
++          "minimum": 0,
++          "maximum": 1,
++          "default": 1
++        },
++        "propagators": {
++          "type": "array",
++          "items": {
++            "type": "string",
++            "enum": ["tracecontext", "baggage", "b3", "b3multi", "jaeger", "xray", "ottrace", "none"]
++          },
++          "default": ["tracecontext", "baggage"]
++        },
+         "jaeger": {
+           "type": "object",
+           "additionalProperties": false,
+diff --git a/internal/cmd/grpc.go b/internal/cmd/grpc.go
+index ebbdb5e..c5ca229 100644
+--- a/internal/cmd/grpc.go
++++ b/internal/cmd/grpc.go
+@@ -39,7 +39,6 @@ import (
+ 	"go.flipt.io/flipt/internal/tracing"
+ 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+ 	"go.opentelemetry.io/otel"
+-	"go.opentelemetry.io/otel/propagation"
+ 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+ 	"go.uber.org/zap"
+ 	"go.uber.org/zap/zapcore"
+@@ -151,7 +150,7 @@ func NewGRPCServer(
+ 
+ 	// Initialize tracingProvider regardless of configuration. No extraordinary resources
+ 	// are consumed, or goroutines initialized until a SpanProcessor is registered.
+-	tracingProvider, err := tracing.NewProvider(ctx, info.Version)
++	tracingProvider, err := tracing.NewProvider(ctx, info.Version, cfg.Tracing)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -373,7 +372,7 @@ func NewGRPCServer(
+ 	})
+ 
+ 	otel.SetTracerProvider(tracingProvider)
+-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
++	otel.SetTextMapPropagator(tracing.NewPropagator(cfg.Tracing.Propagators))
+ 
+ 	grpcOpts := []grpc.ServerOption{
+ 		grpc.ChainUnaryInterceptor(interceptors...),
+diff --git a/internal/config/config.go b/internal/config/config.go
+index 0949e08..bf18c32 100644
+--- a/internal/config/config.go
++++ b/internal/config/config.go
+@@ -556,8 +556,10 @@ func Default() *Config {
+ 		},
+ 
+ 		Tracing: TracingConfig{
+-			Enabled:  false,
+-			Exporter: TracingJaeger,
++			Enabled:       false,
++			Exporter:      TracingJaeger,
++			SamplingRatio: 1,
++			Propagators:   []TracingPropagator{TracingPropagatorTraceContext, TracingPropagatorBaggage},
+ 			Jaeger: JaegerTracingConfig{
+ 				Host: "localhost",
+ 				Port: 6831,
+diff --git a/internal/config/config_test.go b/internal/config/config_test.go
+index de68d9e..3efcaa2 100644
+--- a/internal/config/config_test.go
++++ b/internal/config/config_test.go
+@@ -581,8 +581,10 @@ func TestLoad(t *testing.T) {
+ 					CertKey:   "./testdata/ssl_key.pem",
+ 				}
+ 				cfg.Tracing = TracingConfig{
+-					Enabled:  true,
+-					Exporter: TracingOTLP,
++					Enabled:       true,
++					Exporter:      TracingOTLP,
++					SamplingRatio: 1,
++					Propagators:   []TracingPropagator{TracingPropagatorTraceContext, TracingPropagatorBaggage},
+ 					Jaeger: JaegerTracingConfig{
+ 						Host: "localhost",
+ 						Port: 6831,
+diff --git a/internal/config/tracing.go b/internal/config/tracing.go
+index 7510d9b..1e5ef11 100644
+--- a/internal/config/tracing.go
++++ b/internal/config/tracing.go
+@@ -2,6 +2,9 @@ package config
+ 
+ import (
+ 	"encoding/json"
++	"errors"
++	"fmt"
++	"math"
+ 
+ 	"github.com/spf13/viper"
+ )
+@@ -12,17 +15,26 @@ var _ defaulter = (*TracingConfig)(nil)
+ // TracingConfig contains fields, which configure tracing telemetry
+ // output destinations.
+ type TracingConfig struct {
+-	Enabled  bool                `json:"enabled" mapstructure:"enabled" yaml:"enabled"`
+-	Exporter TracingExporter     `json:"exporter,omitempty" mapstructure:"exporter" yaml:"exporter,omitempty"`
+-	Jaeger   JaegerTracingConfig `json:"jaeger,omitempty" mapstructure:"jaeger" yaml:"jaeger,omitempty"`
+-	Zipkin   ZipkinTracingConfig `json:"zipkin,omitempty" mapstructure:"zipkin" yaml:"zipkin,omitempty"`
+-	OTLP     OTLPTracingConfig   `json:"otlp,omitempty" mapstructure:"otlp" yaml:"otlp,omitempty"`
++	Enabled       bool                `json:"enabled" mapstructure:"enabled" yaml:"enabled"`
++	Exporter      TracingExporter     `json:"exporter,omitempty" mapstructure:"exporter" yaml:"exporter,omitempty"`
++	SamplingRatio float64             `json:"samplingRatio" mapstructure:"sampling_ratio" yaml:"sampling_ratio"`
++	Propagators   []TracingPropagator `json:"propagators" mapstructure:"propagators" yaml:"propagators"`
++	Jaeger        JaegerTracingConfig `json:"jaeger,omitempty" mapstructure:"jaeger" yaml:"jaeger,omitempty"`
++	Zipkin        ZipkinTracingConfig `json:"zipkin,omitempty" mapstructure:"zipkin" yaml:"zipkin,omitempty"`
++	OTLP          OTLPTracingConfig   `json:"otlp,omitempty" mapstructure:"otlp" yaml:"otlp,omitempty"`
+ }
+ 
+ func (c *TracingConfig) setDefaults(v *viper.Viper) error {
++	// Accept the field's camel-case spelling as well as the snake-case config key.
++	if v.IsSet("tracing.samplingRatio") && !v.IsSet("tracing.sampling_ratio") {
++		v.Set("tracing.sampling_ratio", v.Get("tracing.samplingRatio"))
++	}
++
+ 	v.SetDefault("tracing", map[string]any{
+-		"enabled":  false,
+-		"exporter": TracingJaeger,
++		"enabled":        false,
++		"exporter":       TracingJaeger,
++		"sampling_ratio": 1.0,
++		"propagators":    []TracingPropagator{TracingPropagatorTraceContext, TracingPropagatorBaggage},
+ 		"jaeger": map[string]any{
+ 			"host": "localhost",
+ 			"port": 6831,
+@@ -38,6 +50,43 @@ func (c *TracingConfig) setDefaults(v *viper.Viper) error {
+ 	return nil
+ }
+ 
++func (c *TracingConfig) validate() error {
++	if math.IsNaN(c.SamplingRatio) || c.SamplingRatio < 0 || c.SamplingRatio > 1 {
++		return errors.New("sampling ratio should be a number between 0 and 1")
++	}
++
++	for _, propagator := range c.Propagators {
++		switch propagator {
++		case TracingPropagatorTraceContext,
++			TracingPropagatorBaggage,
++			TracingPropagatorB3,
++			TracingPropagatorB3Multi,
++			TracingPropagatorJaeger,
++			TracingPropagatorXRay,
++			TracingPropagatorOTTrace,
++			TracingPropagatorNone:
++		default:
++			return fmt.Errorf("invalid propagator option: %s", propagator)
++		}
++	}
++
++	return nil
++}
++
++// TracingPropagator represents a supported trace context propagation format.
++type TracingPropagator string
++
++const (
++	TracingPropagatorTraceContext TracingPropagator = "tracecontext"
++	TracingPropagatorBaggage      TracingPropagator = "baggage"
++	TracingPropagatorB3           TracingPropagator = "b3"
++	TracingPropagatorB3Multi      TracingPropagator = "b3multi"
++	TracingPropagatorJaeger       TracingPropagator = "jaeger"
++	TracingPropagatorXRay         TracingPropagator = "xray"
++	TracingPropagatorOTTrace      TracingPropagator = "ottrace"
++	TracingPropagatorNone         TracingPropagator = "none"
++)
++
+ func (c *TracingConfig) deprecations(v *viper.Viper) []deprecated {
+ 	var deprecations []deprecated
+ 
+diff --git a/internal/tracing/propagators.go b/internal/tracing/propagators.go
+new file mode 100644
+index 0000000..b176711
+--- /dev/null
++++ b/internal/tracing/propagators.go
+@@ -0,0 +1,255 @@
++package tracing
++
++import (
++	"context"
++	"strconv"
++	"strings"
++
++	"go.flipt.io/flipt/internal/config"
++	"go.opentelemetry.io/otel/baggage"
++	"go.opentelemetry.io/otel/propagation"
++	"go.opentelemetry.io/otel/trace"
++)
++
++type textMapPropagator struct {
++	fields    []string
++	injectFn  func(context.Context, propagation.TextMapCarrier)
++	extractFn func(context.Context, propagation.TextMapCarrier) context.Context
++}
++
++func (p textMapPropagator) Inject(ctx context.Context, carrier propagation.TextMapCarrier) {
++	p.injectFn(ctx, carrier)
++}
++
++func (p textMapPropagator) Extract(ctx context.Context, carrier propagation.TextMapCarrier) context.Context {
++	return p.extractFn(ctx, carrier)
++}
++
++func (p textMapPropagator) Fields() []string {
++	return p.fields
++}
++
++// NewPropagator creates a composite text map propagator from the configured formats.
++func NewPropagator(options []config.TracingPropagator) propagation.TextMapPropagator {
++	if len(options) == 0 {
++		return propagation.NewCompositeTextMapPropagator()
++	}
++
++	propagators := make([]propagation.TextMapPropagator, 0, len(options))
++	for _, option := range options {
++		if option == config.TracingPropagatorNone {
++			return propagation.NewCompositeTextMapPropagator()
++		}
++
++		switch option {
++		case config.TracingPropagatorTraceContext:
++			propagators = append(propagators, propagation.TraceContext{})
++		case config.TracingPropagatorBaggage:
++			propagators = append(propagators, propagation.Baggage{})
++		case config.TracingPropagatorB3:
++			propagators = append(propagators, b3Propagator(false))
++		case config.TracingPropagatorB3Multi:
++			propagators = append(propagators, b3Propagator(true))
++		case config.TracingPropagatorJaeger:
++			propagators = append(propagators, jaegerPropagator())
++		case config.TracingPropagatorXRay:
++			propagators = append(propagators, xrayPropagator())
++		case config.TracingPropagatorOTTrace:
++			propagators = append(propagators, otTracePropagator())
++		}
++	}
++
++	return propagation.NewCompositeTextMapPropagator(propagators...)
++}
++
++func b3Propagator(multi bool) propagation.TextMapPropagator {
++	if !multi {
++		return textMapPropagator{
++			fields: []string{"b3"},
++			injectFn: func(ctx context.Context, carrier propagation.TextMapCarrier) {
++				sc := trace.SpanContextFromContext(ctx)
++				if !sc.IsValid() {
++					return
++				}
++				sampled := "0"
++				if sc.IsSampled() {
++					sampled = "1"
++				}
++				carrier.Set("b3", sc.TraceID().String()+"-"+sc.SpanID().String()+"-"+sampled)
++			},
++			extractFn: func(ctx context.Context, carrier propagation.TextMapCarrier) context.Context {
++				parts := strings.Split(carrier.Get("b3"), "-")
++				if len(parts) < 2 {
++					return ctx
++				}
++				return withRemoteSpanContext(ctx, parts[0], parts[1], len(parts) > 2 && isSampled(parts[2]))
++			},
++		}
++	}
++
++	fields := []string{"x-b3-traceid", "x-b3-spanid", "x-b3-sampled", "x-b3-flags"}
++	return textMapPropagator{
++		fields: fields,
++		injectFn: func(ctx context.Context, carrier propagation.TextMapCarrier) {
++			sc := trace.SpanContextFromContext(ctx)
++			if !sc.IsValid() {
++				return
++			}
++			carrier.Set("x-b3-traceid", sc.TraceID().String())
++			carrier.Set("x-b3-spanid", sc.SpanID().String())
++			if sc.IsSampled() {
++				carrier.Set("x-b3-sampled", "1")
++			} else {
++				carrier.Set("x-b3-sampled", "0")
++			}
++		},
++		extractFn: func(ctx context.Context, carrier propagation.TextMapCarrier) context.Context {
++			sampled := isSampled(carrier.Get("x-b3-sampled")) || carrier.Get("x-b3-flags") == "1"
++			return withRemoteSpanContext(ctx, carrier.Get("x-b3-traceid"), carrier.Get("x-b3-spanid"), sampled)
++		},
++	}
++}
++
++func jaegerPropagator() propagation.TextMapPropagator {
++	return textMapPropagator{
++		fields: []string{"uber-trace-id"},
++		injectFn: func(ctx context.Context, carrier propagation.TextMapCarrier) {
++			sc := trace.SpanContextFromContext(ctx)
++			if !sc.IsValid() {
++				return
++			}
++			flags := "00"
++			if sc.IsSampled() {
++				flags = "01"
++			}
++			carrier.Set("uber-trace-id", sc.TraceID().String()+":"+sc.SpanID().String()+":0000000000000000:"+flags)
++		},
++		extractFn: func(ctx context.Context, carrier propagation.TextMapCarrier) context.Context {
++			parts := strings.Split(carrier.Get("uber-trace-id"), ":")
++			if len(parts) != 4 {
++				return ctx
++			}
++			flags, _ := strconv.ParseUint(parts[3], 16, 8)
++			return withRemoteSpanContext(ctx, parts[0], parts[1], flags&1 != 0)
++		},
++	}
++}
++
++func xrayPropagator() propagation.TextMapPropagator {
++	return textMapPropagator{
++		fields: []string{"x-amzn-trace-id"},
++		injectFn: func(ctx context.Context, carrier propagation.TextMapCarrier) {
++			sc := trace.SpanContextFromContext(ctx)
++			if !sc.IsValid() {
++				return
++			}
++			traceID := sc.TraceID().String()
++			sampled := "0"
++			if sc.IsSampled() {
++				sampled = "1"
++			}
++			carrier.Set("x-amzn-trace-id", "Root=1-"+traceID[:8]+"-"+traceID[8:]+";Parent="+sc.SpanID().String()+";Sampled="+sampled)
++		},
++		extractFn: func(ctx context.Context, carrier propagation.TextMapCarrier) context.Context {
++			var root, parent, sampled string
++			for _, part := range strings.Split(carrier.Get("x-amzn-trace-id"), ";") {
++				key, value, ok := strings.Cut(strings.TrimSpace(part), "=")
++				if !ok {
++					continue
++				}
++				switch key {
++				case "Root":
++					root = strings.TrimPrefix(value, "1-")
++					root = strings.ReplaceAll(root, "-", "")
++				case "Parent":
++					parent = value
++				case "Sampled":
++					sampled = value
++				}
++			}
++			return withRemoteSpanContext(ctx, root, parent, isSampled(sampled))
++		},
++	}
++}
++
++func otTracePropagator() propagation.TextMapPropagator {
++	fields := []string{"ot-tracer-traceid", "ot-tracer-spanid", "ot-tracer-sampled", "ot-baggage-"}
++	return textMapPropagator{
++		fields: fields,
++		injectFn: func(ctx context.Context, carrier propagation.TextMapCarrier) {
++			sc := trace.SpanContextFromContext(ctx)
++			if sc.IsValid() {
++				carrier.Set("ot-tracer-traceid", sc.TraceID().String())
++				carrier.Set("ot-tracer-spanid", sc.SpanID().String())
++				if sc.IsSampled() {
++					carrier.Set("ot-tracer-sampled", "true")
++				} else {
++					carrier.Set("ot-tracer-sampled", "false")
++				}
++			}
++			for _, member := range baggage.FromContext(ctx).Members() {
++				carrier.Set("ot-baggage-"+member.Key(), member.Value())
++			}
++		},
++		extractFn: func(ctx context.Context, carrier propagation.TextMapCarrier) context.Context {
++			ctx = withRemoteSpanContext(ctx, carrier.Get("ot-tracer-traceid"), carrier.Get("ot-tracer-spanid"), isSampled(carrier.Get("ot-tracer-sampled")))
++			var members []baggage.Member
++			for _, key := range carrier.Keys() {
++				if !strings.HasPrefix(key, "ot-baggage-") {
++					continue
++				}
++				member, err := baggage.NewMember(strings.TrimPrefix(key, "ot-baggage-"), carrier.Get(key))
++				if err == nil {
++					members = append(members, member)
++				}
++			}
++			if len(members) > 0 {
++				if value, err := baggage.New(members...); err == nil {
++					ctx = baggage.ContextWithBaggage(ctx, value)
++				}
++			}
++			return ctx
++		},
++	}
++}
++
++func withRemoteSpanContext(ctx context.Context, traceID, spanID string, sampled bool) context.Context {
++	if len(traceID) == 16 {
++		traceID = strings.Repeat("0", 16) + traceID
++	}
++	if len(spanID) < 16 {
++		spanID = strings.Repeat("0", 16-len(spanID)) + spanID
++	}
++
++	id, err := trace.TraceIDFromHex(traceID)
++	if err != nil {
++		return ctx
++	}
++	span, err := trace.SpanIDFromHex(spanID)
++	if err != nil {
++		return ctx
++	}
++	flags := trace.TraceFlags(0)
++	if sampled {
++		flags = trace.FlagsSampled
++	}
++	spanContext := trace.NewSpanContext(trace.SpanContextConfig{
++		TraceID:    id,
++		SpanID:     span,
++		TraceFlags: flags,
++		Remote:     true,
++	})
++	if !spanContext.IsValid() {
++		return ctx
++	}
++	return trace.ContextWithRemoteSpanContext(ctx, spanContext)
++}
++
++func isSampled(value string) bool {
++	switch strings.ToLower(value) {
++	case "1", "true", "d":
++		return true
++	default:
++		return false
++	}
++}
+diff --git a/internal/tracing/tracing.go b/internal/tracing/tracing.go
+index 4044d4e..9249b1d 100644
+--- a/internal/tracing/tracing.go
++++ b/internal/tracing/tracing.go
+@@ -30,14 +30,20 @@ func newResource(ctx context.Context, fliptVersion string) (*resource.Resource,
+ }
+ 
+ // NewProvider creates a new TracerProvider configured for Flipt tracing.
+-func NewProvider(ctx context.Context, fliptVersion string) (*tracesdk.TracerProvider, error) {
++func NewProvider(ctx context.Context, fliptVersion string, tracingConfigs ...config.TracingConfig) (*tracesdk.TracerProvider, error) {
+ 	traceResource, err := newResource(ctx, fliptVersion)
+ 	if err != nil {
+ 		return nil, err
+ 	}
++
++	samplingRatio := 1.0
++	if len(tracingConfigs) > 0 {
++		samplingRatio = tracingConfigs[0].SamplingRatio
++	}
++
+ 	return tracesdk.NewTracerProvider(
+ 		tracesdk.WithResource(traceResource),
+-		tracesdk.WithSampler(tracesdk.AlwaysSample()),
++		tracesdk.WithSampler(tracesdk.TraceIDRatioBased(samplingRatio)),
+ 	), nil
+ }
+ 

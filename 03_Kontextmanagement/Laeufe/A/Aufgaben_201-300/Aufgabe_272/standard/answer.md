@@ -1,0 +1,3 @@
+Added the `ciphers` option to `get_url`, `uri`, and `lookup('url')`, and passed it through `fetch_url`, `open_url`, and `Request`. The shared TLS context accepts an OpenSSL cipher string or an ordered list, applies it to HTTPS connections including redirects, and reports invalid or unsupported values clearly. Calls without a cipher setting pass `None`.
+
+The relevant URL unit suite passed (133 tests). Syntax compilation and `git diff --check` also passed.

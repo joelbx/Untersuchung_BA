@@ -1,0 +1,3 @@
+Updated [roles.go](/app/roles.go) so `Check` rejects unknown and duplicate roles, and `Equals` compares distinct-role sets regardless of order. Added regression cases in [roles_test.go](/app/lib/utils/roles_test.go) and recorded the work in [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+The focused role tests and root package build passed. The full `lib/utils` suite has one unrelated failure: a certificate fixture expired in 2021, causing a different error than its test expects.

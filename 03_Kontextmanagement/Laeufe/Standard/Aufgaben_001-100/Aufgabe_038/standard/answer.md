@@ -1,0 +1,3 @@
+Implemented transparent gzip response handling in [urls.py](/app/lib/ansible/module_utils/urls.py) and added the `decompress` option to [uri.py](/app/lib/ansible/modules/uri.py) and [get_url.py](/app/lib/ansible/modules/get_url.py). Gzip responses are decoded by default; `decompress: false` preserves the compressed bytes. The shared utility also handles gzip error bodies and the missing-gzip case.
+
+Verification: 89 URL utility tests passed, the changed Python files compiled, and `git diff --check` was clean.

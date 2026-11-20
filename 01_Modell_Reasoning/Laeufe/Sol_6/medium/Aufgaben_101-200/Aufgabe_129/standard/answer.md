@@ -1,0 +1,3 @@
+Added a kebab menu to the **Current session** header with localized, destructive “Sign out” and “Sign out all other sessions” actions. The trigger exposes its disabled and expanded states, supports keyboard use, and closes the menu after an action. The bulk action passes only other device IDs.
+
+The relevant device, session, and context-menu suites pass: **100 tests**. Focused lint passes. The repository-wide TypeScript check still fails on existing `matrix-js-sdk` type errors outside the changed files.

@@ -1,0 +1,269 @@
+diff --git a/src/controllers/admin/users.js b/src/controllers/admin/users.js
+index d6166bc..d7706e5 100644
+--- a/src/controllers/admin/users.js
++++ b/src/controllers/admin/users.js
+@@ -5,6 +5,7 @@ const validator = require('validator');
+ const user = require('../../user');
+ const meta = require('../../meta');
+ const db = require('../../database');
++const userEmail = require('../../user/email');
+ const pagination = require('../../pagination');
+ const events = require('../../events');
+ const plugins = require('../../plugins');
+@@ -181,6 +182,21 @@ async function loadUserInfo(callerUid, uids) {
+ 			user.ip = ips[index] && ips[index][0] ? ips[index][0] : null;
+ 		}
+ 	});
++	await Promise.all(userData.map(async (user) => {
++		if (!user) {
++			return;
++		}
++		const { uid } = user;
++		if (!user.email) {
++			user.emailValidationStatus = '(no email)';
++		} else if (user['email:confirmed']) {
++			user.emailValidationStatus = 'Validated';
++		} else if (await db.get(`confirm:byUid:${uid}`)) {
++			user.emailValidationStatus = await userEmail.isValidationPending(uid, user.email) ? 'Validation Pending' : 'Validation Expired';
++		} else {
++			user.emailValidationStatus = 'Validation Expired';
++		}
++	}));
+ 	return userData;
+ }
+ 
+diff --git a/src/socket.io/admin/user.js b/src/socket.io/admin/user.js
+index e813053..3aa5c8f 100644
+--- a/src/socket.io/admin/user.js
++++ b/src/socket.io/admin/user.js
+@@ -71,6 +71,13 @@ User.validateEmail = async function (socket, uids) {
+ 	}
+ 
+ 	for (const uid of uids) {
++		const email = await user.email.getEmailForValidation(uid);
++		if (!email) {
++			throw new Error('[[error:invalid-email]]');
++		}
++		if (email !== await user.getUserField(uid, 'email')) {
++			await user.setUserField(uid, 'email', email);
++		}
+ 		await user.email.confirmByUid(uid);
+ 	}
+ };
+@@ -83,7 +90,8 @@ User.sendValidationEmail = async function (socket, uids) {
+ 	const failed = [];
+ 	let errorLogged = false;
+ 	await async.eachLimit(uids, 50, async (uid) => {
+-		await user.email.sendValidationEmail(uid, { force: true }).catch((err) => {
++		const email = await user.email.getEmailForValidation(uid);
++		await user.email.sendValidationEmail(uid, { force: true, email: email }).catch((err) => {
+ 			if (!errorLogged) {
+ 				winston.error(`[user.create] Validation email failed to send\n[emailer.send] ${err.stack}`);
+ 				errorLogged = true;
+diff --git a/src/user/delete.js b/src/user/delete.js
+index 8ee7e99..a12d11f 100644
+--- a/src/user/delete.js
++++ b/src/user/delete.js
+@@ -16,6 +16,7 @@ const messaging = require('../messaging');
+ const plugins = require('../plugins');
+ const batch = require('../batch');
+ const file = require('../file');
++const userEmail = require('./email');
+ 
+ module.exports = function (User) {
+ 	const deletesInProgress = {};
+@@ -104,6 +105,7 @@ module.exports = function (User) {
+ 			delete deletesInProgress[uid];
+ 			throw new Error('[[error:no-user]]');
+ 		}
++		const confirmationCode = await db.get(`confirm:byUid:${uid}`);
+ 
+ 		await plugins.hooks.fire('static:user.delete', { uid: uid });
+ 		await deleteVotes(uid);
+@@ -126,7 +128,11 @@ module.exports = function (User) {
+ 			`uid:${uid}:flag:pids`,
+ 			`uid:${uid}:sessions`, `uid:${uid}:sessionUUID:sessionId`,
+ 			`invitation:uid:${uid}`,
++			`confirm:byUid:${uid}`,
+ 		];
++		if (confirmationCode) {
++			keys.push(`confirm:${confirmationCode}`);
++		}
+ 
+ 		const bulkRemove = [
+ 			['username:uid', userData.username],
+@@ -155,6 +161,7 @@ module.exports = function (User) {
+ 			groups.leaveAllGroups(uid),
+ 			flags.resolveFlag('user', uid, uid),
+ 			User.reset.cleanByUid(uid),
++			userEmail.expireValidation(uid),
+ 		]);
+ 		await db.deleteAll([`followers:${uid}`, `following:${uid}`, `user:${uid}`]);
+ 		delete deletesInProgress[uid];
+diff --git a/src/user/email.js b/src/user/email.js
+index 6ed3c9d..a1d4ea7 100644
+--- a/src/user/email.js
++++ b/src/user/email.js
+@@ -24,6 +24,39 @@ UserEmail.available = async function (email) {
+ 	return !exists;
+ };
+ 
++UserEmail.getEmailForValidation = async function (uid) {
++	const email = await user.getUserField(uid, 'email');
++	if (email) {
++		return email;
++	}
++	const code = await db.get(`confirm:byUid:${uid}`);
++	if (!code) {
++		return '';
++	}
++	const confirmation = await db.getObject(`confirm:${code}`);
++	return confirmation && parseInt(confirmation.uid, 10) === parseInt(uid, 10) ? confirmation.email : '';
++};
++
++UserEmail.isValidationPending = async function (uid, email) {
++	const code = await db.get(`confirm:byUid:${uid}`);
++	if (!code) {
++		return false;
++	}
++	const confirmation = await db.getObject(`confirm:${code}`);
++	return !!(confirmation && parseInt(confirmation.uid, 10) === parseInt(uid, 10) &&
++		confirmation.email && (!email || confirmation.email.toLowerCase() === email.toLowerCase()) &&
++		Number(confirmation.expires) > Date.now());
++};
++
++UserEmail.expireValidation = async function (uid) {
++	const key = `confirm:byUid:${uid}`;
++	const code = await db.get(key);
++	await db.delete(key);
++	if (code) {
++		await db.delete(`confirm:${code}`);
++	}
++};
++
+ UserEmail.sendValidationEmail = async function (uid, options) {
+ 	/*
+ 	 * 	Options:
+@@ -44,30 +77,36 @@ UserEmail.sendValidationEmail = async function (uid, options) {
+ 	const confirm_link = `${nconf.get('url')}/confirm/${confirm_code}`;
+ 
+ 	const emailInterval = meta.config.emailConfirmInterval;
++	const currentEmail = await user.getUserField(uid, 'email');
+ 
+ 	// If no email passed in (default), retrieve email from uid
+ 	if (!options.email || !options.email.length) {
+-		options.email = await user.getUserField(uid, 'email');
++		options.email = await UserEmail.getEmailForValidation(uid);
+ 	}
+ 	if (!options.email) {
+ 		return;
+ 	}
+-	let sent = false;
+-	if (!options.force) {
+-		sent = await db.get(`uid:${uid}:confirm:email:sent`);
++	if (currentEmail && options.email.toLowerCase() === currentEmail.toLowerCase()) {
++		throw new Error('[[error:email-nochange]]');
+ 	}
+-	if (sent) {
++	const pending = await UserEmail.isValidationPending(uid);
++	if (!options.force && pending) {
+ 		throw new Error(`[[error:confirm-email-already-sent, ${emailInterval}]]`);
+ 	}
++	if (options.force || !pending) {
++		await UserEmail.expireValidation(uid);
++	}
+ 	await db.set(`uid:${uid}:confirm:email:sent`, 1);
+ 	await db.pexpireAt(`uid:${uid}:confirm:email:sent`, Date.now() + (emailInterval * 60 * 1000));
+ 	confirm_code = await plugins.hooks.fire('filter:user.verify.code', confirm_code);
+ 
++	const expires = Date.now() + (24 * 60 * 60 * 1000);
+ 	await db.setObject(`confirm:${confirm_code}`, {
+ 		email: options.email.toLowerCase(),
+ 		uid: uid,
++		expires: expires,
+ 	});
+-	await db.expireAt(`confirm:${confirm_code}`, Math.floor((Date.now() / 1000) + (60 * 60 * 24)));
++	await db.set(`confirm:byUid:${uid}`, confirm_code);
+ 	const username = await user.getUserField(uid, 'username');
+ 
+ 	events.log({
+@@ -98,7 +137,7 @@ UserEmail.sendValidationEmail = async function (uid, options) {
+ // confirm email by code sent by confirmation email
+ UserEmail.confirmByCode = async function (code) {
+ 	const confirmObj = await db.getObject(`confirm:${code}`);
+-	if (!confirmObj || !confirmObj.uid || !confirmObj.email) {
++	if (!confirmObj || !confirmObj.uid || !confirmObj.email || Number(confirmObj.expires) <= Date.now()) {
+ 		throw new Error('[[error:invalid-data]]');
+ 	}
+ 
+@@ -106,6 +145,7 @@ UserEmail.confirmByCode = async function (code) {
+ 	if (oldEmail) {
+ 		oldEmail = oldEmail || '';
+ 		if (oldEmail === confirmObj.email) {
++			await UserEmail.expireValidation(confirmObj.uid);
+ 			return;
+ 		}
+ 
+@@ -118,7 +158,7 @@ UserEmail.confirmByCode = async function (code) {
+ 	await Promise.all([
+ 		user.setUserField('email', confirmObj.email),
+ 		UserEmail.confirmByUid(confirmObj.uid),
+-		db.delete(`confirm:${code}`),
++		UserEmail.expireValidation(confirmObj.uid),
+ 	]);
+ };
+ 
+@@ -128,21 +168,26 @@ UserEmail.confirmByUid = async function (uid) {
+ 		throw new Error('[[error:invalid-uid]]');
+ 	}
+ 	const currentEmail = await user.getUserField(uid, 'email');
+-	if (!currentEmail) {
++	const email = currentEmail || await UserEmail.getEmailForValidation(uid);
++	if (!email) {
+ 		throw new Error('[[error:invalid-email]]');
+ 	}
++	if (!currentEmail) {
++		await user.setUserField(uid, 'email', email);
++	}
+ 
+ 	await Promise.all([
+ 		db.sortedSetAddBulk([
+-			['email:uid', uid, currentEmail.toLowerCase()],
+-			['email:sorted', 0, `${currentEmail.toLowerCase()}:${uid}`],
+-			[`user:${uid}:emails`, Date.now(), `${currentEmail}:${Date.now()}`],
++			['email:uid', uid, email.toLowerCase()],
++			['email:sorted', 0, `${email.toLowerCase()}:${uid}`],
++			[`user:${uid}:emails`, Date.now(), `${email}:${Date.now()}`],
+ 		]),
+ 		user.setUserField(uid, 'email:confirmed', 1),
+ 		groups.join('verified-users', uid),
+ 		groups.leave('unverified-users', uid),
+ 		db.delete(`uid:${uid}:confirm:email:sent`),
++		UserEmail.expireValidation(uid),
+ 		user.reset.cleanByUid(uid),
+ 	]);
+-	await plugins.hooks.fire('action:user.email.confirmed', { uid: uid, email: currentEmail });
++	await plugins.hooks.fire('action:user.email.confirmed', { uid: uid, email: email });
+ };
+diff --git a/src/views/admin/manage/users.tpl b/src/views/admin/manage/users.tpl
+index 011f8fd..2c11c09 100644
+--- a/src/views/admin/manage/users.tpl
++++ b/src/views/admin/manage/users.tpl
+@@ -108,9 +108,7 @@
+ 						<td><i title="[[admin/manage/users:users.banned]]" class="ban fa fa-gavel text-danger<!-- IF !users.banned --> hidden<!-- ENDIF !users.banned -->"></i><i class="administrator fa fa-shield text-success<!-- IF !users.administrator --> hidden<!-- ENDIF !users.administrator -->"></i><a href="{config.relative_path}/user/{users.userslug}"> {users.username}</a></td>
+ 
+ 						<td>
+-						<i class="validated fa fa-check text-success<!-- IF !users.email:confirmed --> hidden<!-- ENDIF !users.email:confirmed -->" title="validated"></i>
+-						<i class="notvalidated fa fa-check text-muted<!-- IF users.email:confirmed --> hidden<!-- ENDIF users.email:confirmed -->" title="not validated"></i>
+-						 {users.email}</td>
++						<span title="{users.emailValidationStatus}">{users.emailValidationStatus}</span> {users.email}</td>
+ 						<td>{users.ip}</td>
+ 						<td class="text-right">{users.postcount}</td>
+ 						<td class="text-right">{users.reputation}</td>
+@@ -130,4 +128,4 @@
+ 
+ <button data-action="create" class="floating-button mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored">
+     <i class="material-icons">add</i>
+-</button>
+\ No newline at end of file
++</button>

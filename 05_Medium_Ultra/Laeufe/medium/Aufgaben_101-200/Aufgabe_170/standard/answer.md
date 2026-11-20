@@ -1,0 +1,3 @@
+Edition matching now accepts raw records and expands them before scoring. The shared expansion code consolidates ISBN variants, builds title fields, handles missing author data, and enriches author and contributor names. Matching also recognizes comma-form author names and avoids awarding title points when titles are missing.
+
+Verification: **134 tests passed**; one pre-existing xfail remains. Ruff and `git diff --check` passed.

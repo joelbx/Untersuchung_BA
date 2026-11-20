@@ -1,0 +1,3 @@
+Implemented startup validation for enabled GitHub authentication and each configured OIDC provider. Missing or whitespace-only `client_id`, `client_secret`, or `redirect_address` now returns an error naming the provider and field. GitHub’s missing `read:org` error uses the required format.
+
+Updated the existing GitHub scope validation test expectation. Verification passed: `go test ./internal/config`.

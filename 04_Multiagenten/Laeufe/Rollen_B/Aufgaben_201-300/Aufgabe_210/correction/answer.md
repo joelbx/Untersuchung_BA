@@ -1,0 +1,3 @@
+Fixed delegation handling in TaskExecutor. An undefined `delegate_to` now waits until after `when` is evaluated, so skipped tasks and loop items skip cleanly. Registered loop results also retain their resolved delegated host.
+
+Verification: 24 unit tests passed, both reviewer integration playbooks passed, and the undefined-delegate skip reproduction passed. No remaining failures or `TEST_ENVIRONMENT_PROBLEM`.

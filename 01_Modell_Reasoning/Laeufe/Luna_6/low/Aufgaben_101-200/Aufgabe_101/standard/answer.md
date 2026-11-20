@@ -1,0 +1,3 @@
+Updated `listRemoveAll` in Redis, MongoDB, and PostgreSQL to accept a scalar or array. The array path removes all requested values, preserves the order of remaining elements, and completes before returning. Added coverage for multiple removals, an absent value, and immediate reads.
+
+ESLint and `git diff --check` pass. The database test could not run because Redis at `127.0.0.1:6379` refused the connection.

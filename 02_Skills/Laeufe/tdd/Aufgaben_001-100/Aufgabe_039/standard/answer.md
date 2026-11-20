@@ -1,0 +1,3 @@
+Updated `Booknotes.update_work_id` so an existing target `work_id` leaves every booknote unchanged and returns `{"rows_changed": 0, "rows_deleted": 0, "failed_deletes": 1}`. Successful updates return the same dictionary keys with the changed-row count. The admin redirect report now displays those values correctly.
+
+The regression tests and the available local suite pass: **968 passed**. One test file could not be collected because it fetches a GitHub schema and the proxy returned 403; that test remains unverified locally.

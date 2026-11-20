@@ -1,0 +1,3 @@
+Token creation and deletion are now recognized audit event pairs, including through wildcard settings. The gRPC server passes the configured `token:deleted` status to the authentication server, which emits a deletion audit event only after a successful deletion.
+
+Tests passed: `go test ./internal/server/audit ./internal/server/auth ./internal/cmd`. `git diff --check` also passed. No delegation was used.

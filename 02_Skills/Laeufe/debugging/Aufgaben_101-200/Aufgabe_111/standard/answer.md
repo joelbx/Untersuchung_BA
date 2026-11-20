@@ -1,0 +1,3 @@
+Updated Amazon Linux release detection, EOL mappings for 2023, 2025, 2027, and 2029, and OVAL routing so ALAS2023 advisories use the 2023 data and links. Unknown releases no longer fall back to Amazon Linux 1.
+
+`go test ./config ./scanner ./oval -count=1` and `git diff --check` passed. Live ALAS retrieval was not verified; the future EOL dates use a five-year March 15 pattern because external research was unavailable.

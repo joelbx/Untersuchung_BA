@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) to recognize both feature flag prefixes. Enabled features from command line, configuration, and injected settings are combined into one `--enable-features=` argument; each `--disable-features=` argument is passed through unchanged as a separate flag.
+
+Added coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py) for both sources, comma-separated values, and disabled-only input. All 93 Qt argument tests pass.

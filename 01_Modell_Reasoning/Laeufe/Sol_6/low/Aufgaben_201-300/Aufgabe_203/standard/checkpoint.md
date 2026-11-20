@@ -1,0 +1,1 @@
+Implemented ExternalLink primitive, styling, profile signup migration, and room link title. Checked diff and JSON. Typecheck blocked by existing ThreadEvent errors; settings Jest suite blocked by missing generated component-index.

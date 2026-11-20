@@ -1,0 +1,3 @@
+Forked `Display.display` calls now send messages through `FinalQueue`; the parent results thread prints them under a display lock. Worker shutdown no longer redirects stdout and stderr, and cleanup flushes both streams. A fork test confirms the child can queue output even while the parent holds the display lock.
+
+The relevant suite passed with the warning tests excluded: **84 passed, 9 skipped**. An unchanged warning test also fails when run alone because its second case reuses the singleton’s warning cache.

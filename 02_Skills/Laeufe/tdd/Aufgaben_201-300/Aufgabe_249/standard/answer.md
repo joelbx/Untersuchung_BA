@@ -1,0 +1,3 @@
+Implemented structured external profiles for Wikidata authors. The infobox now shows language-aware Wikipedia links, the Wikidata entity page, and one Google Scholar link per P1960 identifier. I also restored the author’s Wikidata lookup and added the referenced icons.
+
+The focused tests pass: **44 passed**. Ruff and `git diff --check` pass. The full suite remains unverified because unrelated tests require blocked network access and unavailable database services; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

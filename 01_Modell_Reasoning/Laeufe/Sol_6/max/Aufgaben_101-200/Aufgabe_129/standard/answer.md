@@ -1,0 +1,3 @@
+Added a kebab menu to the [Current session section](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx:59). It offers localized, destructive **Sign out** and, when other sessions exist, **Sign out all other sessions**. The [reusable menu](/app/src/components/views/context_menus/KebabContextMenu.tsx:30) supports keyboard and screen reader use, closes after interaction, and keeps its trigger visible but disabled while loading, when no current device exists, or during sign-out. Bulk sign-out passes only other device IDs.
+
+Verification: 103 relevant tests passed; ESLint, Stylelint, and translation JSON checks passed. Full TypeScript checking still reports errors in unchanged SDK integration files.

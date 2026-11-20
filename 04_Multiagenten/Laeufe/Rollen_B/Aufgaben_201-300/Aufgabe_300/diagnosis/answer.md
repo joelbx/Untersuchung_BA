@@ -1,0 +1,5 @@
+The failure path is clear: [importapi.POST](/app/openlibrary/plugins/importapi/code.py:126) calls `add_book.load(edition)` without reading `override-validation`. [load](/app/openlibrary/catalog/add_book/__init__.py:928) then calls [validate_record](/app/openlibrary/catalog/add_book/__init__.py:774), which has no override argument and raises the publication year, independent publisher, and missing ISBN exceptions.
+
+The fix should pass a boolean from the POST query parameter through `load` to `validate_record`, skipping only those three checks when it is true. The existing year helper’s override suppresses old years but still rejects future years, so that helper alone cannot implement the requested behavior. The new case-insensitive `is_promise_item(rec)` utility belongs in [catalog/utils/__init__.py](/app/openlibrary/catalog/utils/__init__.py:363).
+
+Uncertainty: I found no existing tests for the API flag or the new utility. This specialist run was restricted to diagnosis, so project source and tests were not changed. Findings are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

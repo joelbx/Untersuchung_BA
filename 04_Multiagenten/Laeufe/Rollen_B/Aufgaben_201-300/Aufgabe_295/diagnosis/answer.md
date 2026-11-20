@@ -1,0 +1,5 @@
+The issue is localized to [CurrentDeviceSection.tsx](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx:39), which owns the verification copy and renders the card after the expandable details. [DeviceDetails.tsx](/app/src/components/views/settings/devices/DeviceDetails.tsx:24) accepts `IMyDevice` and has no status card beneath its heading.
+
+The fix should put the localized verified/unverified mapping in an exported `DeviceVerificationStatusCard`, use it after the tile in `CurrentDeviceSection`, and render it immediately after the heading in `DeviceDetails`. A false or undefined `isVerified` value should take the unverified branch. The existing “verified” test fixture also sets `isVerified: false`, so that branch lacks test coverage.
+
+I recorded the diagnosis in the required checkpoint. **No project source or tests were changed** because this specialist role is restricted to fault localization.

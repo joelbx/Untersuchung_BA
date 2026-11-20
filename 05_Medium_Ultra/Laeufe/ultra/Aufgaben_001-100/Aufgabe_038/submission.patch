@@ -1,0 +1,689 @@
+diff --git a/lib/ansible/module_utils/urls.py b/lib/ansible/module_utils/urls.py
+index 7e7ba22..a073011 100644
+--- a/lib/ansible/module_utils/urls.py
++++ b/lib/ansible/module_utils/urls.py
+@@ -54,6 +54,15 @@ import tempfile
+ import traceback
+ import types
+ 
++try:
++    import gzip
++    HAS_GZIP = True
++    GZIP_IMPORT_ERR = None
++except ImportError:
++    gzip = None
++    HAS_GZIP = False
++    GZIP_IMPORT_ERR = traceback.format_exc()
++
+ from contextlib import contextmanager
+ 
+ try:
+@@ -508,9 +517,43 @@ class NoSSLError(SSLValidationError):
+ 
+ class MissingModuleError(Exception):
+     """Failed to import 3rd party module required by the caller"""
+-    def __init__(self, message, import_traceback):
++    def __init__(self, message, import_traceback, module=None):
+         super(MissingModuleError, self).__init__(message)
+         self.import_traceback = import_traceback
++        self.module = module
++
++
++_GzipFile = gzip.GzipFile if HAS_GZIP else object
++
++
++class GzipDecodedReader(_GzipFile):
++    """Read a gzip response while retaining its HTTP response metadata."""
++
++    def __init__(self, fp):
++        if not HAS_GZIP:
++            raise MissingModuleError(self.missing_gzip_error(), GZIP_IMPORT_ERR, module='gzip')
++        self._fp = fp
++        super(GzipDecodedReader, self).__init__(fileobj=fp, mode='rb')
++
++    def __getattr__(self, name):
++        # Both urllib2's addinfourl and urllib's HTTPResponse expose the
++        # response headers and URL on the response, rather than its fileobj.
++        return getattr(self._fp, name)
++
++    def close(self):
++        try:
++            super(GzipDecodedReader, self).close()
++        finally:
++            self._fp.close()
++
++    @staticmethod
++    def missing_gzip_error():
++        return missing_required_lib('gzip', reason='for decompressing gzip-encoded HTTP responses')
++
++
++def _is_gzip_encoded(headers):
++    return any(name.lower() == 'content-encoding' and value.strip().lower() == 'gzip'
++               for name, value in headers.items())
+ 
+ 
+ # Some environments (Google Compute Engine's CoreOS deploys) do not compile
+@@ -1227,7 +1270,7 @@ class Request:
+     def __init__(self, headers=None, use_proxy=True, force=False, timeout=10, validate_certs=True,
+                  url_username=None, url_password=None, http_agent=None, force_basic_auth=False,
+                  follow_redirects='urllib2', client_cert=None, client_key=None, cookies=None, unix_socket=None,
+-                 ca_path=None):
++                 ca_path=None, unredirected_headers=None, decompress=True):
+         """This class works somewhat similarly to the ``Session`` class of from requests
+         by defining a cookiejar that an be used across requests as well as cascaded defaults that
+         can apply to repeated requests
+@@ -1262,6 +1305,8 @@ class Request:
+         self.client_key = client_key
+         self.unix_socket = unix_socket
+         self.ca_path = ca_path
++        self.unredirected_headers = unredirected_headers
++        self.decompress = decompress
+         if isinstance(cookies, cookiejar.CookieJar):
+             self.cookies = cookies
+         else:
+@@ -1277,7 +1322,7 @@ class Request:
+              url_username=None, url_password=None, http_agent=None,
+              force_basic_auth=None, follow_redirects=None,
+              client_cert=None, client_key=None, cookies=None, use_gssapi=False,
+-             unix_socket=None, ca_path=None, unredirected_headers=None):
++             unix_socket=None, ca_path=None, unredirected_headers=None, decompress=None):
+         """
+         Sends a request via HTTP(S) or FTP using urllib2 (Python2) or urllib (Python3)
+ 
+@@ -1316,6 +1361,7 @@ class Request:
+             connection to the provided url
+         :kwarg ca_path: (optional) String of file system path to CA cert bundle to use
+         :kwarg unredirected_headers: (optional) A list of headers to not attach on a redirected request
++        :kwarg decompress: (optional) Whether to decompress gzip-encoded responses
+         :returns: HTTPResponse. Added in Ansible 2.9
+         """
+ 
+@@ -1341,6 +1387,14 @@ class Request:
+         cookies = self._fallback(cookies, self.cookies)
+         unix_socket = self._fallback(unix_socket, self.unix_socket)
+         ca_path = self._fallback(ca_path, self.ca_path)
++        unredirected_headers = self._fallback(unredirected_headers, self.unredirected_headers)
++        decompress = self._fallback(decompress, self.decompress)
++
++        if decompress and not HAS_GZIP:
++            raise MissingModuleError(GzipDecodedReader.missing_gzip_error(), GZIP_IMPORT_ERR, module='gzip')
++
++        if not any(header.lower() == 'accept-encoding' for header in headers):
++            headers['Accept-Encoding'] = 'gzip'
+ 
+         handlers = []
+ 
+@@ -1378,7 +1432,7 @@ class Request:
+                 else:
+                     imp_err_msg = missing_required_lib('gssapi', reason='for use_gssapi=True',
+                                                        url='https://pypi.org/project/gssapi/')
+-                    raise MissingModuleError(imp_err_msg, import_traceback=GSSAPI_IMP_ERR)
++                    raise MissingModuleError(imp_err_msg, import_traceback=GSSAPI_IMP_ERR, module='gssapi')
+ 
+             elif username and not force_basic_auth:
+                 passman = urllib_request.HTTPPasswordMgrWithDefaultRealm()
+@@ -1483,7 +1537,20 @@ class Request:
+             else:
+                 request.add_header(header, headers[header])
+ 
+-        return urllib_request.urlopen(request, None, timeout)
++        try:
++            response = urllib_request.urlopen(request, None, timeout)
++        except urllib_error.HTTPError as error:
++            if (decompress and method != 'HEAD' and error.code not in (204, 304)
++                    and error.fp is not None and _is_gzip_encoded(error.headers)):
++                error.fp = GzipDecodedReader(error.fp)
++                # addinfourl reads from ``file`` on Python 3 and ``fp`` on
++                # Python 2. Keep both aliases pointed at the decoded stream.
++                error.file = error.fp
++            raise
++        if (decompress and method != 'HEAD' and response.code not in (204, 304)
++                and _is_gzip_encoded(response.headers)):
++            return GzipDecodedReader(response)
++        return response
+ 
+     def get(self, url, **kwargs):
+         r"""Sends a GET request. Returns :class:`HTTPResponse` object.
+@@ -1565,7 +1632,7 @@ def open_url(url, data=None, headers=None, method=None, use_proxy=True,
+              force_basic_auth=False, follow_redirects='urllib2',
+              client_cert=None, client_key=None, cookies=None,
+              use_gssapi=False, unix_socket=None, ca_path=None,
+-             unredirected_headers=None):
++             unredirected_headers=None, decompress=True):
+     '''
+     Sends a request via HTTP(S) or FTP using urllib2 (Python2) or urllib (Python3)
+ 
+@@ -1578,7 +1645,7 @@ def open_url(url, data=None, headers=None, method=None, use_proxy=True,
+                           force_basic_auth=force_basic_auth, follow_redirects=follow_redirects,
+                           client_cert=client_cert, client_key=client_key, cookies=cookies,
+                           use_gssapi=use_gssapi, unix_socket=unix_socket, ca_path=ca_path,
+-                          unredirected_headers=unredirected_headers)
++                          unredirected_headers=unredirected_headers, decompress=decompress)
+ 
+ 
+ def prepare_multipart(fields):
+@@ -1728,7 +1795,8 @@ def url_argument_spec():
+ 
+ def fetch_url(module, url, data=None, headers=None, method=None,
+               use_proxy=None, force=False, last_mod_time=None, timeout=10,
+-              use_gssapi=False, unix_socket=None, ca_path=None, cookies=None, unredirected_headers=None):
++              use_gssapi=False, unix_socket=None, ca_path=None, cookies=None, unredirected_headers=None,
++              decompress=True):
+     """Sends a request via HTTP(S) or FTP (needs the module as parameter)
+ 
+     :arg module: The AnsibleModule (used to get username, password etc. (s.b.).
+@@ -1747,6 +1815,7 @@ def fetch_url(module, url, data=None, headers=None, method=None,
+     :kwarg ca_path: (optional) String of file system path to CA cert bundle to use
+     :kwarg cookies: (optional) CookieJar object to send with the request
+     :kwarg unredirected_headers: (optional) A list of headers to not attach on a redirected request
++    :kwarg decompress: (optional) Whether to decompress gzip-encoded responses (Default: True)
+ 
+     :returns: A tuple of (**response**, **info**). Use ``response.read()`` to read the data.
+         The **info** contains the 'status' and other meta data. When a HttpError (status >= 400)
+@@ -1769,6 +1838,10 @@ def fetch_url(module, url, data=None, headers=None, method=None,
+     if not HAS_URLPARSE:
+         module.fail_json(msg='urlparse is not installed')
+ 
++    if decompress and not HAS_GZIP:
++        module.deprecate(GzipDecodedReader.missing_gzip_error(), version='2.16')
++        decompress = False
++
+     # ensure we use proper tempdir
+     old_tempdir = tempfile.tempdir
+     tempfile.tempdir = module.tmpdir
+@@ -1802,7 +1875,8 @@ def fetch_url(module, url, data=None, headers=None, method=None,
+                      url_password=password, http_agent=http_agent, force_basic_auth=force_basic_auth,
+                      follow_redirects=follow_redirects, client_cert=client_cert,
+                      client_key=client_key, cookies=cookies, use_gssapi=use_gssapi,
+-                     unix_socket=unix_socket, ca_path=ca_path, unredirected_headers=unredirected_headers)
++                     unix_socket=unix_socket, ca_path=ca_path, unredirected_headers=unredirected_headers,
++                     decompress=decompress)
+         # Lowercase keys, to conform to py2 behavior, so that py3 and py2 are predictable
+         info.update(dict((k.lower(), v) for k, v in r.info().items()))
+ 
+@@ -1884,7 +1958,7 @@ def fetch_url(module, url, data=None, headers=None, method=None,
+ 
+ def fetch_file(module, url, data=None, headers=None, method=None,
+                use_proxy=True, force=False, last_mod_time=None, timeout=10,
+-               unredirected_headers=None):
++               unredirected_headers=None, decompress=True):
+     '''Download and save a file via HTTP(S) or FTP (needs the module as parameter).
+     This is basically a wrapper around fetch_url().
+ 
+@@ -1899,6 +1973,7 @@ def fetch_file(module, url, data=None, headers=None, method=None,
+     :kwarg last_mod_time: Default: None
+     :kwarg int timeout:   Default: 10
+     :kwarg unredirected_headers: (optional) A list of headers to not attach on a redirected request
++    :kwarg decompress: (optional) Whether to decompress gzip-encoded responses (Default: True)
+ 
+     :returns: A string, the path to the downloaded file.
+     '''
+@@ -1909,7 +1984,7 @@ def fetch_file(module, url, data=None, headers=None, method=None,
+     module.add_cleanup_file(fetch_temp_file.name)
+     try:
+         rsp, info = fetch_url(module, url, data, headers, method, use_proxy, force, last_mod_time, timeout,
+-                              unredirected_headers=unredirected_headers)
++                              unredirected_headers=unredirected_headers, decompress=decompress)
+         if not rsp:
+             module.fail_json(msg="Failure downloading %s, %s" % (url, info['msg']))
+         data = rsp.read(bufsize)
+diff --git a/lib/ansible/modules/get_url.py b/lib/ansible/modules/get_url.py
+index b344f00..31a9a8e 100644
+--- a/lib/ansible/modules/get_url.py
++++ b/lib/ansible/modules/get_url.py
+@@ -111,6 +111,12 @@ options:
+         - The C("key:value,key:value") string format is deprecated and has been removed in version 2.10.
+     type: dict
+     version_added: '2.0'
++  decompress:
++    description:
++      - Whether to decompress gzip-encoded responses.
++    type: bool
++    default: yes
++    version_added: '2.14'
+   url_username:
+     description:
+       - The username for use in HTTP basic authentication.
+@@ -363,7 +369,8 @@ def url_filename(url):
+     return fn
+ 
+ 
+-def url_get(module, url, dest, use_proxy, last_mod_time, force, timeout=10, headers=None, tmp_dest='', method='GET', unredirected_headers=None):
++def url_get(module, url, dest, use_proxy, last_mod_time, force, timeout=10, headers=None, tmp_dest='', method='GET', unredirected_headers=None,
++            decompress=True):
+     """
+     Download data from the url and store in a temporary file.
+ 
+@@ -372,7 +379,7 @@ def url_get(module, url, dest, use_proxy, last_mod_time, force, timeout=10, head
+ 
+     start = datetime.datetime.utcnow()
+     rsp, info = fetch_url(module, url, use_proxy=use_proxy, force=force, last_mod_time=last_mod_time, timeout=timeout, headers=headers, method=method,
+-                          unredirected_headers=unredirected_headers)
++                          unredirected_headers=unredirected_headers, decompress=decompress)
+     elapsed = (datetime.datetime.utcnow() - start).seconds
+ 
+     if info['status'] == 304:
+@@ -454,6 +461,7 @@ def main():
+         backup=dict(type='bool', default=False),
+         checksum=dict(type='str', default=''),
+         timeout=dict(type='int', default=10),
++        decompress=dict(type='bool', default=True),
+         headers=dict(type='dict'),
+         tmp_dest=dict(type='path'),
+         unredirected_headers=dict(type='list', elements='str', default=[]),
+@@ -473,6 +481,7 @@ def main():
+     checksum = module.params['checksum']
+     use_proxy = module.params['use_proxy']
+     timeout = module.params['timeout']
++    decompress = module.params['decompress']
+     headers = module.params['headers']
+     tmp_dest = module.params['tmp_dest']
+     unredirected_headers = module.params['unredirected_headers']
+@@ -500,7 +509,7 @@ def main():
+             checksum_url = checksum
+             # download checksum file to checksum_tmpsrc
+             checksum_tmpsrc, checksum_info = url_get(module, checksum_url, dest, use_proxy, last_mod_time, force, timeout, headers, tmp_dest,
+-                                                     unredirected_headers=unredirected_headers)
++                                                     unredirected_headers=unredirected_headers, decompress=decompress)
+             with open(checksum_tmpsrc) as f:
+                 lines = [line.rstrip('\n') for line in f]
+             os.remove(checksum_tmpsrc)
+@@ -577,7 +586,8 @@ def main():
+     # download to tmpsrc
+     start = datetime.datetime.utcnow()
+     method = 'HEAD' if module.check_mode else 'GET'
+-    tmpsrc, info = url_get(module, url, dest, use_proxy, last_mod_time, force, timeout, headers, tmp_dest, method, unredirected_headers=unredirected_headers)
++    tmpsrc, info = url_get(module, url, dest, use_proxy, last_mod_time, force, timeout, headers, tmp_dest, method,
++                           unredirected_headers=unredirected_headers, decompress=decompress)
+     result['elapsed'] = (datetime.datetime.utcnow() - start).seconds
+     result['src'] = tmpsrc
+ 
+diff --git a/lib/ansible/modules/uri.py b/lib/ansible/modules/uri.py
+index 58ef63e..a14a629 100644
+--- a/lib/ansible/modules/uri.py
++++ b/lib/ansible/modules/uri.py
+@@ -75,6 +75,12 @@ options:
+         always loaded into a key called C(json) in the dictionary results.
+     type: bool
+     default: no
++  decompress:
++    description:
++      - Whether to decompress gzip-encoded responses.
++    type: bool
++    default: yes
++    version_added: '2.14'
+   force_basic_auth:
+     description:
+       - Force the sending of the Basic authentication header upon initial request.
+@@ -593,7 +599,7 @@ def uri(module, url, dest, body, body_format, method, headers, socket_timeout, c
+     resp, info = fetch_url(module, url, data=data, headers=headers,
+                            method=method, timeout=socket_timeout, unix_socket=module.params['unix_socket'],
+                            ca_path=ca_path, unredirected_headers=unredirected_headers,
+-                           use_proxy=module.params['use_proxy'],
++                           use_proxy=module.params['use_proxy'], decompress=module.params['decompress'],
+                            **kwargs)
+ 
+     if src:
+@@ -617,6 +623,7 @@ def main():
+         src=dict(type='path'),
+         method=dict(type='str', default='GET'),
+         return_content=dict(type='bool', default=False),
++        decompress=dict(type='bool', default=True),
+         follow_redirects=dict(type='str', default='safe', choices=['all', 'no', 'none', 'safe', 'urllib2', 'yes']),
+         creates=dict(type='path'),
+         removes=dict(type='path'),
+diff --git a/test/units/module_utils/urls/test_Request.py b/test/units/module_utils/urls/test_Request.py
+index 648e46a..c09222c 100644
+--- a/test/units/module_utils/urls/test_Request.py
++++ b/test/units/module_utils/urls/test_Request.py
+@@ -13,7 +13,6 @@ from ansible.module_utils.urls import (Request, open_url, urllib_request, HAS_SS
+ from ansible.module_utils.urls import SSLValidationHandler, HTTPSClientAuthHandler, RedirectHandlerFactory
+ 
+ import pytest
+-from units.compat.mock import call
+ 
+ 
+ if HAS_SSLCONTEXT:
+@@ -30,7 +29,7 @@ def install_opener_mock(mocker):
+     return mocker.patch('ansible.module_utils.urls.urllib_request.install_opener')
+ 
+ 
+-def test_Request_fallback(urlopen_mock, install_opener_mock, mocker):
++def test_Request_fallback(urlopen_mock, install_opener_mock):
+     cookies = cookiejar.CookieJar()
+     request = Request(
+         headers={'foo': 'bar'},
+@@ -49,36 +48,15 @@ def test_Request_fallback(urlopen_mock, install_opener_mock, mocker):
+         unix_socket='/foo/bar/baz.sock',
+         ca_path='/foo/bar/baz.pem',
+     )
+-    fallback_mock = mocker.spy(request, '_fallback')
+-
+     r = request.open('GET', 'https://ansible.com')
+ 
+-    calls = [
+-        call(None, False),  # use_proxy
+-        call(None, True),  # force
+-        call(None, 100),  # timeout
+-        call(None, False),  # validate_certs
+-        call(None, 'user'),  # url_username
+-        call(None, 'passwd'),  # url_password
+-        call(None, 'ansible-tests'),  # http_agent
+-        call(None, True),  # force_basic_auth
+-        call(None, 'all'),  # follow_redirects
+-        call(None, '/tmp/client.pem'),  # client_cert
+-        call(None, '/tmp/client.key'),  # client_key
+-        call(None, cookies),  # cookies
+-        call(None, '/foo/bar/baz.sock'),  # unix_socket
+-        call(None, '/foo/bar/baz.pem'),  # ca_path
+-    ]
+-    fallback_mock.assert_has_calls(calls)
+-
+-    assert fallback_mock.call_count == 14  # All but headers use fallback
+-
+     args = urlopen_mock.call_args[0]
+     assert args[1] is None  # data, this is handled in the Request not urlopen
+     assert args[2] == 100  # timeout
+ 
+     req = args[0]
+     assert req.headers == {
++        'Accept-encoding': 'gzip',
+         'Authorization': b'Basic dXNlcjpwYXNzd2Q=',
+         'Cache-control': 'no-cache',
+         'Foo': 'bar',
+@@ -95,7 +73,7 @@ def test_Request_open(urlopen_mock, install_opener_mock):
+     assert args[2] == 10  # timeout
+ 
+     req = args[0]
+-    assert req.headers == {}
++    assert req.headers == {'Accept-encoding': 'gzip'}
+     assert req.data is None
+     assert req.get_method() == 'GET'
+ 
+@@ -179,7 +157,7 @@ def test_Request_open_headers(urlopen_mock, install_opener_mock):
+     r = Request().open('GET', 'http://ansible.com/', headers={'Foo': 'bar'})
+     args = urlopen_mock.call_args[0]
+     req = args[0]
+-    assert req.headers == {'Foo': 'bar'}
++    assert req.headers == {'Accept-encoding': 'gzip', 'Foo': 'bar'}
+ 
+ 
+ def test_Request_open_username(urlopen_mock, install_opener_mock):
+@@ -453,4 +431,4 @@ def test_open_url(urlopen_mock, install_opener_mock, mocker):
+                                      url_username=None, url_password=None, http_agent=None,
+                                      force_basic_auth=False, follow_redirects='urllib2',
+                                      client_cert=None, client_key=None, cookies=None, use_gssapi=False,
+-                                     unix_socket=None, ca_path=None, unredirected_headers=None)
++                                     unix_socket=None, ca_path=None, unredirected_headers=None, decompress=True)
+diff --git a/test/units/module_utils/urls/test_fetch_url.py b/test/units/module_utils/urls/test_fetch_url.py
+index 266c943..cb6d1a3 100644
+--- a/test/units/module_utils/urls/test_fetch_url.py
++++ b/test/units/module_utils/urls/test_fetch_url.py
+@@ -68,7 +68,8 @@ def test_fetch_url(open_url_mock, fake_ansible_module):
+     open_url_mock.assert_called_once_with('http://ansible.com/', client_cert=None, client_key=None, cookies=kwargs['cookies'], data=None,
+                                           follow_redirects='urllib2', force=False, force_basic_auth='', headers=None,
+                                           http_agent='ansible-httpget', last_mod_time=None, method=None, timeout=10, url_password='', url_username='',
+-                                          use_proxy=True, validate_certs=True, use_gssapi=False, unix_socket=None, ca_path=None, unredirected_headers=None)
++                                          use_proxy=True, validate_certs=True, use_gssapi=False, unix_socket=None, ca_path=None,
++                                          unredirected_headers=None, decompress=True)
+ 
+ 
+ def test_fetch_url_params(open_url_mock, fake_ansible_module):
+@@ -90,7 +91,8 @@ def test_fetch_url_params(open_url_mock, fake_ansible_module):
+     open_url_mock.assert_called_once_with('http://ansible.com/', client_cert='client.pem', client_key='client.key', cookies=kwargs['cookies'], data=None,
+                                           follow_redirects='all', force=False, force_basic_auth=True, headers=None,
+                                           http_agent='ansible-test', last_mod_time=None, method=None, timeout=10, url_password='passwd', url_username='user',
+-                                          use_proxy=True, validate_certs=False, use_gssapi=False, unix_socket=None, ca_path=None, unredirected_headers=None)
++                                          use_proxy=True, validate_certs=False, use_gssapi=False, unix_socket=None, ca_path=None,
++                                          unredirected_headers=None, decompress=True)
+ 
+ 
+ def test_fetch_url_cookies(mocker, fake_ansible_module):
+diff --git a/test/units/module_utils/urls/test_gzip.py b/test/units/module_utils/urls/test_gzip.py
+new file mode 100644
+index 0000000..2ce537c
+--- /dev/null
++++ b/test/units/module_utils/urls/test_gzip.py
+@@ -0,0 +1,242 @@
++# -*- coding: utf-8 -*-
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++import gzip
++from email.message import Message
++from io import BytesIO
++
++import pytest
++
++from ansible.module_utils import urls
++
++
++URL = 'http://ansible.com/gzip.json'
++CONTENT = b'{"data": "a response longer than its compressed representation"}' * 100
++
++
++def compressed_content():
++    output = BytesIO()
++    with gzip.GzipFile(fileobj=output, mode='wb') as stream:
++        stream.write(CONTENT)
++    return output.getvalue()
++
++
++class Response(object):
++    def __init__(self, body, encoding=None):
++        self.fp = BytesIO(body)
++        self.headers = Message()
++        self.headers['Content-Length'] = str(len(body))
++        if encoding:
++            self.headers['Content-Encoding'] = encoding
++        self.code = 200
++
++    def read(self, size=-1):
++        return self.fp.read(size)
++
++    def info(self):
++        return self.headers
++
++    def geturl(self):
++        return URL
++
++    def close(self):
++        self.fp.close()
++
++
++class Module(object):
++    def __init__(self, tmpdir=None):
++        self.params = {}
++        self.tmpdir = tmpdir
++        self.cleanup_files = []
++
++    def add_cleanup_file(self, path):
++        self.cleanup_files.append(path)
++
++    def fail_json(self, **kwargs):
++        pytest.fail(kwargs['msg'])
++
++
++def test_gzip_decoded_reader_reads_entire_body_and_closes_source():
++    source = Response(compressed_content(), encoding='gzip')
++    reader = urls.GzipDecodedReader(source)
++
++    assert reader.read() == CONTENT
++    assert reader.read() == b''
++    reader.close()
++    assert source.fp.closed
++
++
++def test_gzip_decoded_reader_accepts_plain_file_object():
++    source = BytesIO(compressed_content())
++    reader = urls.GzipDecodedReader(source)
++
++    assert reader.read() == CONTENT
++    reader.close()
++    assert source.closed
++
++
++@pytest.mark.parametrize('encoding,decompress,expected_compressed', [
++    ('gzip', None, False),
++    ('gzip', True, False),
++    ('gzip', False, True),
++    (None, True, False),
++    (None, False, False),
++])
++def test_request_open_gzip_control(mocker, encoding, decompress, expected_compressed):
++    body = compressed_content() if encoding else CONTENT
++    mocker.patch.object(urls.urllib_request, 'urlopen', return_value=Response(body, encoding))
++    mocker.patch.object(urls.urllib_request, 'install_opener')
++
++    options = {} if decompress is None else {'decompress': decompress}
++    response = urls.Request().open('GET', URL, **options)
++
++    assert response.read() == (body if expected_compressed else CONTENT)
++
++
++def test_request_open_uses_instance_decompress_default_and_call_override(mocker):
++    body = compressed_content()
++    urlopen = mocker.patch.object(urls.urllib_request, 'urlopen', side_effect=[
++        Response(body, 'gzip'), Response(body, 'gzip')
++    ])
++    mocker.patch.object(urls.urllib_request, 'install_opener')
++    request = urls.Request(decompress=False)
++
++    assert request.open('GET', URL).read() == body
++    assert request.open('GET', URL, decompress=True).read() == CONTENT
++    assert urlopen.call_count == 2
++
++
++@pytest.mark.parametrize('method,status', [('HEAD', 200), ('GET', 204), ('GET', 304)])
++def test_request_open_does_not_decode_bodyless_gzip_response(mocker, method, status):
++    response = Response(b'', 'gzip')
++    response.code = status
++    mocker.patch.object(urls.urllib_request, 'urlopen', return_value=response)
++    mocker.patch.object(urls.urllib_request, 'install_opener')
++
++    assert urls.Request().open(method, URL).read() == b''
++
++
++def test_request_open_adds_accept_encoding_unless_explicit(mocker):
++    urlopen = mocker.patch.object(urls.urllib_request, 'urlopen', return_value=Response(CONTENT))
++    mocker.patch.object(urls.urllib_request, 'install_opener')
++
++    urls.Request().open('GET', URL, decompress=False)
++    headers = {key.lower(): value for key, value in urlopen.call_args[0][0].headers.items()}
++    assert headers['accept-encoding'] == 'gzip'
++
++    urls.Request().open('GET', URL, headers={'aCcEpT-EnCoDiNg': 'identity'})
++    headers = {key.lower(): value for key, value in urlopen.call_args[0][0].headers.items()}
++    assert headers['accept-encoding'] == 'identity'
++
++
++def test_request_open_uses_instance_unredirected_headers_default_and_call_override(mocker):
++    urlopen = mocker.patch.object(urls.urllib_request, 'urlopen', return_value=Response(CONTENT))
++    mocker.patch.object(urls.urllib_request, 'install_opener')
++    request = urls.Request(headers={'X-Secret': 'value'}, unredirected_headers=['X-Secret'])
++
++    request.open('GET', URL)
++    sent = urlopen.call_args[0][0]
++    assert sent.unredirected_hdrs['X-secret'] == 'value'
++    assert 'X-secret' not in sent.headers
++
++    request.open('GET', URL, unredirected_headers=[])
++    sent = urlopen.call_args[0][0]
++    assert sent.headers['X-secret'] == 'value'
++    assert 'X-secret' not in sent.unredirected_hdrs
++
++
++@pytest.mark.parametrize('decompress,expected_compressed', [
++    (True, False),
++    (False, True),
++])
++def test_fetch_url_decodes_stream_and_lowercases_headers(mocker, decompress, expected_compressed):
++    body = compressed_content()
++    mocker.patch.object(urls.urllib_request, 'urlopen', return_value=Response(body, 'gzip'))
++    mocker.patch.object(urls.urllib_request, 'install_opener')
++
++    response, info = urls.fetch_url(Module(), URL, decompress=decompress)
++
++    assert response.read() == (body if expected_compressed else CONTENT)
++    assert info['content-encoding'] == 'gzip'
++    assert info['content-length'] == str(len(body))
++    assert 'Content-Encoding' not in info
++    assert info['status'] == 200
++
++
++@pytest.mark.parametrize('decompress,expected_compressed', [
++    (True, False),
++    (False, True),
++])
++def test_fetch_url_decodes_gzip_http_error_body(mocker, decompress, expected_compressed):
++    body = compressed_content()
++    headers = Message()
++    headers['Content-Encoding'] = 'gzip'
++    headers['Content-Length'] = str(len(body))
++    error = urls.urllib_error.HTTPError(URL, 406, 'Not Acceptable', headers, BytesIO(body))
++    mocker.patch.object(urls.urllib_request, 'urlopen', side_effect=error)
++    mocker.patch.object(urls.urllib_request, 'install_opener')
++
++    response, info = urls.fetch_url(Module(), URL, decompress=decompress)
++
++    assert info['status'] == 406
++    assert info['body'] == (body if expected_compressed else CONTENT)
++    assert info['content-encoding'] == 'gzip'
++    assert 'Content-Encoding' not in info
++
++
++@pytest.mark.parametrize('decompress,expected_compressed', [
++    (True, False),
++    (False, True),
++])
++def test_fetch_file_writes_decoded_or_original_bytes(mocker, tmp_path, decompress, expected_compressed):
++    body = compressed_content()
++    mocker.patch.object(urls.urllib_request, 'urlopen', return_value=Response(body, 'gzip'))
++    mocker.patch.object(urls.urllib_request, 'install_opener')
++    module = Module(str(tmp_path))
++
++    path = urls.fetch_file(module, URL, decompress=decompress)
++
++    with open(path, 'rb') as saved:
++        assert saved.read() == (body if expected_compressed else CONTENT)
++    assert module.cleanup_files == [path]
++
++
++def test_request_open_reports_missing_gzip_dependency(mocker):
++    mocker.patch.object(urls, 'HAS_GZIP', False)
++    mocker.patch.object(urls, 'GZIP_IMPORT_ERR', 'gzip import failed')
++    body = compressed_content()
++    mocker.patch.object(urls.urllib_request, 'urlopen', return_value=Response(body, 'gzip'))
++    mocker.patch.object(urls.urllib_request, 'install_opener')
++
++    with pytest.raises(urls.MissingModuleError) as excinfo:
++        urls.Request().open('GET', URL)
++
++    assert excinfo.value.module == 'gzip'
++    assert 'gzip' in str(excinfo.value).lower()
++    assert urls.Request().open('GET', URL, decompress=False).read() == body
++
++
++def test_fetch_url_disables_gzip_without_dependency_and_deprecates(mocker):
++    mocker.patch.object(urls, 'HAS_GZIP', False)
++    mocker.patch.object(urls, 'GZIP_IMPORT_ERR', 'gzip import failed')
++    open_url = mocker.patch.object(urls, 'open_url', return_value=Response(CONTENT))
++    module = Module()
++    module.deprecate = mocker.Mock()
++
++    response, info = urls.fetch_url(module, URL)
++
++    assert response.read() == CONTENT
++    assert open_url.call_args[1]['decompress'] is False
++    assert module.deprecate.call_args[1]['version'] == '2.16'
++
++
++def test_missing_gzip_error_returns_missing_required_lib_result(mocker):
++    expected = 'install gzip to decompress the response'
++    missing_required_lib = mocker.patch.object(urls, 'missing_required_lib', return_value=expected)
++    reader = urls.GzipDecodedReader(Response(compressed_content(), 'gzip'))
++
++    assert reader.missing_gzip_error() == expected
++    assert missing_required_lib.call_args[0][0] == 'gzip'

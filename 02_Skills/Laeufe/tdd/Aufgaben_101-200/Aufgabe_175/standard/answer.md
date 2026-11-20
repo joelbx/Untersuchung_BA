@@ -1,0 +1,3 @@
+Implemented native SQLite backups in the checked-out repository. Navidrome now supports `backup create`, `backup prune`, and `backup restore`, plus scheduled backups, retention, schedule validation, and startup creation of the configured backup directory. Restore and zero-retention pruning require confirmation unless `--force` is supplied.
+
+Regression tests cover WAL data, restore, pruning, confirmation, and path safety. `GOTOOLCHAIN=local GOPROXY=off go test ./...` passed.

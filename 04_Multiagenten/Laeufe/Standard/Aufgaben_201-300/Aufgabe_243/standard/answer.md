@@ -1,0 +1,3 @@
+Updated [forwarder.go](/app/lib/kube/proxy/forwarder.go) so session creation rejects a missing or unknown kube cluster with `trace.NotFound`, uses matching local credentials directly, and selects and records an endpoint for remote and kube_service connections. Remote sessions dial `reversetunnel.LocalKubernetes` through `dialEndpoint` with requested client credentials.
+
+Expanded [forwarder_test.go](/app/lib/kube/proxy/forwarder_test.go) to cover missing clusters, empty endpoints, and the address passed to the dialer. `go test ./lib/kube/proxy -count=1` and `git diff --check` pass.

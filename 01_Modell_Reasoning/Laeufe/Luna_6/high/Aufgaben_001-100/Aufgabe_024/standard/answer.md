@@ -1,0 +1,3 @@
+Updated author matching in [load_book.py](/app/openlibrary/catalog/add_book/load_book.py): honorific removal now accepts and returns a string, date comparisons use extracted years, literal asterisks are escaped in name searches, and surname matching requires both years. `build_query` applies honorific removal before import.
+
+Direct helper checks and `git diff --check` passed. Existing tests still report failures: 10 use the replaced dictionary-based honorific API, one expects asterisks to act as wildcards, and `test_match.py` has one failure in `test_editions_match_identical_record`. The checkpoint is in `.codex-role-output/checkpoint.md`.

@@ -1,0 +1,3 @@
+Added `api.utils.tokens` in [src/api/utils.js](/app/src/api/utils.js) with creation, lookup, listing, description updates, deletion, usage logging, and last-seen lookup. Tokens now use the requested object and sorted-set keys. Bearer authentication in [src/routes/authentication.js](/app/src/routes/authentication.js) accepts these tokens while continuing to recognize existing settings-based tokens.
+
+ESLint, syntax checks, `git diff --check`, and an isolated lifecycle smoke test passed. The existing integration suite was not run because its setup reads and prints the local database configuration.

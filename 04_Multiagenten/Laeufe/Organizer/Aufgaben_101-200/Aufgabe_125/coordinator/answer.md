@@ -1,0 +1,3 @@
+Implemented topic backlinks. New posts and edits synchronize topic references, remove stale backlink events, and return the number of references added or removed. Backlink timeline events link to `/post/{pid}` and show the referencing author. An admin setting controls their visibility, with English labels for the setting and timeline event.
+
+Verification: 192 topic tests and 100 post tests passed; ESLint and `git diff --check` passed. I completed the work without delegation.

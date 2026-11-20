@@ -1,0 +1,3 @@
+Added a 10-second error cache in [useLink.ts](/app/applications/drive/src/app/store/_links/useLink.ts:26). Failed fetches with `NOT_FOUND`, `NOT_ALLOWED`, or `INVALID_ID` are reused for the same share and link; other links and successful fetches continue normally.
+
+Added coverage in [useLink.test.ts](/app/applications/drive/src/app/store/_links/useLink.test.ts:427). All 18 tests pass, along with ESLint, Prettier, and `git diff --check`.

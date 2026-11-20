@@ -1,0 +1,3 @@
+Resolved the notification and dropdown issues in the checked-out repository. Notifications now load asynchronously through `app.require('notifications')` using the dropdown trigger, including for dropdowns already open on page load. Fork and move category selectors use cached dropup elements, and quick search now follows container focus and clears results after navigation. The related hash, email, install, route, admin, merge search, and chat markup fixes are also in place.
+
+Verification passed: ESLint on changed JavaScript, `git diff --check`, and 71 existing database hash and email tests. The requested checkpoint is at [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

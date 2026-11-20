@@ -1,0 +1,3 @@
+`flipt validate` now returns a structured result with all CUE validation errors, including each field path and its location in the original YAML. Text output shows the location and issue; JSON output contains the complete `errors` array. Validation failures return `ErrValidationFailed`, and the command reports file read errors.
+
+Verified with `go test ./internal/cue ./cmd/flipt -count=1` and `git diff --check`. No delegation was used.

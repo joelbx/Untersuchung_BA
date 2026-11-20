@@ -1,0 +1,3 @@
+Updated photo recovery in both [the app hook](/app/applications/drive/src/app/store/_photos/usePhotosRecovery.ts) and [the drive-store hook](/app/packages/drive-store/store/_photos/usePhotosRecovery.ts). Recovery now loads regular and trashed items, waits for both to finish decrypting, includes trashed photo files in the move count, and fails when a required action errors or photos remain. A persisted in-progress recovery resumes through the same flow.
+
+Both focused test suites pass (11 tests each); targeted ESLint and `git diff --check` pass. The full type check is blocked by an existing `openpgp` type mismatch in `packages/crypto/lib/worker/api.ts`.

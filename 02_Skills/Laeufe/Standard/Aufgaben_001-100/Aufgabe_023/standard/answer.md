@@ -1,0 +1,3 @@
+JWT authentication now starts with local, Git, or OCI flag storage without opening an authentication database. Each authentication method explicitly declares its database requirement; only enabled methods that require a database trigger a connection or cleanup.
+
+The regression tests cover those startup cases and cleanup behavior. `GOTOOLCHAIN=local GOPROXY=off go test ./internal/config ./internal/cmd ./internal/cleanup` passed.

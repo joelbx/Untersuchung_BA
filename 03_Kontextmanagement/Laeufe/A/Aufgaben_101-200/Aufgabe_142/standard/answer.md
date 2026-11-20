@@ -1,0 +1,3 @@
+Replaced the expression parser with typed AST nodes, added nested evaluation and strict variable and function validation, and updated trait and PAM interpolation to validate namespaces at each variable reference.
+
+`go test ./lib/utils/parse` and `git diff --check` pass. The `lib/services` and `lib/srv` tests could not build locally: the CGO build lacks `linux/hidraw.h`, and the CGO-disabled build fails in native dependencies.

@@ -1,0 +1,1 @@
+Implemented the Qt 6.2.3 through 6.6.x MIME suffix workaround in webview.py and added unit coverage for specific MIME types, wildcards, existing suffixes, and version boundaries. The relevant test file passes (14 tests), and git diff --check passes.

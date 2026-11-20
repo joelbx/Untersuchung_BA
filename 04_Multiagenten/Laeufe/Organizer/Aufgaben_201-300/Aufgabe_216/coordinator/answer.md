@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to resolve its options through `get_option()` for command construction, retries, file transfers, and persistent connection management. Reset now checks for an active socket using the effective SSH settings and sends `stop` only when that check succeeds. Removed the duplicate SSH-specific core settings and updated the remaining consumers.
+
+**Verification:** 25 relevant tests passed using the checked-out code (`PYTHONPATH=/app/lib`); `git diff --check` passed. No delegation was used.

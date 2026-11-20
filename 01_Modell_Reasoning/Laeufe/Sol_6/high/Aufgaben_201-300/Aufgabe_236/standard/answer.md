@@ -1,0 +1,3 @@
+Updated `check_type_dict` to parse JSON, dictionary literals, and validated key=value pairs without calling `safe_eval`. Invalid inputs now raise descriptive `TypeError`s. Both `safe_eval` entry points carry 2.21 deprecation notices, and the [changelog fragment](/app/changelogs/fragments/deprecate-safe-eval.yml) records them.
+
+**Verification:** 107 relevant tests pass, and `git diff --check` passes. Two argument-spec tests failed in a broader run because earlier cases left warnings in process-wide state; both pass when run alone.

@@ -1,0 +1,3 @@
+Updated the IA importer to emit separate `isbn_10` and `isbn_13` lists, and to split publisher names and publication places into `publishers` and `publish_places`. The new public utilities in [utils.py](/app/openlibrary/plugins/upstream/utils.py) handle strings, lists, whitespace, and empty values. Other edition field handling remains unchanged.
+
+Updated the existing importer expectations and added normalization cases. The two affected test modules pass: **25 tests passed**.

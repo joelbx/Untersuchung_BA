@@ -1,0 +1,3 @@
+Updated current-device enrollment so `RunAdmin` returns the registered device when enrollment fails at the device limit. The fake service now exposes a limit switch and returns an `AccessDenied` error with the requested message. `printEnrollOutcome` also handles a nil device without panicking.
+
+The enrollment tests pass, including registration at the limit and successful enrollment after the limit is disabled. The `tsh/common` printer test could not run in this container because its build requires unavailable C headers; the exact failures are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

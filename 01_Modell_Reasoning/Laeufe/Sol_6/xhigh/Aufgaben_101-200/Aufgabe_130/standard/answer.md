@@ -1,0 +1,3 @@
+Fixed the `tsh device enroll --current-device` crash. When enrollment hits the device limit after registration, `RunAdmin` now returns the registered device and `DeviceRegistered` outcome with the error. The CLI printer also handles a nil device without panicking. The fake service exposes a switch for testing this case.
+
+The device trust tests pass, including the new limit regression test. The focused CLI test could not run locally because the build requires missing system C headers; disabling CGO excludes required `lib/system` files.

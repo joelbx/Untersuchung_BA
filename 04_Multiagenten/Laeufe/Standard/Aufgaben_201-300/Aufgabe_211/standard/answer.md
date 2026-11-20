@@ -1,0 +1,3 @@
+Post and topic purges now delete uploaded files that have no remaining post references. The Uploads page in the ACP has a **Keep uploaded files on disk after their posts are purged** switch, and `Posts.uploads.deleteFromDisk` supports one path or a list while rejecting invalid input and blocking path traversal.
+
+Verification passed: 342 upload, post, and topic tests; ESLint; and `git diff --check`.

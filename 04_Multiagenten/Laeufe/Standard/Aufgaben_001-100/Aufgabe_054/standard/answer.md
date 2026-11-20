@@ -1,0 +1,3 @@
+Added `singleton.GetInstance[T](constructor)` in [singleton.go](/app/utils/singleton/singleton.go). It returns `T` directly, caches by exact type so `T` and `*T` are independent, and runs the constructor once per type under concurrent calls.
+
+Added coverage for reuse and 20,000 concurrent calls in [singleton_test.go](/app/utils/singleton/singleton_test.go). The package tests and race detector pass.

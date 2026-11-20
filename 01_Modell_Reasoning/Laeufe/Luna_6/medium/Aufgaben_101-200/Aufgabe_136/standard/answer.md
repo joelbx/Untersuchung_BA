@@ -1,0 +1,3 @@
+Updated [certificateerror.py](/app/qutebrowser/browser/webkit/certificateerror.py) so the WebKit wrapper accepts both `reply` and `errors` as named arguments while retaining the existing positional `errors` usage. Construction stores the reply without inspecting it. HTML output uses a paragraph for one error and a list for multiple errors, with each message escaped.
+
+The focused test passed: `pytest -q tests/unit/browser/webkit/test_certificateerror.py` (4 passed).

@@ -1,0 +1,3 @@
+Added digest support throughout image configuration, scanning, and reporting. Validation now requires a name and exactly one of tag or digest. Scan targets and report identifiers use the full `name:tag` or `name@digest` reference, and per-image server names use `<index>@<originalServerName>`.
+
+The config, scan, and report tests pass with vet disabled. The full models suite remains blocked by `TestScan`, which expects unavailable vulnerability database data; default vet also reports an existing error in `models/library.go`.

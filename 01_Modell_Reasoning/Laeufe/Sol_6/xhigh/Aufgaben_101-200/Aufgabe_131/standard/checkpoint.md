@@ -1,0 +1,2 @@
+Task: implement bounded event polling after adding a payment method.
+Status: complete. usePollEvents now polls every 5000 ms for at most 5 attempts, optionally stops on matching property/action, and cleans up the subscription on all completion paths. Chargebee card and PayPal creation poll for PaymentMethods CREATE. Focused tests pass (6/6); existing payment modal run: 2 suites passed, 1 suite skipped by existing setup. Component type check, Prettier, and git diff checks pass.

@@ -1,0 +1,3 @@
+Updated the WinRM connection plugin to support `ansible_winrm_kinit_args` and to split arguments embedded in `ansible_winrm_kinit_cmd`, so the reported command runs as separate tokens. Explicit arguments take precedence over the default delegation `-f` flag. Both subprocess and pexpect paths use the same command construction and a unique credential cache per attempt.
+
+Updated the [WinRM documentation](/app/docs/docsite/rst/user_guide/windows_winrm.rst) and unit tests. **Verification:** all 36 WinRM unit tests passed; `git diff --check` passed.

@@ -1,0 +1,3 @@
+Added `DiagResult` and `Diag` in [api.go](/app/lib/auth/touchid/api.go). On macOS, native availability now checks signing, entitlements, biometric policy, and Secure Enclave key creation before allowing Touch ID registration or login.
+
+The WebAuthn round trip tests pass for both passwordless and credential-filtered login: `go test -count=1 ./lib/auth/touchid ./lib/auth/webauthn`. The Apple framework checks could not be exercised in this Linux workspace.

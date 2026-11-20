@@ -1,0 +1,3 @@
+Added [icx_logging.py](/app/lib/ansible/modules/network/icx/icx_logging.py) with ICX logging commands, running-config comparison, aggregate settings, check mode, and the requested IPv6, facility, buffered-level, console, and global logging behavior.
+
+Added [unit tests](/app/test/units/modules/network/icx/test_icx_logging.py). **All 102 ICX unit tests pass**; syntax and whitespace checks pass. The issue is resolved in the checked-out files.

@@ -1,0 +1,3 @@
+Added `content.javascript.log_message.excludes` for source and message glob filtering, and moved the existing UI level filter to `content.javascript.log_message.levels`. The new `_js_log_to_ui` helper applies both filters; messages it shows use the requested format and UI level, while messages it does not show continue to the standard logger. The settings help and tests are updated.
+
+Verification: 50 focused tests passed; `git diff --check` passed.

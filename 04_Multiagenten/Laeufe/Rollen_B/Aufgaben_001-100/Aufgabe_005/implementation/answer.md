@@ -1,0 +1,3 @@
+Qt wrapper initialization now runs in `early_init()` and passes the returned `SelectionInfo` to the availability checker. When no wrapper imports, `NoWrapperAvailableError` reports the attempted wrappers and their exception types. Implicit initialization now checks availability, and the checker’s diagnostics and debug output include clearer context.
+
+Verification: 50 focused tests passed across machinery, early initialization, and the startup entry point. `git diff --check` passed.

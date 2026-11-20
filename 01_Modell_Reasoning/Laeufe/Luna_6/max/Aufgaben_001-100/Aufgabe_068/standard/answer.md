@@ -1,0 +1,5 @@
+Implemented owner-encrypted session-key propagation through the single and batch loaders, REST client, and cache. When a key is supplied, the cache reloads that entity so decryption can use it. Mail detail callers now pass the parent mail’s key, including batch indexing.
+
+Verification: `npm run types` and Prettier pass. The focused REST/cache tests reported 38 passed, and mail-related tests reported 121 passed; both reported zero failures. The test runner also logged `LoginFacadeTest` errors about `deriveUserPassphraseKey` during bundle loading, without counting them as failures.
+
+Key changes: [EntityRestClient.ts](/app/src/api/worker/rest/EntityRestClient.ts:47), [DefaultEntityRestCache.ts](/app/src/api/worker/rest/DefaultEntityRestCache.ts:217), [MailUtils.ts](/app/src/mail/model/MailUtils.ts:397), and [MailIndexer.ts](/app/src/api/worker/search/MailIndexer.ts:736).

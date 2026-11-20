@@ -1,0 +1,3 @@
+Artist artwork now checks for `artist.*` in the folder derived from the artist’s albums before using external files, URLs, or a placeholder. Albums persist their unique media directories, local image changes update the artwork cache key, and each lookup attempt logs its duration. The database migration triggers a full rescan to populate directories for existing albums.
+
+Relevant tests passed: `go test ./model ./core/artwork ./db ./persistence ./scanner`.

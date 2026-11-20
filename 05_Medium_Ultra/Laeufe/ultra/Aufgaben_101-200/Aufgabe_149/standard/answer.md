@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py:32) to recognize both feature flags, merge enabled features into one argument, and preserve each disable flag separately after it. A subagent added [tests](/app/tests/unit/config/test_qtargs.py:386) for command-line and configuration inputs; I reviewed the patch and verified it.
+
+`python -m pytest tests/unit/config/test_qtargs.py -q`: **88 passed**. `git diff --check`: passed.

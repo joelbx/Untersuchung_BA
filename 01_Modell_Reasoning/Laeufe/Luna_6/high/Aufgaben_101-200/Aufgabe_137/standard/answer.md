@@ -1,0 +1,3 @@
+Implemented configurable trace sampling and propagation. `TracingConfig` now validates sampling ratios and propagator names, defaults to ratio `1` with TraceContext and Baggage, and the runtime applies the configured sampler and propagators. The schema and advanced config fixture are updated.
+
+Verification passed: `go test ./internal/config ./internal/tracing ./internal/cmd` and `git diff --check`.

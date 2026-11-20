@@ -1,0 +1,3 @@
+Implemented canonical EOL data and lookup in [config/os.go](/app/config/os.go), centralized major version parsing in [util.go](/app/util/util.go), and added per-target EOL warnings during scan result assembly. Summary output preserves warning order and displays EOL messages with the required `Warning: ` prefix.
+
+Existing tests passed: `go test ./config ./util ./scan ./report ./gost ./oval`. `git diff --check` passed.

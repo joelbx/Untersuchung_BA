@@ -1,0 +1,1 @@
+Completed IPv4/IPv6 fixed address module, WAPI constants and MAC-aware lookup. Added focused CRUD, mapping, DHCP option, and check mode tests. All 67 local NIOS unit tests pass; git diff --check passes.

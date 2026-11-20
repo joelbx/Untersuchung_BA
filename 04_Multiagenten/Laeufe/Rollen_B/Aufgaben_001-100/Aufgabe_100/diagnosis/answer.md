@@ -1,0 +1,3 @@
+The issue is localized to [config/config.go](/app/config/config.go:34). `LogConfig` has no `GRPCLevel` field, `Default()` supplies no gRPC level, and `Load()` never reads `log.grpc_level`. The fix should add the string field, default it to `"ERROR"`, and load an explicit value independently of `Level`, `File`, and `Encoding`.
+
+The existing advanced-load test replaces `cfg.Log` wholesale, so its expected value would also need the new default. `go test ./config` passes on the current code. I recorded the findings in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). No project source or tests were changed because this run was constrained to fault localization.

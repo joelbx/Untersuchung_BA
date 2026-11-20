@@ -1,0 +1,3 @@
+Updated configuration loading to return `(*config.Result, error)`, with `Config` and `Warnings` as separate fields. Deprecation warnings are collected from keys explicitly present in the configuration file before defaults are applied, including `ui.enabled`. The CLI now logs warnings from the result.
+
+Updated the load tests and added cases for `ui.enabled`, `cache.memory.enabled: false`, and a standalone `cache.memory.expiration`. `go test ./internal/config` and `go test ./cmd/flipt` pass.

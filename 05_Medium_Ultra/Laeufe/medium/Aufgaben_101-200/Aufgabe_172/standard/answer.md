@@ -1,0 +1,3 @@
+Fixed `vuls report` parsing for legacy scan results. `listenPorts` now accepts string values, while scan logic uses `ListenPortStats` and the new `PortStat`, `NewPortStat`, and `HasReachablePort` interfaces. Saved results containing structured `listenPorts` objects also remain readable.
+
+Updated port destination selection, reachability matching, and report rendering. Verified with `GOPROXY=off go test -p 1 ./models ./scan ./report`; all three packages passed.

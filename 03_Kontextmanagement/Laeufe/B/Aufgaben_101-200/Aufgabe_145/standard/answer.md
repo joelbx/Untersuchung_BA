@@ -1,0 +1,3 @@
+Updated the photo recovery flow in both checked-out copies. It now loads regular and trashed items, waits for both to decrypt, moves trashed photo entries, tracks remaining and failed items, and marks recovery successful only when no targeted photos remain. Load, move, and delete errors mark recovery failed; a persisted in-progress state resumes automatically.
+
+All 12 recovery tests pass in both copies. Lint and formatting pass. The package type check remains blocked by an unrelated OpenPGP type mismatch in `packages/crypto`.

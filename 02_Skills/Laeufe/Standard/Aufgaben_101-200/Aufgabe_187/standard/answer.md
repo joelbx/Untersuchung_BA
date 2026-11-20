@@ -1,0 +1,3 @@
+Fixed the Kubernetes interactive session failure. The Kubernetes service now initializes the uploader at startup, and the forwarder keeps request and connection state out of its certificate cache. Audit events use the forwarder context so a client disconnect does not cancel them; the forwarder configuration, HTTP routing, and heartbeat wiring are updated.
+
+Verified with `go test ./lib/kube/proxy ./lib/service` and `git diff --check`.

@@ -1,0 +1,3 @@
+Implemented host-scoped monitoring in `/app`. [OlAsyncIOScheduler](/app/scripts/monitoring/utils.py) now registers decorated jobs with function-name IDs and skips registration on excluded hosts. [monitor.py](/app/scripts/monitoring/monitor.py) uses the async scheduler and adds the HAProxy job; [haproxy_monitor.py](/app/scripts/monitoring/haproxy_monitor.py) collects and publishes the requested metrics.
+
+Verification: 5 targeted tests passed, Ruff passed, and `git diff --check` passed.

@@ -1,0 +1,3 @@
+YAML values that exactly match `${VARIABLE_NAME}` now resolve from the environment during parsing, before the other decode hooks convert values such as ports and durations. Existing `FLIPT_...` overrides still take precedence; unmatched values remain unchanged.
+
+Added coverage for multiple references, type conversion, override precedence, and invalid or missing references. `go test ./internal/config ./config -count=1` passed.

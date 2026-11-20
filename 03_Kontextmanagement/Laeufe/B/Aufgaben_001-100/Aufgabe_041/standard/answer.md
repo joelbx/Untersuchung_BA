@@ -1,0 +1,3 @@
+The list model refactor is complete. `List` and `ListChangeset` now live in [core/lists/model.py](/app/openlibrary/core/lists/model.py), `ListMixin` is removed, and list registration is handled there. Owner lookup resolves `/people/{username}/lists/{list_id}` and returns `None` when no owner is found.
+
+Validation passed: 23 focused model tests, 8 plugin list tests with request context initialized, Ruff, and `git diff --check`.

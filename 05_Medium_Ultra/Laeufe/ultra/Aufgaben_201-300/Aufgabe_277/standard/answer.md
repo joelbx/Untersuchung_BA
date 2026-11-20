@@ -1,0 +1,3 @@
+Updated [audit types and constructors](/app/internal/server/audit/types.go:136) with the requested JSON operator fields. A single segment supplies its key; multiple segments produce comma-separated keys and the operator name. Legacy single keys remain supported.
+
+Added [regression tests](/app/internal/server/audit/types_test.go:175) for those cases and JSON omission. Two subagents reviewed the models and added tests; I integrated the patch and verified that `go test -mod=readonly ./internal/server/audit/...` and `git diff --check` pass.

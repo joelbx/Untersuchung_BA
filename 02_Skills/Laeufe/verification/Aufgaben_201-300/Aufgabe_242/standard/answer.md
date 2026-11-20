@@ -1,0 +1,3 @@
+Playback liveness now comes from the broadcast info state through `determineVoiceBroadcastLiveness`. Started and Resumed map to `live`, Paused to `grey`, and Stopped or unknown states to `not-live`. Playback actions and chunk boundaries no longer change liveness independently.
+
+Verification: 51 focused tests passed; lint and formatting checks passed. The repository type check remains blocked by five errors outside the changed files, recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

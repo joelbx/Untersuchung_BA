@@ -1,0 +1,3 @@
+Implemented contextual plugin errors and `get_with_context`, including resolution metadata for removed and redirected plugins. Centralized deprecation and removal messages, updated the action, connection, and Jinja template callers, and added focused tests.
+
+**Verification:** 52 focused tests passed; `git diff --check` passed. A broader run also showed two unrelated failures involving Display singleton state and Jinja JSON rendering.

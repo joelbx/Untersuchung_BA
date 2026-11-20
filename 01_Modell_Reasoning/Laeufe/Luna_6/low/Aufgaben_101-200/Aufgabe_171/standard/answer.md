@@ -1,0 +1,3 @@
+Implemented the version context helpers and gRPC interceptor in [middleware.go](/app/internal/server/middleware/grpc/middleware.go). It reads the incoming version metadata, accepts versions with or without a `v` prefix, and uses `1.0.0` if the header is missing or invalid.
+
+The focused test command did not finish within the available run, so test results are unverified. It also modified `go.work.sum` while running; I left that file as generated.

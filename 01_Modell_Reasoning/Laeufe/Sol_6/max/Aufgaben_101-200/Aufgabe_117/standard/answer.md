@@ -1,0 +1,3 @@
+Implemented `qt.workarounds.locale`, off by default and available only with QtWebEngine. When enabled on Linux with WebEngine 5.15.3, it checks locale `.pak` files and adds a Chromium compatible `--lang` fallback when needed. I updated the settings help, changelog, and tests. Enable it with `:set qt.workarounds.locale true`, then restart.
+
+The WebEngine config suite passed: **1,888 passed**, 1 skipped, 10 expected failures. One unrelated NUL byte test was excluded because its expected exception differs on Python 3.11.

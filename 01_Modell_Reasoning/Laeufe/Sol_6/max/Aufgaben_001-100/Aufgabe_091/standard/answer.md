@@ -1,0 +1,1 @@
+Implemented `isoneof` and `isnotoneof` for string and numeric constraints. Create and update validation now rejects malformed or mistyped JSON arrays and lists over 100 items. Added focused tests; both `./rpc/flipt` and `./internal/server/evaluation` test suites pass.

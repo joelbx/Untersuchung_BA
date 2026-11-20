@@ -1,0 +1,3 @@
+Updated the mailbox list to defer reloads while `pendingActions` is nonzero and to calculate loading for the current page and query. Failed fetches now schedule a retry after 2 seconds; responses marked `Stale: 1` are rejected and schedule a retry after 1 second.
+
+Added regression tests and verified the change with TypeScript checking, formatting checks, and the full mail suite: **65 suites passed, 556 tests passed, 2 skipped**.

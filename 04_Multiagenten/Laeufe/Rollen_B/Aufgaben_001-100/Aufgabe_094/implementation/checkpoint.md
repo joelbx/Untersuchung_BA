@@ -1,0 +1,3 @@
+Implementer: inspecting Touch ID availability, registration, and login paths. Diagnosis is unverified; will validate against code and existing tests.
+Verified: existing TestRegisterAndLogin exercises full WebAuthn round trip with a fake native backend. Missing Diag/DiagResult; darwin IsAvailable is unconditional. Implementing platform diagnostics and preserving native interface for fake tests.
+Implemented DiagResult and Diag for both build variants. Darwin diagnostics check code signature, entitlement dictionary, biometric LA policy, and ephemeral Secure Enclave key creation; native availability uses their aggregate. Existing full package tests and WebAuthn round-trip test pass on Linux. macOS native path cannot run on this host.

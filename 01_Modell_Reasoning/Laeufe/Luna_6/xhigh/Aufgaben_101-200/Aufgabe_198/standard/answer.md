@@ -1,0 +1,3 @@
+Implemented the Red Hat OVAL fixes. Updated `goval-dictionary` to v0.9.5, filtered advisories by supported family identifiers, and propagated OVAL fix states through package statuses. Red Hat families now use the Gost no-op client for detection, and `RedHat.DetectCVEs` was removed.
+
+Verification passed: `GOPROXY=off go test ./oval ./gost ./detector`; `git diff --check` passed. The required checkpoint is at [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

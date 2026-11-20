@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) to include the capitalized process name, quoted command, error type, and detail in process error messages. Failed starts also get the requested non-Windows hint when the error detail exactly matches either specified value.
+
+Updated the missing-command assertion in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py). All 21 tests in that file pass, and `git diff --check` is clean.

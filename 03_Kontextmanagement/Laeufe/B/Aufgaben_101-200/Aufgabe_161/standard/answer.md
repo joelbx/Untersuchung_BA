@@ -1,0 +1,1 @@
+Worksearch now requests JSON by default and processes Solr facets and documents without XML parsing. The new facet helpers handle flat value/count pairs, including ordered `has_fulltext` labels. I updated the existing tests; **all 28 Worksearch tests pass**, and the diff check is clean.

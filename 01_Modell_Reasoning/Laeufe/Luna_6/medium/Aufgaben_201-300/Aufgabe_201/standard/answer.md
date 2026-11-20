@@ -1,0 +1,3 @@
+Implemented the new `SegmentEmbed` type with YAML support for string and `{keys, operator}` forms. Rules now use a unified `segment` field, imports read both formats, and exports write the canonical object form with OR fallback for a single key.
+
+The work is incomplete: I haven’t updated the snapshot and SQL persistence paths or the requested YAML fixtures, and the targeted test run has not returned a result.

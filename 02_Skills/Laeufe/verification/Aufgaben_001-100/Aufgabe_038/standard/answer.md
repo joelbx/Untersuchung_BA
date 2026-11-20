@@ -1,0 +1,3 @@
+Implemented transparent gzip decoding in [urls.py](/app/lib/ansible/module_utils/urls.py). `uri` and `get_url` now expose `decompress`, defaulting to `True`; setting it to `False` preserves compressed bytes. The response reader retains HTTP metadata and reads the full decoded body even when `Content-Length` describes the compressed payload.
+
+Verification: 87 URL utility tests passed. `git diff --check` and Python compilation also passed.

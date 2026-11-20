@@ -1,0 +1,3 @@
+Added filesystem completion to `:open`. The new Filesystem category suggests favorite paths for an empty argument and sorted local files and directories for absolute paths, `file:///` URLs, and `~` paths. It follows `completion.open_categories` for visibility and order. I also added `completion.favorite_paths` and updated the help page.
+
+Verification: the completion suite passed (297 passed, 1 skipped, 1 expected failure), and the config data tests passed (31 passed). The full suite remains unverified: end to end tests could not start with QtWebKit in this environment. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

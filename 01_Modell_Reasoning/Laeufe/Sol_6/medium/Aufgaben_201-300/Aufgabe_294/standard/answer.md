@@ -1,0 +1,3 @@
+Updated collection tar builds to preserve symlinks whose targets stay inside the collection, while storing external file links as regular files. The manifest walker no longer descends into linked directories. Installation now validates paths and restores safe symlink members; the tar helpers expose both `TarInfo` and a readable stream.
+
+Updated and added tests for the build/install round trip and an escaping link. **All 102 relevant tests passed**, and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented the file picker workaround in [webview.py](/app/qutebrowser/browser/webengine/webview.py). On Qt 6.2.3 through 6.6.x, it resolves accepted MIME types and wildcards through Python’s `mimetypes` module and adds missing extensions to the types passed to Qt.
+
+The focused tests pass: **11 passed**. A page level test could not run because the QtWebEngine fixture exited without a traceback; that limit is recorded in `.codex-role-output/checkpoint.md`.

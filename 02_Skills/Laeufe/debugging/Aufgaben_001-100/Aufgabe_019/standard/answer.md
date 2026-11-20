@@ -1,0 +1,3 @@
+Fixed role validation and equality in [roles.go](/app/roles.go). `Check` now rejects duplicate roles and accepts the declared `RoleRemoteProxy`; `Equals` compares distinct role sets, regardless of order or duplicates. Added regression tests in [roles_test.go](/app/roles_test.go).
+
+The root package tests and existing role suite pass. The full `lib/utils` suite still fails on an unrelated certificate fixture that expired in 2021.

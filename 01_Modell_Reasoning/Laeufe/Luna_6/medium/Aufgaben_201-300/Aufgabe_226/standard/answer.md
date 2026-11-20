@@ -1,0 +1,3 @@
+Implemented runtime MIME configuration in [mime_types.yaml](/app/mime_types.yaml). The startup hook registers its MIME mappings, adds the required `.js` and `.css` types, and populates `mime.LosslessFormats`. Updated the server UI configuration and its existing test, and removed the old definitions from `consts/mime_types.go`.
+
+`go test ./mime ./server` passed, and `git diff --check` reported no issues.

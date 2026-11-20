@@ -1,0 +1,3 @@
+Fixed the device limit crash. `RunAdmin` now returns the registered device when enrollment fails, and `printEnrollOutcome` handles a nil device. The fake service exposes a limit switch and returns an access denied error; regression coverage checks registration, denial, and recovery.
+
+The enrollment and authentication tests pass. The focused `tsh` test could not build because the environment lacks required C headers; disabling CGO also leaves a dependency unbuildable.

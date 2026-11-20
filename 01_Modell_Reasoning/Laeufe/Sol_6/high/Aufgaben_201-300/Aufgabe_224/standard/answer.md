@@ -1,0 +1,3 @@
+Moved `interpolate_color` and `_get_color_percentage` to [qtutils.py](/app/qutebrowser/utils/qtutils.py), then updated the download and tab progress callers to use `qtutils.interpolate_color`. The helper retains RGB, HSV, HSL, and no-gradient behavior, validates colors and percentages, and preserves the start color’s spec.
+
+Moved and extended the relevant tests. **Verification:** 338 selected tests passed, and `git diff --check` passed.

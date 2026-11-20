@@ -1,0 +1,3 @@
+Implemented opt-out telemetry in [config](/app/config/config.go) and the new [reporter](/app/telemetry/telemetry.go). It stores a stable UUID in `telemetry.json`, sends `flipt.ping` every four hours, and updates `lastTimestamp` after a successful response. The server starts reporting in the background; telemetry errors are logged without stopping the application. I also added the [Flipt HTTP info handler](/app/internal/info/flipt.go) and disabled telemetry in the advanced configuration example.
+
+`GOPROXY=off go test ./...` and `git diff --check` passed. No delegation was used. The configured collector endpoint was not verified because external research is blocked.

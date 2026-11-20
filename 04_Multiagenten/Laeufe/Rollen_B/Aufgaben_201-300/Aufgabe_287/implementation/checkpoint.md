@@ -1,0 +1,1 @@
+Implemented and verified: directory image names, sorted unique MediaFiles.Dirs, album image_files field and migration with forced rescan, complete directory map propagation, and full path generation before album persistence. GOPROXY=off go test ./model ./scanner ./db/... passed. git diff --check passed.

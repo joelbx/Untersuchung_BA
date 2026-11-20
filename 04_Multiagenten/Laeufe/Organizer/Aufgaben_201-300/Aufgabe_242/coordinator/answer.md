@@ -1,0 +1,3 @@
+Voice broadcast liveness now comes from one mapping: Started and Resumed → `live`, Paused → `grey`, and Stopped, unknown, or undefined → `not-live`. [VoiceBroadcastPlayback.ts](/app/src/voice-broadcast/models/VoiceBroadcastPlayback.ts) updates liveness through `setInfoState` only; playback and chunk changes no longer override it. `LivenessChanged` still emits only when the value changes.
+
+The focused tests passed (50 tests), as did ESLint and Prettier. The full TypeScript check remains blocked by `MatrixClient` type errors in unrelated files. I solved this directly; no delegation was used.

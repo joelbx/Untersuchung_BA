@@ -1,0 +1,3 @@
+Added module-level `make_date_string` for zero-padded partial dates and retained existing method access in [checkins.py](/app/openlibrary/plugins/upstream/checkins.py:17). The new `patron_check_ins.is_valid` rejects requests without an event ID or updatable content; the update handler also limits changes to the signed-in patron’s events through [bookshelves_events.py](/app/openlibrary/core/bookshelves_events.py:73).
+
+The relevant tests pass: **21 passed**. `git diff --check` also passed.

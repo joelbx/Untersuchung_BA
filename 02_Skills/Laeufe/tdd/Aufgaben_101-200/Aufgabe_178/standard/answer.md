@@ -1,0 +1,3 @@
+Implemented BCrypt `ident` support in the `password_hash` filter, both hashing backends, and the password lookup. The lookup now saves the chosen ident with the salt and defaults to `2a` when `encrypt=bcrypt`.
+
+All 59 relevant tests pass. The repository-wide pytest run encountered unrelated collection errors and failures and was interrupted; its final result is unknown. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

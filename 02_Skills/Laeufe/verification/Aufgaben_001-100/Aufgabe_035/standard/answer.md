@@ -1,0 +1,3 @@
+Evaluation now lives in [EvaluatorStorage](/app/storage/evaluator.go), behind a dedicated `Evaluator` interface. [Server.Evaluate](/app/server/evaluator.go) delegates to it, and [Server.New](/app/server/server.go) supplies the dependency. The evaluator handles ranked rules, typed constraints, deterministic rollout selection, and response metadata.
+
+Verification: `GOPROXY=off GOSUMDB=off go test ./...` passed. `git diff --check` passed.

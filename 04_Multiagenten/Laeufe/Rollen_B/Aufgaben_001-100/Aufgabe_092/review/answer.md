@@ -1,0 +1,7 @@
+VERDICT: FIX
+
+**Code defect:** With `--upgrade --no-deps`, the resolver omits dependency constraints while selecting a version ([providers.py](/app/lib/ansible/galaxy/dependency_resolution/providers.py:333)), then checks them only after resolution ([collection/__init__.py](/app/lib/ansible/galaxy/collection/__init__.py:1342)). It can reject the newest parent version even when an older allowed version satisfies the installed dependencies. Include those constraints during selection so the resolver can try that version before failing.
+
+**Tests:** `PYTHONPATH=lib python -m pytest -q test/units/galaxy/test_collection_install.py` passed (40 tests); `PYTHONPATH=lib python -m pytest -q test/units/galaxy/test_collection.py` passed (43 tests). `git diff --check` passed.
+
+**TEST_ENVIRONMENT_PROBLEM:** `timeout 30s bin/ansible-test integration ansible-galaxy-collection --local` exited 0 but skipped the target because Docker is unavailable. The initial module invocation, `timeout 30s python -m ansible_test._internal.cli integration ansible-galaxy-collection --local`, exited 1 because `ansible_test` is not on the default Python path; the repository’s `bin/ansible-test` is the correct entry point. Run that target in an environment with Docker to verify [upgrade.yml](/app/test/integration/targets/ansible-galaxy-collection/tasks/upgrade.yml).

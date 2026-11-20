@@ -1,0 +1,3 @@
+Fixed the dark-mode foreground threshold. `colors.webpage.darkmode.threshold.foreground` is now an Int option with default 256, saved `threshold.text` settings migrate to it, and the backend emits `TextBrightnessThreshold` before QtWebEngine 6.4 and `ForegroundBrightnessThreshold` from 6.4 onward.
+
+The affected tests passed: **299 passed, 1 skipped**. The full suite could not complete in this environment: end-to-end browser tests exited because Chromium was running as root without `--no-sandbox`, and a separate unit run stopped on an offscreen Qt warning. Those limits are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

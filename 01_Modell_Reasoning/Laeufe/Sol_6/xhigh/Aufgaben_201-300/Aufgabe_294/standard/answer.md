@@ -1,0 +1,3 @@
+Updated [collection.py](/app/lib/ansible/galaxy/collection.py) so collection builds preserve internal file and directory symlinks with relative targets, record directory links once in the manifest, and copy external file links into the tar as regular files. Artifact installs now restore links only when their targets resolve within the collection destination; the tar helpers expose both the member and its stream.
+
+Updated [collection tests](/app/test/units/galaxy/test_collection.py) for build and install round trips and unsafe link cases. **104 focused tests passed**; compilation and `git diff --check` also passed.

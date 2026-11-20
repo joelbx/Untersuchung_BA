@@ -1,0 +1,3 @@
+Added `VulnInfo.KEVs` as a dedicated field for CISA and VulnCheck entries. The detector now populates source specific details, normalizes placeholder due dates, and supports both current and older KEV HTTP responses. JSON output sorts KEVs by type and vulnerability name, and `FormatKEVCveSummary()` counts CVEs with KEV entries.
+
+Updated go-kev to a version already in the local cache. Verification passed: `GOPROXY=off go test ./models ./detector`.

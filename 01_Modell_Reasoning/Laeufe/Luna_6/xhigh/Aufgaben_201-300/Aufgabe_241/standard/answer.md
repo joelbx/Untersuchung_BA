@@ -1,0 +1,3 @@
+Implemented the pre-recording interactions in [VoiceBroadcastPreRecordingPip.tsx](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx:31). “Go live” is now a native button that disables immediately and ignores repeated activations until the attempt settles. Device-menu activation is guarded, and selecting a device closes the menu and updates the label through the audio-device hook. Updated the button snapshot.
+
+The focused Jest suite passed: 6 tests and 1 snapshot. ESLint, Prettier, and `git diff --check` passed. `yarn lint:types` remains blocked by existing Matrix SDK type errors in unrelated files. Checkpoint: [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

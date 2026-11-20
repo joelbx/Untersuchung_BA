@@ -1,0 +1,482 @@
+diff --git a/lib/utils/fanoutbuffer/buffer.go b/lib/utils/fanoutbuffer/buffer.go
+new file mode 100644
+index 0000000..7659e6a
+--- /dev/null
++++ b/lib/utils/fanoutbuffer/buffer.go
+@@ -0,0 +1,296 @@
++/*
++Copyright 2026 Gravitational, Inc.
++
++Licensed under the Apache License, Version 2.0 (the "License");
++you may not use this file except in compliance with the License.
++You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++*/
++
++// Package fanoutbuffer provides an ordered, concurrent buffer with independent
++// cursors for each consumer.
++package fanoutbuffer
++
++import (
++	"context"
++	"errors"
++	"sync"
++	"time"
++
++	"github.com/jonboulle/clockwork"
++)
++
++var (
++	ErrGracePeriodExceeded = errors.New("fanout buffer grace period exceeded")
++	ErrUseOfClosedCursor   = errors.New("use of closed fanout buffer cursor")
++	ErrBufferClosed        = errors.New("fanout buffer closed")
++)
++
++// Config controls the capacity of the fixed buffer and how long a cursor may
++// remain more than Capacity items behind the writer.
++type Config struct {
++	Capacity    uint64
++	GracePeriod time.Duration
++	Clock       clockwork.Clock
++}
++
++// SetDefaults fills in unset configuration fields.
++func (c *Config) SetDefaults() {
++	if c.Capacity == 0 {
++		c.Capacity = 64
++	}
++	if c.GracePeriod == 0 {
++		c.GracePeriod = 5 * time.Minute
++	}
++	if c.Clock == nil {
++		c.Clock = clockwork.NewRealClock()
++	}
++}
++
++// Buffer distributes appended items to all cursors that existed when they
++// were appended. Items are discarded once every open cursor has read them.
++type Buffer[T any] struct {
++	mu       sync.Mutex
++	cfg      Config
++	ring     []T
++	head     int
++	length   int
++	overflow []T
++	base     uint64
++	next     uint64
++	cursors  map[*Cursor[T]]struct{}
++	notify   chan struct{}
++	closed   bool
++}
++
++// NewBuffer creates a buffer with the given configuration.
++func NewBuffer[T any](cfg Config) *Buffer[T] {
++	cfg.SetDefaults()
++	return &Buffer[T]{
++		cfg:     cfg,
++		ring:    make([]T, int(cfg.Capacity)),
++		cursors: make(map[*Cursor[T]]struct{}),
++		notify:  make(chan struct{}),
++	}
++}
++
++// Append adds items in order and wakes readers. Appends after Close are ignored.
++func (b *Buffer[T]) Append(items ...T) {
++	if len(items) == 0 {
++		return
++	}
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if b.closed {
++		return
++	}
++	if len(b.cursors) == 0 {
++		return
++	}
++	for _, item := range items {
++		if b.length < len(b.ring) && len(b.overflow) == 0 {
++			b.ring[(b.head+b.length)%len(b.ring)] = item
++			b.length++
++		} else {
++			b.overflow = append(b.overflow, item)
++		}
++		b.next++
++	}
++	for cursor := range b.cursors {
++		b.updateLag(cursor)
++		if b.lagExpired(cursor) {
++			cursor.err = ErrGracePeriodExceeded
++			delete(b.cursors, cursor)
++		}
++	}
++	b.trim()
++	b.wake()
++}
++
++// NewCursor creates a cursor positioned after the last appended item.
++func (b *Buffer[T]) NewCursor() *Cursor[T] {
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	c := &Cursor[T]{buffer: b, pos: b.next, done: make(chan struct{})}
++	if !b.closed {
++		b.cursors[c] = struct{}{}
++	}
++	return c
++}
++
++// Close permanently closes the buffer and wakes all blocked readers.
++func (b *Buffer[T]) Close() {
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if b.closed {
++		return
++	}
++	b.closed = true
++	clear(b.ring)
++	clear(b.overflow)
++	b.ring = nil
++	b.overflow = nil
++	b.cursors = nil
++	b.wake()
++}
++
++// Cursor reads the items appended after its creation in append order.
++type Cursor[T any] struct {
++	buffer *Buffer[T]
++	pos    uint64
++	lagAt  time.Time
++	err    error
++	closed bool
++	done   chan struct{}
++}
++
++// Read waits until at least one item is available or the context is canceled.
++func (c *Cursor[T]) Read(ctx context.Context, out []T) (int, error) {
++	for {
++		b := c.buffer
++		b.mu.Lock()
++		n, err := c.tryRead(out)
++		if n != 0 || err != nil || len(out) == 0 {
++			b.mu.Unlock()
++			return n, err
++		}
++		notify := b.notify
++		b.mu.Unlock()
++		select {
++		case <-notify:
++		case <-c.done:
++		case <-ctx.Done():
++			return 0, ctx.Err()
++		}
++	}
++}
++
++// TryRead reads available items without waiting.
++func (c *Cursor[T]) TryRead(out []T) (int, error) {
++	b := c.buffer
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	return c.tryRead(out)
++}
++
++// tryRead requires the buffer lock.
++func (c *Cursor[T]) tryRead(out []T) (int, error) {
++	b := c.buffer
++	if c.closed {
++		return 0, ErrUseOfClosedCursor
++	}
++	if b.closed {
++		return 0, ErrBufferClosed
++	}
++	if c.err != nil {
++		return 0, c.err
++	}
++	if b.lagExpired(c) {
++		c.err = ErrGracePeriodExceeded
++		delete(b.cursors, c)
++		b.trim()
++		return 0, c.err
++	}
++	if len(out) == 0 || c.pos == b.next {
++		return 0, nil
++	}
++	n := 0
++	for n < len(out) && c.pos < b.next {
++		offset := c.pos - b.base
++		if offset < uint64(b.length) {
++			out[n] = b.ring[(b.head+int(offset))%len(b.ring)]
++		} else {
++			out[n] = b.overflow[int(offset)-b.length]
++		}
++		c.pos++
++		n++
++	}
++	b.updateLag(c)
++	b.trim()
++	return n, nil
++}
++
++// Close releases a cursor's retained items and wakes its blocked readers.
++// It is safe to call more than once.
++func (c *Cursor[T]) Close() error {
++	b := c.buffer
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if c.closed {
++		return nil
++	}
++	c.closed = true
++	close(c.done)
++	delete(b.cursors, c)
++	if !b.closed {
++		b.trim()
++	}
++	return nil
++}
++
++// updateLag records the instant a cursor first falls more than one ring's
++// capacity behind. Catching up resets its grace period.
++func (b *Buffer[T]) updateLag(c *Cursor[T]) {
++	if b.next-c.pos > b.cfg.Capacity {
++		if c.lagAt.IsZero() {
++			c.lagAt = b.cfg.Clock.Now()
++		}
++	} else {
++		c.lagAt = time.Time{}
++	}
++}
++
++func (b *Buffer[T]) lagExpired(c *Cursor[T]) bool {
++	return !c.lagAt.IsZero() && b.cfg.Clock.Now().Sub(c.lagAt) >= b.cfg.GracePeriod
++}
++
++// trim discards items read by every cursor, then refills the fixed ring from
++// overflow. All calls hold the buffer lock.
++func (b *Buffer[T]) trim() {
++	oldest := b.next
++	for c := range b.cursors {
++		if c.pos < oldest {
++			oldest = c.pos
++		}
++	}
++	remove := int(oldest - b.base)
++	for i := 0; i < remove && i < b.length; i++ {
++		var zero T
++		b.ring[b.head] = zero
++		b.head = (b.head + 1) % len(b.ring)
++	}
++	if remove >= b.length {
++		overflowRemove := remove - b.length
++		clear(b.overflow[:overflowRemove])
++		b.overflow = b.overflow[overflowRemove:]
++		b.length = 0
++	} else {
++		b.length -= remove
++	}
++	b.base = oldest
++	fill := min(len(b.ring)-b.length, len(b.overflow))
++	for i := 0; i < fill; i++ {
++		b.ring[(b.head+b.length+i)%len(b.ring)] = b.overflow[i]
++	}
++	b.length += fill
++	clear(b.overflow[:fill])
++	b.overflow = b.overflow[fill:]
++	if len(b.overflow) == 0 {
++		b.overflow = nil
++	} else if cap(b.overflow) > 2*len(b.overflow) && cap(b.overflow) > 2*len(b.ring) {
++		// Release large backing arrays as the backlog drains.
++		b.overflow = append([]T(nil), b.overflow...)
++	}
++}
++
++func (b *Buffer[T]) wake() {
++	close(b.notify)
++	b.notify = make(chan struct{})
++}
+diff --git a/lib/utils/fanoutbuffer/buffer_test.go b/lib/utils/fanoutbuffer/buffer_test.go
+new file mode 100644
+index 0000000..0345e82
+--- /dev/null
++++ b/lib/utils/fanoutbuffer/buffer_test.go
+@@ -0,0 +1,174 @@
++package fanoutbuffer
++
++import (
++	"context"
++	"errors"
++	"reflect"
++	"sync"
++	"testing"
++	"time"
++
++	"github.com/jonboulle/clockwork"
++)
++
++func TestDefaults(t *testing.T) {
++	var cfg Config
++	cfg.SetDefaults()
++	if cfg.Capacity != 64 || cfg.GracePeriod != 5*time.Minute || cfg.Clock == nil {
++		t.Fatalf("unexpected defaults: %+v", cfg)
++	}
++}
++
++func TestOverflowOrderAndCleanup(t *testing.T) {
++	b := NewBuffer[int](Config{Capacity: 2})
++	defer b.Close()
++	fast, slow := b.NewCursor(), b.NewCursor()
++	b.Append(1, 2, 3, 4, 5)
++	got := make([]int, 5)
++	if n, err := fast.TryRead(got); n != 5 || err != nil || !reflect.DeepEqual(got, []int{1, 2, 3, 4, 5}) {
++		t.Fatalf("fast read: %v, %v, %v", n, err, got)
++	}
++	for i := 1; i <= 5; i++ {
++		var out [1]int
++		if n, err := slow.TryRead(out[:]); n != 1 || err != nil || out[0] != i {
++			t.Fatalf("slow read %d: %v, %v, %v", i, n, err, out)
++		}
++	}
++	if b.base != b.next || b.length != 0 || len(b.overflow) != 0 {
++		t.Fatalf("items retained after all cursors read: base=%d next=%d length=%d overflow=%d", b.base, b.next, b.length, len(b.overflow))
++	}
++	b.Append(6, 7)
++	late := b.NewCursor()
++	b.Append(8)
++	var out [3]int
++	if n, err := late.TryRead(out[:]); n != 1 || err != nil || out[0] != 8 {
++		t.Fatalf("late cursor read: %v, %v, %v", n, err, out)
++	}
++}
++
++func TestGracePeriod(t *testing.T) {
++	clock := clockwork.NewFakeClock()
++	b := NewBuffer[int](Config{Capacity: 2, GracePeriod: time.Minute, Clock: clock})
++	defer b.Close()
++	slow, fast := b.NewCursor(), b.NewCursor()
++	b.Append(1, 2, 3)
++	var out [3]int
++	if n, err := fast.TryRead(out[:]); n != 3 || err != nil {
++		t.Fatalf("fast read: %d, %v", n, err)
++	}
++	clock.Advance(time.Minute)
++	if n, err := slow.TryRead(out[:]); n != 0 || !errors.Is(err, ErrGracePeriodExceeded) {
++		t.Fatalf("expired cursor: %d, %v", n, err)
++	}
++	if n, err := slow.TryRead(out[:]); n != 0 || !errors.Is(err, ErrGracePeriodExceeded) {
++		t.Fatalf("repeated expired read: %d, %v", n, err)
++	}
++	b.Append(4)
++	if n, err := fast.TryRead(out[:]); n != 1 || err != nil || out[0] != 4 {
++		t.Fatalf("fast cursor after expiry: %d, %v, %v", n, err, out)
++	}
++}
++
++func TestAppendEvictsExpiredCursor(t *testing.T) {
++	clock := clockwork.NewFakeClock()
++	b := NewBuffer[int](Config{Capacity: 2, GracePeriod: time.Minute, Clock: clock})
++	defer b.Close()
++	slow := b.NewCursor()
++	b.Append(1, 2, 3)
++	clock.Advance(time.Minute)
++	b.Append(4)
++	if _, err := slow.TryRead(make([]int, 4)); !errors.Is(err, ErrGracePeriodExceeded) {
++		t.Fatalf("expired cursor: %v", err)
++	}
++	if b.base != b.next || b.length != 0 || len(b.overflow) != 0 {
++		t.Fatalf("expired cursor retained items: base=%d next=%d length=%d overflow=%d", b.base, b.next, b.length, len(b.overflow))
++	}
++}
++
++func TestBlockingAndClose(t *testing.T) {
++	b := NewBuffer[int](Config{})
++	c := b.NewCursor()
++	type result struct {
++		n    int
++		err  error
++		item int
++	}
++	results := make(chan result, 1)
++	go func() {
++		var out [1]int
++		n, err := c.Read(context.Background(), out[:])
++		results <- result{n, err, out[0]}
++	}()
++	b.Append(7)
++	select {
++	case r := <-results:
++		if r.n != 1 || r.err != nil || r.item != 7 {
++			t.Fatalf("read: %+v", r)
++		}
++	case <-time.After(5 * time.Second):
++		t.Fatal("read did not wake")
++	}
++	ctx, cancel := context.WithCancel(context.Background())
++	cancel()
++	if _, err := c.Read(ctx, make([]int, 1)); !errors.Is(err, context.Canceled) {
++		t.Fatalf("canceled read: %v", err)
++	}
++	if err := c.Close(); err != nil {
++		t.Fatal(err)
++	}
++	if _, err := c.TryRead(make([]int, 1)); !errors.Is(err, ErrUseOfClosedCursor) {
++		t.Fatalf("closed cursor: %v", err)
++	}
++	other := b.NewCursor()
++	blocked := make(chan error, 1)
++	go func() {
++		_, err := other.Read(context.Background(), make([]int, 1))
++		blocked <- err
++	}()
++	b.Close()
++	select {
++	case err := <-blocked:
++		if !errors.Is(err, ErrBufferClosed) {
++			t.Fatalf("blocked read after close: %v", err)
++		}
++	case <-time.After(5 * time.Second):
++		t.Fatal("close did not wake reader")
++	}
++	if _, err := other.TryRead(make([]int, 1)); !errors.Is(err, ErrBufferClosed) {
++		t.Fatalf("closed buffer: %v", err)
++	}
++}
++
++func TestConcurrentReaders(t *testing.T) {
++	const count = 1000
++	b := NewBuffer[int](Config{Capacity: count + 1})
++	defer b.Close()
++	var wg sync.WaitGroup
++	for i := 0; i < 8; i++ {
++		c := b.NewCursor()
++		wg.Add(1)
++		go func() {
++			defer wg.Done()
++			defer c.Close()
++			for want := 0; want < count; {
++				var out [17]int
++				n, err := c.Read(context.Background(), out[:])
++				if err != nil {
++					t.Errorf("read: %v", err)
++					return
++				}
++				for _, item := range out[:n] {
++					if item != want {
++						t.Errorf("got %d, want %d", item, want)
++						return
++					}
++					want++
++				}
++			}
++		}()
++	}
++	for i := 0; i < count; i++ {
++		b.Append(i)
++	}
++	wg.Wait()
++}

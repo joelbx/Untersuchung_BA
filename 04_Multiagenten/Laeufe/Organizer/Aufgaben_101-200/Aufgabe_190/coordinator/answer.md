@@ -1,0 +1,3 @@
+Added `preview=true` to the general and IA import endpoints. Preview runs the import pipeline with `save=False`, returns `preview`, proposed `edits`, cover acceptability, and UUID placeholder keys, while skipping saves, cover uploads, and IA metadata updates. The import helpers now expose author normalization, edition construction, and case insensitive cover host validation; existing function names remain available for compatibility.
+
+**Verification:** 135 focused tests passed. Ruff lint and `git diff --check` passed. No delegation was used.

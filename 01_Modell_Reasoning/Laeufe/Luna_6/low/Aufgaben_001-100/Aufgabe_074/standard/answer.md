@@ -1,0 +1,3 @@
+Implemented `Path` and typed list support in [fn_to_cli.py](/app/scripts/solr_builder/solr_builder/fn_to_cli.py). Required lists are positional; optional lists use `--<parameter>` and default to `None` when omitted. `parse_args` accepts an argument sequence, option names preserve parameter spelling, and `run` returns sync or async results.
+
+Added focused tests in [test_fn_to_cli.py](/app/scripts/solr_builder/tests/test_fn_to_cli.py). All 8 focused tests pass, and `git diff --check` is clean.

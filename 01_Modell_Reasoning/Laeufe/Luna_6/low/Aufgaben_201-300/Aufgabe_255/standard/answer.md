@@ -1,0 +1,3 @@
+Updated the password lookup to parse key=value parameters through `LookupModule`, apply plugin option defaults, preserve list-valued `chars`, and split comma-separated strings while supporting `,,` as a literal comma. Added parser and seed coverage in [test_password.py](/app/test/units/plugins/lookup/test_password.py).
+
+Verification: `python -m pytest -q test/units/plugins/lookup/test_password.py` passed (31 tests); `git diff --check` passed.

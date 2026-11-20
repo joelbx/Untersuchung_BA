@@ -1,0 +1,3 @@
+Updated startup configuration validation so enabled GitHub authentication and each configured OIDC provider require non-empty `client_id`, `client_secret`, and `redirect_address`. Errors identify the provider and field in the requested format. GitHub’s `read:org` scope error now uses the requested wording.
+
+Added config loading tests and updated the existing scope fixture. `go test ./internal/config` passes.

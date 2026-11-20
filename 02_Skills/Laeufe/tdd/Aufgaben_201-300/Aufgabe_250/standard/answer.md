@@ -1,0 +1,3 @@
+Added `luqum_replace_child` in [query_utils.py](/app/openlibrary/solr/query_utils.py). It replaces equal direct children while preserving their order and sequence type, leaves children unchanged when there is no match, and raises the required `ValueError` for unsupported parents. Regression tests are in [test_query_utils.py](/app/openlibrary/tests/solr/test_query_utils.py).
+
+The focused test file passed: **11 tests**. The full Python suite did not pass because of an unrelated `FnToCLI` failure and a partner-import test collection error caused by a blocked proxy request. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

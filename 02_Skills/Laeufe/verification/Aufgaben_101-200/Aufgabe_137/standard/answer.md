@@ -1,0 +1,3 @@
+Added tracing configuration for a sampling ratio from 0 to 1 and the eight supported propagators, with defaults and exact validation errors. The runtime now uses the configured sampler and propagators.
+
+Verification: `GOPROXY=off go test ./internal/config ./internal/tracing ./internal/cmd` passed, and `git diff --check` was clean. The full repository suite was not run; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated `listRemoveAll` in Redis, PostgreSQL, and MongoDB to accept either a single value or an array. The changes remove each requested value, preserve the remaining order, and scope MongoDB updates to list values. Added a regression test for multiple removals and an absent value in [test/database/list.js](/app/test/database/list.js).
+
+Verification: the list suite passed with 20 tests against a temporary local Redis instance; ESLint and `git diff --check` passed. The checkpoint is recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

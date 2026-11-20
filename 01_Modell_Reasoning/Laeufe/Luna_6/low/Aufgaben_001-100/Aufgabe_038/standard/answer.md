@@ -1,0 +1,3 @@
+Implemented gzip response handling across the URL utilities and the `uri` and `get_url` modules. Added the `decompress` option with a default of `True`, propagated it through `open_url`, `fetch_url`, and `fetch_file`, and included it in `get_url` checksum downloads. Requests add `Accept-Encoding` when none is supplied, and `GzipDecodedReader` handles decoded streams.
+
+Verification: the gzip reader decoded a sample payload; focused URL tests passed (20 passed); compilation and `git diff --check` passed. Three existing `Request` tests still expect no automatic `Accept-Encoding` header and fail with the new required behavior.

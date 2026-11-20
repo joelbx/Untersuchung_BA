@@ -1,0 +1,3 @@
+Added a kebab menu to the Current session header with accessible open and closed states, disabled states, and destructive “Sign out” actions. The menu closes after click or keyboard activation, returns focus to the trigger, and passes only other-session IDs to bulk sign-out.
+
+The affected device manager and context menu tests pass (59 tests total); ESLint and stylelint pass. The repository-wide type check still reports errors in unrelated files and dependencies, with none in the changed files.

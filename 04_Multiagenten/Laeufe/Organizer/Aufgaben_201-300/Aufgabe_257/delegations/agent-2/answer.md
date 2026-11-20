@@ -1,0 +1,3 @@
+Updated [tsh.go](/app/tool/tsh/tsh.go) so `Run` returns errors, applies runtime options after parsing, and passes `mockSSOLogin` into the client config. `main` now handles the returned error with `utils.FatalError`; handlers defined in `tsh.go` return errors instead of exiting. Added focused tests in [tsh_test.go](/app/tool/tsh/tsh_test.go).
+
+`gofmt` and `git diff --check` pass. The tsh test run is blocked at compilation until the coordinator adds `client.SSOLoginFunc` and `client.Config.MockSSOLogin`. The database handlers in `tool/tsh/db.go` still need conversion and `Run` dispatch updates; that file is outside my assigned edit scope. I recorded both dependencies in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

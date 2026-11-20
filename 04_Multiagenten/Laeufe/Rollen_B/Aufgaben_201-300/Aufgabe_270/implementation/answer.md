@@ -1,0 +1,3 @@
+Implemented the persisted session fix in Drive and its drive-store copy. Public pages now select one valid session by the highest `persistedAt`, use its UID and localID consistently, and restore auth and user state after a successful resume. Malformed session JSON or unavailable storage returns `null` and sends an error report. The old `LAST_ACTIVE_PING` path is removed.
+
+Both focused test suites pass: 12 tests each. The Drive type check remains blocked by an unrelated `openpgp` type mismatch in `packages/crypto/lib/worker/api.ts:579`; it reported no errors in the changed files.

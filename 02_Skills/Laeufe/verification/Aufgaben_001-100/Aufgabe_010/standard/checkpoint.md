@@ -1,0 +1,9 @@
+# Checkpoint
+
+Implemented semantic paragraph markup for tombstoned room notices, decorative icon alt text, a reusable accessible CancelButton, consistent composer-adjacent cancel controls, and an inline sender profile in reply previews (including emote replies).
+
+Verification:
+- `./node_modules/.bin/jest test/components/views/rooms/MessageComposer-test.tsx test/components/views/rooms/CancelButton-test.tsx test/components/views/rooms/ReplyPreview-test.tsx test/components/views/rooms/SearchBar-test.tsx --runInBand --silent` — exit 0, 4 suites and 11 tests passed.
+- `./node_modules/.bin/eslint src/components/views/buttons/Cancel.tsx src/components/views/messages/DisambiguatedProfile.tsx src/components/views/messages/SenderProfile.tsx src/components/views/rooms/MessageComposer.tsx src/components/views/rooms/ReplyPreview.tsx src/components/views/rooms/SearchBar.tsx src/components/views/rooms/LinkPreviewGroup.tsx test/components/views/rooms/MessageComposer-test.tsx test/components/views/rooms/CancelButton-test.tsx test/components/views/rooms/ReplyPreview-test.tsx --max-warnings 0` — exit 0.
+- `./node_modules/.bin/stylelint res/css/views/buttons/_Cancel.scss res/css/views/rooms/_MessageComposer.scss res/css/views/rooms/_ReplyPreview.scss res/css/views/rooms/_SearchBar.scss res/css/views/rooms/_LinkPreviewGroup.scss && git diff --check` — exit 0.
+- `./node_modules/.bin/tsc --noEmit --jsx react` — exit 2. Errors: `node_modules/matrix-js-sdk/src/http-api.ts` lines 830, 885, 886: `Property 'abort' does not exist on type 'IRequest'`; `src/components/views/room_settings/AliasSettings.tsx` line 144 and `src/components/views/settings/tabs/room/SecurityRoomSettingsTab.tsx` line 223: `Property 'getLocalAliases' does not exist on type 'MatrixClient'`. These are outside changed files. Uncertainty: a complete repository type check cannot pass in this checkout without resolving these unrelated typing errors.

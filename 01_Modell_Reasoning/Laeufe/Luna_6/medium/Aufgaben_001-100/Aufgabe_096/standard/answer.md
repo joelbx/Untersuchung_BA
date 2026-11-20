@@ -1,0 +1,3 @@
+Implemented the `atomic_move()` permission fix. New files use `0600` combined with the current umask. Modules that accept `mode` track newly created paths when it’s omitted; result formatting warns for each, and `set_mode_if_different()` clears a tracked path.
+
+Verification passed: 63 relevant existing tests and `git diff --check`. The checkpoint is at [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

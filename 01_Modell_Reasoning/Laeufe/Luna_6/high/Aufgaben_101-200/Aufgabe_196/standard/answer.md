@@ -1,0 +1,3 @@
+Implemented the assistant upsell resolver update. Paid configs now build `planIDs` with an optional addon, and addon names come from `getScribeAddonNameByPlan`. Exported that resolver and `SelectedPlan` from the payments/core entry point and updated imports.
+
+The existing assistant upsell test passed: 9 tests. `git diff --check` passed, and no legacy resolver references or internal `SelectedPlan` imports remain.

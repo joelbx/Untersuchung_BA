@@ -1,0 +1,3 @@
+Updated [redhatbase.go](/app/scanner/redhatbase.go) to preserve empty release fields in RPM and repoquery output, format source package versions without a trailing hyphen, parse `-src.rpm` filenames, and reject malformed filenames. Update candidates now treat `(none)` as an absent epoch.
+
+Added regression cases in [redhatbase_test.go](/app/scanner/redhatbase_test.go). The focused scanner tests and `git diff --check` pass.

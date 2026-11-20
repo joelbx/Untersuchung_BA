@@ -1,0 +1,3 @@
+Updated the IA importer to put ISBNs in `isbn_10` and `isbn_13`, and publisher names and places in `publishers` and `publish_places`. The public utilities in [utils.py](/app/openlibrary/plugins/upstream/utils.py) handle strings, lists, spacing, and empty values.
+
+The focused tests passed (30 tests), the full import API suite passed (18 tests), and `git diff --check` passed. Ruff and Black were unavailable locally.

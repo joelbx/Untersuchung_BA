@@ -1,0 +1,3 @@
+Fixed `Play` so invalid `hosts` values raise `AnsibleParserError` with the requested messages. `Play.load` no longer derives or writes `name`; `get_name` derives it from the current hosts value. Regression tests cover the reported crash and name behavior in [test_play.py](/app/test/units/playbook/test_play.py).
+
+The playbook unit suite passed: **249 tests**. The repository-wide pytest run did not pass; it encountered collection errors and integration/CLI failures and was interrupted. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

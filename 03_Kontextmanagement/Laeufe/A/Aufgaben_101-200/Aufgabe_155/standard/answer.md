@@ -1,0 +1,3 @@
+Implemented digest support across image configuration, scanning, and reporting. Images now accept exactly one of tag or digest, scans use the matching full reference, and report identifiers include that reference.
+
+`config`, `scan`, and `report` tests pass with vet disabled, as does the focused image reporting test. The full `models` suite still fails in the existing `TestScan` library test; default vet also reports existing findings in `models/library.go`.

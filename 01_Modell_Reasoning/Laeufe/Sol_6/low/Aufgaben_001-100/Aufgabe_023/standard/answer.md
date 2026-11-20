@@ -1,0 +1,3 @@
+Fixed authentication startup so JWT-only auth with non-database flag storage does not open a database connection. Each authentication method now declares `RequiresDatabase`; startup connects only when a method needs persistent storage or flag storage itself uses the database. Cleanup runs only for enabled methods that require a database.
+
+Updated the cleanup test and added coverage for the database and cleanup decisions. `go test ./internal/config ./internal/cleanup ./internal/cmd` and `git diff --check` passed.

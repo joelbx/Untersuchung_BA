@@ -1,0 +1,3 @@
+Updated the photos recovery flow in the [drive store](/app/packages/drive-store/store/_photos/usePhotosRecovery.ts) and [drive app](/app/applications/drive/src/app/store/_photos/usePhotosRecovery.ts). It now loads regular and trashed items together, waits for both sources to finish decrypting, moves trashed photo entries alongside regular items, and marks recovery successful only when the targeted items are processed and no source photos remain. Move, load, and delete errors mark recovery as failed; a persisted in-progress recovery resumes on initialization.
+
+Both focused Jest suites pass: 10 tests each. Both TypeScript checks stop on the same unrelated `openpgp`/`pmcrypto` type mismatch in `packages/crypto/lib/worker/api.ts:579`.

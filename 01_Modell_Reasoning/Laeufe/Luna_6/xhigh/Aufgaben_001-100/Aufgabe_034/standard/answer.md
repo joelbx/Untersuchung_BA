@@ -1,0 +1,3 @@
+Updated `get_ia_record` to emit separate `isbn_10`, `isbn_13`, `publishers`, and `publish_places` fields, omitting them when there’s no valid data. Added the reusable splitters to [utils.py](/app/openlibrary/plugins/upstream/utils.py:58) and regression coverage in the import API and upstream utility tests.
+
+Verification: **23 tests passed** across the two relevant test modules; `git diff --check` passed. Recorded progress in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented HEIC/HEIF and JXL image support for macOS and iOS Safari 17+. JXL now has a MIME mapping, and [image support detection](/app/packages/shared/lib/helpers/mimetype.ts) gates these formats by browser and OS. Both upload parsers now use a meaningful `File.type`, then the filename extension, then `application/octet-stream`, without `ChunkFileReader`.
+
+The focused regression tests pass: 9 tests across 2 suites. `git diff --check` passes. Package type checks still report existing errors outside the changed files; they report no errors in the final patch.

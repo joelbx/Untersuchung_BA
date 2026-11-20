@@ -1,0 +1,3 @@
+Updated `listRemoveAll` in the Redis, MongoDB, and PostgreSQL adapters to accept an array of values. It removes every matching element, preserves the order of the rest, and completes before a subsequent read. Added a regression test covering multiple values and repeated matches.
+
+The existing list suite passes on Redis (20 tests). ESLint and `git diff --check` pass. MongoDB and PostgreSQL were not available for local integration tests.

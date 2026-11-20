@@ -1,0 +1,3 @@
+Implemented the fixes for unset values, module parameter and traceback handling, YAML constructors, templar `None` overrides, lookup messages, early CLI errors, deprecations, and the `timedout` Boolean result. Updated [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+**Verification:** 317 focused tests passed, and `git diff --check` passed. A broader mixed test run had failures linked to shared test state; the affected tests pass together in the focused run. The legacy deprecation warning test still has seven failures against the current controller warning storage behavior.

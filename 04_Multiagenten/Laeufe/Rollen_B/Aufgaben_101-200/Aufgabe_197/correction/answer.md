@@ -1,0 +1,3 @@
+The checked-out patch already fixes the issue: Qt 6.4 emits `ForegroundBrightnessThreshold` with numeric values converted to strings, while earlier versions retain `TextBrightnessThreshold`. No further code change was needed.
+
+The reviewer’s flagged test module passes with `QT_QPA_PLATFORM=offscreen` (**41 passed**), and `git diff --check` passes. The earlier test abort was a headless Qt setup problem, resolved by that environment setting.

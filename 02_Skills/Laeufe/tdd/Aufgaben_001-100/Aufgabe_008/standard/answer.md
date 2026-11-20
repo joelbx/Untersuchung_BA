@@ -1,0 +1,3 @@
+`useLink` now caches `NOT_FOUND`, `NOT_ALLOWED`, and `INVALID_ID` fetch errors for 30 seconds per `(shareId, linkId)`. Repeated attempts return the same error without another API request; other links continue to fetch normally. The cache expires automatically, and successful fetch processing is unchanged.
+
+Added regression tests in [useLink.test.ts](/app/applications/drive/src/app/store/_links/useLink.test.ts). Verification passed: all 319 Drive tests, TypeScript, ESLint, and `git diff --check`.

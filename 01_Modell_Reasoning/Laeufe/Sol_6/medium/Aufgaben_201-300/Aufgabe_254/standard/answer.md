@@ -1,0 +1,3 @@
+Updated [lib/utils/ec2.go](/app/lib/utils/ec2.go) so `IsAvailable` retrieves the instance ID through the IMDS client with a 250 ms timeout and accepts only valid EC2 instance ID formats. Client creation now supports functional options, including `WithIMDSClient` for injecting an IMDS client.
+
+Added tests for valid IDs, captive portal HTML, invalid responses, options, and timeout behavior. `go test ./lib/utils ./lib/labels/ec2 -count=1` passed.

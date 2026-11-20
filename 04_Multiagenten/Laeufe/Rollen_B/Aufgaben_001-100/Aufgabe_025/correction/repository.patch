@@ -1,0 +1,177 @@
+diff --git a/internal/config/config.go b/internal/config/config.go
+index 1e67dde..6dbf3a0 100644
+--- a/internal/config/config.go
++++ b/internal/config/config.go
+@@ -10,6 +10,7 @@ import (
+ 	"os"
+ 	"path/filepath"
+ 	"reflect"
++	"regexp"
+ 	"slices"
+ 	"strings"
+ 	"time"
+@@ -31,6 +32,7 @@ var (
+ )
+ 
+ var DecodeHooks = []mapstructure.DecodeHookFunc{
++	envSubstitutionHookFunc(),
+ 	mapstructure.StringToTimeDurationHookFunc(),
+ 	stringToSliceHookFunc(),
+ 	stringToEnumHookFunc(stringToCacheBackend),
+@@ -40,6 +42,50 @@ var DecodeHooks = []mapstructure.DecodeHookFunc{
+ 	stringToEnumHookFunc(stringToAuthMethod),
+ }
+ 
++var envReference = regexp.MustCompile(`^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$`)
++
++// envSubstitutionHookFunc resolves YAML values that reference an environment variable.
++func envSubstitutionHookFunc() mapstructure.DecodeHookFunc {
++	return func(from reflect.Kind, to reflect.Kind, data interface{}) (interface{}, error) {
++		if from != reflect.String {
++			return data, nil
++		}
++
++		return resolveEnvReference(data), nil
++	}
++}
++
++func resolveEnvReference(data interface{}) interface{} {
++	value, ok := data.(string)
++	if !ok {
++		return data
++	}
++	if matches := envReference.FindStringSubmatch(value); matches != nil {
++		if replacement, ok := os.LookupEnv(matches[1]); ok {
++			return replacement
++		}
++	}
++	return data
++}
++
++// resolveConfigEnvReferences updates parsed file values before defaults and
++// experimental flags are read from Viper.
++func resolveConfigEnvReferences(data interface{}) interface{} {
++	switch value := data.(type) {
++	case map[string]interface{}:
++		for key, item := range value {
++			value[key] = resolveConfigEnvReferences(item)
++		}
++	case []interface{}:
++		for i, item := range value {
++			value[i] = resolveConfigEnvReferences(item)
++		}
++	default:
++		return resolveEnvReference(data)
++	}
++	return data
++}
++
+ // Config contains all of Flipts configuration needs.
+ //
+ // The root of this structure contains a collection of sub-configuration categories.
+@@ -92,7 +138,6 @@ func Load(ctx context.Context, path string) (*Result, error) {
+ 	v := viper.New()
+ 	v.SetEnvPrefix(EnvPrefix)
+ 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+-	v.AutomaticEnv()
+ 
+ 	var cfg *Config
+ 
+@@ -122,7 +167,15 @@ func Load(ctx context.Context, path string) (*Result, error) {
+ 		if err := v.ReadConfig(file); err != nil {
+ 			return nil, err
+ 		}
++		// Resolve file references before Viper values are read for defaults and
++		// experimental fields. Environment overrides remain above file settings.
++		settings := v.AllSettings()
++		resolveConfigEnvReferences(settings)
++		if err := v.MergeConfigMap(settings); err != nil {
++			return nil, err
++		}
+ 	}
++	v.AutomaticEnv()
+ 
+ 	var (
+ 		result      = &Result{Config: cfg}
+diff --git a/internal/config/config_test.go b/internal/config/config_test.go
+index 271a869..6acef3a 100644
+--- a/internal/config/config_test.go
++++ b/internal/config/config_test.go
+@@ -10,6 +10,7 @@ import (
+ 	"net/http/httptest"
+ 	"net/url"
+ 	"os"
++	"path/filepath"
+ 	"reflect"
+ 	"strings"
+ 	"testing"
+@@ -1443,6 +1444,69 @@ func TestLoad(t *testing.T) {
+ 	}
+ }
+ 
++func TestEnvSubstitutionHook(t *testing.T) {
++	t.Setenv("CONFIG_VALUE", "resolved")
++	t.Setenv("_CONFIG_2", "")
++
++	hook := envSubstitutionHookFunc().(func(reflect.Kind, reflect.Kind, interface{}) (interface{}, error))
++	for _, tt := range []struct {
++		name  string
++		from  reflect.Kind
++		input interface{}
++		want  interface{}
++	}{
++		{"set variable", reflect.String, "${CONFIG_VALUE}", "resolved"},
++		{"empty variable", reflect.String, "${_CONFIG_2}", ""},
++		{"unset variable", reflect.String, "${CONFIG_MISSING}", "${CONFIG_MISSING}"},
++		{"embedded reference", reflect.String, "prefix-${CONFIG_VALUE}", "prefix-${CONFIG_VALUE}"},
++		{"trailing text", reflect.String, "${CONFIG_VALUE}-suffix", "${CONFIG_VALUE}-suffix"},
++		{"invalid first character", reflect.String, "${1CONFIG}", "${1CONFIG}"},
++		{"invalid character", reflect.String, "${CONFIG-VALUE}", "${CONFIG-VALUE}"},
++		{"named string", reflect.String, LogEncodingJSON, LogEncodingJSON},
++		{"non-string", reflect.Int, 42, 42},
++	} {
++		t.Run(tt.name, func(t *testing.T) {
++			got, err := hook(tt.from, reflect.String, tt.input)
++			require.NoError(t, err)
++			assert.Equal(t, tt.want, got)
++		})
++	}
++}
++
++func TestLoadEnvReferences(t *testing.T) {
++	path := filepath.Join(t.TempDir(), "config.yml")
++	require.NoError(t, os.WriteFile(path, []byte(`server:
++  http_port: ${CONFIG_PORT}
++log:
++  encoding: ${CONFIG_ENCODING}
++  file: ${CONFIG_FILE}
++storage:
++  type: ${CONFIG_STORAGE_TYPE}
++`), 0600))
++	t.Setenv("CONFIG_PORT", "8081")
++	t.Setenv("CONFIG_ENCODING", "json")
++	t.Setenv("CONFIG_FILE", "events.log")
++	t.Setenv("CONFIG_STORAGE_TYPE", "local")
++
++	res, err := Load(context.Background(), path)
++	require.NoError(t, err)
++	assert.Equal(t, 8081, res.Config.Server.HTTPPort)
++	assert.Equal(t, LogEncodingJSON, res.Config.Log.Encoding)
++	assert.Equal(t, "events.log", res.Config.Log.File)
++	assert.Equal(t, LocalStorageType, res.Config.Storage.Type)
++	require.NotNil(t, res.Config.Storage.Local)
++	assert.Equal(t, ".", res.Config.Storage.Local.Path)
++
++	t.Setenv("FLIPT_SERVER_HTTP_PORT", "9090")
++	t.Setenv("FLIPT_LOG_ENCODING", "console")
++	t.Setenv("FLIPT_STORAGE_TYPE", "database")
++	res, err = Load(context.Background(), path)
++	require.NoError(t, err)
++	assert.Equal(t, 9090, res.Config.Server.HTTPPort)
++	assert.Equal(t, LogEncodingConsole, res.Config.Log.Encoding)
++	assert.Equal(t, DatabaseStorageType, res.Config.Storage.Type)
++}
++
+ func TestServeHTTP(t *testing.T) {
+ 	var (
+ 		cfg = Default()

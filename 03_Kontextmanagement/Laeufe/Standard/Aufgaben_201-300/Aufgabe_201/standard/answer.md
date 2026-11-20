@@ -1,0 +1,3 @@
+Implemented support for rule `segment` as either a string or a `keys` and `operator` object. Import, canonical object export, filesystem snapshots, and SQL rule and rollout persistence now handle both forms. A one-key object uses `OR_SEGMENT_OPERATOR`; invalid segment structures are rejected. I updated the requested fixtures and added YAML, import, and export coverage.
+
+Verification passed: `go test ./internal/ext ./internal/storage/fs ./internal/storage/sql/...` and `git diff --check`.

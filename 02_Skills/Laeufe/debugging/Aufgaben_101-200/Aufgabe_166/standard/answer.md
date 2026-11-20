@@ -1,0 +1,3 @@
+Fixed the vaulted `vars_files` regression. `DataLoader.load_from_file` now supports `cache='none'` without adding a cache entry and `cache='vaulted'` to cache parsed vaulted files. Play variable files use the vaulted policy, so repeated resolutions avoid rereading and decrypting them.
+
+Verification: 43 loader and variable manager tests passed, including a test that resolves the same vaulted file twice and confirms it is read once.

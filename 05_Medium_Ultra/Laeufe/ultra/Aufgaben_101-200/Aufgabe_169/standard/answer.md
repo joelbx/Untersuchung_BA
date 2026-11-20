@@ -1,0 +1,3 @@
+Room search results now merge into one tile when adjacent context timelines share a boundary event ID. The shared event appears once, each direct match is highlighted, and each matched event links to its own event ID. Unrelated results remain separate.
+
+I delegated a code audit and focused test updates, then integrated and verified the patch. **All 11 focused tests pass**, along with TypeScript, ESLint, Prettier, and whitespace checks.

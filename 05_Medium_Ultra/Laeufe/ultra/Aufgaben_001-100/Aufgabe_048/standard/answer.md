@@ -1,0 +1,3 @@
+Implemented contextual plugin resolution in [loader.py](/app/lib/ansible/plugins/loader.py): `get_with_context` returns the plugin and its resolution metadata, while `get()` remains object only. Removed plugins and redirect loops now carry context. [Display](/app/lib/ansible/utils/display.py) centralizes deprecation and removal messages, and the action, connection, and Jinja callers use the new context.
+
+I delegated the display and error, Jinja, and caller changes to three agents, then integrated and verified the patch. **Tests:** 176 focused tests passed. A broader plugin and executor run passed 347 tests with one unrelated, order-dependent `gather_facts` test excluded; that test passes alone.

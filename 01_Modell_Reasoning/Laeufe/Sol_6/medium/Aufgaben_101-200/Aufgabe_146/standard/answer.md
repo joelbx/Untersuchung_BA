@@ -1,0 +1,3 @@
+Updated [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py) to read IBM Z identity fields from `/proc/sysinfo` and include them in gathered hardware facts. When the file is absent, `get_sysinfo_facts()` returns `{}`; when present, it returns the five required keys, using `NA` for missing values and removing leading zeros from the serial.
+
+Added coverage in [test_linux.py](/app/test/units/module_utils/facts/hardware/test_linux.py). The hardware fact unit suite passed: **21 tests**.

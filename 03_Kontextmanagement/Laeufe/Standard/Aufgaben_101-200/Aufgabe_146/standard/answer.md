@@ -1,0 +1,3 @@
+Added s390 hardware identity gathering from `/proc/sysinfo` in [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py). When the file is absent, `get_sysinfo_facts` returns `{}`. When present, it returns the five requested fields, removes leading zeros from the serial, and leaves undiscovered values as `NA`. The collected facts now use those values in place of unavailable DMI identity values.
+
+Added focused tests in [test_linux.py](/app/test/units/module_utils/facts/hardware/test_linux.py). Relevant tests: **109 passed, 5 skipped**.

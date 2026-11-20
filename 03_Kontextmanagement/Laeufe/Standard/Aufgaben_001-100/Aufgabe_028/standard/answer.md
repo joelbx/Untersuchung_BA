@@ -1,0 +1,3 @@
+Added `getCachedChildrenCount(shareId, parentLinkId)` to [useLinksListing.tsx](/app/applications/drive/src/app/store/links/useLinksListing.tsx). It returns the number of cached child records for that share and parent, including children that have not yet been decrypted.
+
+Updated tests cover the count after a paginated fetch, share and parent isolation, and encrypted cached children. The relevant Drive Jest suites passed (7 tests), and `git diff --check` passed.

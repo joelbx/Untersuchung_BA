@@ -1,0 +1,3 @@
+Updated the Kubernetes backend to export `NamespaceEnv` and `ReleaseNameEnv` and use them when reading `KUBE_NAMESPACE` and `RELEASE_NAME`. `NewWithClient()` validates the namespace and `TELEPORT_REPLICA_NAME`, returning the required error for an empty value. The tests now set those variables explicitly and check the errors and resulting configuration.
+
+`GOPROXY=off GOSUMDB=off go test ./lib/backend/kubernetes` passed.

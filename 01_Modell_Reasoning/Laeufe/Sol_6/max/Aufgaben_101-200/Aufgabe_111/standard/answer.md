@@ -1,0 +1,3 @@
+Implemented Amazon Linux 2023, 2025, 2027, and 2029 support across [version and EOL lookup](/app/config/os.go:40), [scanner detection](/app/scanner/redhatbase.go:280), and [ALAS advisory lookup](/app/oval/util.go:333). Unrecognized releases no longer fall back to Amazon Linux 1 advisory data. Added tests for release parsing and support date boundaries.
+
+`go test ./config ./oval ./scanner` passed with downloads disabled.

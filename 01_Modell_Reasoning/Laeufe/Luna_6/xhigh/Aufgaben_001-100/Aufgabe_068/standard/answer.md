@@ -1,0 +1,3 @@
+Implemented owner-encrypted session key propagation. Single loads attach the provided key before decryption; batch loads apply keys by element ID. The client and cache forward the optional parameters, and mail detail call sites now pass the parent mail’s key when available. Calls without a batch map retain the existing underlying argument shape.
+
+Verification passed: TypeScript, formatting, diff checks, and 204 focused tests across EntityRestClient, entity rest cache, MailIndexer, MailFacade, InboxRuleHandler, and MailUtilsSignature. The test runner also logged unrelated LoginFacade fixture initialization errors during suite import; the focused tests had no failures.

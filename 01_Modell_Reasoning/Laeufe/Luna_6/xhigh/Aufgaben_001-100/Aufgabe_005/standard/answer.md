@@ -1,0 +1,3 @@
+Implemented early Qt wrapper validation and clearer diagnostics. `machinery.init()` now returns `SelectionInfo`, implicit initialization autoselects and raises `NoWrapperAvailableError` when no wrapper imports, and startup passes the info to the early checker. Selection formatting, import error details, and debug logging are updated.
+
+Validation: 60 focused tests passed, including machinery, early initialization, startup parsing, and version output. The full `test_version.py` run exits during its native Chromium version test without a pytest summary; the directly related version output test passes.

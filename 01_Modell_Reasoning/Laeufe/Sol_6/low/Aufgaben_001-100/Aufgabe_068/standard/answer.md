@@ -1,0 +1,3 @@
+Updated the single and batch loaders to apply supplied owner-encrypted session keys before decryption. The key now passes through `EntityClient` and `DefaultEntityRestCache`, and mail-detail call sites supply the parent mail’s key. Cached entities with decryption errors are refetched when a key becomes available.
+
+`npm run types -- --incremental false` passed, and `git diff --check` found no whitespace errors. The existing REST tests could not start: their build step requires a missing `/packages/*/tsconfig.json`.

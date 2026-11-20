@@ -1,0 +1,3 @@
+Implemented a member-scoped lock for Kick, Ban, and Mute in [UserInfo.tsx](/app/src/components/views/right_panel/UserInfo.tsx). All three buttons become disabled with `aria-disabled="true"` as soon as an action starts, stay inactive through confirmation and the request, and re-enable on cancellation, success, or failure. Failures show one error dialog.
+
+Added a regression test in [UserInfo-test.tsx](/app/test/components/views/right_panel/UserInfo-test.tsx). All 69 tests in that suite pass; ESLint and `git diff --check` pass. The repository-wide TypeScript check still fails on unrelated SDK and existing type errors, with none reported in the edited files.

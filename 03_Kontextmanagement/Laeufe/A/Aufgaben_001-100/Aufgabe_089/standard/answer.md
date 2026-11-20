@@ -1,0 +1,3 @@
+Updated validation to report unknown variant and segment references with file, line, and column details. Invalid imports now fail consistently on repeated attempts because validation runs before import. Both snapshot constructors validate files as they load them, and `StoreSnapshot` and `cue.Unwrap` are exported.
+
+The focused tests passed: `go test ./internal/ext ./internal/cue ./internal/storage/fs ./cmd/flipt`. `git diff --check` also passed.

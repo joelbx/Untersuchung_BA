@@ -1,0 +1,3 @@
+`BlocklistDownloads` now inherits from `QObject` and emits `single_download_finished(object)` and `all_downloads_finished(int)` instead of taking constructor callbacks. Both consumers connect their handlers before starting downloads, including empty batches.
+
+The relevant tests passed: **38 passed, 13 skipped**. The skipped tests require the optional Brave adblock dependency. `git diff --check` also passed.

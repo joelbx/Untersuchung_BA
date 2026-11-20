@@ -1,0 +1,3 @@
+Updated call sound playback to unmute the audio element before calling `play()`, and exported `AudioID` so other code can reference the ring, ringback, busy, and call-end sounds. I also added the requested [handleEvent listener](/app/src/legacy/LegacyCallHandler/handleEvent.ts) and its debug setting.
+
+The regression test covers all four sounds. The LegacyCallHandler suite passed (10 tests), as did ESLint and TypeScript checks.

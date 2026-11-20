@@ -1,0 +1,5 @@
+The fault is in [urls.py](/app/lib/ansible/module_utils/urls.py:1486): `Request.open()` returns the raw HTTP response. It neither adds `Accept-Encoding` nor decodes a response marked `Content-Encoding: gzip`. The `decompress` option and `GzipDecodedReader` are also absent from the shared URL APIs.
+
+The setting needs to pass through [uri.py](/app/lib/ansible/modules/uri.py:593) and both download paths in [get_url.py](/app/lib/ansible/modules/get_url.py:366), including its checksum fetch. A fix should preserve explicit `Accept-Encoding`, return complete decoded bytes when enabled, leave bytes untouched when disabled or unencoded, preserve lowercase `fetch_url` info keys, and handle missing gzip support as specified.
+
+The reported 406 may depend on the server’s content negotiation; the repository evidence establishes the missing request header and decoding path. Existing exact-call tests in `test_Request.py` and `test_fetch_url.py` will need updated expectations. Per the specialist constraint for this run, I recorded the diagnosis in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md) and did not edit project source or tests.

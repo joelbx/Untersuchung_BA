@@ -1,0 +1,1 @@
+Correction complete: PassBridgeFactory now timestamps a newly created vault, respects each getDefault maxAge, and refreshes share lookup when that local vault expires. The reviewer's exact PassAliases test command passed (2 suites, 6 tests). Both @proton/components and @proton/pass check-types commands passed. No remaining failures or environment problems.

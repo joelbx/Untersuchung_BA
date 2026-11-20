@@ -1,0 +1,5 @@
+Implemented message-scoped URL restoration, preserving `class` and `style` on links and images. Unmatched links are unwrapped to keep their text; unmatched images are removed. The composer message ID now flows through model preparation, result rendering, and editor insertion.
+
+Added `fixNestedLists`, safer Markdown indentation cleanup, and list-enabled conversion with configurable disabled rules in [markdown.ts](/app/applications/mail/src/app/helpers/assistant/markdown.ts). Updated the URL handling in [url.ts](/app/applications/mail/src/app/helpers/assistant/url.ts).
+
+**Verification:** `url.test.ts` and `textToHtml.test.ts` reported PASS; targeted ESLint, Prettier, and `git diff --check` passed. Jest remained alive after reporting PASS, so I interrupted the lingering process. The package type check reported an unrelated OpenPGP type mismatch at `packages/crypto/lib/worker/api.ts:579`. The requested checkpoint is at [checkpoint.md](/app/.codex-role-output/checkpoint.md).

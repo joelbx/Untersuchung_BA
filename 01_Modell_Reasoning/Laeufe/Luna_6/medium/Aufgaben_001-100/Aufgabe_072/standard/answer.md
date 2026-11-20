@@ -1,0 +1,3 @@
+Implemented hostname-only Punycode conversion and text-based hostname extraction in [url.ts](/app/packages/components/helpers/url.ts). Updated [useLinkHandler.tsx](/app/packages/components/hooks/useLinkHandler.tsx) to convert external links before showing the confirmation modal and notify when a URL has no extractable hostname.
+
+The existing URL helper tests passed, and `git diff --check` passed. The existing test file does not cover the new helper behavior.

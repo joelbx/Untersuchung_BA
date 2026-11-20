@@ -1,0 +1,3 @@
+Implemented MARC role normalization in [parse.py](/app/openlibrary/catalog/marc/parse.py) and preserved per-author roles in [add_book/__init__.py](/app/openlibrary/catalog/add_book/__init__.py). `$4` takes precedence over `$e`; unknown roles are omitted. `new_work` pairs author keys and records in order and raises if their counts differ.
+
+`git diff --check` passes. Existing tests: 144 passed and 8 failed because expected-output fixtures still contain raw or missing role values; all add-book tests passed. Updated [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md) with the implementation and test results.

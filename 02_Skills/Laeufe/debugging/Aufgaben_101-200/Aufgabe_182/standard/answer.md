@@ -1,0 +1,3 @@
+Forked `display`, `warning`, and `deprecated` calls now send their method name and exact caller arguments through `_final_q`. The results thread invokes that method in the main process, so warning and deprecation deduplication is shared across workers.
+
+The focused checks passed: **21 passed, 1 skipped**. A broader combined run had four order dependent failures; the affected warning and strategy tests passed when run separately. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

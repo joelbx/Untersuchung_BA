@@ -1,0 +1,3 @@
+Updated `getLastPersistedLocalID` to return `number | null`, ignore keys without a numeric session ID, and leave storage untouched. The public bookmark hook now skips session resumption when the result is `null` and continues loading bookmarks. Regression tests cover both paths.
+
+The full Drive test suite passed: 81 suites, 585 tests, 5 skipped. Type checking remains blocked by an OpenPGP dependency type mismatch in `packages/crypto/lib/worker/api.ts`; it reported no errors in the changed Drive files.

@@ -1,0 +1,3 @@
+Voice broadcast liveness now comes from a single [info-state mapping utility](/app/src/voice-broadcast/utils/determineVoiceBroadcastLiveness.ts:19). [Playback](/app/src/voice-broadcast/models/VoiceBroadcastPlayback.ts:452) updates liveness only through `setInfoState`; playback actions and chunk arrival no longer change it independently. Regression tests cover the mapping, first chunk, and event emissions.
+
+All 29 voice broadcast test suites passed (278 tests). ESLint and Prettier passed. The repository-wide TypeScript check still reports five errors in unrelated existing files.

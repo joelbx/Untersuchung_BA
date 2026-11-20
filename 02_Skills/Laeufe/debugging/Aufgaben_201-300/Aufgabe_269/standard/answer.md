@@ -1,0 +1,3 @@
+Trivy CVE data is now stored under source keys such as `trivy:debian`, `trivy:ubuntu`, and `trivy:nvd`. The converter preserves distinct vendor severities, CVSS scores and vectors, references, and dates across scan targets. Library detection uses the same source handling, and model aggregation and TUI reference display include the source entries.
+
+The regression test failed before the fix and passes now. `go test -mod=readonly ./contrib/trivy/pkg ./models ./detector ./tui` and `git diff --check` passed.

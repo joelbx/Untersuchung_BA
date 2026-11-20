@@ -1,0 +1,3 @@
+`detectScanDest` now returns `map[string][]string`, with ports grouped by IP, deduplicated, and sorted. The scanner consumes the map and scans IPs in sorted order. [Implementation](/app/scan/base.go:743) and [tests](/app/scan/base_test.go:280) are updated.
+
+A delegated agent updated the tests, and another audited callers and edge cases. The focused test and `GOPROXY=off GOSUMDB=off go test ./scan` both passed.

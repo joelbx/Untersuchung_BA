@@ -1,0 +1,3 @@
+Fixed shebang handling in [module_common.py](/app/lib/ansible/executor/module_common.py:595). Modules now retain their declared interpreter and args unless an inventory or config override resolves to a different interpreter. Modules without a shebang receive the default Python interpreter, and the encoding line follows the shebang.
+
+Added regression coverage in [test_modify_module.py](/app/test/units/executor/module_common/test_modify_module.py:55) and [test_module_common.py](/app/test/units/executor/module_common/test_module_common.py:107). **86 executor tests passed**; `git diff --check` passed. The full executor suite could not collect `test_task_executor.py` because the local `mock` package is missing.

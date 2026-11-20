@@ -1,0 +1,3 @@
+Voice broadcast liveness now comes from a single [info-state mapping](/app/src/voice-broadcast/utils/determineVoiceBroadcastLiveness.ts:19). [Playback](/app/src/voice-broadcast/models/VoiceBroadcastPlayback.ts:447) updates it only through `setInfoState`; playback controls and chunk transitions leave it unchanged. Unknown and undefined states resolve to `not-live`, and duplicate liveness events remain suppressed.
+
+Two subagents handled the utility and test coverage; I integrated and verified their changes. All 29 voice broadcast suites pass (261 tests, 35 snapshots), as do targeted ESLint and Prettier checks. Repository-wide TypeScript checking reports five errors in untouched files.

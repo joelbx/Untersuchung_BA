@@ -1,0 +1,3 @@
+Resolved the album image tracking issue. Directory scans now collect image filenames, and album refresh combines them with the sorted, unique directories returned by `MediaFiles.Dirs()` to store full paths in `Album.ImageFiles`. The new `image_files` database column is populated through a migration that triggers a full media rescan. Incremental scans and directory deletions use the complete directory map when refreshing albums.
+
+Added focused tests. `go test ./model ./scanner ./db ./persistence` and `git diff --check` passed.

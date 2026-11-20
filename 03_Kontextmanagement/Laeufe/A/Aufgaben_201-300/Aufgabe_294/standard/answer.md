@@ -1,0 +1,3 @@
+Updated [collection.py](/app/lib/ansible/galaxy/collection.py) so builds preserve internal file and directory symlinks with relative targets, omit symlinked directory children from the manifest, and copy external file targets as regular files. Installation now restores symlinks only when their targets stay within the collection destination, and tar helpers return both `TarInfo` and a readable stream.
+
+Updated [tests](/app/test/units/galaxy/test_collection.py) to cover the build and install round trip, external file links, and path safety. The relevant suites passed: **103 tests**. `git diff --check` also passed.

@@ -1,0 +1,3 @@
+Added `qcolor_to_qsscolor` in [qtutils.py](/app/qutebrowser/utils/qtutils.py) to format a `QColor` as `rgba(r, g, b, a)`. Updated the WebView and TabBar background stylesheet templates to use it, and added named color, RGB, and RGBA tests.
+
+The utility suite passed (123 tests). The tab widget suite could not reach the changed code: its existing setup passes a float to `QSize`. WebView runtime testing was unavailable because `PyQt5.QtWebKit` is not installed. No delegation was used.

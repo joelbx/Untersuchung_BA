@@ -1,0 +1,369 @@
+diff --git a/install/data/defaults.json b/install/data/defaults.json
+index 2eb0a15..8d4cdf1 100644
+--- a/install/data/defaults.json
++++ b/install/data/defaults.json
+@@ -38,6 +38,7 @@
+     "registrationApprovalType": "normal",
+     "allowAccountDelete": 1,
+     "privateUploads": 0,
++    "preserveOrphanedUploads": 0,
+     "allowedFileExtensions": "png,jpg,bmp,txt",
+     "uploadRateLimitThreshold": 10,
+     "uploadRateLimitCooldown": 60,
+@@ -170,4 +171,4 @@
+     "composer:allowPluginHelp": 1,
+     "maxReconnectionAttempts": 5,
+     "reconnectionDelay": 1500
+-}
+\ No newline at end of file
++}
+diff --git a/public/language/en-GB/admin/settings/uploads.json b/public/language/en-GB/admin/settings/uploads.json
+index ba9d012..63e3b5c 100644
+--- a/public/language/en-GB/admin/settings/uploads.json
++++ b/public/language/en-GB/admin/settings/uploads.json
+@@ -2,6 +2,7 @@
+ 	"posts": "Posts",
+ 	"private": "Make uploaded files private",
+ 	"strip-exif-data": "Strip EXIF Data",
++	"preserve-orphaned-uploads": "Keep uploaded files after their last post is purged",
+ 	"private-extensions": "File extensions to make private",
+ 	"private-uploads-extensions-help": "Enter comma-separated list of file extensions to make private here (e.g. <code>pdf,xls,doc</code>). An empty list means all files are private.",
+ 	"resize-image-width-threshold": "Resize images if they are wider than specified width",
+diff --git a/public/language/en-US/admin/settings/uploads.json b/public/language/en-US/admin/settings/uploads.json
+index ba9d012..63e3b5c 100644
+--- a/public/language/en-US/admin/settings/uploads.json
++++ b/public/language/en-US/admin/settings/uploads.json
+@@ -2,6 +2,7 @@
+ 	"posts": "Posts",
+ 	"private": "Make uploaded files private",
+ 	"strip-exif-data": "Strip EXIF Data",
++	"preserve-orphaned-uploads": "Keep uploaded files after their last post is purged",
+ 	"private-extensions": "File extensions to make private",
+ 	"private-uploads-extensions-help": "Enter comma-separated list of file extensions to make private here (e.g. <code>pdf,xls,doc</code>). An empty list means all files are private.",
+ 	"resize-image-width-threshold": "Resize images if they are wider than specified width",
+diff --git a/src/posts/delete.js b/src/posts/delete.js
+index 9cb26b2..2aebe8b 100644
+--- a/src/posts/delete.js
++++ b/src/posts/delete.js
+@@ -10,6 +10,8 @@ const groups = require('../groups');
+ const notifications = require('../notifications');
+ const plugins = require('../plugins');
+ const flags = require('../flags');
++const meta = require('../meta');
++const file = require('../file');
+ 
+ module.exports = function (Posts) {
+ 	Posts.delete = async function (pid, uid) {
+@@ -53,6 +55,7 @@ module.exports = function (Posts) {
+ 		const topicData = await topics.getTopicFields(postData.tid, ['tid', 'cid', 'pinned']);
+ 		postData.cid = topicData.cid;
+ 		await plugins.hooks.fire('filter:post.purge', { post: postData, pid: pid, uid: uid });
++		const uploads = await Posts.uploads.list(pid);
+ 		await Promise.all([
+ 			deletePostFromTopicUserNotification(postData, topicData),
+ 			deletePostFromCategoryRecentPosts(postData),
+@@ -63,6 +66,16 @@ module.exports = function (Posts) {
+ 			db.sortedSetsRemove(['posts:pid', 'posts:votes', 'posts:flagged'], pid),
+ 			Posts.uploads.dissociateAll(pid),
+ 		]);
++		if (!meta.config.preserveOrphanedUploads) {
++			const orphaned = (await Promise.all(uploads.map(async upload => (
++				await Posts.uploads.isOrphan(upload) ? upload : null
++			)))).filter(Boolean);
++			const resized = (await Promise.all(orphaned.map(async (upload) => {
++				const resizedPath = file.appendToFileName(upload, '-resized');
++				return await Posts.uploads.isOrphan(resizedPath) ? resizedPath : null;
++			}))).filter(Boolean);
++			await Posts.uploads.deleteFromDisk(orphaned.concat(resized));
++		}
+ 		await flags.resolveFlag('post', pid, uid);
+ 		plugins.hooks.fire('action:post.purge', { post: postData, uid: uid });
+ 		await db.delete(`post:${pid}`);
+diff --git a/src/posts/uploads.js b/src/posts/uploads.js
+index 132a73f..d8636e4 100644
+--- a/src/posts/uploads.js
++++ b/src/posts/uploads.js
+@@ -2,6 +2,7 @@
+ 
+ const nconf = require('nconf');
+ const crypto = require('crypto');
++const fs = require('fs');
+ const path = require('path');
+ const winston = require('winston');
+ const mime = require('mime');
+@@ -16,14 +17,50 @@ module.exports = function (Posts) {
+ 	Posts.uploads = {};
+ 
+ 	const md5 = filename => crypto.createHash('md5').update(filename).digest('hex');
+-	const pathPrefix = path.join(nconf.get('upload_path'), 'files');
++	const pathPrefix = path.resolve(nconf.get('upload_path'), 'files');
+ 	const searchRegex = /\/assets\/uploads\/files\/([^\s")]+\.?[\w]*)/g;
+ 
+ 	const _getFullPath = relativePath => path.resolve(pathPrefix, relativePath);
+-	const _filterValidPaths = async filePaths => (await Promise.all(filePaths.map(async (filePath) => {
+-		const fullPath = _getFullPath(filePath);
+-		return fullPath.startsWith(pathPrefix) && await file.exists(fullPath) ? filePath : false;
+-	}))).filter(Boolean);
++	const _isWithin = (root, target) => {
++		const relative = path.relative(root, target);
++		return relative !== '' && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
++	};
++	const _isValidPath = async (relativePath) => {
++		if (typeof relativePath !== 'string' || !relativePath || relativePath.includes('\0') ||
++			path.isAbsolute(relativePath) || path.win32.isAbsolute(relativePath) ||
++			relativePath.split(/[\\/]/).includes('..')) {
++			return false;
++		}
++		const fullPath = _getFullPath(relativePath);
++		if (!_isWithin(pathPrefix, fullPath)) {
++			return false;
++		}
++		try {
++			const [realRoot, realParent] = await Promise.all([
++				fs.promises.realpath(pathPrefix),
++				fs.promises.realpath(path.dirname(fullPath)),
++			]);
++			return realParent === realRoot || _isWithin(realRoot, realParent);
++		} catch (err) {
++			if (err.code === 'ENOENT') {
++				return false;
++			}
++			throw err;
++		}
++	};
++	const _filterValidPaths = async filePaths => (await Promise.all(filePaths.map(async filePath => (
++		await _isValidPath(filePath) && await file.exists(_getFullPath(filePath)) ? filePath : false
++	)))).filter(Boolean);
++
++	Posts.uploads.deleteFromDisk = async function (filePaths) {
++		if (typeof filePaths === 'string') {
++			filePaths = [filePaths];
++		} else if (!Array.isArray(filePaths)) {
++			throw new Error('[[error:invalid-data]]');
++		}
++		const validPaths = await _filterValidPaths(filePaths);
++		await Promise.all(validPaths.map(relativePath => file.delete(_getFullPath(relativePath))));
++	};
+ 
+ 	Posts.uploads.sync = async function (pid) {
+ 		// Scans a post's content and updates sorted set of uploads
+diff --git a/src/topics/delete.js b/src/topics/delete.js
+index b30889a..9678442 100644
+--- a/src/topics/delete.js
++++ b/src/topics/delete.js
+@@ -7,6 +7,7 @@ const posts = require('../posts');
+ const categories = require('../categories');
+ const plugins = require('../plugins');
+ const batch = require('../batch');
++const meta = require('../meta');
+ 
+ 
+ module.exports = function (Topics) {
+@@ -94,7 +95,7 @@ module.exports = function (Topics) {
+ 			deleteTopicFromCategoryAndUser(tid),
+ 			Topics.deleteTopicTags(tid),
+ 			Topics.events.purge(tid),
+-			Topics.thumbs.deleteAll(tid),
++			Topics.thumbs.deleteAll(tid, !!meta.config.preserveOrphanedUploads),
+ 			reduceCounters(tid),
+ 		]);
+ 		plugins.hooks.fire('action:topic.purge', { topic: deletedTopic, uid: uid });
+diff --git a/src/topics/thumbs.js b/src/topics/thumbs.js
+index 3cb72af..a408204 100644
+--- a/src/topics/thumbs.js
++++ b/src/topics/thumbs.js
+@@ -108,7 +108,7 @@ Thumbs.migrate = async function (uuid, id) {
+ 	cache.del(set);
+ };
+ 
+-Thumbs.delete = async function (id, relativePaths) {
++Thumbs.delete = async function (id, relativePaths, orphanOnly = false) {
+ 	const isDraft = validator.isUUID(String(id));
+ 	const set = `${isDraft ? 'draft' : 'topic'}:${id}:thumbs`;
+ 
+@@ -138,7 +138,7 @@ Thumbs.delete = async function (id, relativePaths) {
+ 
+ 	await Promise.all([
+ 		db.sortedSetRemove(set, toRemove),
+-		Promise.all(toDelete.map(async absolutePath => file.delete(absolutePath))),
++		orphanOnly ? Promise.resolve() : Promise.all(toDelete.map(async absolutePath => file.delete(absolutePath))),
+ 	]);
+ 
+ 	if (toRemove.length && !isDraft) {
+@@ -150,12 +150,25 @@ Thumbs.delete = async function (id, relativePaths) {
+ 			Promise.all(toRemove.map(async relativePath => posts.uploads.dissociate(mainPid, relativePath.replace('/files/', '')))),
+ 		]);
+ 	}
++	if (orphanOnly) {
++		const filenames = toRemove.filter(relativePath => /^\/?files\//.test(relativePath))
++			.map(relativePath => relativePath.replace(/^\/?files\//, ''));
++		const orphaned = (await Promise.all(filenames.map(async filename => (
++			await posts.uploads.isOrphan(filename) ? filename : null
++		)))).filter(Boolean);
++		await posts.uploads.deleteFromDisk(orphaned);
++	}
+ };
+ 
+-Thumbs.deleteAll = async (id) => {
++Thumbs.deleteAll = async (id, preserveFiles = false) => {
+ 	const isDraft = validator.isUUID(String(id));
+ 	const set = `${isDraft ? 'draft' : 'topic'}:${id}:thumbs`;
+ 
++	if (preserveFiles) {
++		await db.delete(set);
++		cache.del(set);
++		return;
++	}
+ 	const thumbs = await db.getSortedSetRange(set, 0, -1);
+-	await Thumbs.delete(id, thumbs);
++	await Thumbs.delete(id, thumbs, true);
+ };
+diff --git a/src/views/admin/settings/uploads.tpl b/src/views/admin/settings/uploads.tpl
+index 36edc6f..22d12bb 100644
+--- a/src/views/admin/settings/uploads.tpl
++++ b/src/views/admin/settings/uploads.tpl
+@@ -20,6 +20,13 @@
+ 				</label>
+ 			</div>
+ 
++			<div class="checkbox">
++				<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect">
++					<input class="mdl-switch__input" type="checkbox" data-field="preserveOrphanedUploads">
++					<span class="mdl-switch__label"><strong>[[admin/settings/uploads:preserve-orphaned-uploads]]</strong></span>
++				</label>
++			</div>
++
+ 			<div class="form-group">
+ 				<label for="privateUploadsExtensions">[[admin/settings/uploads:private-extensions]]</label>
+ 				<input id="privateUploadsExtensions" type="text" class="form-control" value="" data-field="privateUploadsExtensions" placeholder="">
+diff --git a/test/posts/uploads.js b/test/posts/uploads.js
+index 689ae85..b297325 100644
+--- a/test/posts/uploads.js
++++ b/test/posts/uploads.js
+@@ -7,6 +7,7 @@ const path = require('path');
+ const nconf = require('nconf');
+ const async = require('async');
+ const crypto = require('crypto');
++const meta = require('../../src/meta');
+ 
+ const db = require('../mocks/databasemock');
+ 
+@@ -227,6 +228,118 @@ describe('upload methods', () => {
+ 	});
+ });
+ 
++describe('purged post upload cleanup', () => {
++	let uid;
++	let cid;
++	const uploadDir = path.join(nconf.get('upload_path'), 'files');
++
++	before(async () => {
++		uid = await user.create({ username: 'upload cleanup user', password: 'abracadabra' });
++		({ cid } = await categories.create({ name: 'Upload cleanup category' }));
++	});
++
++	it('deletes a single path or an array of paths and ignores unsafe paths', async () => {
++		const first = 'cleanup-single.txt';
++		const second = 'cleanup-bulk.txt';
++		const outside = path.join(nconf.get('upload_path'), 'cleanup-outside.txt');
++		await Promise.all([
++			fs.promises.writeFile(path.join(uploadDir, first), ''),
++			fs.promises.writeFile(path.join(uploadDir, second), ''),
++			fs.promises.writeFile(outside, ''),
++		]);
++		await posts.uploads.deleteFromDisk(first);
++		assert.strictEqual(fs.existsSync(path.join(uploadDir, first)), false);
++		await posts.uploads.deleteFromDisk([second, '../cleanup-outside.txt', 123, null]);
++		assert.strictEqual(fs.existsSync(path.join(uploadDir, second)), false);
++		assert.strictEqual(fs.existsSync(outside), true);
++		await fs.promises.unlink(outside);
++		await assert.rejects(posts.uploads.deleteFromDisk(123), /invalid-data/);
++	});
++
++	it('keeps shared files until the last referencing topic is purged', async () => {
++		const name = 'cleanup-shared.txt';
++		const fullPath = path.join(uploadDir, name);
++		await fs.promises.writeFile(fullPath, 'shared');
++		const content = `[file](/assets/uploads/files/${name})`;
++		const first = await topics.post({ uid, cid, title: 'First shared upload', content });
++		const second = await topics.post({ uid, cid, title: 'Second shared upload', content });
++		await topics.purgePostsAndTopic(first.topicData.tid, uid);
++		assert.strictEqual(fs.existsSync(fullPath), true);
++		await topics.purgePostsAndTopic(second.topicData.tid, uid);
++		assert.strictEqual(fs.existsSync(fullPath), false);
++	});
++
++	it('deletes an upload when a reply is purged', async () => {
++		const name = 'cleanup-reply.txt';
++		const fullPath = path.join(uploadDir, name);
++		await fs.promises.writeFile(fullPath, 'reply');
++		const topic = await topics.post({ uid, cid, title: 'Reply upload', content: 'No uploads here' });
++		const reply = await topics.reply({
++			uid,
++			tid: topic.topicData.tid,
++			content: `[file](/assets/uploads/files/${name})`,
++		});
++		await posts.purge(reply.pid, uid);
++		assert.strictEqual(fs.existsSync(fullPath), false);
++	});
++
++	it('keeps a shared topic thumbnail until its other post is purged', async () => {
++		const name = 'cleanup-thumbnail.png';
++		const fullPath = path.join(uploadDir, name);
++		await fs.promises.writeFile(fullPath, 'thumbnail');
++		const first = await topics.post({ uid, cid, title: 'Thumbnail topic', content: 'No uploads here' });
++		const second = await topics.post({
++			uid, cid, title: 'Thumbnail reference', content: `[image](/assets/uploads/files/${name})`,
++		});
++		await topics.thumbs.associate({ id: first.topicData.tid, path: fullPath });
++		await topics.purgePostsAndTopic(first.topicData.tid, uid);
++		assert.strictEqual(fs.existsSync(fullPath), true);
++		await topics.purgePostsAndTopic(second.topicData.tid, uid);
++		assert.strictEqual(fs.existsSync(fullPath), false);
++	});
++
++	it('keeps a shared thumbnail when the topic record is purged directly', async () => {
++		const name = 'cleanup-direct-thumbnail.png';
++		const fullPath = path.join(uploadDir, name);
++		await fs.promises.writeFile(fullPath, 'thumbnail');
++		const first = await topics.post({ uid, cid, title: 'Direct thumbnail purge', content: 'No uploads here' });
++		const second = await topics.post({
++			uid, cid, title: 'Direct thumbnail reference', content: `[image](/assets/uploads/files/${name})`,
++		});
++		await topics.thumbs.associate({ id: first.topicData.tid, path: fullPath });
++		await topics.purge(first.topicData.tid, uid);
++		assert.strictEqual(fs.existsSync(fullPath), true);
++		await topics.purgePostsAndTopic(second.topicData.tid, uid);
++		assert.strictEqual(fs.existsSync(fullPath), false);
++	});
++
++	it('deletes original and resized images on post purge', async () => {
++		const name = 'cleanup-image.png';
++		const resized = 'cleanup-image-resized.png';
++		await Promise.all([name, resized].map(filename => fs.promises.writeFile(path.join(uploadDir, filename), '')));
++		const topic = await topics.post({ uid, cid, title: 'Resized upload', content: `[image](/assets/uploads/files/${resized})` });
++		await topics.purgePostsAndTopic(topic.topicData.tid, uid);
++		assert.strictEqual(fs.existsSync(path.join(uploadDir, name)), false);
++		assert.strictEqual(fs.existsSync(path.join(uploadDir, resized)), false);
++	});
++
++	it('retains files when preserveOrphanedUploads is enabled', async () => {
++		const name = 'cleanup-preserved.txt';
++		const fullPath = path.join(uploadDir, name);
++		await fs.promises.writeFile(fullPath, 'preserved');
++		const topic = await topics.post({ uid, cid, title: 'Preserved upload', content: `[file](/assets/uploads/files/${name})` });
++		const previous = meta.config.preserveOrphanedUploads;
++		try {
++			meta.config.preserveOrphanedUploads = 1;
++			await topics.purgePostsAndTopic(topic.topicData.tid, uid);
++			assert.strictEqual(fs.existsSync(fullPath), true);
++		} finally {
++			meta.config.preserveOrphanedUploads = previous;
++			await fs.promises.unlink(fullPath);
++		}
++	});
++});
++
+ describe('post uploads management', () => {
+ 	let topic;
+ 	let reply;

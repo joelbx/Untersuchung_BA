@@ -1,0 +1,4 @@
+Correction round: inspect current posting lock and reviewer finding; implement a shared atomic lock, verify focused and topic tests.
+Found process-local Set in controller. Implementing database-backed atomic lock methods across Redis, MongoDB, PostgreSQL with owner-safe release; then adding cross-process verification.
+Implemented atomic cross-worker posting lock with owner-checked release for Redis, MongoDB, PostgreSQL. Added child-process regression and wrong-owner release check. Focused and full topic tests passed before final assertion; rerunning after it.
+Final verification: focused concurrent-topic test 1 passing; full test/topics.js 230 passing; targeted ESLint and git diff --check passing. Redis service was started for tests, then stopped; generated dump.rdb removed. MongoDB and PostgreSQL variants were not run locally.

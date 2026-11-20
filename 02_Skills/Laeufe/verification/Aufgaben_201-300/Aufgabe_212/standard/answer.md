@@ -1,0 +1,3 @@
+Updated WPScan ingestion to use the first CVE reference as the canonical ID and map Enterprise summaries, proof-of-concept and introduced-version metadata, and CVSS metrics. Optional metadata is an empty map when those fields are absent. Added tests for enriched, null, and omitted fields in [wordpress_test.go](/app/detector/wordpress_test.go).
+
+Verification: `go test ./detector -count=1` and `git diff --check` passed.

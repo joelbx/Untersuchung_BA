@@ -1,0 +1,4 @@
+Task: normalize address token splitting and recipient conversion.
+Status: added the shared splitter, normalized recipient fields, updated both autocomplete paste paths, and added focused tests.
+Tooling: `rg` is unavailable (`/bin/bash: rg: command not found`); using local alternatives.
+Checks: `yarn workspace @proton/shared check-types`, `yarn workspace @proton/components check-types`, `git diff --check`, and Prettier check passed. A local `node -r ts-node/register/transpile-only -e ...` assertion check passed for separator and recipient cases. `yarn workspace @proton/shared test --single-run` compiled on both attempts but failed to launch ChromeHeadless with `Can not find the binary /root/.cache/ms-playwright/chromium-1041/chrome-linux/chrome`. The file exists, but executing it returns `/bin/bash: .../chrome: cannot execute: required file not found`; the suite result remains unknown because this local browser binary cannot start.

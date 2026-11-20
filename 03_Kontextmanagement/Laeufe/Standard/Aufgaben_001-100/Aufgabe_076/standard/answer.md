@@ -1,0 +1,3 @@
+Updated address parsing in [recipient.ts](/app/packages/shared/lib/mail/recipient.ts). `splitBySeparator` now returns ordered, trimmed tokens without angle brackets or empty entries. `inputToRecipient` uses the bare email for both `Name` and `Address`. Both autocomplete paste paths use the splitter, and focused tests cover the reported cases.
+
+Shared and component type checks, formatting, and direct parsing assertions passed. The shared Karma suite compiled but could not run because its configured Playwright Chromium binary is missing.

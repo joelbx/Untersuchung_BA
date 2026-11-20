@@ -1,0 +1,5 @@
+SQL Server diagnostics stop at [`getDatabaseConnTester`](/app/lib/client/conntest/database.go:416): it selects only Postgres and MySQL, then returns `NotImplemented`. The existing diagnostic flow already routes pinger errors into connectivity, user, and database name traces.
+
+The likely fix is to add SQL Server selection there and a `SQLServerPinger` in `lib/client/conntest/database/`, following the repository’s [SQL Server test client](/app/lib/srv/db/sqlserver/test.go:32) for connection setup. Its `Ping` needs parameter validation and context bounded connection behavior; its three error methods need to distinguish refused connections, invalid users, and invalid database names. Driver error classification and timeout behavior still need verification. There are no existing SQL Server connection diagnostic tests.
+
+I recorded the findings in `.codex-role-output/checkpoint.md`. **No project source or tests were changed** because this pass was restricted to fault localization.

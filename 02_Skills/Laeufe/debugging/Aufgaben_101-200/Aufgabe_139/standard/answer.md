@@ -1,0 +1,3 @@
+Updated promise-item imports to recognize missing title, authors, or publish date, then look up staged metadata using ISBN-10 first or a B* ASIN. The API now augments before validation, fills only empty fields, and accepts records with a title and strong identifier. Batch staging follows the same completeness check, records gauges, and continues after lookup failures. Placeholder metadata is removed before the API checks completeness.
+
+The relevant tests passed: **108 passed**. Ruff lint and `git diff --check` passed. Black was unavailable; that check is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

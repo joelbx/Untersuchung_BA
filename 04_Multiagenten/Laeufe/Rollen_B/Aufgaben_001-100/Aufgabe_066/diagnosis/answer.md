@@ -1,0 +1,5 @@
+The missing transform belongs in [transformStyleAttributes.ts](/app/applications/mail/src/app/helpers/transforms/transformStyleAttributes.ts), which does not yet exist. [prepareHtml](/app/applications/mail/src/app/helpers/transforms/transforms.ts:54) should call it immediately after `transformStylesheet` and before `transformRemote`.
+
+The function should inspect the root element and every styled descendant, replacing only an inline `height` value containing `vh` with `auto`. Other declarations must remain intact; `transformRemote` later reads inline styles to find remote image URLs. The exact treatment of uppercase `VH` and malformed CSS remains unspecified.
+
+I recorded the diagnosis in `.codex-role-output/checkpoint.md`. This pass was restricted to fault localization, so I did not edit source or tests, and no fix was verified.

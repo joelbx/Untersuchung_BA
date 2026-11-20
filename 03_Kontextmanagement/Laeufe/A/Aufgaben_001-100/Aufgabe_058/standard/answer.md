@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts) to use `Anonymity` throughout initialization, tracking, identification, room hashing, and URL redaction. DNT now forces anonymous mode; invalid configuration leaves analytics disabled. Added state accessors and `logout()`, and expanded the [tests](/app/test/PosthogAnalytics-test.ts).
+
+All 17 focused tests, lint for the changed files, and `git diff --check` pass. The repository-wide TypeScript check still reports unrelated existing errors.

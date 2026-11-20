@@ -1,0 +1,3 @@
+Updated the repository so rule `segment` accepts a string or a `{keys, operator}` object. Import, export, snapshots, and SQL persistence now use the unified format; one-key segments use `OR_SEGMENT_OPERATOR`, and exports always use the object form. Updated the requested fixtures and added focused tests.
+
+Verification passed: `go test ./internal/ext ./internal/storage/fs ./internal/storage/sql -count=1` and `git diff --check`.

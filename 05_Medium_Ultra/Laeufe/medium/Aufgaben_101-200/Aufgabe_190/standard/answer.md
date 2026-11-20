@@ -1,0 +1,3 @@
+Implemented `preview=true` for the `/import` and `/ia_import` paths. Preview returns the proposed Edition, Work, and Author records in `edits` with temporary UUID keys, reports cover host acceptance, and skips persistence, cover uploads, and Archive.org updates. Author normalization and edition construction now use the requested public functions.
+
+Verification: 131 relevant tests passed; Ruff and `git diff --check` passed.

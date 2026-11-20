@@ -1,0 +1,3 @@
+Fixed the room load regression. `RoomView` now dispatches `{ action: Action.RoomLoaded }` when a room loads, and `RoomViewStore` recomputes widget buttons on that action instead of during navigation. The initial event ID now falls back to `RoomView` state when the store returns `null` or `undefined`.
+
+The focused tests pass (65 tests), as do ESLint, Prettier, and `git diff --check`. The full TypeScript check still reports errors in unrelated OIDC and dependency files; it reported none in the edited files.

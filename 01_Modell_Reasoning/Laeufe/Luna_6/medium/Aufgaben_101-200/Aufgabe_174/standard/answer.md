@@ -1,0 +1,3 @@
+Implemented forked display forwarding through `FinalQueue` and `DisplaySend`. Worker display calls are now dispatched by the parent strategy result loop, parent writes are protected by a `threading.Lock`, and the worker’s late stdout/stderr redirection has been removed. TQM cleanup now flushes both streams.
+
+Verification: `compileall` and `git diff --check` passed. The focused pytest run had 3 failures: two warning tests received empty captured stderr, and one strategy test hit a fixture/type error while loading play data. **The warning capture failure remains unresolved.**

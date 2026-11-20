@@ -1,0 +1,3 @@
+Updated the Kubernetes service to initialize the session uploader at startup, so interactive recordings have their upload directory. The forwarder now caches only short lived credentials, creates session state per request, and uses its server context for audit events after client disconnects. I also updated the config field names, heartbeat announcer, and `ServeHTTP` routing.
+
+Verification passed: `go test ./lib/kube/proxy ./lib/service`, the focused credential-cache race test, and `git diff --check`. I could not run a live `kubectl exec` check without a Kubernetes cluster. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented matcher parsing in [parse.go](/app/lib/utils/parse/parse.go): literals, anchored wildcards, raw regexps, `regexp.match`, and `regexp.not_match`. Matcher calls in `Variable()` now return the required error. Added coverage in [parse_test.go](/app/lib/utils/parse/parse_test.go).
+
+The parser tests and targeted `GlobToRegexp` test pass. The full `lib/utils` suite fails because an existing certificate fixture expired in 2021.

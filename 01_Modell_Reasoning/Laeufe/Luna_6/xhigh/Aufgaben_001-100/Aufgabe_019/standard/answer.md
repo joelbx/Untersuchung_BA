@@ -1,0 +1,3 @@
+Updated [roles.go](/app/roles.go:106): `Equals` now compares distinct role sets, and `Check` rejects duplicates and unknown roles. `RoleRemoteProxy` is now accepted as a valid built-in role.
+
+The filtered role checks passed: `go test ./lib/utils -check.f Roles`. The full package run had one unrelated failure: a certificate fixture expired in 2021. `git diff --check` passed. Updated `.codex-role-output/checkpoint.md`.

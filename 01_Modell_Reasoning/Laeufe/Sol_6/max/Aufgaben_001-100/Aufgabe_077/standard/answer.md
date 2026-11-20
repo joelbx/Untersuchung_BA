@@ -1,0 +1,3 @@
+Implemented date-based module deprecations across Python warnings, `exit_json`, argument specs, display, validation, and the C# `DateTime` overload. C# alias validation now produces the requested internal errors, and its event log formats dates as `yyyy-MM-dd`. Documentation and focused tests were updated.
+
+**Verification:** 102 Python tests passed; syntax and diff checks passed. Validator tests could not run because `voluptuous` is absent, and Windows integration tests could not run because PowerShell is absent.

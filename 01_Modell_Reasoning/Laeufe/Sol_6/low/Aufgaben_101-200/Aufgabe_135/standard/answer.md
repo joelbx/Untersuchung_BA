@@ -1,0 +1,3 @@
+Updated `min` and `max` in [mathstuff.py](/app/lib/ansible/plugins/filter/mathstuff.py) to pass keyword arguments, including `attribute` and `case_sensitive`, to Jinja2 when its enhanced filters are available. Without them, calls with no keywords use Python’s builtins, and calls with keywords raise the specified `AnsibleFilterError`.
+
+Added unit coverage for both paths. The relevant test file passes: **55 tests passed**.

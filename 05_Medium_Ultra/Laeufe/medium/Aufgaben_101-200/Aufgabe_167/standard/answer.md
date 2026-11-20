@@ -1,0 +1,3 @@
+Added OCI-backed feature flag snapshots for local directories and remote registries. The new source caches snapshots by digest, reopens local OCI layouts on each fetch, and polls for changes. I also made `SnapshotSource.Get` context-aware, wired OCI into storage selection, and corrected the OCI config defaults.
+
+Tests passed for `internal/config`, `internal/oci`, `internal/storage/fs/...`, and `internal/cmd`. The new regression test covers an external local OCI update and polling behavior.

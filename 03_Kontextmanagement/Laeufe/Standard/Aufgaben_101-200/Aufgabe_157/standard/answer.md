@@ -1,0 +1,3 @@
+Added [mailMetricsHelper.ts](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts) with `getLabelID` and `getPageSizeString`. Built-in mailbox IDs are preserved, custom IDs become `custom`, and missing or unsupported page sizes default to `50`. I also added `@proton/metrics` to the mail app manifest and lockfile.
+
+Verification passed: six focused Jest tests, the mail TypeScript check, Prettier, and `git diff --check`.

@@ -1,0 +1,3 @@
+Added `route_targets` support to [nxos_vrf_af.py](/app/lib/ansible/modules/network/nxos/nxos_vrf_af.py). It accepts multiple import, export, or `both` values with per-entry `present` or `absent` state, and compares them within the specified VRF address family for idempotence. Added coverage in [test_nxos_vrf_af.py](/app/test/units/modules/network/nxos/test_nxos_vrf_af.py).
+
+Verification: 7 targeted unit tests passed; `git diff --check` passed. The device integration test was not run locally.

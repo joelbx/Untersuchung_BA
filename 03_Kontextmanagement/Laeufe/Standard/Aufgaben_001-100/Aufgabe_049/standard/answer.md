@@ -1,0 +1,3 @@
+Updated the email confirmation flow to store a user-to-code mapping and an explicit expiry time. The ACP now shows **Validated**, **Validation Pending**, **Validation Expired**, or **(no email)**, and its actions can use a pending confirmation email when the profile has none. Resending, confirming, and deleting a user now clean up the related confirmation keys.
+
+Verification: 6 focused email confirmation tests pass; ESLint and `git diff --check` pass. The full user test file reached 173 passing tests before stopping on an invitation group membership assertion outside the email confirmation tests.

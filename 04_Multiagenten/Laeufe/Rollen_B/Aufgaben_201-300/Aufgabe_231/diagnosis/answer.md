@@ -1,0 +1,5 @@
+The fault is in [detector/vuls2/db.go](/app/detector/vuls2/db.go:31). `shouldDownload` returns early for `SkipUpdate` before reading metadata; otherwise, it reads metadata but checks timestamps without comparing `SchemaVersion` to `db.SchemaVersion`. `newDBConnection` returns the connection without validating metadata, and its connection error omits the database path.
+
+The fix should validate metadata before any skip or freshness decision: reject a mismatch when updates are skipped, force a download when they are allowed, then validate the resulting connection. Connection, metadata retrieval, and nil metadata errors should include the path. Existing tests cover matching schemas only; the connection’s open/close lifecycle needs care because `Detect` opens the returned connection.
+
+I recorded the findings in `.codex-role-output/checkpoint.md`. **No project source or tests were changed** because this run is restricted to fault localization.

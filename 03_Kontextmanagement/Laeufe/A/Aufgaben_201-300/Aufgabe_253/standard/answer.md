@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) to show stdout and stderr while the process runs. Nonempty streams receive separate final messages in stdout then stderr order, with informational severity for stdout and error severity for stderr. Updated the [tests](/app/tests/unit/misc/test_guiprocess.py) to check live output and final ordering.
+
+Verification: 41 focused tests passed; `git diff --check` passed.

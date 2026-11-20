@@ -1,0 +1,7 @@
+I localized the matching issue, but did not edit project source or tests: the assigned fault localization role limits this pass to a diagnosis.
+
+- [add_book/match.py](/app/openlibrary/catalog/add_book/match.py:9) expands the existing edition but passes the incoming record through unchanged. Direct callers therefore depend on manual expansion. The existing test for that path fails when its expected failure is disabled.
+- [merge_marc.py](/app/openlibrary/catalog/merge/merge_marc.py:314) also assumes expanded inputs. Its scoring reads derived title and ISBN fields, so a `threshold_match` interface for raw records needs to expand both sides before scoring.
+- [catalog/utils/__init__.py](/app/openlibrary/catalog/utils/__init__.py:294) already contains `add_db_name` and `expand_record`, rather than the requested `merge_marc.py` interfaces. Expansion derives titles, combines ISBN fields, and filters the two invalid country values. It requires `title`, mutates the input, and enriches `authors` but not `contribs`; [author comparison](/app/openlibrary/catalog/merge/merge_marc.py:144) expects `db_name` on either role.
+
+The focused suite reports **8 passed, 2 expected failures**. Existing threshold tests cover 875 and 515 with pre-expanded records. The precise cause of the failing expected-failure case remains uncertain because the test also depends on how the stored edition is reconstructed. Coverage is still needed for raw inputs, missing author dates, generated contributor names, and matching when both ISBN lists are empty.

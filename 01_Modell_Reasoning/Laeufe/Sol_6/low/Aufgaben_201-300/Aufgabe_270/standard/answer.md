@@ -1,0 +1,3 @@
+Updated Drive public pages to select the newest valid persisted session as a complete object, so its UID and local ID stay together. Session resumption, authentication state, SRP headers, user state, and telemetry now use that session. Removed the old lookup helpers and `LAST_ACTIVE_PING` dependency.
+
+The two relevant test suites pass (11 tests), and `git diff --check` passes. Type checking remains blocked by an OpenPGP type mismatch in the unedited [worker/api.ts](/app/packages/crypto/lib/worker/api.ts:579).

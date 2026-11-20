@@ -1,0 +1,3 @@
+Implemented Punycode URL handling in the checked-out repository. `punycodeUrl` converts IDN hostnames to ASCII while preserving the other URL components and removing a trailing pathname slash. `getHostnameWithRegex` extracts the hostname label as requested. The link handler now converts external links before use and shows an error when it cannot extract a URL. The confirmation modal also recognizes Punycode labels after `www`.
+
+Verification passed: 20 targeted Jest tests, the component TypeScript check, and ESLint.

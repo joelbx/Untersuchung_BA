@@ -1,0 +1,3 @@
+Updated BSD hardware fact gathering to calculate `uptime_seconds` from a numeric `sysctl -n kern.boottime` result. The shared sysctl parser now preserves multiline values, accepts platform delimiters, and warns while continuing past malformed lines.
+
+The focused tests passed (30 tests). The full facts suite had one timeout-test failure unrelated to the changed code; that test passed when rerun alone. Native BSD behavior could not be verified in this environment.

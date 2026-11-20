@@ -1,0 +1,3 @@
+Fixed the dark mode foreground threshold. `colors.webpage.darkmode.threshold.foreground` is now an Int option with default `256`, and the existing `threshold.text` name maps to it through the configuration migration. WebEngine versions before 6.4 use `TextBrightnessThreshold`; 6.4 and later use `ForegroundBrightnessThreshold`.
+
+Updated the settings documentation and version specific tests. Verification: **75 tests passed** with `QT_QPA_PLATFORM=offscreen`; `git diff --check` passed.

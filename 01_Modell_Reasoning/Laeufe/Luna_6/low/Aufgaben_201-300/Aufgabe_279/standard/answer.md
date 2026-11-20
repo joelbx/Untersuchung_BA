@@ -1,0 +1,1 @@
+I couldn’t complete the refactor. The environment’s BusyBox `grep` rejects the `--include` option, and I didn’t get far enough to inspect and update all five consumers or run the existing tests. I created the requested checkpoint at `.codex-role-output/checkpoint.md`, but the repository issue remains unresolved.

@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` support, including the shared policy helper and the dialog updates so forced settings override defaults and the displayed encryption state is submitted. Private room defaults now honor forced disable.
+
+The dialog test suite passed (10 tests), and formatting plus `git diff --check` passed. Type checking remains blocked by an unrelated error in `src/Unread.ts:167`: `getLastUnthreadedReceiptFor` is missing on `Thread`.

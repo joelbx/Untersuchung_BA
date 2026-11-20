@@ -1,0 +1,3 @@
+Updated U2F login to generate challenges for every registered U2F device. The new [challenge payload](/app/lib/auth/auth.go) includes a `challenges` list while retaining the first challenge in the legacy JSON fields. The CLI now tries the full list and accepts the legacy single challenge format. Web endpoints return the expanded payload, and MFA device management remains hidden.
+
+Auth and client tests passed. The full web suite had one proxy startup timeout; a focused rerun passed.

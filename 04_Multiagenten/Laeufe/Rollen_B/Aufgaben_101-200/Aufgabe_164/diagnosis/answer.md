@@ -1,0 +1,5 @@
+The import failure is localized to [encoding.go](/app/internal/ext/encoding.go:44) and [importer.go](/app/internal/ext/importer.go:167). YAML v2 can decode nested metadata into `map[interface{}]interface{}`, which `structpb.NewStruct` rejects. Switching the YAML import decoder to v3 is the likely fix; the variant attachment path currently uses a separate conversion workaround.
+
+For JSON, [export.go](/app/cmd/flipt/export.go:110) writes a leading `#` line, but the JSON decoder receives it unchanged. JSON import should skip exactly that first line when it starts with `#`. Namespace key, name, and description are already handled for newly created non-default namespaces in [importer.go](/app/internal/ext/importer.go:90).
+
+Existing import tests pass, but they do not cover nested metadata or a JSON header, so the proposed fixes remain unverified. This specialist run was restricted to diagnosis; no project source or tests were changed.

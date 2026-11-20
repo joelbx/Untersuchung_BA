@@ -1,0 +1,531 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 608f390..792b9ff 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -34,6 +34,7 @@ FILE_ATTRIBUTES = {
+ 
+ import __main__
+ import atexit
++import copy
+ import errno
+ import datetime
+ import grp
+@@ -55,9 +56,6 @@ import time
+ import traceback
+ import types
+ 
+-from collections import deque
+-from itertools import chain, repeat
+-
+ try:
+     import syslog
+     HAS_SYSLOG = True
+@@ -168,7 +166,6 @@ from ansible.module_utils.six import (
+     PY3,
+     b,
+     binary_type,
+-    integer_types,
+     iteritems,
+     string_types,
+     text_type,
+@@ -308,123 +305,105 @@ def get_all_subclasses(cls):
+ # End compat shims
+ 
+ 
+-def _remove_values_conditions(value, no_log_strings, deferred_removals):
+-    """
+-    Helper function for :meth:`remove_values`.
+-
+-    :arg value: The value to check for strings that need to be stripped
+-    :arg no_log_strings: set of strings which must be stripped out of any values
+-    :arg deferred_removals: List which holds information about nested
+-        containers that have to be iterated for removals.  It is passed into
+-        this function so that more entries can be added to it if value is
+-        a container type.  The format of each entry is a 2-tuple where the first
+-        element is the ``value`` parameter and the second value is a new
+-        container to copy the elements of ``value`` into once iterated.
+-    :returns: if ``value`` is a scalar, returns ``value`` with two exceptions:
+-        1. :class:`~datetime.datetime` objects which are changed into a string representation.
+-        2. objects which are in no_log_strings are replaced with a placeholder
+-            so that no sensitive data is leaked.
+-        If ``value`` is a container type, returns a new empty container.
+-
+-    ``deferred_removals`` is added to as a side-effect of this function.
+-
+-    .. warning:: It is up to the caller to make sure the order in which value
+-        is passed in is correct.  For instance, higher level containers need
+-        to be passed in before lower level containers. For example, given
+-        ``{'level1': {'level2': 'level3': [True]} }`` first pass in the
+-        dictionary for ``level1``, then the dict for ``level2``, and finally
+-        the list for ``level3``.
+-    """
+-    if isinstance(value, (text_type, binary_type)):
+-        # Need native str type
+-        native_str_value = value
+-        if isinstance(value, text_type):
+-            value_is_text = True
+-            if PY2:
+-                native_str_value = to_bytes(value, errors='surrogate_or_strict')
+-        elif isinstance(value, binary_type):
+-            value_is_text = False
+-            if PY3:
+-                native_str_value = to_text(value, errors='surrogate_or_strict')
+-
+-        if native_str_value in no_log_strings:
+-            return 'VALUE_SPECIFIED_IN_NO_LOG_PARAMETER'
+-        for omit_me in no_log_strings:
+-            native_str_value = native_str_value.replace(omit_me, '*' * 8)
+-
+-        if value_is_text and isinstance(native_str_value, binary_type):
+-            value = to_text(native_str_value, encoding='utf-8', errors='surrogate_then_replace')
+-        elif not value_is_text and isinstance(native_str_value, text_type):
+-            value = to_bytes(native_str_value, encoding='utf-8', errors='surrogate_then_replace')
+-        else:
+-            value = native_str_value
+-
+-    elif isinstance(value, Sequence):
+-        if isinstance(value, MutableSequence):
+-            new_value = type(value)()
+-        else:
+-            new_value = []  # Need a mutable value
+-        deferred_removals.append((value, new_value))
+-        value = new_value
+-
+-    elif isinstance(value, Set):
+-        if isinstance(value, MutableSet):
+-            new_value = type(value)()
+-        else:
+-            new_value = set()  # Need a mutable value
+-        deferred_removals.append((value, new_value))
+-        value = new_value
+-
+-    elif isinstance(value, Mapping):
+-        if isinstance(value, MutableMapping):
+-            new_value = type(value)()
++def _no_log_strings(no_log_strings):
++    # Longer matches go first so overlapping strings produce a stable result.
++    strings = set(to_native(s, errors='surrogate_or_strict') for s in no_log_strings)
++    strings.discard('')
++    return sorted(strings, key=lambda s: (-len(s), s))
++
++
++def _redact_string(value, no_log_strings, exact_key=False):
++    if not no_log_strings or not isinstance(value, (text_type, binary_type)):
++        return value
++
++    native_value = to_native(value, errors='surrogate_or_strict')
++    if exact_key and native_value in no_log_strings:
++        return 'VALUE_SPECIFIED_IN_NO_LOG_PARAMETER'
++
++    pattern = '|'.join(re.escape(secret) for secret in no_log_strings)
++    redacted = re.sub(pattern, lambda match: '********', native_value)
++    if redacted == native_value:
++        return value
++    if isinstance(value, binary_type) and isinstance(redacted, text_type):
++        return to_bytes(redacted, errors='surrogate_or_strict')
++    if isinstance(value, text_type) and isinstance(redacted, binary_type):
++        return to_text(redacted, errors='surrogate_or_strict')
++    return redacted
++
++
++def _sanitize_container(value, no_log_strings, sanitize_mapping_keys=False, ignore_keys=frozenset()):
++    """Copy containers from the leaves up without recursive Python calls."""
++    def is_container(item):
++        return not isinstance(item, (text_type, binary_type)) and isinstance(item, (Mapping, Sequence, Set))
++
++    if not is_container(value):
++        return value if sanitize_mapping_keys else _redact_string(value, no_log_strings)
++
++    results = {}
++    pending = [(value, False)]
++    while pending:
++        old, ready = pending.pop()
++        if not ready:
++            pending.append((old, True))
++            children = old.values() if isinstance(old, Mapping) else old
++            for child in children:
++                if is_container(child):
++                    pending.append((child, False))
++        elif isinstance(old, Mapping):
++            if isinstance(old, MutableMapping):
++                new = copy.copy(old)
++                new.clear()
++            else:
++                new = {}
++            for key, child in old.items():
++                if sanitize_mapping_keys and key not in ignore_keys:
++                    native_key = None
++                    if isinstance(key, (text_type, binary_type)):
++                        native_key = to_native(key, errors='surrogate_or_strict')
++                    if native_key is not None and not native_key.startswith('_ansible'):
++                        key = _redact_string(key, no_log_strings, exact_key=True)
++                new[key] = results[id(child)] if is_container(child) else (
++                    child if sanitize_mapping_keys else _redact_string(child, no_log_strings))
++            if not isinstance(old, MutableMapping):
++                new = type(old)(new)
++            results[id(old)] = new
+         else:
+-            new_value = {}  # Need a mutable value
+-        deferred_removals.append((value, new_value))
+-        value = new_value
+-
+-    elif isinstance(value, tuple(chain(integer_types, (float, bool, NoneType)))):
+-        stringy_value = to_native(value, encoding='utf-8', errors='surrogate_or_strict')
+-        if stringy_value in no_log_strings:
+-            return 'VALUE_SPECIFIED_IN_NO_LOG_PARAMETER'
+-        for omit_me in no_log_strings:
+-            if omit_me in stringy_value:
+-                return 'VALUE_SPECIFIED_IN_NO_LOG_PARAMETER'
+-
+-    elif isinstance(value, (datetime.datetime, datetime.date)):
+-        value = value.isoformat()
+-    else:
+-        raise TypeError('Value of unknown type: %s, %s' % (type(value), value))
+-
+-    return value
++            elements = [results[id(child)] if is_container(child) else (
++                child if sanitize_mapping_keys else _redact_string(child, no_log_strings)) for child in old]
++            unchanged = all(child is element for child, element in zip(old, elements))
++            if sanitize_mapping_keys and unchanged:
++                # A sequence or set without mappings needs no copy.
++                results[id(old)] = old
++                continue
++            if isinstance(old, MutableSequence):
++                new = copy.copy(old)
++                del new[:]
++                new.extend(elements)
++            elif isinstance(old, MutableSet):
++                new = copy.copy(old)
++                new.clear()
++                new.update(elements)
++            elif isinstance(old, tuple) and hasattr(old, '_fields'):
++                new = type(old)(*elements)
++            else:
++                try:
++                    new = type(old)(elements)
++                except TypeError:
++                    if not unchanged:
++                        raise
++                    new = old
++            results[id(old)] = new
++    return results[id(value)]
+ 
+ 
+ def remove_values(value, no_log_strings):
+-    """ Remove strings in no_log_strings from value.  If value is a container
+-    type, then remove a lot more"""
+-    deferred_removals = deque()
+-
+-    no_log_strings = [to_native(s, errors='surrogate_or_strict') for s in no_log_strings]
+-    new_value = _remove_values_conditions(value, no_log_strings, deferred_removals)
+-
+-    while deferred_removals:
+-        old_data, new_data = deferred_removals.popleft()
+-        if isinstance(new_data, Mapping):
+-            for old_key, old_elem in old_data.items():
+-                new_key = _remove_values_conditions(old_key, no_log_strings, deferred_removals)
+-                new_elem = _remove_values_conditions(old_elem, no_log_strings, deferred_removals)
+-                new_data[new_key] = new_elem
+-        else:
+-            for elem in old_data:
+-                new_elem = _remove_values_conditions(elem, no_log_strings, deferred_removals)
+-                if isinstance(new_data, MutableSequence):
+-                    new_data.append(new_elem)
+-                elif isinstance(new_data, MutableSet):
+-                    new_data.add(new_elem)
+-                else:
+-                    raise TypeError('Unknown container type encountered when removing private values from output')
++    """Replace sensitive substrings in values, leaving mapping keys intact."""
++    return _sanitize_container(value, _no_log_strings(no_log_strings))
++
+ 
+-    return new_value
++def sanitize_keys(obj, no_log_strings, ignore_keys=frozenset()):
++    """Copy containers and redact sensitive mapping keys at every level."""
++    return _sanitize_container(obj, _no_log_strings(no_log_strings), True, ignore_keys)
+ 
+ 
+ def heuristic_log_sanitize(data, no_log_values=None):
+diff --git a/lib/ansible/module_utils/common/text/converters.py b/lib/ansible/module_utils/common/text/converters.py
+index b3fe99a..d4ba532 100644
+--- a/lib/ansible/module_utils/common/text/converters.py
++++ b/lib/ansible/module_utils/common/text/converters.py
+@@ -262,7 +262,7 @@ else:
+ def _json_encode_fallback(obj):
+     if isinstance(obj, Set):
+         return list(obj)
+-    elif isinstance(obj, datetime.datetime):
++    elif isinstance(obj, (datetime.datetime, datetime.date)):
+         return obj.isoformat()
+     raise TypeError("Cannot json serialize %s" % to_native(obj))
+ 
+diff --git a/lib/ansible/modules/uri.py b/lib/ansible/modules/uri.py
+index 1db9b93..cb26286 100644
+--- a/lib/ansible/modules/uri.py
++++ b/lib/ansible/modules/uri.py
+@@ -383,7 +383,7 @@ import shutil
+ import sys
+ import tempfile
+ 
+-from ansible.module_utils.basic import AnsibleModule
++from ansible.module_utils.basic import AnsibleModule, sanitize_keys
+ from ansible.module_utils.six import PY2, iteritems, string_types
+ from ansible.module_utils.six.moves.urllib.parse import urlencode, urlsplit
+ from ansible.module_utils._text import to_native, to_text
+@@ -391,6 +391,11 @@ from ansible.module_utils.common._collections_compat import Mapping, Sequence
+ from ansible.module_utils.urls import fetch_url, prepare_multipart, url_argument_spec
+ 
+ JSON_CANDIDATES = ('text', 'json', 'javascript')
++NO_MODIFY_KEYS = frozenset((
++    'msg', 'exception', 'warnings', 'deprecations', 'failed', 'skipped',
++    'changed', 'rc', 'stdout', 'stderr', 'elapsed', 'path', 'location',
++    'content_type', 'status',
++))
+ 
+ 
+ def format_message(err, resp):
+@@ -734,6 +739,9 @@ def main():
+     else:
+         u_content = to_text(content, encoding=content_encoding)
+ 
++    if module.no_log_values:
++        uresp = sanitize_keys(uresp, module.no_log_values, NO_MODIFY_KEYS)
++
+     if resp['status'] not in status_code:
+         uresp['msg'] = 'Status code was %s and not %s: %s' % (resp['status'], status_code, uresp.get('msg', ''))
+         if return_content:
+diff --git a/test/units/module_utils/basic/test_exit_json.py b/test/units/module_utils/basic/test_exit_json.py
+index fe7a824..55cefa4 100644
+--- a/test/units/module_utils/basic/test_exit_json.py
++++ b/test/units/module_utils/basic/test_exit_json.py
+@@ -105,7 +105,7 @@ class TestAnsibleModuleExitValuesRemoved:
+     """
+     Test that ExitJson and FailJson remove password-like values
+     """
+-    OMIT = 'VALUE_SPECIFIED_IN_NO_LOG_PARAMETER'
++    OMIT = '********'
+ 
+     DATA = (
+         (
+diff --git a/test/units/module_utils/basic/test_no_log.py b/test/units/module_utils/basic/test_no_log.py
+index 80f093b..2be4a80 100644
+--- a/test/units/module_utils/basic/test_no_log.py
++++ b/test/units/module_utils/basic/test_no_log.py
+@@ -6,9 +6,12 @@
+ from __future__ import absolute_import, division, print_function
+ __metaclass__ = type
+ 
++import datetime
++from collections import OrderedDict, defaultdict, namedtuple
++
+ from units.compat import unittest
+ 
+-from ansible.module_utils.basic import remove_values
++from ansible.module_utils.basic import remove_values, sanitize_keys
+ from ansible.module_utils.common.parameters import _return_datastructure_name
+ 
+ 
+@@ -74,18 +77,17 @@ class TestRemoveValues(unittest.TestCase):
+         (u'Toshio くら', frozenset([u'とみ'])),
+     )
+     dataset_remove = (
+-        ('string', frozenset(['string']), OMIT),
+-        (1234, frozenset(['1234']), OMIT),
+-        (1234, frozenset(['23']), OMIT),
+-        (1.0, frozenset(['1.0']), OMIT),
+-        (['string', 'strang', 'strung'], frozenset(['strang']), ['string', OMIT, 'strung']),
+-        (['string', 'strang', 'strung'], frozenset(['strang', 'string', 'strung']), [OMIT, OMIT, OMIT]),
+-        (('string', 'strang', 'strung'), frozenset(['string', 'strung']), [OMIT, 'strang', OMIT]),
+-        ((1234567890, 345678, 987654321), frozenset(['1234567890']), [OMIT, 345678, 987654321]),
+-        ((1234567890, 345678, 987654321), frozenset(['345678']), [OMIT, OMIT, 987654321]),
+-        ({'one': 1, 'two': 'dos', 'secret': 'key'}, frozenset(['key']), {'one': 1, 'two': 'dos', 'secret': OMIT}),
+-        ({'one': 1, 'two': 'dos', 'secret': 'key'}, frozenset(['key', 'dos', '1']), {'one': OMIT, 'two': OMIT, 'secret': OMIT}),
+-        ({'one': 1, 'two': 'dos', 'secret': 'key'}, frozenset(['key', 'dos', '1']), {'one': OMIT, 'two': OMIT, 'secret': OMIT}),
++        ('string', frozenset(['string']), '********'),
++        (1234, frozenset(['1234']), 1234),
++        (1234, frozenset(['23']), 1234),
++        (1.0, frozenset(['1.0']), 1.0),
++        (['string', 'strang', 'strung'], frozenset(['strang']), ['string', '********', 'strung']),
++        (['string', 'strang', 'strung'], frozenset(['strang', 'string', 'strung']), ['********', '********', '********']),
++        (('string', 'strang', 'strung'), frozenset(['string', 'strung']), ('********', 'strang', '********')),
++        ((1234567890, 345678, 987654321), frozenset(['1234567890']), (1234567890, 345678, 987654321)),
++        ((1234567890, 345678, 987654321), frozenset(['345678']), (1234567890, 345678, 987654321)),
++        ({'one': 1, 'two': 'dos', 'secret': 'key'}, frozenset(['key']), {'one': 1, 'two': 'dos', 'secret': '********'}),
++        ({'one': 1, 'two': 'dos', 'secret': 'key'}, frozenset(['key', 'dos', '1']), {'one': 1, 'two': '********', 'secret': '********'}),
+         (
+             {
+                 'one': 1,
+@@ -103,10 +105,10 @@ class TestRemoveValues(unittest.TestCase):
+                 'one': 1,
+                 'two': 'dos',
+                 'three': [
+-                    OMIT, 'musketeers', None, {
+-                        'ping': OMIT,
+-                        OMIT: [
+-                            OMIT, 'raquets'
++                    '********', 'musketeers', None, {
++                        'ping': '********',
++                        'base': [
++                            '********', 'raquets'
+                         ]
+                     }
+                 ]
+@@ -115,7 +117,7 @@ class TestRemoveValues(unittest.TestCase):
+         (
+             {'key-password': 'value-password'},
+             frozenset(['password']),
+-            {'key-********': 'value-********'},
++            {'key-password': 'value-********'},
+         ),
+         (
+             'This sentence has an enigma wrapped in a mystery inside of a secret. - mr mystery',
+@@ -135,7 +137,8 @@ class TestRemoveValues(unittest.TestCase):
+             self.assertEqual(remove_values(value, no_log_strings), expected)
+ 
+     def test_unknown_type(self):
+-        self.assertRaises(TypeError, remove_values, object(), frozenset())
++        value = object()
++        self.assertIs(remove_values(value, frozenset()), value)
+ 
+     def test_hit_recursion_limit(self):
+         """ Check that we do not hit a recursion limit"""
+@@ -161,5 +164,72 @@ class TestRemoveValues(unittest.TestCase):
+             inner_list = inner_list[0]
+             levels += 1
+ 
+-        self.assertEqual(inner_list, self.OMIT)
++        self.assertEqual(inner_list, '********')
+         self.assertEqual(levels, 10000)
++
++    def test_preserves_classes_and_scalars(self):
++        date = datetime.date(2020, 1, 2)
++        value = defaultdict(list, {'secret-key': OrderedDict((('date', date), ('token', 'secret secret')))})
++        result = remove_values(value, (b'secret',))
++        self.assertIsInstance(result, defaultdict)
++        self.assertIs(result.default_factory, list)
++        self.assertIsInstance(result['secret-key'], OrderedDict)
++        self.assertIs(result['secret-key']['date'], date)
++        self.assertEqual(result['secret-key']['token'], '******** ********')
++        self.assertEqual(value['secret-key']['token'], 'secret secret')
++
++    def test_replacements_do_not_redact_their_own_asterisks(self):
++        self.assertEqual(remove_values('a*b', ('a', '*')), '****************b')
++        self.assertEqual(remove_values('password-pass', (s for s in (b'pass', 'password'))),
++                         '********-********')
++
++    def test_immutable_container_classes(self):
++        pair = namedtuple('Pair', 'first second')
++        value = pair(frozenset(('secret',)), range(3))
++        result = remove_values(value, ('secret',))
++        self.assertIsInstance(result, pair)
++        self.assertIsInstance(result.first, frozenset)
++        self.assertEqual(result.first, frozenset(('********',)))
++        self.assertIs(result.second, value.second)
++
++
++class TestSanitizeKeys(unittest.TestCase):
++    def test_nested_keys_and_ignored_names(self):
++        value = OrderedDict((
++            ('password', {'prefix-password-suffix': 'password'}),
++            ('changed', [{'changed': {'_ansible_password': 1, 'my-password': 2}}]),
++        ))
++        result = sanitize_keys(value, (b'password',), frozenset(('changed',)))
++        self.assertIsInstance(result, OrderedDict)
++        self.assertEqual(result, OrderedDict((
++            ('VALUE_SPECIFIED_IN_NO_LOG_PARAMETER', {'prefix-********-suffix': 'password'}),
++            ('changed', [{'changed': {'_ansible_password': 1, 'my-********': 2}}]),
++        )))
++        self.assertIn('password', value)
++
++    def test_non_mapping_values(self):
++        for value in ('password', 42, False, None, datetime.datetime(2020, 1, 2)):
++            self.assertIs(sanitize_keys(value, ('password',)), value)
++        for value in (['password'], ('password',), frozenset(('password',))):
++            self.assertIs(sanitize_keys(value, ('password',)), value)
++
++    def test_binary_and_deep_containers(self):
++        value = []
++        inner = value
++        for i in range(10000):
++            child = []
++            inner.append(child)
++            inner = child
++        inner.append({b'pre-\xc3\xa9-post': 'secret'})
++        result = sanitize_keys(value, (u'\xe9'.encode('utf-8'),))
++        inner = result
++        for i in range(10000):
++            inner = inner[0]
++        self.assertEqual(inner[0], {b'pre-********-post': 'secret'})
++
++    def test_exact_ignored_keys_and_binary(self):
++        value = ({'changed': {'changed': 1, 'pre-changed': 2}}, {b'pre-\xff-post': 3})
++        result = sanitize_keys(value, (b'changed', b'\xff'), frozenset(('changed',)))
++        self.assertIsInstance(result, tuple)
++        self.assertEqual(result, ({'changed': {'changed': 1, 'pre-********': 2}},
++                                  {b'pre-********-post': 3}))
+diff --git a/test/units/module_utils/common/text/converters/test_json_encode_fallback.py b/test/units/module_utils/common/text/converters/test_json_encode_fallback.py
+index 8cf3352..4c267d0 100644
+--- a/test/units/module_utils/common/text/converters/test_json_encode_fallback.py
++++ b/test/units/module_utils/common/text/converters/test_json_encode_fallback.py
+@@ -7,7 +7,7 @@ __metaclass__ = type
+ 
+ import pytest
+ 
+-from datetime import datetime
++from datetime import date, datetime
+ 
+ from pytz import timezone as tz
+ 
+@@ -22,6 +22,7 @@ from ansible.module_utils.common.text.converters import _json_encode_fallback
+         (datetime(2019, 5, 14, 13, 47, 16, 923866), '2019-05-14T13:47:16.923866'),
+         (datetime(2019, 6, 15, 14, 45, tzinfo=tz('UTC')), '2019-06-15T14:45:00+00:00'),
+         (datetime(2019, 6, 15, 14, 45, tzinfo=tz('Europe/Helsinki')), '2019-06-15T14:45:00+01:40'),
++        (date(2019, 6, 15), '2019-06-15'),
+     ]
+ )
+ def test_json_encode_fallback(test_input, expected):
+diff --git a/test/units/modules/test_uri.py b/test/units/modules/test_uri.py
+new file mode 100644
+index 0000000..2646e45
+--- /dev/null
++++ b/test/units/modules/test_uri.py
+@@ -0,0 +1,39 @@
++# Copyright (c) 2026 Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++import pytest
++
++from ansible.modules import uri
++
++
++@pytest.mark.parametrize('no_log_values, expected_key, expected_json_key', (
++    (set(), 'x_secret', 'secret'),
++    ({'secret'}, 'x_********', 'VALUE_SPECIFIED_IN_NO_LOG_PARAMETER'),
++))
++def test_uri_sanitizes_response_keys_only_with_no_log_values(mocker, no_log_values, expected_key, expected_json_key):
++    module = mocker.Mock()
++    module.no_log_values = no_log_values
++    module.params = {
++        'url': 'https://example.invalid/', 'body': None, 'body_format': 'raw',
++        'method': 'GET', 'dest': None, 'return_content': False,
++        'creates': None, 'removes': None, 'status_code': [200],
++        'timeout': 30, 'headers': {},
++    }
++    mocker.patch.object(uri, 'AnsibleModule', return_value=module)
++    mocker.patch.object(uri, 'url_argument_spec', return_value={})
++    mocker.patch.object(uri, 'uri', return_value=(
++        {'status': 200, 'content-type': 'application/json', 'x-secret': 'visible'},
++        b'{"secret": "visible"}', None,
++    ))
++
++    uri.main()
++
++    result = module.exit_json.call_args[1]
++    assert result[expected_key] == 'visible'
++    assert result['json'] == {expected_json_key: 'visible'}
++    assert result['status'] == 200
++    assert result['changed'] is False
++    assert result['content_type'] == 'application/json'

@@ -1,0 +1,5 @@
+The fault is in [config/config.go](/app/config/config.go:86): `databaseConfig` lacks the three pool fields, and `Load` reads neither their keys nor `meta.check_for_updates`. The existing `go test ./config` passes because [TestLoad](/app/config/config_test.go:44) has no fixture with those keys.
+
+A fix should add the typed fields, read each key when present, and verify explicit values alongside the existing default fixtures. Two requirements conflict: an absent update flag must yield `false`, but both fixtures without that key must equal `Default()`, which currently sets it to `true`. That fallback needs a decision. Also, loading pool values alone would not apply them to the database: [startup](/app/cmd/flipt/flipt.go:259) opens the connection by URL without setting pool limits.
+
+I recorded the diagnosis in `.codex-role-output/checkpoint.md`. Project source and tests remain untouched under this run’s fault-localization scope.

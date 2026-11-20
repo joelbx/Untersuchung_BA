@@ -1,0 +1,3 @@
+Implemented token accounting in [tokencount.go](/app/lib/ai/model/tokencount.go). `Chat.Complete` and `Agent.PlanAndExecute` now return non-nil counts; the agent aggregates usage across steps and counts streamed completions. Assist and web callers now use `CountAll()`.
+
+AI package tests and the streaming race check pass. Assist and web tests could not build locally because required CGO system headers are missing.

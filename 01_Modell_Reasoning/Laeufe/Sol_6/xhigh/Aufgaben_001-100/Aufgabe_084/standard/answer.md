@@ -1,0 +1,3 @@
+Added [removeTechnicalFields](/app/src/api/common/utils/EntityUtils.ts:141). It mutates an entity to remove properties starting with `_finalEncrypted`, `_defaultEncrypted`, or `_errors` at the root and in nested objects and arrays, while preserving other fields. Added [tests](/app/test/tests/api/common/utils/EntityUtilsTest.ts:40) for clean entities and nested cleanup.
+
+TypeScript, ESLint, and the full local test suite passed (8,684 assertions).

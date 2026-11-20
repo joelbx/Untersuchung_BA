@@ -1,0 +1,3 @@
+Task: simplify SQLite persistence to one *sql.DB, following issue title and expected behavior. The issue's trailing read/write-split requirement and interface section contradict that direction, so they were not implemented.
+Changes: db.Db() now opens one configured SQLite connection with shared cache, cache size, busy timeout, WAL, NORMAL synchronous, foreign keys, and immediate transaction lock. SQLStore retains the provided *sql.DB for transactions and no longer falls back to the global DB. Transaction callbacks in play tracker and initial setup use tx.
+Verification: GOPROXY=off GOSUMDB=off GOTOOLCHAIN=local go test ./db ./persistence ./core/scrobbler ./server passed; git diff --check passed.

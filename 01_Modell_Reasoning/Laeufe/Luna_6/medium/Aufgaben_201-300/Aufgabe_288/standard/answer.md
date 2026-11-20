@@ -1,0 +1,3 @@
+Implemented ID based move out logic. The hook now waits while mailbox elements are loading, then calls `onBack` if the active ID is missing, the list is empty, or the ID is absent. Conversation views select the active ID using `isAlwaysMessageLabels`; both views receive IDs and loading state from `MailboxContainer`.
+
+Verification: mail type check passed, the existing `ConversationView` suite passed all 10 tests, and `git diff --check` passed.

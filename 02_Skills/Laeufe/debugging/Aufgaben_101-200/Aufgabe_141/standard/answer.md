@@ -1,0 +1,3 @@
+Added `-wp-ignore-inactive` to the report command and `WpIgnoreInactive` to configuration. When enabled, `FillWordPress` removes inactive plugins and themes before making WPVulnDB requests; the default behavior still scans all installed packages.
+
+Regression tests cover filtering, API requests, TOML loading, and the flag. The relevant package tests passed with `GOPROXY=off GOSUMDB=off go test ./wordpress ./config ./commands ./report ./models -count=1`.

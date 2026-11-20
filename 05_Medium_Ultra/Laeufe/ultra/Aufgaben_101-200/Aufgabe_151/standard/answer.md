@@ -1,0 +1,3 @@
+Fixed the file picker in [webview.py](/app/qutebrowser/browser/webengine/webview.py:35). For runtime Qt versions 6.2.3 through 6.6.x, it now resolves missing suffixes with Python’s `mimetypes` data and adds them to the accepted types passed to Qt, without adding duplicate extensions.
+
+A subagent audited the existing coverage and added focused tests in [test_webview.py](/app/tests/unit/browser/webengine/test_webview.py:68); I reviewed and verified the patch. The webview suite passed **16 tests**, the Qt utility suite passed **171 tests**, and `git diff --check` passed.

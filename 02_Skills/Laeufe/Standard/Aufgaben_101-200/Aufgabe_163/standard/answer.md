@@ -1,0 +1,3 @@
+Implemented separate database configuration fields for SQLite, Postgres, and MySQL. An explicit `db.url` takes precedence; otherwise Flipt validates the fields, applies default ports, and builds the connection target internally. Connection and migration paths now use the same configuration rules, and parse and connection errors avoid exposing passwords.
+
+Added configuration examples and tests for precedence, validation, URL generation, SQLite connections, and migrations. `go test ./...` and the final targeted tests passed.

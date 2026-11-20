@@ -1,0 +1,3 @@
+Implemented matcher expressions in [parse.go](/app/lib/utils/parse/parse.go:164), including literals, anchored wildcards, raw regexps, `regexp.match` and `regexp.not_match`, and fixed prefixes and suffixes. `Variable()` now rejects matcher functions. Added validation and matching tests in [parse_test.go](/app/lib/utils/parse/parse_test.go:122).
+
+The parse tests and focused glob converter test pass. The full `lib/utils` suite has one unrelated failure: a certificate fixture expired in 2021, so `TestRejectsSelfSignedCertificate` receives an expiry error in 2026.

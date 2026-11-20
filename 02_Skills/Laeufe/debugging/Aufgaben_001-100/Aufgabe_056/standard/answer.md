@@ -1,0 +1,3 @@
+Implemented HEIC and JXL thumbnail and preview support for macOS and iOS Safari 17+. JXL now has a MIME enum value and extension mapping. Both Drive upload parsers use a meaningful file type first, then the extension, without `ChunkFileReader`.
+
+The focused Jest suite passes all 8 tests, and formatting and diff checks pass. Full type checks remain blocked by existing repository errors; the shared Karma suite could not launch because its configured Chrome binary is absent. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

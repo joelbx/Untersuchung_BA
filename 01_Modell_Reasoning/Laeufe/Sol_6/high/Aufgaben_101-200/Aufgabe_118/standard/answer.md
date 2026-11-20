@@ -1,0 +1,3 @@
+Fixed the pip module so that, when no `executable` or `virtualenv` is set, it uses the current interpreter’s `python -m pip` if the pip library is available. The launcher is now an argv list throughout; package listing tries `list --format=freeze` before `freeze` and returns a command string for logging. Virtualenv path setup now uses `os.path.join`.
+
+Updated [pip.py](/app/lib/ansible/modules/pip.py) and its [unit tests](/app/test/units/modules/test_pip.py). All 12 pip unit tests pass, and `git diff --check` is clean.

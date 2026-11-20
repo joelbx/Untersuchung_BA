@@ -1,0 +1,3 @@
+Fixed the two review gaps. Book imports now accept authors identified only by an Open Library key or remote IDs. Remote ID matching skips candidates with conflicting IDs and raises `AuthorRemoteIdConflictError` when the supplied IDs identify different existing authors. I added regression tests for both cases.
+
+Both reviewer test commands pass: 125 add-book tests and 40 core and author-merge tests. `git diff --check` is clean.

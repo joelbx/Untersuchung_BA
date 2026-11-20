@@ -1,0 +1,3 @@
+Fixed [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts:31) so persisted fields live in one config object. Loading a current config with a signup token no longer writes to storage; migration preserves the recognized fields and converts credentials to a userId-keyed object, which loads as a Map. Added regression coverage in [DeviceConfigTest.ts](/app/test/client/misc/DeviceConfigTest.ts:6).
+
+Type checking passed, and the final client run passed all 3062 assertions. An earlier clean run reached an unrelated `OfflineDbTest` failure; the subsequent full run passed.

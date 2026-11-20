@@ -1,0 +1,3 @@
+Updated [get_ia.py](/app/openlibrary/catalog/get_ia.py) to use `requests` for HTTP calls, including status validation, retry handling, range headers, and response content for MARC and XML data. Text decoding defaults to UTF-8 when the response has no encoding.
+
+The existing catalog tests pass: **42 passed**. `git diff --check` also passes. The required checkpoint is at `.codex-role-output/checkpoint.md`.

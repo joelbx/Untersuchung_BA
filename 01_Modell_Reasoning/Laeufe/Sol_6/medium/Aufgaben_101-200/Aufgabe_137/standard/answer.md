@@ -1,0 +1,3 @@
+Added tracing configuration for a sampling ratio and the eight supported propagators, with defaults and exact validation errors. The tracer provider now uses the configured ratio, and gRPC uses the configured propagators. The configuration schemas and focused tests were updated.
+
+Validation passed: `go test ./internal/config ./config ./internal/tracing ./internal/cmd` with network access disabled, and `git diff --check`.

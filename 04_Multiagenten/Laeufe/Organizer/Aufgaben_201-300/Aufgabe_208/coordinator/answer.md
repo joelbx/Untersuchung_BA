@@ -1,0 +1,3 @@
+Email confirmations now use the configured expiry for both stored keys. The pending check returns a strict boolean, `getValidationExpiry` returns the store’s live TTL in milliseconds, and `canSendValidation` uses that TTL and the configured resend interval. Expiring a confirmation clears its marker and record, and an old code cannot confirm after its marker is gone.
+
+Verification: the full user test file passed (255 tests), the focused confirmation suite passed after the final assertions (5 tests), and ESLint and `git diff --check` passed. No delegation was used.

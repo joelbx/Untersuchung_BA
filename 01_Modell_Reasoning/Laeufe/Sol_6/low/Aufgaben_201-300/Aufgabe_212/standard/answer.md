@@ -1,0 +1,3 @@
+Updated WPScan ingestion to produce one record per vulnerability using the first CVE reference as its canonical ID. Records now preserve UTC timestamps, references in input order, classification, and fix version, and include the summary, proof of concept, introduced version, and CVSS metrics when supplied. Basic or null fields leave optional metadata empty.
+
+Added Enterprise and basic payload coverage in [wordpress_test.go](/app/detector/wordpress_test.go). `go test ./detector -count=1` passes.

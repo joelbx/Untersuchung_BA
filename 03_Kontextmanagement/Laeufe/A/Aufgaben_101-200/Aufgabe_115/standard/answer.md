@@ -1,0 +1,3 @@
+Expanded [MARC role parsing](/app/openlibrary/catalog/marc/parse.py) to map relator codes and abbreviations to readable names. It reads both `$e` and `$4`, gives `$4` precedence, and omits unrecognized roles. [New work creation](/app/openlibrary/catalog/add_book/__init__.py) now preserves each author’s role in order and raises an exception when edition and record author counts differ.
+
+Updated the MARC expectations and added focused parsing and import tests. **Verification:** 289 MARC and add-book tests passed; Ruff and `git diff --check` passed.

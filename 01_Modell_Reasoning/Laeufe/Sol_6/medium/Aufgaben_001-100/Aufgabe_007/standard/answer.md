@@ -1,0 +1,3 @@
+Updated the WinRM connection plugin to accept `ansible_winrm_kinit_args` and pass its arguments after the kinit executable and before the principal. Explicit arguments replace the default `-f` delegation flag. Command strings with arguments now work through both subprocess and pexpect, with a unique credential cache for each authentication attempt.
+
+Verification: the WinRM unit suite passed (38 tests), and `git diff --check` passed.

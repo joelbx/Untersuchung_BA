@@ -1,0 +1,3 @@
+Added a `Filesystem` category to `:open` completion. It suggests configured `completion.favorite_paths` when the argument is empty, and matching files and directories for absolute paths, `file:///` URLs, and `~` paths. The category can be reordered or disabled through `completion.open_categories`; both settings are documented in the help.
+
+The relevant tests reported **99 passed**. Pytest then exited with an X11 connection error during teardown. `git diff --check` passed.

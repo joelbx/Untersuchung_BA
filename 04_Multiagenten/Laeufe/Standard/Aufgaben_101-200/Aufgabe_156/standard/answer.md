@@ -1,0 +1,3 @@
+Implemented separate, iterative sanitizers in [basic.py](/app/lib/ansible/module_utils/basic.py): `remove_values` masks sensitive substrings in string values without changing keys, while `sanitize_keys` masks mapping keys and honors exact ignored keys and `_ansible` keys. Updated [uri.py](/app/lib/ansible/modules/uri.py) to sanitize response keys when `no_log_values` is set, and kept date serialization working when scalar dates pass through unchanged.
+
+The 31 focused tests pass, as do syntax and diff checks. The broader basic suite still has failures caused by shared warning state between tests.

@@ -1,0 +1,3 @@
+Updated image cleanup in the repository. Removing a group cover now clears its fields and deletes local cover and thumbnail files. User avatar and cover removal now use centralized cleanup that handles legacy and timestamped `.png`, `.jpeg`, `.jpg`, and `.bmp` files; account deletion uses the same cleanup. Missing files are handled without failing removal, and the socket action hooks remain in place.
+
+Lint, `git diff --check`, and focused filesystem checks passed. The existing user and group tests could not run because Redis refused the connection to `127.0.0.1:6379`; that limitation is recorded in `.codex-role-output/checkpoint.md`.

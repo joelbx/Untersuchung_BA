@@ -1,0 +1,1 @@
+Implemented DiagResult/Diag and macOS capability checks. Existing Register/Login round-trip test passes with passwordless assertion. go test ./lib/auth/touchid passed; git diff --check passed. macOS-specific compilation unavailable in this Linux workspace.

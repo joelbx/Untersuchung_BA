@@ -1,0 +1,3 @@
+Fixed the Qt 6.4 dark mode mapping in [darkmode.py](/app/qutebrowser/browser/webengine/darkmode.py). A configured text threshold now emits `("ForegroundBrightnessThreshold", "100")`; earlier Qt versions retain their existing key.
+
+Added version-specific coverage in [test_darkmode.py](/app/tests/unit/browser/webengine/test_darkmode.py). With Qt’s offscreen platform setting, all 41 dark mode tests passed. I solved this directly; no delegation was used.

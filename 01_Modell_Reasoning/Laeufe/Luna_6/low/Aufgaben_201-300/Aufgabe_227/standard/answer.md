@@ -1,0 +1,3 @@
+Updated the workaround to check the runtime Qt version at both bounds (`6.2.3` inclusive and `6.7.0` exclusive). Documented `compiled=False` and changed the invalid `compiled=True, exact=True` combination to raise `RuntimeError`.
+
+The focused test runs were interrupted by a Qt test process abort in this environment; one unrelated existing test also failed because it found an additional `QDataStream` status. `git diff --check` passed.

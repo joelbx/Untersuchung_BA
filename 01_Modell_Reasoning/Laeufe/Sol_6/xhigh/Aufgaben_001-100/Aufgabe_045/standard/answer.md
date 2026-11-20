@@ -1,0 +1,3 @@
+Fixed collection-name validation in [the collection loader](/app/lib/ansible/utils/collection_loader/_collection_finder.py). Both namespace and name must now be valid Python identifiers and cannot be keywords. [Dependency resolution](/app/lib/ansible/galaxy/dependency_resolution/dataclasses.py) uses the same validator; its legacy helpers are removed.
+
+Regression tests cover the reported names. The relevant suites passed: 81 collection loader, 32 Galaxy install, and 43 Galaxy collection tests.

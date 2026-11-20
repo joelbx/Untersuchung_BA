@@ -1,0 +1,3 @@
+Updated `useMyCountry` to return a country code or `undefined`, and changed the listed consumers to use that single value while keeping their user-settings gates. PhoneInput now starts with no country for an empty or missing default, adopts the first non-empty default when its country state is empty, and ignores later default changes.
+
+The focused tests pass: 17/17. Prettier and `git diff --check` pass. The components type check remains unresolved because it fails on an `openpgp` type conflict in an unedited crypto file; the command and error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

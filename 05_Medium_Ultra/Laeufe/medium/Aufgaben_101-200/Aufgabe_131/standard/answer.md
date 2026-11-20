@@ -1,0 +1,3 @@
+Added bounded polling to the [event polling hook](/app/packages/components/payments/client-extensions/usePollEvents.ts). It calls the event manager every 5000 ms for up to 5 attempts, can stop early on a matching property and action, and unsubscribes when polling ends. The add card and PayPal flows now watch for `PaymentMethods` creation events.
+
+Verification passed: 5 focused tests, ESLint, Prettier, and the components type check.

@@ -1,0 +1,3 @@
+Added the public `DiagResult` and `Diag` API and wired macOS Touch ID availability to signing, entitlement, biometric policy, and Secure Enclave checks. Fixed credential selection when multiple local credentials exist, and extended the WebAuthn round-trip test to cover that login case alongside passwordless login.
+
+`go test -count=1 ./lib/auth/touchid ./lib/auth/webauthn` passed. The native macOS checks could not be run in this Linux workspace.

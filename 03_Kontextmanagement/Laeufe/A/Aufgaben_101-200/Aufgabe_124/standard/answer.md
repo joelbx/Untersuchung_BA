@@ -1,0 +1,3 @@
+Added `billing_mode` to the DynamoDB backend. New tables default to `pay_per_request`, with no provisioned throughput; `provisioned` uses the configured capacity units. Initialization ignores configured autoscaling for on-demand tables and logs why.
+
+Updated the [backend documentation](/app/lib/backend/dynamo/README.md) and tests. `go test ./lib/backend/dynamo` and the DynamoDB tagged billing mode tests pass.

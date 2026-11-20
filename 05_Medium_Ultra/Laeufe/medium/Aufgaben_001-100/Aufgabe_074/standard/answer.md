@@ -1,0 +1,3 @@
+Updated [FnToCLI](/app/scripts/solr_builder/solr_builder/fn_to_cli.py) to convert `Path` arguments and typed lists of `int`, `str`, `float`, and `Path`. Required lists accept positional values; optional lists accept `--<parameter_name>` values and receive `None` when omitted. `parse_args` now accepts a `Sequence[str]`, and `run` returns the wrapped function’s result, including for async functions. Existing dashed option spellings remain available.
+
+Added focused cases in [test_fn_to_cli.py](/app/scripts/solr_builder/tests/test_fn_to_cli.py). All 8 tests pass, and Ruff passes on both edited files.

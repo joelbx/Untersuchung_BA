@@ -1,0 +1,3 @@
+Added a disabled-by-default `feature_poll_history` lab setting and a “Polls history” button in [RoomSummaryCard](/app/src/components/views/right_panel/RoomSummaryCard.tsx). When enabled, the button opens the named [PollHistoryDialog](/app/src/components/views/dialogs/polls/PollHistoryDialog.tsx) with the current room’s `roomId`.
+
+The focused card tests passed (2/2), as did the nearby right-panel tests (5/5), changed-file lint, formatting, and style checks. The full type check remains blocked by an error in unchanged `RoomCreate.tsx`: `RoomState` has no `findPredecessor` property. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Added `DefaultConfig()` and exported `DecodeHooks` in [internal/config/config.go](/app/internal/config/config.go). `Load` now composes the exported hooks, and storage’s Local and Git fields use pointers with nil-safe validation.
+
+`go test ./internal/config ./internal/cue ./internal/cmd` passes. The checkout has no `config/schema_test.go`, so that specific CUE validation test could not be run locally.

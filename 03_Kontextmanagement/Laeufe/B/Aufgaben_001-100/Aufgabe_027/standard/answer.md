@@ -1,0 +1,3 @@
+Updated `getLastPersistedLocalID` to return `null` when no valid ID is found, accept only numeric prefixed keys, and preserve valid ID `0`. The public bookmark view now resumes a session only when an ID exists, so it can still load bookmarks when none is found.
+
+The focused Jest suite passed all 14 tests. Drive’s type check remains blocked by an unrelated `openpgp` type mismatch in unchanged crypto code.

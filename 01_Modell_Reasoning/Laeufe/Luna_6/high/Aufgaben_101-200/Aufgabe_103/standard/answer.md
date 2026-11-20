@@ -1,0 +1,3 @@
+Updated [redhatbase.go](/app/scanner/redhatbase.go) to preserve empty release fields, compose versions with epoch and release consistently, parse source RPMs ending in `-src.rpm`, reject malformed filenames, and handle `(none)` epochs in update candidates.
+
+`gofmt` and `git diff --check` passed. `go test ./scanner` ran but failed because existing tests expect versions without release suffixes and treat `-src.rpm` filenames as invalid; those expectations conflict with the requested behavior. The changed behavior also affects existing kernel selection expectations.

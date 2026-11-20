@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` in [MongoDB](/app/src/database/mongo/hash.js) and [Redis](/app/src/database/redis/hash.js). It validates tuple input and safe integer increments, creates missing objects and fields, applies each key’s fields atomically, and invalidates cache entries for successful keys.
+
+Verification: 66 existing hash tests and 3 new unit tests passed; live Redis checks, ESLint, and `git diff --check` passed. MongoDB was verified with a unit fake; no live MongoDB check was available.

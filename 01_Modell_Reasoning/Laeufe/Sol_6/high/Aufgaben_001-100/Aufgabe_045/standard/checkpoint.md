@@ -1,0 +1,3 @@
+Task: Reject Python keywords and invalid identifiers in collection FQCN validation.
+Resolved: removed `_is_py_id`, `_is_fqcn`, and their Python 2/3 fallback from `dataclasses.py`. Requirement parsing now uses `AnsibleCollectionRef.is_valid_collection_name`. Added `is_python_identifier` and boolean validation for both FQCN segments, including keyword rejection; FQCR validation also checks the collection portion.
+Verification: collection loader tests 87 passed; collection install tests 34 passed; `git diff --check` passed. The two test files should run separately because loader tests reset the global collection finder and cause install-suite setup errors in a combined run.

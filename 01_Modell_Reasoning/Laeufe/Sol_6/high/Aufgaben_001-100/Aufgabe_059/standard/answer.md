@@ -1,0 +1,3 @@
+Added the [Dialog abstraction](/app/packages/components/components/dialog/Dialog.tsx) and switched [ModalTwo](/app/packages/components/components/modalTwo/Modal.tsx) to use it. Dialog forwards attributes, children, and its ref; in JSDOM it uses an accessible fallback host so buttons inside an open modal remain discoverable by role.
+
+Verification passed: 11 targeted tests, the components TypeScript check, and formatting and diff checks.

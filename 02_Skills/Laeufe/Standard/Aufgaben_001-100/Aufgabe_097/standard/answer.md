@@ -1,0 +1,3 @@
+Updated the controller minimum to **Python 3.12** in packaging, the CLI, and ansible-test, with consistent errors for older versions. Collection directory extraction now passes `dirname` unchanged to `tar.getmember()` and raises the specified `AnsibleError` when it is missing. Installation no longer uses the private TarFile cache. I also simplified controller compatibility code and added a changelog fragment.
+
+The focused extraction and collection loader tests passed: **73 passed, 1 skipped**. Compilation and `git diff --check` passed. Broader Galaxy tests could not collect because this workspace has Python 3.11, which the new CLI guard correctly rejects; that limitation is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

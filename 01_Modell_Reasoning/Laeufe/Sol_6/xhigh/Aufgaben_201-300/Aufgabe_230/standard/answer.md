@@ -1,0 +1,3 @@
+Updated [affiliate_server.py](/app/scripts/affiliate_server.py) with `PrioritizedIdentifier` for ISBNs and ASINs, identifier-only equality and hashing, a `stage_import` flag, and complete JSON serialization. Queue deduplication and batch processing now honor the staging flag. The former `PrioritizedISBN` constructor and `isbn` attribute remain available for compatibility.
+
+Added coverage in [test_affiliate_server.py](/app/scripts/tests/test_affiliate_server.py). **Verification:** 35 relevant tests passed; Ruff and `git diff --check` passed.

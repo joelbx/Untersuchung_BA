@@ -1,0 +1,3 @@
+Implemented `override-validation=true` for the import API. It passes a boolean through `load()` to `validate_record()`, which skips the publication year, independent publisher, and missing ISBN checks when requested. Required fields and the default validation behavior remain in place. Added the case-insensitive `is_promise_item()` utility.
+
+Verification: 114 relevant tests passed; `git diff --check` passed.

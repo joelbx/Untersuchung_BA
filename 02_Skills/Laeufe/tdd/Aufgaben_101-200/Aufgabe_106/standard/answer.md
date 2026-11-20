@@ -1,0 +1,3 @@
+Updated the WordPress cache lookup to use the map directly and return `("", false)` for missing or nil entries. The scan now reads the server’s `IgnoreInactive` setting and excludes inactive plugins and themes while keeping active ones.
+
+Added tests for cache lookup and per-server filtering. `GOPROXY=off GOSUMDB=off go test ./...` passed; the compiler emitted a warning from the existing SQLite dependency.

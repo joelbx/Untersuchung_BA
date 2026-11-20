@@ -1,0 +1,3 @@
+Updated [useMyCountry](/app/packages/components/hooks/useMyCountry.tsx) to return a country code or `undefined` as a single value. Its seven consumers now use that value directly; user-settings loading checks remain in place. [PhoneInput](/app/packages/components/components/v2/phone/PhoneInput.tsx) starts with no country for an empty default, adopts the first non-empty default when its country state is empty, and ignores later default changes during the same mount.
+
+The focused tests pass (18 tests), as do Prettier, focused ESLint, and `git diff --check`. Type checks for components, account, and mail are blocked by the same unrelated OpenPGP type mismatch in [api.ts](/app/packages/crypto/lib/worker/api.ts:579).

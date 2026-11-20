@@ -1,0 +1,3 @@
+Updated the DynamoDB event patch to write both `Fields` and `FieldsMap` during rolling upgrades. Migration now uses conditional updates that preserve concurrent changes, saves a cursor so it can resume, and repeats scans so events written by older nodes are picked up.
+
+The focused and package tests pass. **TEST_ENVIRONMENT_PROBLEM:** the AWS suite reported 0 passed and 5 skipped because `TEST_AWS` is unavailable.

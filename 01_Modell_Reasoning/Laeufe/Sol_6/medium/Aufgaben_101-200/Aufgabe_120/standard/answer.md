@@ -1,0 +1,3 @@
+Updated coverstore archival to use zero-padded ZIP batches, verified uploads, batch locks, and database URLs after finalization. The hardcoded 8M tar redirect is removed, and the path schema is documented in [README.md](/app/openlibrary/coverstore/README.md).
+
+Coverstore tests: **21 passed, 7 skipped**. Ruff and `git diff --check` passed. Existing databases need the new `failed` and `uploaded` columns and indexes before running this version.

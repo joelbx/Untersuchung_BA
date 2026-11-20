@@ -1,0 +1,3 @@
+Implemented the `atomic_move()` permission fix. New files now use `_DEFAULT_PERM = 0600`, combined with the current umask. When a module supports `mode` but it is omitted, `AnsibleModule` tracks each new path and emits the specified warning during result formatting. An explicit `set_mode_if_different()` call clears that path from warning tracking.
+
+Updated the relevant tests. **66 focused tests pass**, and `git diff --check` is clean. The broader basic test directory run still has failures caused by warning and deprecation state shared across tests.

@@ -1,0 +1,3 @@
+Added opt-out telemetry controlled by `Meta.TelemetryEnabled` and `FLIPT_META_TELEMETRY_ENABLED`. The reporter stores a stable UUID in `telemetry.json`, sends a `flipt.ping` at startup and every four hours, and updates `lastTimestamp` after a successful response. State and send errors are logged without stopping the server. I also moved the JSON build-info handler to [internal/info/flipt.go](/app/internal/info/flipt.go) and disabled telemetry in the advanced config example.
+
+The focused Go tests and `git diff --check` pass. The reporter targets `https://telemetry.flipt.io/v1/track`; that endpoint’s availability could not be verified locally.

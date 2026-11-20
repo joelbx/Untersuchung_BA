@@ -1,0 +1,3 @@
+Updated [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py) so hardware fact gathering reads `/proc/sysinfo` on s390. When the file is present, `get_sysinfo_facts()` returns the five requested keys, uses `"NA"` for missing values, and removes leading zeros from the serial. When it is absent, it returns `{}`.
+
+Added regression tests in [test_linux.py](/app/test/units/module_utils/facts/hardware/test_linux.py). The hardware fact unit suite passes: **21 tests**.

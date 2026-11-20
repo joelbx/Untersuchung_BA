@@ -1,0 +1,3 @@
+Fortinet advisories are now included in CPE detection and CVE enrichment. Results carry advisory IDs and URLs, CVSS v3 data, CWE IDs, references, and timestamps. I also updated confidence ranking, report selection, and the dictionary dependency, and added focused regression tests.
+
+`gofmt` and `git diff --check` passed. The relevant Go tests could not start offline because `github.com/pelletier/go-toml/v2@v2.0.8` is missing from the local module cache.

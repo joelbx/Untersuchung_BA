@@ -1,0 +1,3 @@
+Voice broadcast playback now reports `live`, `grey`, or `not-live` from its playback and broadcast info states. The header and badge use that value, and the playback hook updates the UI when liveness changes. I also added final-chunk detection and tests for the state transitions.
+
+The focused voice broadcast tests passed: 75 tests across six suites. ESLint, Stylelint, and `git diff --check` passed. The repository type check still fails on an unrelated, unchanged error in [notifications.ts](/app/src/utils/notifications.ts:79). No delegation was used.

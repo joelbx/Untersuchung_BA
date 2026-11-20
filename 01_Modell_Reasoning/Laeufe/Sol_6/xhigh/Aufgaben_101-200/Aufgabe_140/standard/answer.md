@@ -1,0 +1,3 @@
+Updated [host blocking](/app/qutebrowser/components/hostblock.py:115) to check each parent domain against both block sets, while preserving the per-URL toggle and giving whitelist rules an early override. Trailing-dot hosts match their ordinary forms. Added the requested [hostname widening utility](/app/qutebrowser/utils/urlutils.py:59).
+
+Tests passed: 439 passed, 1 skipped in the focused suite; after the final trailing-dot change, host blocker tests passed again (52 passed, 1 skipped).

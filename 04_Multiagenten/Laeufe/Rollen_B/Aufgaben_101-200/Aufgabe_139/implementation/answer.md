@@ -1,0 +1,3 @@
+Implemented the promise import fix in the checked-out files. Incomplete records now use ISBN-10 first, then a B-prefixed ASIN, to fill empty fields from staged metadata before API validation. Batch staging skips complete records, records total and incomplete gauges, and logs lookup failures while continuing with other items. Validation now accepts either complete metadata or a title with a strong identifier.
+
+Relevant local tests passed: **135 passed**. `git diff --check` is clean.

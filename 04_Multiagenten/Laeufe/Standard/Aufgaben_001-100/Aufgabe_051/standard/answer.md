@@ -1,0 +1,3 @@
+`tsh` now reads `TELEPORT_KUBE_CLUSTER` after parsing CLI arguments. It sets `KubernetesCluster` when no CLI cluster was specified; an explicit CLI value takes precedence.
+
+The existing `TELEPORT_CLUSTER`/`TELEPORT_SITE` precedence and `TELEPORT_HOME` override already meet the requested behavior. I added tests for Kubernetes cluster precedence and the home override. The focused `tool/tsh` tests and `git diff --check` passed.

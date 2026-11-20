@@ -1,0 +1,3 @@
+Implemented `PrioritizedIdentifier` for ISBN and ASIN values with identifier-based equality and hashing, a `stage_import` flag, and complete JSON-safe serialization. The affiliate queue now deduplicates matching identifiers, and batch processing caches fetched products while staging only those marked for import. The `PrioritizedISBN` name and `isbn` constructor keyword remain available for compatibility.
+
+Verification: 20 affiliate tests and 40 available scripts tests passed. The full suite could not collect because pytest registered a conftest twice; two scripts tests also require a remote schema that was blocked. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

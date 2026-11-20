@@ -1,0 +1,1 @@
+Batch 3 is complete. The file has **1,863 complete records** and one column-count anomaly: a blank line at line 1865. There is no incomplete source fragment. I created and independently validated [catalogue-3-summary.json](/app/catalogue-3-summary.json).

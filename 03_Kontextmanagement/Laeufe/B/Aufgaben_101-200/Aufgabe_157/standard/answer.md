@@ -1,0 +1,3 @@
+Added the [mail metrics helpers](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts) and declared `@proton/metrics` in the mail manifest and lockfile. `getLabelID` preserves built-in mailbox IDs and returns `custom` for other IDs. `getPageSizeString` returns `50`, `100`, or `200`, defaulting to `50`.
+
+Verification passed: 2 helper tests, the mail app type check, ESLint, and the manifest and lockfile check.

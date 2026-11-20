@@ -1,0 +1,3 @@
+Added the authoritative [sizeUnits and BASE_SIZE helper](/app/packages/shared/lib/helpers/size.ts) and moved storage calculations in member flows, CSV import, organization setup, bonus constants, and other byte limits to it. Drive Pro and Drive Business now default to `sizeUnits.TB`.
+
+Verification: 97 relevant tests passed; Prettier and `git diff --check` passed. Shared and component type checks fail on an OpenPGP type mismatch in the unchanged [crypto worker](/app/packages/crypto/lib/worker/api.ts:579). Focused ESLint exhausted Node’s heap.

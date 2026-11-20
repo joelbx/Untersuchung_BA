@@ -1,0 +1,3 @@
+Implemented IDN handling in [url.ts](/app/packages/components/helpers/url.ts) and [useLinkHandler.tsx](/app/packages/components/hooks/useLinkHandler.tsx). External links now use Punycode in the confirmation flow; URL components are preserved while trailing pathname slashes are removed. Missing or unparseable URLs trigger an error notification.
+
+Validation passed: the existing URL helper suite (11 tests), the components type check, ESLint on both changed files, and `git diff --check`.

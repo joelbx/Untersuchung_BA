@@ -1,0 +1,3 @@
+Implemented HEIC and JXL support for Safari 17+ on macOS and iOS, and simplified MIME detection to use a meaningful `File.type` or fall back to the filename extension. Added JXL to the supported MIME types and extension mapping.
+
+Validation: the two relevant media test suites passed (6 tests), and `git diff --check` passed. The upload worker suite could not run because this checkout is missing `packages/drive-store/config`. Workspace type checks emitted no diagnostics.

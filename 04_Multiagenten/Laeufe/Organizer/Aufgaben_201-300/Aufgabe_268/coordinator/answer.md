@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) so process errors identify the capitalized process name, the command in single quotes, the error type, and Qt’s error detail. On non-Windows systems, missing or nonexecutable commands also get the requested hint, including when Qt prefixes the detail with `execvp:`.
+
+The relevant test file passes: **30 passed**. `git diff --check` also passes. I completed the change without delegation.

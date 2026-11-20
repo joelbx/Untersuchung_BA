@@ -1,0 +1,3 @@
+Implemented release detection and update checking in `internal/release`. Startup now treats `dev`, `-snapshot`, and `-rc` builds as non-releases, uses `release.Info` for status output and `info.Flipt` metadata, and disables telemetry for CI or non-release builds. Update check failures are logged and startup continues.
+
+Verification passed: `go test ./internal/release ./internal/info ./cmd/flipt` and `git diff --check`.

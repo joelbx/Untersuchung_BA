@@ -1,0 +1,3 @@
+Implemented SSH option resolution through the plugin’s `get_option()` system, removed the SSH specific entries from core configuration, and updated command construction, retries, and file transfer selection to use effective plugin values. Reset checks the generated command’s control socket and logs when no socket exists.
+
+Relevant existing tests passed: **20 passed** across the SSH connection and play context unit tests. `git diff --check` passed.

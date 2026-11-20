@@ -1,0 +1,3 @@
+Collection name validation now returns a boolean based on whether both segments are valid Python identifiers and neither is a keyword. Galaxy uses the same check; the legacy helpers and their Python 2/3 compatibility code were removed from `dataclasses.py`.
+
+The focused regression tests passed: 21 collection loader tests and 19 CLI tests. A broader run passed all 69 collection loader tests, but unrelated Galaxy test classes could not initialize because that test process had no collection finder installed.

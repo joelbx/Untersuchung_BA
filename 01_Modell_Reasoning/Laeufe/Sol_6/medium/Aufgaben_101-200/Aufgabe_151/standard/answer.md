@@ -1,0 +1,3 @@
+Updated the Qt WebEngine file picker in [webview.py](/app/qutebrowser/browser/webengine/webview.py) to add missing filename extensions for accepted MIME types on Qt 6.2.3 through 6.6.x. The change covers specific MIME types and wildcards such as `image/*`, and avoids adding extensions already present.
+
+Added unit coverage in [test_webview.py](/app/tests/unit/browser/webengine/test_webview.py). All 14 tests pass; `git diff --check` passes.

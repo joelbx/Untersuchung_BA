@@ -1,0 +1,3 @@
+Added optional encoding validation to [FormatString](/app/qutebrowser/config/configtypes.py:1549) during `to_py` conversion and set the [user agent configuration](/app/qutebrowser/config/configdata.yml:639) to require ASCII. Format strings without an encoding constraint still accept Unicode.
+
+Verification: the full config type module had 1,107 passed and 10 expected failures. After the final test addition, the focused FormatString and config data run had 47 passed.

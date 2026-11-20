@@ -1,0 +1,3 @@
+Implemented topic backlinks. Posts now synchronize references on creation and edit, adding and removing per-post associations and timeline events. The admin setting controls whether backlink events appear; the event label is localized as “Referenced by.”
+
+The relevant topic and post suites passed (297 tests), and lint passed. The full suite stopped after 802 passing tests at an admin plugin test because its external registry request returned a 403 tunnel error.

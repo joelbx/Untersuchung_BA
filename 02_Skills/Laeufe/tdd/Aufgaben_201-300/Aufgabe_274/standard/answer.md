@@ -1,0 +1,3 @@
+Implemented the version-aware canvas workaround. The setting now accepts `always`, `auto`, and `never`, with `auto` as the default. In `auto` mode, the Chromium flag is added only on Qt 6 when the known Chromium major version is below 111. Regression tests cover the Qt 5, Qt 6.5, Qt 6.6, and unknown-version cases.
+
+The focused Qt argument and config schema tests passed: **144 passed, 1 benchmark skipped**. The full suite could not be verified in this environment: end-to-end Chromium startup fails when running as root without `--no-sandbox`, and a broader config run hit a Qt/OpenSSL warning.

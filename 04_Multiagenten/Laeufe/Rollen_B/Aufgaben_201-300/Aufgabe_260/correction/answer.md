@@ -1,0 +1,3 @@
+Fixed the SSE tab identification issue. The UI now includes its per-tab UUID in the stream URL, and the server uses that ID for the subscription even if another tab has changed the shared cookie. A regression test covers the mismatch and confirms that the originating tab does not receive its own event.
+
+The reviewer’s exact Go and UI test commands passed, as did `git diff --check`. No failures remain.

@@ -1,0 +1,5 @@
+I found the cause: [nios_fixed_address.py](/app/lib/ansible/modules/net_tools/nios/) does not exist, and [api.py](/app/lib/ansible/module_utils/net_tools/nios/api.py:42) defines neither fixed address object type.
+
+The likely fix spans those two locations. The new module needs to validate and route IPv4 and IPv6 addresses, preserve `ipaddr`, `mac`, and `network` for identity lookup before remapping the address field, and pass sanitized DHCP options to `WapiModule.run()`. In [api.py](/app/lib/ansible/module_utils/net_tools/nios/api.py:335), `get_object_ref()` needs fixed address lookup behavior that retains `mac`. One additional risk is [WapiModule.run()](/app/lib/ansible/module_utils/net_tools/nios/api.py:227): when a lookup returns multiple records, it unconditionally compares `ipv4addr`, which could fail for IPv6.
+
+The existing NIOS tests contain no fixed address coverage. I could not establish the exact WAPI lookup behavior from local code alone. I left project source and tests unchanged because this specialist role is restricted to fault localization.

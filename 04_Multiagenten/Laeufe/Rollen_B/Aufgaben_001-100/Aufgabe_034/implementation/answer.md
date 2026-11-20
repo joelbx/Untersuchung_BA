@@ -1,0 +1,3 @@
+Implemented IA metadata normalization. `get_ia_record` now separates ISBNs into `isbn_10` and `isbn_13`, and publisher entries into `publishers` and `publish_places`. It omits empty normalized fields and the raw `isbn` and `publisher` fields. The split functions are public in [utils.py](/app/openlibrary/plugins/upstream/utils.py).
+
+The focused tests pass: **29 passed**. `git diff --check` also passes. Ruff was unavailable locally.

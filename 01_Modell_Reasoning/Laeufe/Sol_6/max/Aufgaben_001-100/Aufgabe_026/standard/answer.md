@@ -1,0 +1,3 @@
+Updated [CVE source mapping](/app/models/cvecontents.go) so Ubuntu and other supported OS families use every relevant content type. Reports now include those sources in URLs, vulnerability details, CVSS v3 scores, and CWE priority; both CVE change checks use the same mapping. `NEGLIGIBLE` now maps to the low CVSS range.
+
+Regression tests pass for `models`, `detector`, `reporter`, and `gost` with network access disabled.

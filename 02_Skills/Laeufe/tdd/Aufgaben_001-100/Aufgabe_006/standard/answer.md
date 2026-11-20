@@ -1,0 +1,3 @@
+Implemented the generic `fanoutbuffer` package with ordered reads for independent cursors, overflow storage, grace-period expiry, blocking notifications, and resource cleanup. Added behavior tests, including regressions for cleanup and closing a cursor after its buffer closes.
+
+`go test ./fanoutbuffer` and `go test -race ./fanoutbuffer` pass. The repository-wide suite did not complete within 60 seconds and encountered local C build errors for missing `linux/hidraw.h` and `off64_t`; unrelated package results remain unverified. The commands and errors are recorded in `.codex-role-output/checkpoint.md`.

@@ -1,0 +1,3 @@
+Implemented `route_targets` in [nxos_vrf_af.py](/app/lib/ansible/modules/network/nxos/nxos_vrf_af.py:50), including default `both` behavior, mixed additions and removals, and idempotent checks scoped to the selected VRF address family. Address-family removal skips route-target changes. Added unit coverage in [test_nxos_vrf_af.py](/app/test/units/modules/network/nxos/test_nxos_vrf_af.py:66).
+
+The targeted unit suite passed: **9 tests**. `git diff --check` and `py_compile` also passed. The `ansible-test` wrapper skipped execution because its supported Python versions are unavailable.

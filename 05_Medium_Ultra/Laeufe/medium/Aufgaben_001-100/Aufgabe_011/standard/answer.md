@@ -1,0 +1,3 @@
+Implemented the ansible-core fixes in `/app`: unset-value handling, legacy YAML constructors, `None` templar overrides, lookup messages, deprecation configuration and messaging, Boolean `timedout`, and early CLI error help text. Added regression tests and updated `.codex-role-output/checkpoint.md`.
+
+**Verification:** 153 focused tests passed. A broader run encountered stdin fixture and cross-test state failures, so it did not pass as a whole.

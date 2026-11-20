@@ -1,0 +1,3 @@
+Implemented the email confirmation refactor in `/app`. Confirmation codes now have a per-user lookup key and an explicit millisecond expiry. Validation and resend actions use the profile email or a pending confirmation, stale keys are cleaned up, and the ACP shows the four requested email states and refreshes after actions.
+
+The focused email and ACP tests passed (10 tests); lint and syntax checks passed. The full `npm test` run stopped after 673 passing tests at `authentication > should fail to register if email is falsy` (expected HTTP 400, got 200). A broader user/controller run also stopped on an invitation group membership assertion. These failures and the check commands are recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

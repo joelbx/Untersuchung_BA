@@ -1,0 +1,3 @@
+Updated the scanner’s process-to-package lookup. Debian and Red Hat now use a shared `pkgPs` function; Red Hat matches RPM owners by name, version, release, and architecture, ignores the specified file errors, and returns an error for malformed output. The `needsRestarting` lookup uses the same ownership logic.
+
+Added coverage for mixed architectures and versions. `GOPROXY=off GOSUMDB=off go test ./scan -count=1` passed.

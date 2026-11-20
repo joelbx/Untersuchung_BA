@@ -1,0 +1,3 @@
+Updated the pip module to use the current interpreter’s `pip` library through `python -m pip` when no executable or virtualenv is set. Launchers are now argv lists; package listing tries `list --format=freeze` before `freeze` and returns a command string for logging. Virtualenv path handling uses OS path operations.
+
+The focused pip suite passed: **9 tests**. The repository-wide pytest run encountered unrelated collection errors and failures and was interrupted; full-suite success is unverified. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

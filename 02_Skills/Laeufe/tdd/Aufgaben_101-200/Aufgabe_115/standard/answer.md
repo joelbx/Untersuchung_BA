@@ -1,0 +1,3 @@
+Implemented MARC contributor role support. `ROLES` maps common relator codes and abbreviations to readable names; `read_author_person` reads `$e` and `$4`, gives `$4` precedence, and omits unrecognized roles. `new_work` preserves each author’s role in order and raises an exception when author counts differ. Regression tests and MARC fixture expectations were updated.
+
+Verification: 164 targeted tests and 2,265 `openlibrary` tests passed. The bare `pytest` run could not pass because of unrelated network, vendor plugin, and database setup errors; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented the coverstore archival changes in the checked-out repository. Covers now use zero-padded IDs, uncompressed zip batches, and archive.org download URLs. Batch processing verifies uploads before updating database filenames and `uploaded` status, and a per-batch lock prevents overlapping archival work. The schema adds `failed` and `uploaded` fields; the cover reader uses the stored remote URL for completed covers. The path layout and workflow are documented in [README.md](/app/openlibrary/coverstore/README.md).
+
+Verification: 24 coverstore tests passed, 7 were skipped because their PostgreSQL setup was unavailable. Ruff and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented `qt.workarounds.locale` as a QtWebEngine-only setting, defaulting to `false`. When enabled on Linux with QtWebEngine 5.15.3, it checks for the locale’s `.pak` file and adds `--lang` only when a fallback is needed. Regression tests cover the locale mappings, missing packs, guards, and argument generation.
+
+The targeted tests passed (**180 passed**), and `git diff --check` passed. The broader config suite has an unrelated Python 3.11 failure in `test_nul_bytes`: it expects `ValueError`, but `compile()` raises `SyntaxError`. Runtime startup on QtWebEngine 5.15.3 remains unverified because this environment has Qt 5.15.2.

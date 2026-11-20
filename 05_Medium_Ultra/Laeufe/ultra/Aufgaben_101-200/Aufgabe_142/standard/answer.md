@@ -1,0 +1,3 @@
+Replaced the ad hoc expression handling with a typed AST and a predicate backed parser. Interpolation now supports nested functions and constant inputs, validates variable shape, namespace, function arguments, and expression depth, and reports empty results clearly. Matchers use the same regex compilation path. I also updated trait and PAM interpolation to validate every variable, including nested ones.
+
+I delegated the trait caller, PAM caller, and parser test work, then integrated and verified the changes. The parser suite and the focused existing and new trait tests pass. `git diff --check` passes. The `lib/srv` compile could not complete because this environment lacks required native dependencies; the CGO disabled retry also failed in dependencies.

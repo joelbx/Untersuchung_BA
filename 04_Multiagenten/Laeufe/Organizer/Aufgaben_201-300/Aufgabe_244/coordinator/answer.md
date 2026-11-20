@@ -1,0 +1,3 @@
+Added `colors.webpage.darkmode.threshold.foreground` as an Int option with default 256. Its value now uses Chromium’s `TextBrightnessThreshold` key before QtWebEngine 6.4 and `ForegroundBrightnessThreshold` from 6.4 onward. Existing `threshold.text` settings map to the new option in saved YAML and configuration access.
+
+Relevant tests passed with Qt’s offscreen platform: **435 passed, 1 skipped**. `git diff --check` passed. No delegation was used.

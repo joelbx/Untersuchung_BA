@@ -1,0 +1,3 @@
+Resolved the DynamoDB event storage issue in `/app`. New events write metadata as native `FieldsMap` values; reads still accept legacy `Fields` strings. A distributed-lock migration converts existing records in batches, saves progress for resumption, and validates each conversion.
+
+`go test ./lib/events/dynamoevents ./lib/backend` and `git diff --check` passed. The AWS-dependent integration suite was skipped by its existing test gate.

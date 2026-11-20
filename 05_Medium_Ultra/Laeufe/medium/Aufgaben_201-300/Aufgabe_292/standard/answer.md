@@ -1,0 +1,3 @@
+Polling lifecycle management is in place. The shared [Poller](/app/internal/storage/fs/poll.go) now owns its context and cancellation; `Close()` waits for active polling to finish. Git, local, Azure Blob, S3, and OCI `SnapshotStore` implementations retain their pollers and expose a safe `Close()` method.
+
+Added lifecycle and store close tests. `go test ./internal/storage/fs/...` and `git diff --check` pass.

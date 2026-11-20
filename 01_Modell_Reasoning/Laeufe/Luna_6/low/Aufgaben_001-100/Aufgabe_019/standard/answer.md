@@ -1,0 +1,3 @@
+Updated [roles.go](/app/roles.go) so `Roles.Check` rejects duplicate and unknown roles, and `Roles.Equals` compares distinct-role sets while treating nil and empty lists as equal. Added coverage in [roles_test.go](/app/lib/utils/roles_test.go).
+
+`go test .` and `git diff --check` passed. `go test ./lib/utils` had 50 passing tests and one unrelated failure: an expired certificate fixture caused `TestRejectsSelfSignedCertificate` to report expiration instead of the expected unknown authority error.

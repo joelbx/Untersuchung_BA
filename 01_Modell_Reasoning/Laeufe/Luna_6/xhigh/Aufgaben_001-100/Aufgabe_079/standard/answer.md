@@ -1,0 +1,3 @@
+Restored native OS path traversal in [walk_dir_tree.go](/app/scanner/walk_dir_tree.go:29) and updated [tag_scanner.go](/app/scanner/tag_scanner.go:82) to use OS operations for directory checks and audio discovery. Added [utils.IsDirReadable](/app/utils/paths.go:9), preserving close-error logging and the existing scan behavior, including Windows `$Recycle.Bin` skipping.
+
+`go test ./scanner ./utils` and `git diff --check` pass. The Windows compile check was blocked by the existing CGO-disabled taglib build error: `undefined: Read`.

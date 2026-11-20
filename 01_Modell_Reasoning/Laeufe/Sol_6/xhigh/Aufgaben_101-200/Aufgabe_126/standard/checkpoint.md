@@ -1,0 +1,3 @@
+Task: Preserve assistant HTML formatting and scope embedded links/images by messageID.
+State: Implemented message-scoped URL placeholders, HTML attribute preservation, nested-list repair, configurable Markdown rules, and messageID propagation through preview/insertion. Four relevant Jest suites passed (15 tests); a focused Markdown rerun with one added blank-line list case passed (6 tests). ESLint and git diff --check passed. Full mail TypeScript check reports one unrelated OpenPGP type mismatch in packages/crypto/lib/worker/api.ts:579.
+Constraints: Use local code and existing tests; leave git history, index, and harness configuration untouched.

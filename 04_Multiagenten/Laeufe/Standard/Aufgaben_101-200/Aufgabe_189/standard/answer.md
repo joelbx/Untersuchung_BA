@@ -1,0 +1,3 @@
+Moved `extra_suffixes_workaround` to module scope in [webview.py](/app/qutebrowser/browser/webengine/webview.py). It returns only additional suffixes for affected Qt versions. `WebEnginePage.chooseFiles` now deduplicates the original and extra suffixes and passes the merged list as the third argument to a single `super().chooseFiles(...)` call on the default path, without using instance state.
+
+Updated the [webview tests](/app/tests/unit/browser/webengine/test_webview.py). All 24 pass with `QT_QPA_PLATFORM=offscreen`; `git diff --check` also passes.

@@ -1,0 +1,3 @@
+VERDICT: ACCEPT
+Reviewed api/types/databaseserver.go, lib/reversetunnel/fake.go, lib/srv/db/proxyserver.go, tool/tsh/db.go and related tests. No correctness or regression issue found.
+Tests: (cd api && GOPROXY=off GOSUMDB=off go test ./types -run '^TestDatabaseServerOrderingAndDeduplication$' -count=1) passed; GOPROXY=off GOSUMDB=off go test ./lib/srv/db -run '^(TestDatabaseServiceFailover|TestAccessPostgres|TestAccessMySQL)$' -count=1 passed; GOPROXY=off GOSUMDB=off go test ./tool/tsh -run '^TestFetchDatabaseCreds$' -count=1 passed. Initial root invocation for ./api/types failed because api is a nested module; corrected command passed.

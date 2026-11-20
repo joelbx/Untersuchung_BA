@@ -1,0 +1,3 @@
+Updated U2F login to issue challenges for every registered key. The response keeps the legacy single challenge fields and adds a `challenges` list; the CLI can use either format. Web login now accepts a response from a second registered key. The `tsh mfa` command is hidden from help while device management remains in development.
+
+The new regression test failed before the fix and passed afterward. Compatibility, MFA management, web login, and affected package checks passed.

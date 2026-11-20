@@ -1,0 +1,3 @@
+Implemented `transformStyleAttributes` to change inline heights containing `vh` to `auto`, while preserving other declarations. It runs after `transformStylesheet` and before `transformRemote` in [transforms.ts](/app/applications/mail/src/app/helpers/transforms/transforms.ts:57). The helper is in [transformStyleAttributes.ts](/app/applications/mail/src/app/helpers/transforms/transformStyleAttributes.ts:1).
+
+All 5 existing transform suites passed (89 tests); targeted ESLint and Prettier checks passed. The app-wide TypeScript check stopped when Node hit its default heap limit.

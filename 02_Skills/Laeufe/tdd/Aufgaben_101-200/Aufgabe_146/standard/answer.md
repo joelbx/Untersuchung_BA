@@ -1,0 +1,3 @@
+Added `/proc/sysinfo` parsing in [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py) and connected it to the hardware facts returned by setup. When the file is absent, `get_sysinfo_facts()` returns `{}`; when present, it returns the five requested keys, removes leading zeros from the serial, and leaves undiscovered values as `NA`.
+
+The new tests failed before the implementation and pass now. The hardware suite passed (21 tests). The broader facts suite had 409 passes and one failure in the unrelated timeout test; the repository-wide suite did not complete. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

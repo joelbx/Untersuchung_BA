@@ -1,0 +1,3 @@
+Added `storage.readOnly` to backend configuration and metadata, with validation that rejects an explicit setting on non-database storage. The UI now derives read-only state from that flag, defaults non-database storage to read-only when it is absent, and shows a Read-Only badge with the active backend’s icon. Authentication bootstrap also skips the database connection when authentication is disabled and storage is not database-backed.
+
+The config, command, and schema tests pass. The full Go suite remains red because Redis tests require an unavailable Docker daemon. UI tests could not run because Node and npm are unavailable.

@@ -1,0 +1,3 @@
+Added the disabled `feature_poll_history` lab setting and a “Polls history” button to [RoomSummaryCard](/app/src/components/views/right_panel/RoomSummaryCard.tsx). When enabled, the button opens the new [PollHistoryDialog](/app/src/components/views/dialogs/polls/PollHistoryDialog.tsx) with the current `roomId`.
+
+The right panel test suite passes (3 tests), as do ESLint, Prettier, and Stylelint. Full type checking remains blocked by an existing `RoomState.findPredecessor` error in untouched [RoomCreate.tsx](/app/src/components/views/messages/RoomCreate.tsx:50).

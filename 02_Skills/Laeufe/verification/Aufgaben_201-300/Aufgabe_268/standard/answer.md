@@ -1,0 +1,3 @@
+Updated `_on_error` in [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) to show the capitalized process name, quoted command, error type, and process detail. Failed starts with “No such file or directory” or “Permission denied” also show the executable hint on non-Windows.
+
+Added coverage in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py). Verification: all 32 process tests passed, and `git diff --check` passed.

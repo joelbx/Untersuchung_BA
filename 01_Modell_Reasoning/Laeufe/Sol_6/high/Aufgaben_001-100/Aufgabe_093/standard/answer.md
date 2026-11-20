@@ -1,0 +1,3 @@
+Popper now reports RTL aware placement values: `top` and `bottom` swap `start` and `end` in RTL, while left, right, and all LTR placements stay unchanged. The new helper and Floating UI middleware are wired into `usePopper`’s reported placement in [usePopper.ts](/app/packages/components/components/popper/usePopper.ts) and exported from the Popper module.
+
+Verification passed: 33 Popper tests, the component TypeScript check, ESLint, and Prettier.

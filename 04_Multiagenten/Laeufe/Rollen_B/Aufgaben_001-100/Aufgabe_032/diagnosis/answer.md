@@ -1,0 +1,8 @@
+I found the likely fault locations, but did not edit project source or tests because this run is scoped to fault localization.
+
+- In [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py:39), `daemonize_self()` exits with plain text on fork failures. The setup and fatal error paths also produce records with different fields and omit the job ID.
+- In [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py:129), `_run_module()` writes a running record with `ansible_job_id`, then replaces it with a successful result that may lack that ID and explicit completion fields. The timeout supervisor kills the child and exits without writing a failed final record.
+- The existing `.tmp` file and rename protect normal writes, but the second file open occurs outside `_run_module()`’s error handling. A timeout writer would also need coordination with that path.
+- [async_status.py](/app/lib/ansible/modules/async_status.py:127) infers `finished=1` only when `started` is absent; final records that retain `started` therefore need an explicit `finished=1`.
+
+The fix should centralize JSON termination, keep one job ID and clear lifecycle fields in every record, write timeout details including the child PID, and apply atomic writes to every job-file update. The sole existing unit test covers successful execution and stderr; it passes, but does not exercise these failure paths. Diagnosis details are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

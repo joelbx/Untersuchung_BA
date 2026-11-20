@@ -1,0 +1,3 @@
+Fixed the current-device enrollment error path. When the device limit is reached, the fake service returns an `AccessDenied` error; `RunAdmin` preserves the registered device and `DeviceRegistered` outcome; and `printEnrollOutcome` handles a nil device without panicking. The new test confirms registration persists after the limit error and enrollment succeeds once the limit is cleared.
+
+`go test ./lib/devicetrust/enroll ./lib/devicetrust/testenv` and `git diff --check` passed. The `tsh` package compile was blocked by missing `linux/hidraw.h` and `gnu/libc-version.h` system headers. No delegation was used.

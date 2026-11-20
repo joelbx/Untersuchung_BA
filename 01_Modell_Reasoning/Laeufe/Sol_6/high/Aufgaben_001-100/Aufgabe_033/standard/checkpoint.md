@@ -1,0 +1,2 @@
+Task: Enable multi-device U2F authentication with backward-compatible challenge responses.
+Status: Complete. Server creates challenges for every U2F device; auth and web responses expose legacy fields plus the full list; CLI accepts both formats and signs any registered key. MFA management remains hidden. Auth and web multi-device tests pass. Full relevant package suite passes: go test ./lib/auth ./lib/client ./lib/web ./tool/tsh.

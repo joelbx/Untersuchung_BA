@@ -1,0 +1,3 @@
+Trivy scan results now store the OS version in `Release` and use the artifact name for `ServerName`, adding `:latest` for untagged container images. They no longer store `trivy-target` in `Optional`. The detector identifies Trivy results through `ScannedBy` and runs OVAL/GOST only when package detection is supported.
+
+Updated parser and detector tests pass: `go test ./contrib/trivy/parser/v2 ./detector`.

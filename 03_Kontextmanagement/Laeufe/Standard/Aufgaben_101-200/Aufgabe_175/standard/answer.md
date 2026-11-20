@@ -1,0 +1,3 @@
+Implemented native SQLite backups in `/app`: configuration for `backup.path`, `backup.schedule`, and `backup.count`; scheduled backup and retention pruning; and `backup create`, `backup prune`, and `backup restore` CLI commands with the required confirmations. Restore validates the backup before replacing the database. Added a backup and restore round-trip test.
+
+`GOTOOLCHAIN=local GOPROXY=off go test ./...` passes.

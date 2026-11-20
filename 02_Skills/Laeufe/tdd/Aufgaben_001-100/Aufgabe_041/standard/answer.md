@@ -1,0 +1,3 @@
+Moved list behavior into the `List` class in [lists/model.py](/app/openlibrary/core/lists/model.py:32), removed `ListMixin`, and added owner key validation and a [registration function](/app/openlibrary/core/lists/model.py:534) for `/type/list` and `'lists'`. Added regression tests that failed before the change.
+
+`pytest -q openlibrary` passed: 1,549 tests passed. Bare `pytest -q` could not collect tests because it registered `infogami/conftest.py` twice; the exact error is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

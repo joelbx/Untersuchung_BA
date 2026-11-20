@@ -1,0 +1,5 @@
+I traced the issue and recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). No project source or tests were changed; this task was scoped to fault localization.
+
+The likely change points are [loader.py](/app/lib/ansible/plugins/loader.py:430), where tombstones return a context without raising, lookup emits deprecation warnings directly, and `get()` discards resolution metadata; [errors/__init__.py](/app/lib/ansible/errors/__init__.py:279), where plugin exceptions have no context field; and [display.py](/app/lib/ansible/utils/display.py:257), where message formatting is embedded in `deprecated()`. The connection, action, and Jinja filter callers also need to consume or surface the new behavior.
+
+One interface detail needs care: the requirements say `get()` returns only the object, while failures should retain structured metadata. That implies `get()` returns `None` on lookup failure and `get_with_context()` exposes the failure context. Existing unit tests provide little coverage for routing and tombstones.

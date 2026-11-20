@@ -1,0 +1,3 @@
+Fixed `/lists/add` so a POST body is parsed as URL-encoded form data without merging query parameters. Defaults no longer conflict with indexed fields, invalid or empty seeds are skipped, and [unflatten()](/app/openlibrary/plugins/upstream/utils.py:269) now lets later assignments win. The request handling change is in [lists.py](/app/openlibrary/plugins/openlibrary/lists.py:52).
+
+Two native subagents implemented the parser and reconstruction changes; I integrated them and added regression tests. **38 relevant tests passed**, along with Ruff and `git diff --check`. The legacy `test_listapi.py` could not collect because it imports Python 2’s `cookielib`.

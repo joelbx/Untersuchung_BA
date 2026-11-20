@@ -1,0 +1,3 @@
+Refactored the XAttr helpers in the checkout’s [extendedAttributes.ts](/app/applications/drive/src/app/store/_links/extendedAttributes.ts). File creation now takes one `XAttrCreateParams` object, returns frozen attributes, and omits zero block remainders and absent digests. Parsing handles malformed or partial input without throwing. I added the public [DeepPartial type](/app/applications/drive/src/app/utils/type/DeepPartial.ts) and updated the [upload call site](/app/applications/drive/src/app/store/_uploads/worker/worker.ts).
+
+I delegated the call-site update, test update, and a read-only type audit, then integrated and verified the patch. The targeted XAttr suite passed (5 tests); Drive strict TypeScript, ESLint, Prettier, and `git diff --check` also passed.

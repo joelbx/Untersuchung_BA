@@ -1,0 +1,3 @@
+Updated image configuration and scan results to carry a digest. Validation now requires a name and exactly one of tag or digest. Scanning and logging use `name:tag` or `name@digest`, image scan server names omit both identifiers, and reporting UUID identifiers include the full image reference followed by `@serverName`.
+
+Added focused tests for validation, scan result conversion, and report naming. The `config`, `scan`, and `report` suites pass with vet disabled. The full `models` suite remains blocked by an existing vulnerability database dependent test; the other `models` tests pass. The normal test command also encounters existing vet errors in `models/library.go`. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

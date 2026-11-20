@@ -1,0 +1,3 @@
+Updated list removal in Redis, MongoDB, and PostgreSQL to accept multiple distinct strings in one call. The added test confirms that requested values are removed, the remaining order is preserved, and a read immediately after completion returns the updated list.
+
+Verification: all 20 list tests passed against Redis; lint and `git diff --check` passed. MongoDB and PostgreSQL integration tests were not run.

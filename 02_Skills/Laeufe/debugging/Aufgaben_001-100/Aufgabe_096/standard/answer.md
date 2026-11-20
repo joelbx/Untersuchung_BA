@@ -1,0 +1,3 @@
+Fixed `atomic_move()` so newly created files use `_DEFAULT_PERM = 0600` with the current umask. Modules that accept `mode` now record newly created paths when it is omitted, emit the specified warning during result formatting, and clear the warning when `set_mode_if_different()` is called for that path.
+
+Verification: 66 focused tests passed. The broader basic/common suite passed with isolated test processes: 1,053 passed, 14 skipped.

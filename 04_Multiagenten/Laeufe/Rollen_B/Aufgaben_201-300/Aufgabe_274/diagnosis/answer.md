@@ -1,0 +1,5 @@
+The issue is localized to [configdata.yml](/app/qutebrowser/config/configdata.yml:388), where the setting is a Boolean with default `true`, and [qtargs.py](/app/qutebrowser/config/qtargs.py:276), where the argument builder does not pass version context to the settings resolver. The mapping at [qtargs.py](/app/qutebrowser/config/qtargs.py:327) also has only Boolean keys and no callable resolution.
+
+The fix should make the schema a string enum defaulting to `auto`, pass `versions`, `namespace`, and `special_flags` into `_qtwebengine_settings_args`, and resolve `auto` to `always` only for runtime Qt 6 with a known Chromium major below 111. Existing version data maps Qt 6.5 to Chromium 108 and Qt 6.6 to 112. One integration uncertainty remains: [_qtwebengine_features](/app/qutebrowser/config/qtargs.py:87) asserts that the Chromium major is known, so the full `qt_args` path may fail before the resolver handles an unknown version.
+
+I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). This specialist pass was restricted to diagnosis; project source and tests were not changed, and tests were not run.

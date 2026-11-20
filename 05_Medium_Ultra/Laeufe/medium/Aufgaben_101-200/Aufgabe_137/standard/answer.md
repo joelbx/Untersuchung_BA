@@ -1,0 +1,3 @@
+Added `SamplingRatio` and `Propagators` to [tracing configuration](/app/internal/config/tracing.go:17), with the required defaults, allowed values, and exact validation errors. Updated [the default config](/app/internal/config/config.go:558) and [schema](/app/config/flipt.schema.json:941). Tests confirm that loading preserves an explicit `samplingRatio` of 0.5.
+
+`go test ./internal/config` and `git diff --check` pass.

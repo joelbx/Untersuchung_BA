@@ -1,0 +1,3 @@
+Implemented the Python 3.12 controller minimum and updated packaging metadata, ansible-test’s controller versions, compatibility code, and the changelog. Collection directory extraction now passes `dirname` unchanged to `TarFile.getmember()` and raises the requested error when the member is missing. Added focused tests for argument forwarding and the error message.
+
+`compileall` and `git diff --check` passed. The focused pytest run could not collect tests because the environment runs Python 3.11.13 and the new controller guard exits as intended. A stdlib check also confirmed that `getmember()` itself accepts a trailing slash, so the test checks unchanged forwarding directly.

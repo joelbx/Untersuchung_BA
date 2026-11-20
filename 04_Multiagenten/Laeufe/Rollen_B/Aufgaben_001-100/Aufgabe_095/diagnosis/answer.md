@@ -1,0 +1,3 @@
+The issue is localized to [checkins.py](/app/openlibrary/plugins/upstream/checkins.py:17). `make_date_string` exists only as a `check_ins` instance method, so the required module-level import is unavailable. This checkout also has no `patron_check_ins` class or update handler in which to validate `id` and at least one of `year` or `data`.
+
+The existing tests cover creation only; all 5 pass. Update route behavior and ownership checks remain unverified. I recorded the findings in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). This run was restricted to fault localization, so I did not edit project source or tests.

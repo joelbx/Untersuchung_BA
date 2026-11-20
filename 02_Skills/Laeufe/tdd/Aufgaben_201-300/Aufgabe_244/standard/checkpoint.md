@@ -1,0 +1,9 @@
+# Checkpoint
+
+Investigating dark-mode threshold option and QtWebEngine version mapping. The `rg` utility is unavailable (`/bin/bash: rg: command not found`), so local searches use `grep`.
+
+Red tests confirmed the missing public option and missing saved-config migration. The first `pytest -q tests/unit/browser/webengine/test_darkmode.py::test_foreground_threshold_key tests/unit/config/test_configfiles.py::TestYamlMigrations::test_darkmode_text_threshold_renamed` aborted in `pytestqt/plugin.py` while creating `qapp` because the environment has no display. Setting `QT_QPA_PLATFORM=offscreen` allowed the same tests to run and fail for the expected assertions. After the patch, the three affected test files passed: 299 passed, 1 skipped.
+
+Implementation: `threshold.foreground` is the public Int option with default 256; YAML migration maps `threshold.text` to it. Dark-mode definitions emit `TextBrightnessThreshold` before QtWebEngine 6.4 and `ForegroundBrightnessThreshold` from 6.4 onward. The setting reference was regenerated.
+
+Repository suite check: `QT_QPA_PLATFORM=offscreen pytest -q` encountered repeated end-to-end setup errors in `tests/end2end/test_adblock_e2e.py::test_adblock[auto]` and `tests/end2end/test_hints_html.py` because the browser child process exits with `Running as root without --no-sandbox is not supported`; the run was stopped after this repeated environment failure. The separate command `QT_QPA_PLATFORM=offscreen QTWEBENGINE_DISABLE_SANDBOX=1 pytest -q tests/unit --tb=short -x` stopped at `tests/unit/browser/test_caret.py::test_toggle[webengine]` after 132 passed and 11 skipped; pytest-qt rejected the offscreen platform warning `This plugin does not support propagateSizeHints()`. These failures do not exercise the changed dark-mode mapping. `git diff --check` passed.

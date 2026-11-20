@@ -1,0 +1,5 @@
+The validation gap is in [authentication.go](/app/internal/config/authentication.go:405): OIDC validation always succeeds, while [GitHub validation](/app/internal/config/authentication.go:484) checks only `read:org` and returns an error without the required provider and field names.
+
+Startup already returns configuration errors: [Load](/app/internal/config/config.go:175) runs the authentication validator, and [buildConfig](/app/cmd/flipt/main.go:199) propagates its error. The fix should validate all three credentials for each enabled method, use `github` or the exact OIDC provider map key in each message, and preserve the scope rule with the specified message.
+
+The existing [GitHub scope test](/app/internal/config/config_test.go:449) expects the old message. Its fixture also lacks credentials, so it needs complete credentials to test the scope failure specifically. I did not modify project source or tests or run tests; this run was restricted to fault localization.

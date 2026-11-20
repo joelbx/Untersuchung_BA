@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts) to use enum based anonymity, enforce DNT, validate configuration, guard and await tracking, hash user and room IDs, redact URLs by privacy mode, and reset PostHog on logout. Added regression coverage in [PosthogAnalytics-test.ts](/app/test/PosthogAnalytics-test.ts).
+
+The targeted suite passes (17 tests), as do lint and `git diff --check`. The full TypeScript check remains blocked by existing errors in unrelated source files and missing declarations in installed dependencies.

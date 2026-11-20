@@ -1,0 +1,3 @@
+Implemented `Path` and typed-list parsing in [fn_to_cli.py](/app/scripts/solr_builder/solr_builder/fn_to_cli.py). Required lists are positional; optional lists use `--<parameter_name>`, and omitted optional lists remain `None`. The parser accepts an explicit `args` sequence, and `run()` returns sync and async results. Hyphenated options remain accepted as compatibility aliases.
+
+Verification: the focused existing tests passed (4 tests), and smoke checks passed for positional `list[int]`, optional `list[Path]`, and sync/async return values.

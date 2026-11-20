@@ -1,0 +1,3 @@
+Adjacent search results now merge into one timeline when their boundary event IDs match. The merged tile renders the shared event once, highlights each direct match, and links each match to its own event. Separate results remain separate.
+
+Updated [RoomSearchView.tsx](/app/src/components/structures/RoomSearchView.tsx:217) and [SearchResultTile.tsx](/app/src/components/views/rooms/SearchResultTile.tsx:60). All 10 focused tests pass; TypeScript, ESLint, Prettier, and `git diff --check` pass.

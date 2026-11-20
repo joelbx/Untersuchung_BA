@@ -1,0 +1,3 @@
+JWT-only authentication now starts without opening an authentication database when flag storage uses Local, Git, OCI, or another non-database backend. [Authentication config](/app/internal/config/authentication.go) declares each method’s database requirement; [startup](/app/internal/cmd/authn.go) uses it to choose the auth store, and [cleanup](/app/internal/cleanup/cleanup.go) skips disabled methods and methods that do not require a database.
+
+Regression tests cover the method requirements, cleanup behavior, and JWT startup with an invalid database URL. `go test ./internal/config ./internal/cmd ./internal/cleanup` passes.

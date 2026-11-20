@@ -1,0 +1,3 @@
+Updated public pages to select the persisted session with the highest `persistedAt` and use that same session’s UID and localID for metrics, resuming, SRP, and telemetry. Successful resumption now updates authentication and user state. Invalid session data is reported, and unreadable or malformed storage returns null. Removed the old lookup helpers and `LAST_ACTIVE_PING` dependency.
+
+Verification: 13 focused tests pass; formatting and ESLint pass with one existing hook warning. The full type check still fails at `packages/crypto/lib/worker/api.ts:579` because two installed OpenPGP type copies conflict. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

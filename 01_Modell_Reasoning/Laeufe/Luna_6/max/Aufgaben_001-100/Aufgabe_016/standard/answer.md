@@ -1,0 +1,3 @@
+Implemented host-scoped scheduling and added the asyncio monitoring scheduler, Docker service IP lookup, and HAProxy-to-Graphite collector in [utils.py](/app/scripts/monitoring/utils.py), [monitor.py](/app/scripts/monitoring/monitor.py), and [haproxy_monitor.py](/app/scripts/monitoring/haproxy_monitor.py).
+
+Validation passed: the monitoring suite (5 tests), Ruff, compilation, and `git diff --check`. The tests required `PYTHONPATH=.` for imports.

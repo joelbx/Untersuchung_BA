@@ -1,0 +1,3 @@
+Resolved the YAML validation error reporting issue in [validate.go](/app/internal/cue/validate.go). Validation now returns all findings with field paths, specific messages, and positions from the original YAML. The command emits structured JSON or readable text and exits with a validation failure signal.
+
+The relevant tests passed, a command-level JSON check returned exit status 1 with the rollout field and its source position, and `git diff --check` passed.

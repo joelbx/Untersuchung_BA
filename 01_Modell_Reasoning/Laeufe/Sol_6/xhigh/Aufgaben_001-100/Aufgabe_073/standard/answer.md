@@ -1,0 +1,3 @@
+Amazon imports now include unique language display values from edition metadata, excluding entries marked “Original Language.” The `languages` key is omitted when no values remain, and [the load cleanup helper](/app/openlibrary/core/vendors.py:485) preserves it.
+
+[Vendor tests](/app/openlibrary/tests/core/test_vendors.py:372) cover extraction, deduplication, exclusion, and empty metadata. All 37 tests pass; Ruff lint and `git diff --check` pass. Ruff formatting differences also exist in the checked-in versions of both files.

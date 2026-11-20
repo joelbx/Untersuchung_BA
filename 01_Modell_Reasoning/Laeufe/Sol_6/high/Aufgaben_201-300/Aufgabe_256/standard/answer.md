@@ -1,0 +1,3 @@
+Fixed the invalid `hosts` crash in [play.py](/app/lib/ansible/playbook/play.py). `Play.load` no longer changes `name`; `get_name` derives it dynamically, and `_validate_hosts` raises the specified parser errors when `hosts` is present but invalid.
+
+Updated the [unit tests](/app/test/units/playbook/test_play.py) and [integration assertion](/app/test/integration/targets/playbook/runme.sh). All 249 playbook unit tests passed. A CLI check of an empty `hosts` list produced the expected error message.

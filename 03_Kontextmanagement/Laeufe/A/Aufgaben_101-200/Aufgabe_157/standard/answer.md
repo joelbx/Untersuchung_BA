@@ -1,0 +1,3 @@
+Added `@proton/metrics` to the mail package manifest and lockfile. The new [mail metrics helpers](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts) return `custom` for user labels and folders, preserve built-in mailbox IDs, and normalize page sizes to `"50"`, `"100"`, or `"200"` with `"50"` as the default.
+
+Verification passed: 2 helper tests, the mail TypeScript check, and formatting checks.

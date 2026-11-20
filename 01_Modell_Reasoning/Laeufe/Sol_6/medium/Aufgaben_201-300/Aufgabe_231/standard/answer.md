@@ -1,0 +1,3 @@
+Updated [db.go](/app/detector/vuls2/db.go) to check schema versions before deciding whether to skip or download an existing Vuls2 database. A mismatch now forces a download, or returns a path-bearing error when `SkipUpdate` is enabled. The connection also validates metadata and schema version before use.
+
+Added regression tests in [db_test.go](/app/detector/vuls2/db_test.go). `GOPROXY=off go test ./detector/vuls2` and `git diff --check` passed.

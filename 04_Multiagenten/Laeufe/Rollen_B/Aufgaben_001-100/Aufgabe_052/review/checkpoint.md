@@ -1,0 +1,4 @@
+VERDICT: FIX
+CODE_DEFECT: lib/ai/model/agent.go:374-385 returns a StreamingMessage while further deltas may arrive; lib/ai/model/tokencount.go:29-32,134-153 freezes the asynchronous completion counter on CountAll and ignores later text. Calling CountAll on the count returned by Chat.Complete before draining Parts permanently underreports completion tokens. Ensure the public total remains accurate through stream completion, with an explicit completion point for finalization.
+TEST_ENVIRONMENT_PROBLEM: GOPROXY=off GOSUMDB=off go test ./lib/assist ./lib/web -run 'TestChatComplete|Test_runAssistant' -count=1 exited 1 (both packages build failed): missing linux/hidraw.h and gnu/libc-version.h, and SQLite C compilation lacks pread64/pwrite64/off64_t. Supply matching native headers/toolchain in test environment and rerun.
+PASS: GOPROXY=off GOSUMDB=off go test ./lib/ai/model ./lib/ai exited 0; both packages passed.

@@ -1,0 +1,3 @@
+Popper now reports placement that matches the visible edge in RTL layouts. `getInvertedRTLPlacement` swaps `start` and `end` for top and bottom placements; [RTL middleware](/app/packages/components/components/popper/utils.ts) reads the floating element’s direction, and [usePopper](/app/packages/components/components/popper/usePopper.ts) exposes the adjusted placement. LTR and left/right placements remain unchanged.
+
+Verification: 9 Popper tests pass, including a hook integration test. TypeScript, ESLint, Prettier, and `git diff --check` pass.

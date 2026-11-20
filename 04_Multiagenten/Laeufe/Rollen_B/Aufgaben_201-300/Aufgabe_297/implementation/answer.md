@@ -1,0 +1,3 @@
+Implemented reverse proxy login in `/app`. A configured CIDR whitelist now gates authentication using the connection’s original peer address, including IPv6 and the `@` Unix socket value. Trusted requests can use `ReverseProxyUserHeader` (default `Remote-User`) or an optional `ReverseProxyDefaultUser`. The first proxy user becomes admin; successful logins update `LastLoginAt` and send a token and Subsonic credentials for the UI to store. Untrusted requests receive no `auth` payload. Log redaction now covers nested map values and serialized auth fields.
+
+Verification passed: focused Go tests, UI formatting check, and `git diff --check`.

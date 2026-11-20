@@ -1,0 +1,3 @@
+Expanded MARC contributor role mapping in [parse.py](/app/openlibrary/catalog/marc/parse.py). The parser now reads `$e` and `$4`, gives `$4` precedence, and omits unrecognized roles. [new_work](/app/openlibrary/catalog/add_book/__init__.py) preserves each parsed role with its author in order and raises an exception when the edition and record author counts differ.
+
+Updated the relevant tests and MARC expectations. **Verification:** 162 tests passed; Ruff passed.

@@ -1,0 +1,3 @@
+Updated the WebKit certificate wrapper to accept named `reply` and `errors` arguments without accessing the reply during construction. Regression tests confirm that single errors render as paragraphs, multiple errors as lists, and special characters are HTML escaped. Added certificate decision methods and Qt 5/Qt 6 WebEngine wrappers, and connected them to the WebEngine call sites.
+
+The relevant suites passed: **255 passed, 15 skipped, 11 expected failures**. The full suite could not complete because of an existing missing pytest marker and a Chromium root sandbox failure. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

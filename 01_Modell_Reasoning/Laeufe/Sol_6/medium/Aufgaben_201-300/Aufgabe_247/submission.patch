@@ -1,0 +1,168 @@
+diff --git a/public/src/client/topic/votes.js b/public/src/client/topic/votes.js
+index 6f4c624..7a59207 100644
+--- a/public/src/client/topic/votes.js
++++ b/public/src/client/topic/votes.js
+@@ -50,6 +50,7 @@ define('forum/topic/votes', [
+ 			el.attr('title', title);
+ 			(new bootstrap.Tooltip(el, {
+ 				container: '#content',
++				html: true,
+ 			})).show();
+ 		}
+ 		let usernames = data.usernames
+@@ -57,7 +58,7 @@ define('forum/topic/votes', [
+ 		if (!usernames.length) {
+ 			return;
+ 		}
+-		if (usernames.length + data.otherCount > 6) {
++		if (usernames.length + data.otherCount > data.cutoff) {
+ 			usernames = usernames.join(', ').replace(/,/g, '|');
+ 			translator.translate('[[topic:users_and_others, ' + usernames + ', ' + data.otherCount + ']]', function (translated) {
+ 				translated = translated.replace(/\|/g, ',');
+diff --git a/src/socket.io/posts/votes.js b/src/socket.io/posts/votes.js
+index 0ecd819..4887a86 100644
+--- a/src/socket.io/posts/votes.js
++++ b/src/socket.io/posts/votes.js
+@@ -39,23 +39,35 @@ module.exports = function (SocketPosts) {
+ 		if (!Array.isArray(pids)) {
+ 			throw new Error('[[error:invalid-data]]');
+ 		}
++		const cids = await posts.getCidsByPids(pids);
++		if (!await user.isAdministrator(socket.uid)) {
++			const allowed = await privileges.categories.isUserAllowedTo('topics:read', cids, socket.uid);
++			if (!allowed.every(Boolean)) {
++				throw new Error('[[error:no-privileges]]');
++			}
++		}
++
+ 		const data = await posts.getUpvotedUidsByPids(pids);
+ 		if (!data.length) {
+ 			return [];
+ 		}
+ 
+-		const result = await Promise.all(data.map(async (uids) => {
++		const cutoff = 6;
++		const truncated = data.map((uids) => {
+ 			let otherCount = 0;
+-			if (uids.length > 6) {
+-				otherCount = uids.length - 5;
+-				uids = uids.slice(0, 5);
++			if (uids.length > cutoff) {
++				otherCount = uids.length - (cutoff - 1);
++				uids = uids.slice(0, cutoff - 1);
+ 			}
+-			const usernames = await user.getUsernamesByUids(uids);
+-			return {
+-				otherCount: otherCount,
+-				usernames: usernames,
+-			};
++			return { uids, otherCount };
++		});
++		const uniqueUids = [...new Set(truncated.flatMap(({ uids }) => uids))];
++		const usernames = await user.getUsernamesByUids(uniqueUids);
++		const uidToUsername = new Map(uniqueUids.map((uid, index) => [uid, usernames[index]]));
++		return truncated.map(({ uids, otherCount }) => ({
++			cutoff,
++			otherCount,
++			usernames: uids.map(uid => uidToUsername.get(uid)),
+ 		}));
+-		return result;
+ 	};
+ };
+diff --git a/test/posts.js b/test/posts.js
+index ef4069e..abde2cb 100644
+--- a/test/posts.js
++++ b/test/posts.js
+@@ -210,12 +210,91 @@ describe('Post\'s', () => {
+ 		it('should get upvoters', (done) => {
+ 			socketPosts.getUpvoters({ uid: globalModUid }, [postData.pid], (err, data) => {
+ 				assert.ifError(err);
++				assert.equal(data[0].cutoff, 6);
+ 				assert.equal(data[0].otherCount, 0);
+-				assert.equal(data[0].usernames, 'upvoter');
++				assert.deepStrictEqual(data[0].usernames, ['upvoter']);
+ 				done();
+ 			});
+ 		});
+ 
++		it('should require read access to every category before returning upvoters', async () => {
++			const publicCategory = await categories.create({ name: 'Readable upvoters category' });
++			const publicTopic = await topics.post({
++				uid: voteeUid,
++				cid: publicCategory.cid,
++				title: 'Readable upvoters topic',
++				content: 'Readable post',
++			});
++			const publicPid = publicTopic.postData.pid;
++			await db.setAdd(`pid:${publicPid}:upvote`, voterUid);
++			await privileges.categories.rescind(['groups:topics:read'], cid, 'guests');
++			try {
++				const publicData = await socketPosts.getUpvoters({ uid: 0 }, [publicPid]);
++				assert.deepStrictEqual(publicData[0].usernames, ['upvoter']);
++
++				await assert.rejects(
++					socketPosts.getUpvoters({ uid: 0 }, [publicPid, postData.pid]),
++					{ message: '[[error:no-privileges]]' }
++				);
++				await assert.rejects(
++					socketPosts.getUpvoters({ uid: 0 }, [postData.pid]),
++					{ message: '[[error:no-privileges]]' }
++				);
++
++				const adminUid = await user.create({ username: 'upvoters-admin' });
++				await groups.join('administrators', adminUid);
++				const adminData = await socketPosts.getUpvoters({ uid: adminUid }, [publicPid, postData.pid]);
++				assert.deepStrictEqual(adminData.map(item => item.usernames), [['upvoter'], ['upvoter']]);
++			} finally {
++				await privileges.categories.give(['groups:topics:read'], cid, 'guests');
++			}
++		});
++
++		it('should truncate upvoters and resolve each displayed user only once', async () => {
++			const cutoffTopic = await topics.post({
++				uid: voteeUid,
++				cid,
++				title: 'Upvoter cutoff topic',
++				content: 'First post',
++			});
++			const secondPost = await topics.reply({
++				uid: voteeUid,
++				tid: cutoffTopic.topicData.tid,
++				content: 'Another post',
++			});
++			const uids = await Promise.all(Array.from({ length: 7 }, (_, index) => user.create({
++				username: `upvoters-cutoff-${index}`,
++			})));
++			await Promise.all([cutoffTopic.postData.pid, secondPost.pid].map(pid => db.setAdd(`pid:${pid}:upvote`, uids)));
++			const originalLookup = user.getUsernamesByUids;
++			let lookedUpUids;
++			let lookupCount = 0;
++			user.getUsernamesByUids = async function (requestedUids) {
++				lookupCount += 1;
++				lookedUpUids = requestedUids;
++				return await originalLookup(requestedUids);
++			};
++			try {
++				const pids = [cutoffTopic.postData.pid, secondPost.pid];
++				const voteUids = await posts.getUpvotedUidsByPids(pids);
++				const result = await socketPosts.getUpvoters({ uid: globalModUid }, pids);
++				assert.equal(lookupCount, 1);
++				assert.equal(new Set(lookedUpUids).size, lookedUpUids.length);
++				assert.deepStrictEqual(lookedUpUids, [...new Set(voteUids.flatMap(votes => votes.slice(0, 5)))]);
++				assert.equal(result.length, 2);
++				result.forEach((item, index) => {
++					assert.equal(item.cutoff, 6);
++					assert.equal(item.otherCount, voteUids[index].length - 5);
++					const expectedUsernames = voteUids[index].slice(0, 5).map(
++						uid => `upvoters-cutoff-${uids.indexOf(parseInt(uid, 10))}`
++					);
++					assert.deepStrictEqual(item.usernames, expectedUsernames);
++				});
++			} finally {
++				user.getUsernamesByUids = originalLookup;
++			}
++		});
++
+ 		it('should unvote a post', async () => {
+ 			const result = await apiPosts.unvote({ uid: voterUid }, { pid: postData.pid, room_id: 'topic_1' });
+ 			assert.equal(result.post.upvotes, 0);

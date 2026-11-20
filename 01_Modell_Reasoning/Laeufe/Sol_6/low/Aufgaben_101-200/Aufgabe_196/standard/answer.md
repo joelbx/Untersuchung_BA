@@ -1,0 +1,3 @@
+Updated the assistant upsell flows to use the shared Scribe addon resolver and build `planIDs` consistently. Both paid flows now include the selected plan and add a Scribe addon only when the resolver returns one. Shared symbols are exported and imported through the payments/core entrypoint.
+
+The assistant upsell test suite passed: **11 tests**, including new cases for plans without a Scribe addon.

@@ -1,0 +1,3 @@
+Updated [RoomSearchView.tsx](/app/src/components/structures/RoomSearchView.tsx) to merge adjacent search results that share a boundary event into one timeline. [SearchResultTile.tsx](/app/src/components/views/rooms/SearchResultTile.tsx) now highlights each direct match and links it to its own event ID. Non-overlapping results still render separately.
+
+Verification passed: 11 relevant Jest tests, TypeScript, ESLint, Prettier, and `git diff --check`.

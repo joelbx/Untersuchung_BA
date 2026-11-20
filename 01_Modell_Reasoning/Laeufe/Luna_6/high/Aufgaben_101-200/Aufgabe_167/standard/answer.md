@@ -1,0 +1,3 @@
+Implemented OCI backed snapshot storage with context aware `Get` methods across all sources. The OCI source caches snapshots by digest, polls for changes, reopens local layouts on every fetch, and handles namespace annotations and gzip encoded layers. OCI storage is wired into server configuration.
+
+Verification passed: `go test ./internal/storage/fs/... ./internal/oci ./internal/cmd` and `git diff --check`.

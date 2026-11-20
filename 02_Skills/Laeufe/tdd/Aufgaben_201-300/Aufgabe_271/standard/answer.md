@@ -1,0 +1,3 @@
+Fixed IA imports so a publisher value such as `London ; New York ; Paris : Berlitz Publishing` produces three `publish_places` and `["Berlitz Publishing"]` in `publishers`. The import preserves publisher names supplied without a location. ISBN classification now lives in [isbn.py](/app/openlibrary/utils/isbn.py) and uses trimmed string length.
+
+The new regression tests failed before the fix and pass now. `pytest -q openlibrary` passed: 1354 passed. The broader Makefile test command had one collection error: a script test tried to fetch an external schema and received a proxy 403. I recorded that limit in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

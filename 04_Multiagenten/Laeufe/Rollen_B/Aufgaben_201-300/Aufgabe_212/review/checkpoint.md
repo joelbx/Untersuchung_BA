@@ -1,0 +1,2 @@
+VERDICT: ACCEPT
+Reviewed detector/wordpress.go and detector/wordpress_test.go against the WPScan ingestion requirements. No confirmed code defect found. Focused existing tests passed: GOPROXY=off GOSUMDB=off go test -mod=readonly ./detector -run 'Test(ConvertToVinfos|DetectWordPress|RemoveInactive)' -count=1. Full detector package tests passed: GOPROXY=off GOSUMDB=off go test -mod=readonly ./detector -count=1. No test environment problem. No project code changed during review.

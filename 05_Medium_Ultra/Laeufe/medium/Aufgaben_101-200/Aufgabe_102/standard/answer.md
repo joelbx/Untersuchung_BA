@@ -1,0 +1,3 @@
+Added the Linux `locally_reachable_ips` fact in [linux.py](/app/lib/ansible/module_utils/facts/network/linux.py). It exposes `ipv4` and `ipv6` lists from local routes with host scope, with canonicalized, deduplicated, consistently ordered entries. If the `ip` command or a route query is unavailable, the affected list is empty and fact gathering emits a concise warning.
+
+Added unit coverage in [test_linux.py](/app/test/units/module_utils/facts/network/test_linux.py). All 9 network fact unit tests pass; `git diff --check` passes.

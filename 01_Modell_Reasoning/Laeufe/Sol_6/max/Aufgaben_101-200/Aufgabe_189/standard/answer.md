@@ -1,0 +1,3 @@
+Moved MIME suffix resolution to [extra_suffixes_workaround](/app/qutebrowser/browser/webengine/webview.py:36). [chooseFiles](/app/qutebrowser/browser/webengine/webview.py:287) now deduplicates the original entries and extras, then passes the merged list as the third positional argument in one superclass call.
+
+The [webview tests](/app/tests/unit/browser/webengine/test_webview.py:112) cover version boundaries, wildcard MIME types, duplicates, iterator inputs, and calling without an instance. All 26 passed; `git diff --check` passed. `flake8` was unavailable.

@@ -1,0 +1,6 @@
+Task: support minimal collection manifest configuration and Sentinel absence handling.
+Status: implemented. Missing manifest metadata uses Sentinel; explicit empty/null manifest selects the manifest builder; Sentinel selects the walk builder and preserves ignore patterns. Walk builder skips file and directory symlinks outside the collection.
+Verification:
+- `PYTHONPATH=lib pytest -q test/units/galaxy` — 213 passed.
+- `PYTHONPATH=lib pytest -q` — interrupted after 35.84s, with 39 failed, 66 passed, 61 errors, 234 rerun. Errors include `test/ansible_test/unit/test_diff.py` (`ImportError: cannot import name 'to_text'`), `test/ansible_test/validate-modules-unit/test_validate_modules_regex.py` (`ModuleNotFoundError: validate_modules`), and integration collection imports missing `ansible_collections.ns`. CLI tests also failed in `test/units/cli/test_cli.py` and `test/units/cli/test_galaxy.py`. Full-suite status remains uncertain because collection includes integration fixtures and unrelated environment-dependent tests.
+- `python -c 'import distlib; print(distlib.__version__)'` — `ModuleNotFoundError: No module named 'distlib'`. Real distlib manifest generation for explicit `{}` and `null` could not be checked locally; dispatch is covered by unit tests with `HAS_DISTLIB=False`.

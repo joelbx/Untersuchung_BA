@@ -1,0 +1,3 @@
+Added `@proton/metrics` to the mail app’s [manifest](/app/applications/mail/package.json) and [lockfile](/app/yarn.lock). The new [mail metrics helper](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts) returns `custom` for user labels and folders, preserves built-in mailbox IDs, and converts page sizes to `50`, `100`, or `200`, defaulting to `50` when the setting is missing or invalid.
+
+Verification passed: 40 tests across the helper, label, and paging suites; TypeScript, ESLint, Prettier, and `git diff --check`.

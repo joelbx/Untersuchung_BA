@@ -1,0 +1,3 @@
+Collection names now return `False` when either segment is a Python keyword or an invalid identifier. Galaxy requirement parsing and collection-reference validation use the same check. The legacy helpers and their Python 2/3 compatibility block were removed from [dataclasses.py](/app/lib/ansible/galaxy/dependency_resolution/dataclasses.py:212).
+
+Two subagents audited callers and tests; one added regression tests, which I integrated. **Verification passed:** 80 collection-loader, 114 Galaxy CLI, and 30 collection-install tests. The Python 2 fallback was checked locally, but not on a Python 2 interpreter.

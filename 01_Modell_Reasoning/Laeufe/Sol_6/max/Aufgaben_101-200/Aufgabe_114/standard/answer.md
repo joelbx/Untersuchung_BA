@@ -1,0 +1,3 @@
+Artist image lookup now checks for `artist.*` in the folder derived from the artist’s albums before trying album image files, URLs, or the placeholder. Albums persist their unique media directories, including a migration that backfills existing records. Artist cache keys track local image changes, and each lookup attempt logs its duration.
+
+Relevant tests passed: `go test ./model ./core/artwork ./scanner ./persistence ./db ./db/migration`.

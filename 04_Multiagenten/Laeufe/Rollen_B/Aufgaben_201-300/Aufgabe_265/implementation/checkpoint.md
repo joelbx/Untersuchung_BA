@@ -1,0 +1,1 @@
+Implemented hue-aware scaling (359 for HSV hue, 255 otherwise), exact 100% conversion, and function name/count validation before value parsing. Updated QtColor tests for HSV/HSVA boundaries, RGB/A behavior, and invalid forms. Focused tests: 36 passed with pytest -q -o addopts=\x27\x27 tests/unit/config/test_configtypes.py -k TestQtColor. git diff --check passed.

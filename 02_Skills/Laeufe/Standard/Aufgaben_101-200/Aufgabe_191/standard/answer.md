@@ -1,0 +1,3 @@
+Added a registration token entry view to InteractiveAuth for both the stable and unstable Matrix stage identifiers. It shows the required field and help text, supports Enter and button submission, prevents duplicate requests while busy, and displays stage errors. The flow sends the server’s advertised type and token; the SDK adds the session and preserves the completion callback data.
+
+The focused InteractiveAuth, dialog, and registration suites pass (8 tests total). ESLint and Prettier pass. The repository-wide TypeScript check remains blocked by 50 unrelated Sliding Sync errors; it reports none in the changed files.

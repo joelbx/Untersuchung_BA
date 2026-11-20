@@ -1,0 +1,2 @@
+Task: Align voice broadcast playback liveness with broadcast info state.
+Status: Complete. Added info-state liveness utility; playback now updates liveness only in setInfoState. Voice broadcast Jest suite passes (29 suites, 263 tests), as do targeted ESLint and Prettier checks. Repository TypeScript check reports five pre-existing errors outside changed files (MatrixChat, clientInformation, DeviceListener).

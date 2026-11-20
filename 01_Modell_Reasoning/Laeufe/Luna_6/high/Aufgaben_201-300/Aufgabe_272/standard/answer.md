@@ -1,0 +1,5 @@
+Implemented cipher configuration across `get_url`, `uri`, `lookup('url')`, and the shared `fetch_url` → `open_url` → `Request` stack. Added public `make_context` and `get_ca_certs` helpers, list and OpenSSL string support, and clear errors for invalid cipher values. Cipher settings carry through redirects, proxies, and Unix socket HTTPS. Certificate verification stays enabled by default; disabling it still excludes SSLv2 and SSLv3.
+
+`git diff --check` and Python compilation pass. The URL utility and lookup suites report **108 passed** when excluding 12 tests by name; a full run showed three failures because existing assertions expect `ciphers` to be omitted, contrary to the requirement to pass `None` explicitly.
+
+Changed files: [urls.py](/app/lib/ansible/module_utils/urls.py), [get_url.py](/app/lib/ansible/modules/get_url.py), [uri.py](/app/lib/ansible/modules/uri.py), [url.py](/app/lib/ansible/plugins/lookup/url.py).

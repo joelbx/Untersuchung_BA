@@ -1,0 +1,3 @@
+Implemented in [recipient.ts](/app/packages/shared/lib/mail/recipient.ts): added `splitBySeparator` to split on commas and semicolons, trim tokens, remove angle brackets, and discard empty tokens. Bare bracketed emails now produce matching `Name` and `Address`; named recipients retain their display name.
+
+Type check and lint passed. The shared test suite bundled, but couldn’t run because the configured Playwright Chromium binary is missing.

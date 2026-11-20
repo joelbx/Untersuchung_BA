@@ -1,0 +1,3 @@
+Implemented message-scoped link and image placeholders and passed `messageID` through assistant preparation, preview, and editor insertion. Unmatched links now leave their visible text; unmatched images are removed. The conversion path also preserves `<a>` and `<img>` class and style, repairs nested lists, and renders Markdown lists.
+
+All 16 tests in the four focused suites pass, and `git diff --check` passes. The mail type check is blocked by an unrelated OpenPGP type conflict in `packages/crypto/lib/worker/api.ts`.

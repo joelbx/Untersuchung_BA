@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to use resolved `get_option()` values for command construction, transfers, retries, and persistent connection settings. Reset now checks for an active socket with the effective SSH parameters before sending stop. I also removed the SSH-specific core configuration definitions and added regression tests.
+
+Verification: 39 relevant tests passed; `git diff --check` passed.

@@ -1,0 +1,3 @@
+Diff reports now mark newly detected CVEs with `+` and resolved CVEs with `-`. The `-diff-plus` and `-diff-minus` flags let users include either type or both. Diff entries use package details from the scan that supplied each CVE, and text, CSV, and TUI reports show the status prefix.
+
+Added the requested `DiffStatus`, `CveIDDiffFormat`, and `CountDiff` interfaces. `go test ./report ./models ./subcmds` and `git diff --check` pass.

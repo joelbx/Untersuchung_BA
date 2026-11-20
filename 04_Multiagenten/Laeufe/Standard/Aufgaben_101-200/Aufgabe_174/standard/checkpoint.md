@@ -1,0 +1,2 @@
+Task: Route forked Display.display calls through the final results queue and remove shutdown output redirection.
+Status: Implemented worker display proxying, parent output locking, queue dispatch, worker shutdown ordering, and output flushing. Focused tests pass (8 passed, 7 skipped); logger test passes separately. A forked-process smoke check passed. The existing warning tests share a singleton warning cache and fail when run together.

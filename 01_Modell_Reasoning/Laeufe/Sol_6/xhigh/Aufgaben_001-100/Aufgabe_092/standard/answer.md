@@ -1,0 +1,3 @@
+Implemented `-U`/`--upgrade` for `ansible-galaxy collection install`, including requirements files. The resolver now selects the latest version within declared constraints, upgrades dependencies only when needed, and skips reinstalling versions already installed. Prereleases remain opt-in with `--pre`. With `--no-deps`, an upgrade fails if its installed dependencies cannot satisfy the new constraints.
+
+Added unit coverage and [upgrade.yml](/app/test/integration/targets/ansible-galaxy-collection/tasks/upgrade.yml). Validation: 267 Galaxy and CLI unit tests passed; the final focused run passed 148 tests. The new integration scenario was YAML-validated but was not run because it requires the Galaxy test services.

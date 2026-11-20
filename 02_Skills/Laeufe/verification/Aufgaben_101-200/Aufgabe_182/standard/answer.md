@@ -1,0 +1,3 @@
+Worker calls to `display`, `warning`, and `deprecated` now send their method name and exact caller-supplied arguments through `_final_q`. The main process dispatches each call to the matching `Display` method, so warning and deprecation deduplication happens there.
+
+Verification: 26 relevant tests passed, 1 skipped. The combined suite has 2 existing warning-test failures caused by shared `Display` singleton state; both tests pass individually. Syntax compilation and `git diff --check` passed.

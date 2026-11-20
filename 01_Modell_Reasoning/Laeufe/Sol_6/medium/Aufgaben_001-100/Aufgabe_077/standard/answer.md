@@ -1,0 +1,3 @@
+Added date based module deprecations across Python warning records, `AnsibleModule` results, argument specs, callback display, validate-modules, and the C# `DateTime` overload. Existing version behavior and `exit_json` deprecation order are preserved.
+
+The focused Python tests passed. Python syntax checks and `git diff --check` passed. C# integration tests could not run because PowerShell is unavailable; validate-modules tests could not start because the local `voluptuous` dependency is missing.

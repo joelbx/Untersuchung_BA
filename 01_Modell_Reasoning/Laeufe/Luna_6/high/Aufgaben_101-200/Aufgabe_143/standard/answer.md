@@ -1,0 +1,3 @@
+Implemented centralized `add_db_name` in [catalog/utils/__init__.py](/app/openlibrary/catalog/utils/__init__.py). `expand_record()` now generates identifiers for authors automatically, and edition comparison prepares authors with only their name and birth/death dates before expansion. The existing `catalog.add_book.add_db_name` import remains compatible.
+
+`git diff --check` passes. The add book matching and add book tests pass. In the combined run, one merge threshold fixture failed because its differently ordered author names scored as a mismatch; the run otherwise had 70 passes, 2 expected failures, and 1 unexpected pass.

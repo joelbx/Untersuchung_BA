@@ -1,0 +1,3 @@
+Implemented upload cleanup for post and topic purges. Purging now deletes files with no remaining post references; files shared with other posts stay on disk. Administrators can enable **Keep uploaded files on disk when their posts are purged** in ACP upload settings.
+
+Added `Posts.uploads.deleteFromDisk` for single paths or arrays, with input validation and path traversal protection. The upload and topic thumbnail tests passed (54 tests), as did lint and `git diff --check`. No delegation was used.

@@ -1,0 +1,5 @@
+`parsePkgName` is absent from this checkout. The likely fault is in [cyclonedx.go](/app/reporter/sbom/cyclonedx.go:263): both library and GitHub dependency PURL builders pass the entire package name as `name`, with empty `namespace` and `subpath` (the second call is at line 294).
+
+A fix should return three strings for every package type and cover the five requested splits and PyPI normalization. [github.go](/app/models/github.go:27) adds a mapping question: its ecosystem values include `gomod`, `pom`, and `pip`, while the requested parser types are `golang`, `maven`, and `pypi`.
+
+There are no existing tests under `reporter/sbom`. Per this run’s fault-localization constraint, I documented the finding in [checkpoint.md](/app/.codex-role-output/checkpoint.md) and left project source and tests unchanged.

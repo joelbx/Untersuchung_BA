@@ -1,0 +1,3 @@
+Fixed the PassAliases drawer. It now shows the alias list when aliases exist, shows “No aliases” when they do not, and opens the creation modal from “Get an alias.” Vault creation happens when the user starts that flow; saving an alias refreshes the list and its cache.
+
+The bridge and provider contracts are updated. Validation passed: 11 focused tests, both package type checks, lint, formatting, and `git diff --check`.

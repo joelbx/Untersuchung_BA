@@ -1,0 +1,3 @@
+Updated the repository so explicit group and user image removal deletes local files as well as clearing the database fields. Account deletion now removes both cover and avatar files, including timestamped and legacy names in `.png`, `.jpeg`, `.jpg`, and `.bmp`. Missing files are handled gracefully; the socket action hooks remain in place.
+
+Validation: ESLint passed, and `test/user.js` plus `test/groups.js` passed with **337 tests**. No delegation was used.

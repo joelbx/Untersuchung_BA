@@ -1,0 +1,5 @@
+Fault localization complete (source/tests unchanged).
+- config/os.go:getAmazonLinuxVersion treats any single-token release as AL1; it never validates supported years. GetEOL only maps 1/2/2022. Existing config/os_test.go covers those releases and unknown 2024, but no 2023+ or EOL date boundaries.
+- scanner/redhatbase.go:detectRedhat has literal 2022 branches and broad "Amazon Linux release 2" branch that indexes fields[4]; a bare "Amazon Linux release 2023" has only 4 fields and can panic. When /etc/redhat-release exists, the preceding generic RHEL branch can classify Amazon as RedHat.
+- oval/util.go has two 2022/2/default-1 switches for Amazon OVAL release (HTTP and DB), so AL2023 advisories can be looked up as AL1. oval/redhat.go formats ALAS2022 and ALAS2 links only.
+- config/os.go's EOL methods compare UTC instants with now.After; extended support ends at ExtendedSupportUntil when set, otherwise at StandardSupportUntil. Existing method is spelled IsExtendedSuppportEnded. Exact 2023/2025/2027/2029 vendor EOL dates are not present in inspected repository and cannot be established from local code alone.

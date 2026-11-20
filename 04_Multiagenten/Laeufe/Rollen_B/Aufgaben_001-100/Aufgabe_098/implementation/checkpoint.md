@@ -1,0 +1,1 @@
+Progress: Implemented telemetry schema 1.3 with optional flipt.audit.sinks derived from log file and webhook enabled flags. Added TestPing cases for neither, each, and both sinks; updated existing version assertions. `go test ./internal/telemetry` passed. Restored incidental go.work.sum changes created by Go test; final diff review pending.

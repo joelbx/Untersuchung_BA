@@ -1,0 +1,3 @@
+Implemented the session restoration fix. [getLastPersistedLocalID](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts:26) now returns `number | null`, ignores keys without a numeric `STORAGE_PREFIX` suffix, and returns `null` for empty or invalid data. The bookmarks view skips resuming when no valid local ID exists and still loads bookmarks.
+
+Verification: 2 focused Jest suites passed (17 tests). ESLint reported no errors and one existing hook dependency warning. The TypeScript check found an unrelated OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts`.

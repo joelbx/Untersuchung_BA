@@ -1,0 +1,3 @@
+RPM scans now keep the binary package and record a warning when a source RPM filename cannot be parsed. Epoch-prefixed source filenames produce the correct source name and version, with the binary link preserved. The repoquery path follows the same warning behavior.
+
+The new regression tests and the full `go test ./...` suite pass. Progress is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

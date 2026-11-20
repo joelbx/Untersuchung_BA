@@ -1,0 +1,3 @@
+Implemented trace sampling and propagator configuration. The default sampling ratio is 1, and the default propagators are `tracecontext` and `baggage`. Configuration loading preserves custom values, rejects ratios outside 0–1 and unsupported propagators with the required error messages, and applies the selected settings at runtime. The config schema and tests were updated.
+
+Verification passed: `go test ./internal/config ./internal/tracing ./internal/cmd`.

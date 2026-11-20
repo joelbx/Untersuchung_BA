@@ -1,0 +1,3 @@
+Forked workers now send `display`, `warning`, and `deprecated` calls through the final queue with the original method name and exact caller arguments. The main process dispatches each call to the corresponding `Display` method, so warning and deprecation deduplication is shared across workers.
+
+Focused tests: **15 passed, 1 skipped**. A broader run has an order dependent failure after the existing `test_logger` test reloads Ansible modules.

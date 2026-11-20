@@ -1,0 +1,3 @@
+Updated the import flow in `/app`. YAML imports now use the v3 decoder, preserving nested metadata and attachments in JSON compatible structures. JSON imports accept one leading line that starts with `#`; files without a header still import normally. The import tests also verify that namespace key, name, and description are applied.
+
+`GOPROXY=off go test ./internal/ext` and `git diff --check` pass. The CLI package check was stopped while compiling dependencies.

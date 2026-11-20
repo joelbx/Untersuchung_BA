@@ -1,0 +1,3 @@
+VERDICT: ACCEPT
+Reviewed the applied diff in internal/server/audit/checker.go, internal/cmd/grpc.go, internal/cmd/auth.go, and checker tests. The checker expands token:created and token:deleted, including token and resource wildcards. NewGRPCServer derives token deletion enablement from configured audit events when a sink is enabled and passes it to the auth server. Existing token creation and deletion event emission paths are present. No correctness or regression defect found.
+Tests: GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off go test ./internal/server/audit ./internal/server/auth ./internal/cmd — exit 0; all three packages passed.

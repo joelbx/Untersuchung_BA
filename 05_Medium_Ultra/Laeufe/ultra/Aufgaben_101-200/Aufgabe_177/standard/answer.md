@@ -1,0 +1,5 @@
+Implemented the chat allow and deny lists, the **disable incoming chats** setting, and server-side checks for chat initiation, room creation, and invitations. Explicit blocks take precedence; administrators and global moderators bypass the new lists. The [upgrade](/app/src/upgrades/4.3.0/chat_allow_list.js) seeds allow lists from existing local and remote follows and is safe to rerun.
+
+Three subagents handled the migration, account controls and locales, and tests; I integrated and verified their changes. The messaging and user suites passed **361 tests**, ActivityPub notes passed **11**, and the focused migration test passed. ESLint and format checks passed.
+
+The account templates come from ignored theme packages, so their old toggle is removed when the account page initializes; it may appear briefly before then.

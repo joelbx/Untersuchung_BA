@@ -1,0 +1,3 @@
+Updated [update_work.py](/app/openlibrary/solr/update_work.py) to prefer a public IA edition for `lending_edition_s`, while retaining a borrowable edition as the fallback. Print-disabled editions are now collected independently of borrowability, and overlapping IA categories no longer duplicate OCAIDs in `ia`.
+
+Updated the multi-edition test to expect the public edition. All 56 tests in `openlibrary/tests/solr/test_update_work.py` pass.

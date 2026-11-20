@@ -1,0 +1,3 @@
+Implemented registration-token support in [InteractiveAuthEntryComponents.tsx](/app/src/components/views/auth/InteractiveAuthEntryComponents.tsx:188). Both stable and MSC3231 stages now open the token view, which submits the advertised stage type and token, supports Enter and button activation, and shows the required field, help text, busy spinner, and accessible errors. Added the English strings in [en_EN.json](/app/src/i18n/strings/en_EN.json:3258).
+
+Validation: both relevant Jest suites passed (5 tests), as did targeted ESLint, Prettier, and `git diff --check`. The full TypeScript check reports errors in unrelated Sliding Sync files; it reported none in the changed component. Wrote the required checkpoint to `.codex-role-output/checkpoint.md`.

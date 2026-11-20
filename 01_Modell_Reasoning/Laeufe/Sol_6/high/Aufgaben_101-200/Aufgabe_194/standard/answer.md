@@ -1,0 +1,3 @@
+`BlocklistDownloads` now inherits `QObject` and emits `single_download_finished(object)` and `all_downloads_finished(int)`. Both ad blocker consumers connect their handlers before starting downloads, so they also receive events from local files and empty batches. The [tests](/app/tests/unit/components/test_blockutils.py) now cover multiple listeners and empty lists.
+
+Verification: 38 component tests passed; 13 Brave ad blocker tests were skipped because the optional dependency is unavailable.

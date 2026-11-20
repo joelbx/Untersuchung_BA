@@ -1,0 +1,3 @@
+Fixed Kubernetes kubeconfig address selection. `ProxyConfig.KubeAddr()` now returns an HTTPS URL on port 3026, and `tctl auth sign --format=kubernetes` uses it when the local Kubernetes proxy is enabled. Otherwise, it scans registered proxies, skips invalid public addresses, and uses the first valid host. An explicit `--proxy` value still takes precedence.
+
+Targeted Go tests pass, and `git diff --check` is clean.

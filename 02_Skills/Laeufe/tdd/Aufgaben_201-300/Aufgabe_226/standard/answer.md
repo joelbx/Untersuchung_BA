@@ -1,0 +1,3 @@
+MIME mappings and lossless formats now load from [mime_types.yaml](/app/resources/mime_types.yaml) during startup. Operators can override it at `<DataFolder>/resources/mime_types.yaml`. The UI uses the loaded lossless list, and the hardcoded definitions in `consts/mime_types.go` are removed.
+
+Focused tests pass. The full `go test ./...` run still fails in two TagLib m4a gain-tag tests, where the parser returns duplicate values; those files were not changed.

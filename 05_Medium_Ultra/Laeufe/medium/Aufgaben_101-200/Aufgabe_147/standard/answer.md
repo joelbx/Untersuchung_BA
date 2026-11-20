@@ -1,0 +1,3 @@
+Fixed `DeviceConfig` loading in [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts). Persisted fields now live in one config object. Loading current data with a signup token makes no storage write; migration preserves known fields and converts legacy credentials into a user ID keyed object. Added coverage in [DeviceConfigTest.ts](/app/test/client/misc/DeviceConfigTest.ts).
+
+Verification passed: 3,063 client test assertions, TypeScript type check, and `git diff --check`.

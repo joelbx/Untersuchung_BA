@@ -1,0 +1,3 @@
+Updated collection manifest handling so an absent `manifest` uses `Sentinel`, while explicit `{}` and `null` select the manifest builder. The Sentinel path still applies `build_ignore` patterns, includes internal symlinks once, and excludes symlinks pointing outside the collection.
+
+**Verification:** 213 Galaxy unit tests passed. The bare repository suite encountered collection errors and unrelated failures and was interrupted; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md). `distlib` is unavailable locally, so actual generation with `{}` or `null` remains unverified.

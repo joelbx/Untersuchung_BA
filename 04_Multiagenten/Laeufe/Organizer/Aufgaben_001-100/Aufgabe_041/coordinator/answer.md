@@ -1,0 +1,3 @@
+Removed `ListMixin` and consolidated its behavior in `List` in [core/lists/model.py](/app/openlibrary/core/lists/model.py). The list module now provides `register_models()` for `/type/list` and the `'lists'` changeset type. `get_owner()` handles `/people/{username}/lists/{list_id}` and returns `None` when the key is invalid or the user is missing. Existing `core.models.List` imports remain supported.
+
+Validation: 20 relevant tests passed; Ruff and `git diff --check` passed. Two broader tests could not pass in this environment because one imports unavailable `cookielib` and another lacks `web.ctx.env`. No delegation was used.

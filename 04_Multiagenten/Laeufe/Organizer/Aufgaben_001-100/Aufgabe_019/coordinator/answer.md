@@ -1,0 +1,3 @@
+Updated [roles.go](/app/roles.go) so `Roles.Check` rejects unknown and duplicate roles, and `Roles.Equals` compares distinct role sets regardless of order or repetition. The declared `RoleRemoteProxy` now passes validation. Added regression cases in [roles_test.go](/app/lib/utils/roles_test.go).
+
+The focused role suite and `git diff --check` pass. The full `lib/utils` suite has one unrelated failure: a certificate fixture expired in 2021. No delegation was used.

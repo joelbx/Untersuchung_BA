@@ -1,0 +1,3 @@
+Implemented the syslog component in [config/syslog/types.go](/app/config/syslog/types.go), with Unix validation and severity/facility mappings in [syslogconf.go](/app/config/syslog/syslogconf.go) and the Windows-specific validator in [syslogconf_windows.go](/app/config/syslog/syslogconf_windows.go). Configuration and reporter code now use `syslog.Conf`; `config.SyslogConf` remains as a compatibility alias.
+
+Verification passed: `go test ./config/...`, `go test ./reporter`, Windows config test compilation, and `git diff --check`.

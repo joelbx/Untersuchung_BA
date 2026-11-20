@@ -1,0 +1,3 @@
+Resolved the user scoping issue. `UserPropsRepository` and its mock now require an explicit `userId` for every operation. LastFM reads and writes session keys for that ID, and the auth callback uses a short lived signed state issued to the authenticated user instead of trusting a URL `uid`.
+
+Added two user isolation and callback tests. The full Go suite, targeted Go tests, UI lint and formatting checks, and `git diff --check` pass.

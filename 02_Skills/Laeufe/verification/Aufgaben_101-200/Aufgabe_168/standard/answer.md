@@ -1,0 +1,3 @@
+Updated the user info panel so Kick, Ban, and Mute share a member-level lock. All three buttons become `disabled` with `aria-disabled="true"` as soon as an action starts, including during confirmation. Cancellation sends no request; success or failure releases the lock. Failures show one error dialog.
+
+The targeted test suite passed: **70 tests, 6 snapshots**. Prettier, ESLint, and `git diff --check` passed. The full TypeScript check remains blocked by errors in unrelated files and installed dependencies; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

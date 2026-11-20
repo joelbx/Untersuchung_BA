@@ -1,0 +1,3 @@
+Added per-server `nmap` port scanning through [PortScanConf](/app/config/portscan.go) and the [external scan path](/app/scanner/portscan.go). Configuration validation covers scan techniques, privileges, scanner path, and source port; servers without an external scanner continue using native scanning. The discovery template now includes a commented `portscan` example.
+
+Verification passed: `go test ./config ./scanner ./subcmds` and `git diff --check`.

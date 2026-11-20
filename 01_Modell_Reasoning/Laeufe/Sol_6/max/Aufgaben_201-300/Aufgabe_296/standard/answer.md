@@ -1,0 +1,3 @@
+Implemented token-only invitation registration. The form now submits the URL token, and both immediate and administrator-approved registrations use token metadata to join invited groups, confirm the email only when it matches, and clean up linked invitation records. Added coverage for missing or mismatched email and multiple tokens.
+
+The invitation suite passes (33 tests), the authentication suite passes (30 tests), and ESLint passes. The broader user suite has one failure in the unchanged email confirmation by code path (`NaN !== 1`).

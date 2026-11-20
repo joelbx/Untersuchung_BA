@@ -1,0 +1,1 @@
+Implemented /.well-known/webfinger in dedicated route/controller. Validates acct resource and configured hostname; checks view:users for authenticated users or guests group for anonymous requests; resolves userslug and emits JRD profile aliases/links. ESLint passes. Existing controller test attempted but Redis at 127.0.0.1:6379 is unavailable (ECONNREFUSED).

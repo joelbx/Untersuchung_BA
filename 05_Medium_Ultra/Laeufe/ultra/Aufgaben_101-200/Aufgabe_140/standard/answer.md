@@ -1,0 +1,3 @@
+Host blocking now checks the request host and each parent domain against both blocked sets. It handles trailing dots, while the per-URL toggle and whitelist can short-circuit blocking. I added `widened_hostnames` in [urlutils.py](/app/qutebrowser/utils/urlutils.py) and regression coverage for subdomains, full URLs, trailing dots, and overrides.
+
+Two delegated agents added the utility and regression tests; I integrated and reviewed the patch. The relevant test modules passed: **449 passed, 1 skipped**. `git diff --check` passed.

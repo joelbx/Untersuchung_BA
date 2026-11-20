@@ -1,0 +1,5 @@
+I located the faults, but did not edit project source or tests because this task’s specialist instructions require a diagnosis only. I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+`splitBySeparator` does not yet exist. Both [autocomplete implementations](/app/packages/components/components/addressesAutomplete/AddressesAutocomplete.tsx:147) and [the v2 implementation](/app/packages/components/components/v2/addressesAutomplete/AddressesAutocomplete.tsx:186) split on commas and semicolons but retain empty tokens and angle brackets. In [inputToRecipient](/app/packages/shared/lib/mail/recipient.ts:7), `<email@domain>` produces an empty `Name` and a bare `Address`; a plain email already sets both fields to the email.
+
+The fix should add the requested ordered, filtered splitter and use it in both paste paths, then make bracketed email input set both recipient fields to the bare address. One behavior needs care: the current parser preserves the display name in `Name <email>`, while the requirement says `Name` and `Address` should be identical. I found no existing recipient-specific test.

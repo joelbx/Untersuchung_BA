@@ -1,0 +1,3 @@
+Updated [meraki.py](/app/lib/ansible/module_utils/network/meraki/meraki.py:41) so requests retry HTTP 429, 500, and 502 up to three times, expose the latest status, and raise the new exception types. Recovered rate limits appear as task warnings; exhausted rate limits include the retry count in the exception message.
+
+Updated [test_meraki.py](/app/test/units/module_utils/network/meraki/test_meraki.py:78). **16 tests pass**, and `git diff --check` is clean. One delegated agent wrote the focused tests; another reviewed the patch. I integrated and verified the final changes.

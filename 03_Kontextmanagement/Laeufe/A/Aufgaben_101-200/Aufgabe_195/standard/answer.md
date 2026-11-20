@@ -1,0 +1,3 @@
+Updated `Load` to return a `Result` with separate `Config` and `Warnings` fields. Deprecation warnings, including `ui.enabled`, are now generated only for keys explicitly present in the configuration file, before defaults are applied. The CLI logs warnings from `Result`, and the tests cover explicit `false` values and omitted keys.
+
+Verification passed: `go test ./internal/config ./internal/cmd ./cmd/flipt` and `git diff --check`.

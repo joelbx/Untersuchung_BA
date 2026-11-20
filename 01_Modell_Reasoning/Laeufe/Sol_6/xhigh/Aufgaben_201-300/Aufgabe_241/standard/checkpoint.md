@@ -1,0 +1,4 @@
+Task: Resolve repeated Go live activation and device selection behavior in VoiceBroadcastPreRecordingPip.
+Status: Implemented and verified. Go live now renders as a native button, disables synchronously during start, ignores repeated activation, and re-enables on Promise settlement or after one event tick for synchronous starts. Device menu opening is guarded, selection uses a non-null MediaDeviceInfo and updates the header label. The close control has an accessible name.
+Verification: 20 focused voice-broadcast tests and 5 snapshots pass; ESLint, Prettier, and git diff --check pass for edited files. Repository-wide TypeScript check reports existing errors in untouched Matrix client code (MatrixChat.tsx, clientInformation.ts, DeviceListener-test.ts).
+Constraints: Use local code and existing tests; preserve git history, index baseline, and harness configuration.

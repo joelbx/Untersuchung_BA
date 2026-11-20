@@ -1,0 +1,1 @@
+Implemented proxy auth using the saved connection peer before RealIP, CIDR/Unix whitelist checks, header/default user login, first-user admin creation, token/subsonic payload, and UI storage. Added nested map and JSON secret redaction. Focused Go tests and UI formatting checks pass.

@@ -1,0 +1,3 @@
+Updated author matching in [load_book.py](/app/openlibrary/catalog/add_book/load_book.py). It now checks extracted years at each name-match stage, uses surname matching only when both input years are valid, and treats asterisks in names literally. Honorific removal accepts a string and handles exceptions and honorific-only names. New author records retain the input fields.
+
+Updated the query mock and added regression tests. The focused suite passed: **180 passed, 1 expected failure**.

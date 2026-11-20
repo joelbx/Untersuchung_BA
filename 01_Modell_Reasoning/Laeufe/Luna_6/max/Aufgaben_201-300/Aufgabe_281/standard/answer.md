@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` in [Mongo hash](</app/src/database/mongo/hash.js>) and [Redis hash](</app/src/database/redis/hash.js>). Both validate inputs and field names, upsert missing objects and fields, and invalidate caches for successful keys. Mongo uses per-key `$inc` updates; Redis uses pipelined Lua scripts with `HINCRBY` to keep each key’s update atomic.
+
+ESLint and `git diff --check` pass. The existing hash suite reports **64 passing** against a temporary local Redis server, which was stopped afterward. The suite has no dedicated cases for the new bulk method.

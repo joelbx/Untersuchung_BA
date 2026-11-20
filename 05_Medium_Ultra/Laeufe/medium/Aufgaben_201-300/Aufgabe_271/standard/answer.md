@@ -1,0 +1,3 @@
+Fixed the IA import path so a value such as `London ; New York ; Paris : Berlitz Publishing` produces `publish_places: ["London", "New York", "Paris"]` and `publishers: ["Berlitz Publishing"]`. Publisher names without a colon remain in a list as received. ISBN classification now lives in `openlibrary.utils.isbn` and uses trimmed string length.
+
+Verification: 51 focused tests and all 18 ImportAPI tests passed; `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated the [Drive recovery hook](/app/applications/drive/src/app/store/_photos/usePhotosRecovery.ts) and its package mirror to recover regular links and trashed photos together. Recovery waits for both sources to decrypt, tracks failed and pending links, and succeeds only after targeted items are gone and share deletion completes. Persisted recovery resumes on initialization.
+
+Both mirrored test suites pass: **13 tests each**. ESLint, Prettier, and `git diff --check` pass. Full type checks remain blocked by an existing OpenPGP type mismatch in [packages/crypto/lib/worker/api.ts](/app/packages/crypto/lib/worker/api.ts:579); they report no errors in the changed files.

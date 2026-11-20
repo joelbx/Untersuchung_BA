@@ -1,0 +1,3 @@
+Updated the assistant upsell flows to use the shared Scribe addon resolver and build `planIDs` consistently, including when a plan has no Scribe addon. Exported `SelectedPlan` and the resolver from the [payments/core entrypoint](/app/packages/components/payments/core/index.ts) and switched their consumers to it.
+
+The relevant suites passed: **50 tests**. Formatting and diff checks passed. The components type check remains blocked by an unrelated `openpgp` type mismatch in [worker/api.ts](/app/packages/crypto/lib/worker/api.ts:577).

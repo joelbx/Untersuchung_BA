@@ -1,0 +1,1 @@
+Replaced urllib HTTP calls in `get_ia.py` with `requests` and updated response handling, range requests, and the MARC subject caller. The focused test suite passed: **47 tests**. `git diff --check` passed.

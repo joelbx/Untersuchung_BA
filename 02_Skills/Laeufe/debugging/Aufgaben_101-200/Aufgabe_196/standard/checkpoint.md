@@ -1,0 +1,11 @@
+# Checkpoint
+
+- Task: unify assistant upsell addon resolution and `planIDs` construction.
+- Initial state: working tree clean. `rg` is unavailable, so repository searches use local `grep`/`find`.
+- Root cause: `assistantUpsellConfig.ts` duplicates the Scribe mapping in `paidUserAssistantAddonName`, whose default is Mail Plus; `payments/core/subscription/helpers.ts` is already the shared resolver and returns `undefined` for unsupported plans. Both paid paths insert an addon key unconditionally, and the public core barrel exports neither `SelectedPlan` nor the resolver.
+- Hypothesis: using the existing resolver and conditional `planIDs` construction will leave unsupported plans without a Scribe addon while preserving supported plans and quantities.
+- Working comparison: `SelectedPlan.setScribeCount` already calls `getScribeAddonNameByPlan` and returns unchanged for unsupported plans.
+- Reproduction: `../../node_modules/.bin/jest --runInBand --config jest.config.js hooks/assistant/assistantUpsellConfig.test.ts` from `packages/components` failed the two new cases as expected: unsupported `DRIVE_PRO` and `ENTERPRISE` plans both acquired `1scribe-mail2022`.
+- Patch: paid upsell paths now construct conditional `planIDs`, use the shared resolver, remove the local mapping, export `SelectedPlan` and the resolver from payments/core, and update all internal-path call sites.
+- Verification: `../../node_modules/.bin/jest --runInBand --config jest.config.js hooks/assistant/assistantUpsellConfig.test.ts payments/core/subscription/selected-plan.test.ts` passed (2 suites, 50 tests). `../../node_modules/.bin/prettier --check hooks/assistant/assistantUpsellConfig.ts hooks/assistant/assistantUpsellConfig.test.ts hooks/assistant/useAssistantUpsellConfig.tsx payments/core/index.ts containers/payments/planCustomizer/ProtonPlanCustomizer.tsx` passed. `git diff --check` passed.
+- Type check uncertainty: `../../node_modules/.bin/tsc --noEmit -p tsconfig.json` from `packages/components` exited 2 due to `../crypto/lib/worker/api.ts(577,77): error TS2345`; `openpgp` and `pmcrypto/node_modules/openpgp` provide incompatible `PartialConfig` types. No diagnostics pointed to edited files; the package-wide type check remains failing for this unrelated dependency conflict.

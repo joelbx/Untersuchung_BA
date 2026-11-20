@@ -1,0 +1,3 @@
+Updated public page session retrieval to select the latest valid persisted session by `persistedAt` and return its full object, including UID and local ID. The public session provider and telemetry now use that session; malformed data and storage failures return null and are reported. Removed the `LAST_ACTIVE_PING` lookup dependency.
+
+The two affected test suites passed (12 tests), and `git diff --check` passed. The Drive type check remains blocked by an OpenPGP type mismatch in `packages/crypto`; it reported no errors in the changed files.

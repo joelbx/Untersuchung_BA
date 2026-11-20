@@ -1,0 +1,3 @@
+Updated public pages to select the newest valid persisted session as one object, keeping its UID and local ID together. The provider now uses that session for metrics and resumption, sets auth and user state after a successful resume, and uses its UID in the SRP flow. Telemetry and the mirrored Drive store path were updated; the old lookup helpers and `LAST_ACTIVE_PING` references were removed.
+
+Focused tests pass in both Drive locations (13 each). Formatting and diff checks pass. Type checking is still blocked by an existing OpenPGP type mismatch in `packages/crypto`.

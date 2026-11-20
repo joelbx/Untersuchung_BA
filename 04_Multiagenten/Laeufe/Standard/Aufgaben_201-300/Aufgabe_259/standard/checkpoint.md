@@ -1,0 +1,2 @@
+Task: Fix Solr work document availability selection and IA metadata for multiple editions.
+Status: Complete. Updated add_ebook_info to select a public edition first, pair its edition ID with its IA identifier, and classify lendinglibrary editions as borrowable. Extended mixed-edition and lendinglibrary tests. All 57 tests in openlibrary/tests/solr/test_update_work.py pass; git diff --check passes.

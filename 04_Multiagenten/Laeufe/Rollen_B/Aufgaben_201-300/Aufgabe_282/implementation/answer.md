@@ -1,0 +1,3 @@
+Added `content.javascript.log_message.levels` and `content.javascript.log_message.excludes`. JavaScript messages now reach the UI only when their source and level match and their text is not excluded; all other messages retain the logger fallback. The old setting name is migrated to `.levels`.
+
+The focused suite reported **17 passed**, though the test process exited with an Xvfb shutdown error. `git diff --check` passed.

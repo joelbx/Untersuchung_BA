@@ -1,0 +1,3 @@
+Resolved the upvoter access issue. [getUpvoters](/app/src/socket.io/posts/votes.js:38) now checks `topics:read` across every supplied post’s category before loading votes, denies unreadable categories with `[[error:no-privileges]]`, and allows administrators through. It also resolves distinct UIDs once, preserves username order, and returns a cutoff of 6 with at most five explicit names.
+
+The [frontend tooltip](/app/public/src/client/topic/votes.js:50) uses the server’s cutoff and supports HTML. All 129 posts tests passed; ESLint and `git diff --check` passed.

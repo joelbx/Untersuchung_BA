@@ -1,0 +1,3 @@
+Removed `ListMixin` and consolidated its behavior in [List](/app/openlibrary/core/models.py:962). Owner lookup now handles `/people/{username}/lists/{list_id}` and returns `None` when the key is invalid or the user cannot be found. [register_models](/app/openlibrary/core/lists/model.py:151) registers both `/type/list` and the `lists` changeset type.
+
+All 20 focused tests pass. The broader list suite still has two unrelated failures: a test without `web.ctx.env` and a `cookielib` import unavailable in this Python environment.

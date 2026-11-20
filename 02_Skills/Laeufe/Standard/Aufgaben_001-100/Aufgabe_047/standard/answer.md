@@ -1,0 +1,3 @@
+Implemented `SetSeed` on both the package and `Hasher`. Hashes now stay consistent for a given ID and seed, change after reseeding, and return to their original value when that seed is restored. Missing seeds initialize automatically, and seed map access is synchronized.
+
+Tests passed for `./utils/hasher`, `./db`, and `./persistence`, plus the hasher race test. Numeric hashes are stable within a process; the process-wide `maphash` seed changes on restart.

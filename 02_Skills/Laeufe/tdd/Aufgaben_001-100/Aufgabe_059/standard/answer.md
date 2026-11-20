@@ -1,0 +1,3 @@
+Added a public `Dialog` component and switched `ModalTwo` to use it. The wrapper forwards attributes and refs to a native dialog when supported, and uses an accessible host in limited DOM environments. A regression test now confirms that an open ModalTwo’s button is discoverable by role.
+
+The components suite passes: 43 suites, 144 tests passed, 1 skipped. TypeScript, ESLint, and `git diff --check` also pass.

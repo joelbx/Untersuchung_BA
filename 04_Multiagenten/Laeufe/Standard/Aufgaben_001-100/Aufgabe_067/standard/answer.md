@@ -1,0 +1,3 @@
+Added `scrolling.bar=overlay`. On non-macOS QtWebEngine with Qt 5.11 or newer, it adds `--enable-features=OverlayScrollbar`; elsewhere it uses the existing scrollbar behavior. Legacy `False` now migrates to `overlay`. I also updated the documentation, made Chromium flag tests independent of argument order, and added `@js_headers` handling for the affected Qt versions.
+
+Verification: 319 configuration tests passed, 1 skipped, and 2 unrelated dark mode tests were deselected because one exits the test process in this environment. Both marked end-to-end header scenarios collected successfully.

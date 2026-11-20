@@ -1,0 +1,3 @@
+Implemented host-scoped scheduling with `OlAsyncIOScheduler`, exact and prefix hostname matching, FQDN support, and function-name job IDs in [utils.py](/app/scripts/monitoring/utils.py). Added the async monitoring entry point in [monitor.py](/app/scripts/monitoring/monitor.py) and HAProxy CSV collection and Graphite output in [haproxy_monitor.py](/app/scripts/monitoring/haproxy_monitor.py).
+
+Validation passed: the existing monitoring suite (**5 tests**), Ruff, Python compilation, and `git diff --check`. Updated [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

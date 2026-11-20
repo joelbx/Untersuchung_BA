@@ -1,0 +1,3 @@
+Implemented opportunistic expiration in `SimpleCache` using an atomic `evictionDeadline`. Cache operations now trigger eviction, and `Keys()` and the new `Values()` method return only active entries. Loader insertion also checks for expired items before adding a value.
+
+Added tests for 10 ms TTLs, loader values, and size-limit behavior. `go test ./utils/cache`, `go test -race ./utils/cache`, and the scrobbler and scanner tests pass.

@@ -1,0 +1,3 @@
+Updated [config.go](/app/internal/config/config.go) so scalar strings decoded into `[]string` split on whitespace, including repeated spaces, tabs, and newlines. Comma-separated values still work. Empty strings produce an empty slice, while sequences and other source types pass through unchanged.
+
+Added YAML and ENV regression coverage in [config_test.go](/app/internal/config/config_test.go). Two delegated agents reviewed the decoder and tests; I integrated and verified the patch. `GOPROXY=off GOSUMDB=off go test ./internal/config` and `git diff --check` pass.

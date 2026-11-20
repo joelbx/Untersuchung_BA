@@ -1,0 +1,3 @@
+Implemented `uptime_seconds` collection for the BSD hardware collectors using `sysctl -n kern.boottime`. The [sysctl parser](/app/lib/ansible/module_utils/facts/sysctl.py) now handles multiline values and platform delimiters, warns on malformed lines, and returns no facts with a warning when bulk sysctl execution fails. Non-numeric boot-time output is omitted as required.
+
+All 22 focused tests passed. The broader facts suite had one timeout test fail; it passed when rerun alone.

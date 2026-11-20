@@ -1,0 +1,3 @@
+Updated [YAML validation](/app/internal/cue/validate.go) to return a structured result with all failing field paths, descriptive messages, and source coordinates. The [validate command](/app/cmd/flipt/validate.go) now emits readable text or JSON and exits nonzero with “validation failed.”
+
+`go test ./internal/cue ./cmd/flipt` and `git diff --check` pass. Malformed YAML syntax errors may have column `0` when the parser supplies only a line.

@@ -1,0 +1,3 @@
+Implemented the evaluation split. `Server.Evaluate` now delegates to the new `Evaluator` interface and SQL-backed [EvaluatorStorage](/app/storage/evaluator.go); `RuleStore` no longer owns evaluation logic. The evaluator preserves rule rank order, applies typed, case-insensitive constraints, and selects variants with deterministic CRC32 buckets.
+
+I updated the existing mocks and added focused evaluator tests. `go test ./...` and `git diff --check` pass.

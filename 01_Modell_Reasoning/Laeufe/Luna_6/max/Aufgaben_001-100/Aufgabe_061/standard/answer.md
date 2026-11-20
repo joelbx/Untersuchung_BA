@@ -1,0 +1,3 @@
+Implemented shared process ownership mapping in [base.go](/app/scan/base.go), and updated Debian and Red Hat post-scan paths to use it. RPM ownership parsing now ignores permission-denied, unowned-file, and missing-file diagnostics, while returning errors for malformed output. Red Hat package matching checks version and architecture when available.
+
+Verification: `go test ./scan` passed, and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated photo recovery to enumerate regular and trashed items, wait for both sources to finish decrypting, and include trashed image files in recovery and progress counts. Cleanup checks both sources for remaining photos, and failures persist the `FAILED` state. Recovery still resumes automatically from a persisted in-progress state.
+
+The recovery tests pass: 7 tests. The workspace type check reported a type incompatibility in unrelated crypto code. **I didn’t verify the final changes with a fresh type check after fixing the listing helper issue.**

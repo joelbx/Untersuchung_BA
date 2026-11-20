@@ -1,0 +1,3 @@
+Fixed Direct Dial SSH heartbeats so wildcard and loopback node addresses use the control stream peer’s host while preserving the node’s SSH port before `UpsertNode`. The stream interface now exposes `PeerAddr()`, and in-memory pipes accept `ICSPipePeerAddr(...)`.
+
+The focused API test and the `lib/inventory` suite pass. Broader verification is incomplete: the root suite hit unrelated `hid` and SQLite native build errors, and the full API client suite was interrupted without a result. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

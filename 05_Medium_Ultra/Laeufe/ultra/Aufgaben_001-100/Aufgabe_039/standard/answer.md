@@ -1,0 +1,3 @@
+Fixed [Booknotes.update_work_id](/app/openlibrary/core/booknotes.py:14) so a target work ID conflict leaves every booknote unchanged and returns `{"rows_changed": 0, "rows_deleted": 0, "failed_deletes": 1}`. The admin caller now preserves that dictionary, and regression tests cover conflicts, successful updates, and dry runs.
+
+Two read-only subagents reviewed the cause and test coverage. Verification: `pytest -q openlibrary/tests/core/test_db.py` — 7 passed; `git diff --check` passed.

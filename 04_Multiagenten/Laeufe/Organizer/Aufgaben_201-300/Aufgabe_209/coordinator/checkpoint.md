@@ -1,0 +1,3 @@
+Task complete: Added MAX_LENGTHS_API.CALENDAR_URL=10000; modal uses trimmed input, unified disabled state, ordered getWarning, and submit guard; removed local max length, counter, hint, and maxLength. Added focused modal tests with proper default-export hook mocks. Centralized ResizeObserver mocks in calendar, components, and mail Jest setup; removed inline assignments from tests and mail test helper.
+Verification: components modal Jest suite 3/3 passed; calendar CalendarSidebar and MainContainer Jest suites 6/6 passed; mail useSendVerifications Jest suite 12/12 passed; components check-types passed; Prettier check passed; git diff --check passed. Calendar existing suites emitted React act/router warnings but passed.
+Delegation: None; solved directly.

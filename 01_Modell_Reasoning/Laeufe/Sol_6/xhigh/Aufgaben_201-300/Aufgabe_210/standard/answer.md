@@ -1,0 +1,3 @@
+Resolved the duplicate evaluation in `/app`. TaskExecutor now evaluates loop items once and resolves delegation before executing loop iterations. Item-independent targets resolve once per task; targets that use the loop item resolve once per item. VariableManager provides `get_delegated_vars_and_hostname`, Task provides `get_play`, and the loop cache workaround is removed.
+
+Validation passed: 37 focused unit tests, five delegation integration playbooks, and `git diff --check`.

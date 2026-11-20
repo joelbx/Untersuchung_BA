@@ -1,0 +1,3 @@
+Added a `ciphers` option to `get_url`, `uri`, and `lookup('url')`. It accepts an OpenSSL cipher string or an ordered list and passes the setting through [urls.py](/app/lib/ansible/module_utils/urls.py) to the HTTPS context used for direct requests, redirects, proxies, and Unix sockets. Invalid cipher values produce a clear error; leaving the option unset preserves the existing defaults.
+
+Verification: 126 relevant unit tests passed, and compilation and `git diff --check` passed. The CentOS 7 / Python 3.10 / OpenSSL 1.1.1 runtime was not available for a live handshake test.

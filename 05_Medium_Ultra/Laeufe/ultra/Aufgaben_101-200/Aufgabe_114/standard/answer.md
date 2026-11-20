@@ -1,0 +1,3 @@
+Artist images now check for a local `artist.*` file in the folder derived from the artist’s albums before using external files, URLs, or a placeholder. Albums expose unique media directories, and a migration backfills them for existing libraries. Local image changes invalidate cached artist artwork, and each source attempt logs its duration.
+
+Two subagents handled album directory storage and artist folder selection; I integrated the artwork changes. Offline tests passed for `./core/artwork`, `./model`, `./db/migration`, `./persistence`, and `./scanner`.

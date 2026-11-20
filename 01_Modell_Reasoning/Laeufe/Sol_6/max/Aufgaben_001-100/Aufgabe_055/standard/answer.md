@@ -1,0 +1,3 @@
+Trivy scan results now store the OS name in `Release`, use `ArtifactName` for `ServerName` across OS and library scans, and add `:latest` to untagged container image names. The parser leaves `Optional` nil. Package CVE detection now skips Trivy and unsupported or incomplete results, while CVE reuse identifies Trivy through `ScannedBy`.
+
+Tests passed: `go test ./contrib/trivy/... ./detector` with network access disabled.

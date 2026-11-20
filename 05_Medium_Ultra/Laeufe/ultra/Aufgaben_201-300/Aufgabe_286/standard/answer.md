@@ -1,0 +1,3 @@
+Resolved the startup release issue. Builds with `-rc`, `-snapshot`, or other prerelease identifiers are no longer treated as proper releases. [main.go](/app/cmd/flipt/main.go) now uses the new [release package](/app/internal/release/check.go) for update status, reports the result in the configured output mode, and disables telemetry for nonrelease and CI builds. Failed update checks log a warning and allow startup to continue. Metadata retains the actual build version.
+
+A subagent implemented the release package and its tests; a second independently reviewed the integration. I integrated the changes and verified them with `go test ./cmd/flipt ./internal/release ./internal/info ./internal/telemetry` using offline module settings.

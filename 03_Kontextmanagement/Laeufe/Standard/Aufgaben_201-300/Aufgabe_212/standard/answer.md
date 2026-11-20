@@ -1,0 +1,3 @@
+Updated WPScan ingestion to use the first CVE as the canonical identifier and preserve references, UTC timestamps, classification, and fix version. Enterprise responses now populate summary, proof of concept, introduced version, and CVSS metrics; basic responses leave those fields empty with an empty optional metadata map.
+
+Added regression tests for enriched, null, and omitted fields. `go test ./detector -count=1` passes.

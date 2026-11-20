@@ -1,0 +1,5 @@
+The refactor is localized to [walk_dir_tree.go](/app/scanner/walk_dir_tree.go:31), [tag_scanner.go](/app/scanner/tag_scanner.go:85), and [paths.go](/app/utils/paths.go:9). `loadDir`, symlink and ignore checks, and the readability helper still use direct OS calls. `Scan` also owns the walker through `getRootFolderWalker`; that channel setup belongs in `Scan` when `walkDirTree` takes an `fs.FS` and returns the results and error channels.
+
+A fix needs to preserve child-first traversal, ignore markers, error reporting, and the paths used by scanner processing. Symlink behavior needs particular care: the existing fixture expects a symlink to a directory to be visited, while behavior across arbitrary `fs.FS` implementations remains unverified.
+
+The focused existing walker tests passed offline. I recorded the diagnosis in `.codex-role-output/checkpoint.md`. **No project source or tests were edited**; this specialist pass was limited to fault localization.

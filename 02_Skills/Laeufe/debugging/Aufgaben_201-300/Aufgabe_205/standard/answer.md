@@ -1,0 +1,3 @@
+Implemented the `utils.tokens` lifecycle interface with persisted metadata, creation and ownership indexes, usage timestamps, and single or array retrieval. Bearer authentication now accepts tokens created through the new interface while continuing to accept legacy settings tokens.
+
+The focused regression tests pass (2 tests), as do lint and `git diff --check`. The existing authentication suite could not run: its setup failed with `ECONNREFUSED 127.0.0.1:6379`, so that integration check remains unverified.

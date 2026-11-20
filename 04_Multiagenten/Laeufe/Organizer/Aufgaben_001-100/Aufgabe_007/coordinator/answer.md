@@ -1,0 +1,3 @@
+Updated the [WinRM connection plugin](/app/lib/ansible/plugins/connection/winrm.py) to accept `ansible_winrm_kinit_args`. It splits the argument string into tokens and places them between the executable and principal in both execution paths. When the option is set, it replaces the default delegation `-f` flag.
+
+Added [unit coverage](/app/test/units/plugins/connection/test_winrm.py) for argument parsing, delegation precedence, one invocation per attempt, and unique credential caches. All 34 WinRM unit tests passed; `git diff --check` passed. No delegation was used, so there were no worker changes to adopt.

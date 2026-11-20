@@ -1,0 +1,3 @@
+The existing patch in [webview.py](/app/qutebrowser/browser/webengine/webview.py) meets the requested behavior, and the review identified no code defect. No further code changes were needed.
+
+With the headless WebEngine settings, the two reviewer flagged test runs passed: 12/12 in `test_webview.py` and 128/128 across the WebEngine unit tests (with one automatic rerun). `git diff --check` also passed.

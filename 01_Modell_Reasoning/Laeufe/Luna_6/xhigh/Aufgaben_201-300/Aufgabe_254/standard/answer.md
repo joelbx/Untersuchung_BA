@@ -1,0 +1,3 @@
+Updated [ec2.go](/app/lib/utils/ec2.go:109) with functional client options and `WithIMDSClient`. `IsAvailable` now retrieves `instance-id` through IMDS with a 250 ms timeout and accepts only IDs matching the EC2 format.
+
+`go test ./lib/utils` and the EC2 labels package passed. The service package build was blocked by missing host headers and SQLite C symbols (`linux/hidraw.h`, `pread64`, `off64_t`).

@@ -1,0 +1,3 @@
+Voice broadcast liveness now comes from `infoState` through [determineVoiceBroadcastLiveness.ts](/app/src/voice-broadcast/utils/determineVoiceBroadcastLiveness.ts). [VoiceBroadcastPlayback.ts](/app/src/voice-broadcast/models/VoiceBroadcastPlayback.ts) updates it only in `setInfoState`; playback and chunk changes no longer change liveness.
+
+All 49 focused tests pass, including new mapping and playback regression tests. ESLint and Prettier pass. The full TypeScript check still reports unrelated `MatrixClient` errors in `MatrixChat`, `clientInformation`, and `DeviceListener`.

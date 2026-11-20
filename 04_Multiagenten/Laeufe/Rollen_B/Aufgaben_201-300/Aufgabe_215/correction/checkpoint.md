@@ -1,0 +1,1 @@
+Correction complete: generated valid matching TLS PEM fixtures at cmd/flipt/testdata/config/ssl_cert.pem and ssl_key.pem; advanced HTTPS configuration test covers exact required values. GOPROXY=off GOSUMDB=off go test ./cmd/flipt passed (existing sqlite C compiler warning); git diff --check passed. No TEST_ENVIRONMENT_PROBLEM.

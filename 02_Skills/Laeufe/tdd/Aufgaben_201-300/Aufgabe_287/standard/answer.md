@@ -1,0 +1,3 @@
+Implemented album artwork path tracking. Scans now collect image file names, combine them with each album’s sorted, unique media directories, and persist the full paths in the new `image_files` column. The migration triggers a full rescan.
+
+The model, scanner, persistence, and migration package tests pass. `go test ./...` has two unrelated TagLib fixture failures: the root-run environment can read a file those tests expect to be unreadable.

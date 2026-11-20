@@ -1,0 +1,3 @@
+Implemented `PrioritizedIdentifier` with a generic identifier, `stage_import`, identifier-based equality and hashing, and JSON serialization of all fields. The affiliate workflow now deduplicates queued identifiers and stages only products requested for import. Existing `PrioritizedISBN` imports and `isbn` construction remain supported.
+
+Verification: 18 affiliate server tests pass; Ruff and `git diff --check` pass.

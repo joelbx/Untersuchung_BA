@@ -1,0 +1,3 @@
+Updated `Chat.Complete` and `Agent.PlanAndExecute` to return a non-nil [TokenCount](/app/lib/ai/model/tokencount.go). Counts accumulate across agent steps, and completed streams are tokenized as a whole for an accurate final total. Assist and web usage reporting now consume the separate count.
+
+The token API and downstream caller updates were delegated; I integrated the changes and verified them. `go test -mod=readonly ./lib/ai/...` and the AI race tests pass. Assist and web tests could not compile in this environment because required local C headers are missing.

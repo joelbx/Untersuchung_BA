@@ -1,0 +1,3 @@
+Syslog configuration now lives in the public [`config/syslog.Conf`](/app/config/syslog/types.go), with its existing validation behavior in the dedicated package. Windows validation returns one “windows not support syslog” error when enabled. Both platform configs use the new type, and `config.SyslogConf` remains as a compatibility alias.
+
+Offline tests passed for `./config/syslog`, `./config`, and `./reporter`. The syslog and config test packages also cross compiled for Windows; Windows tests were not run.

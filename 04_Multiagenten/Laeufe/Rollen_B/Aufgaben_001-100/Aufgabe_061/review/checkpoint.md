@@ -1,0 +1,2 @@
+VERDICT: FIX
+Review complete. Defect: scan/redhatbase.go parseOwnerPkgs checks only pack.Name before returning it. For a single owner line `libgcc 0 4.8.5 39.el7 i686` while Packages[libgcc] is 4.8.5-44.el7 x86_64, it returns libgcc; scan/base.go pkgPs then marks the newer x86_64 package affected. Compare owner version/release/arch with the stored package, or retain full package identities. Test: GOPROXY=off GOSUMDB=off go test ./scan passed (sqlite3 compiler warning only). Initial go test ./scan was interrupted to enforce offline execution. git diff --check passed.

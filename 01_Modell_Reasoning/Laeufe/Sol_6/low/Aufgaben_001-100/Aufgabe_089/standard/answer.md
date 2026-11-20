@@ -1,0 +1,3 @@
+Updated validation so `flipt validate` reports missing variant and segment references as individual errors with file, line, and column information. Snapshot creation checks references, and `flipt import` checks them before making database changes so a repeated import reports the same error.
+
+Added regression tests and corrected the three “valid” fixtures to use variants they define. `go test ./internal/cue ./internal/storage/fs ./cmd/flipt` passes.

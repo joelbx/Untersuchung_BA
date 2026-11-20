@@ -1,0 +1,3 @@
+Updated the repository so explicit group cover, user cover, and uploaded avatar removal deletes eligible local files as well as clearing the associated fields. Account deletion now removes cover and avatar files with supported extensions, including timestamped filenames. The socket handlers retain their removal hooks.
+
+ESLint and `git diff --check` pass. The relevant user tests could not run because Redis was unavailable at `127.0.0.1:6379`.

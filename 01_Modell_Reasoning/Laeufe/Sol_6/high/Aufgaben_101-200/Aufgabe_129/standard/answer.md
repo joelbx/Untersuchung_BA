@@ -1,0 +1,3 @@
+Added the current-session kebab menu with accessible keyboard controls, destructive sign-out actions, and automatic dismissal. “Sign out” uses the existing logout dialog; “Sign out all other sessions” passes only other device IDs to bulk sign-out.
+
+The focused suite passes: **58 tests and 9 snapshots**. ESLint and stylelint pass. The full TypeScript check still reports existing SDK API errors in unrelated files; it reports none in the changed files.

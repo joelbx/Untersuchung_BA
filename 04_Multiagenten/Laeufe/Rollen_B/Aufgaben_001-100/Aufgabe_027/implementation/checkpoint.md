@@ -1,0 +1,2 @@
+Implemented nullable, read-only persisted local ID lookup. It skips nonnumeric keys and malformed session values, preserves ID 0, and falls back to the newest valid candidate if last-active ping parsing fails. The public bookmark view calls resumeSession only when an ID exists, then lists bookmarks.
+Focused Jest suites passed: 2 suites, 18 tests. Drive type check reports an existing dependency type mismatch in packages/crypto/lib/worker/api.ts between openpgp and pmcrypto's nested openpgp types; no changed-file errors were reported. git diff --check passed.

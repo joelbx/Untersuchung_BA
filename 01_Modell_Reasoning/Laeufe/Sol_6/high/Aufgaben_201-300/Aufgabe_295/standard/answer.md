@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) to provide the localized verified and unverified messages. [CurrentDeviceSection](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx) now delegates to it, and [DeviceDetails](/app/src/components/views/settings/devices/DeviceDetails.tsx) shows it immediately after the device heading.
+
+All device settings tests pass: 12 suites, 50 tests, and 22 snapshots. ESLint passes for the changed files. The repository wide type check remains blocked by errors in unrelated `matrix-js-sdk`, widget, and receipt code.

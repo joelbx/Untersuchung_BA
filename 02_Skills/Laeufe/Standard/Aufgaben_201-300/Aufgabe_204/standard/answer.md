@@ -1,0 +1,3 @@
+Implemented `guessDateFromText` and wired it into CSV and vCard date conversion. Valid dates now serialize with their parsed calendar values; unparseable text no longer becomes today’s date. Added parsing and serialization tests in [property.spec.ts](/app/packages/shared/test/contacts/property.spec.ts). The work and check results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+TypeScript, lint, and the new contact tests passed. The full shared suite ran 878 tests: 876 passed, with two unrelated browser-dependent failures in the cookie and base64 tests.

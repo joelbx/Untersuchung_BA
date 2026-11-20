@@ -1,0 +1,3 @@
+Implemented support for rule `segment` as either a string or a keys/operator object. Imports validate both formats, exports use the canonical object form, and filesystem and SQL storage apply the OR operator when a segment has one key. Updated the requested fixtures and added format and import tests.
+
+`go test ./internal/ext ./internal/storage/fs/... ./internal/storage/sql/...` and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Added [removeTechnicalFields](/app/src/api/common/utils/EntityUtils.ts:138). It mutates a cloned entity to remove keys beginning with `_finalEncrypted`, `_defaultEncrypted`, or `_errors` at the root and in nested objects and arrays, while preserving other fields. Added coverage in [EntityUtilsTest.ts](/app/test/tests/api/common/utils/EntityUtilsTest.ts:40).
+
+TypeScript, formatting, and diff checks passed. The app test suite passed all 8,681 assertions.

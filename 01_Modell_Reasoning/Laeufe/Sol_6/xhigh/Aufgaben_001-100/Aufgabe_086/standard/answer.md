@@ -1,0 +1,3 @@
+Added `destination_ports` to the [iptables module](/app/lib/ansible/modules/iptables.py). It accepts a list with an empty default and builds a single `-m multiport --dports` rule using `append_match` and `append_csv`. Port ranges use `first:last`. The module rejects the parameter unless the protocol is tcp, udp, udplite, dccp, or sctp.
+
+Updated the [unit tests](/app/test/units/modules/test_iptables.py), documentation, and changelog. All 24 iptables unit tests pass; `git diff --check` passes.

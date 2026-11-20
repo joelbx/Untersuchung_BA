@@ -1,0 +1,3 @@
+Updated `reversetunnel.Server` to keep one `localSite` and use it for connection registration, reconnect advisories, site lookups, and proxy fan-out. The local site now reuses the proxy’s existing access point instead of creating a second resource cache. Added tests for cache reuse and cluster name validation.
+
+Validation: `go test ./lib/reversetunnel -count=1` and `git diff --check` passed. No delegation was used.

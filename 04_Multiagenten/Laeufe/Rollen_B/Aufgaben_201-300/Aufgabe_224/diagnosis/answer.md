@@ -1,0 +1,5 @@
+The checkout still defines both color helpers in [utils.py](/app/qutebrowser/utils/utils.py:236). Moving them to [qtutils.py](/app/qutebrowser/utils/qtutils.py) without updating the three callers would cause the reported `AttributeError`: [downloads.py](/app/qutebrowser/browser/downloads.py:563) calls it for download progress, and [tabbedbrowser.py](/app/qutebrowser/mainwindow/tabbedbrowser.py:866) calls it during loading and at completion.
+
+The fix should move both helpers, redirect all three calls, and preserve RGB, HSV, HSL, alpha, color validation, and the 100% completion behavior. One behavior needs care: the current `None` colorspace branch does not reject percentages outside 0–100, despite the stated requirement.
+
+The existing interpolation tests pass (17/17), but they exercise the current `utils.interpolate_color` location. I recorded the diagnosis in `.codex-role-output/checkpoint.md`. Project source and tests were left untouched under this pass’s fault-localization constraint.

@@ -1,0 +1,3 @@
+Updated author matching in `/app`. It now compares extracted birth and death years across date formats, tries exact names before alternate names and surname matches, and handles literal asterisks in names. Honorific removal accepts a string, preserves the listed name exceptions and honorific-only names, and new author records retain the input fields. Regression tests cover these cases.
+
+Verification: the add-book suite finished with **160 passed, 1 expected failure**. Ruff and `git diff --check` passed.

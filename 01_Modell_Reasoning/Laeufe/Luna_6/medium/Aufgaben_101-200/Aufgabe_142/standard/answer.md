@@ -1,0 +1,1 @@
+Implemented a typed expression AST and updated trait and PAM interpolation to validate namespaces and trait names. The parser package’s existing tests currently fail: they expect the previous `Expression` representation and matcher behavior, and the new matcher path does not yet support boolean template expressions. I wasn’t able to complete or verify the requested behavior.

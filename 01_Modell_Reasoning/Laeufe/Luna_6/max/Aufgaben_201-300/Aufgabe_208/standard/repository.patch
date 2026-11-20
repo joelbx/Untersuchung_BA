@@ -1,0 +1,179 @@
+diff --git a/install/data/defaults.json b/install/data/defaults.json
+index f3859d2..4911883 100644
+--- a/install/data/defaults.json
++++ b/install/data/defaults.json
+@@ -146,6 +146,7 @@
+     "maximumRelatedTopics": 0,
+     "disableEmailSubscriptions": 0,
+     "emailConfirmInterval": 10,
++    "emailConfirmExpiry": 1,
+     "removeEmailNotificationImages": 0,
+     "sendValidationEmail": 1,
+     "includeUnverifiedEmails": 0,
+@@ -180,4 +181,4 @@
+     "composer:allowPluginHelp": 1,
+     "maxReconnectionAttempts": 5,
+     "reconnectionDelay": 1500
+-}
+\ No newline at end of file
++}
+diff --git a/public/language/en-GB/admin/settings/user.json b/public/language/en-GB/admin/settings/user.json
+index 1d5d460..9b41456 100644
+--- a/public/language/en-GB/admin/settings/user.json
++++ b/public/language/en-GB/admin/settings/user.json
+@@ -2,6 +2,8 @@
+ 	"authentication": "Authentication",
+ 	"email-confirm-interval": "User may not resend a confirmation email until",
+ 	"email-confirm-interval2": "minutes have elapsed",
++	"email-confirm-expiry": "Email confirmation links expire after",
++	"email-confirm-expiry2": "days",
+ 	"allow-login-with": "Allow login with",
+ 	"allow-login-with.username-email": "Username or Email",
+ 	"allow-login-with.username": "Username Only",
+diff --git a/src/user/email.js b/src/user/email.js
+index 60ed9b5..8021712 100644
+--- a/src/user/email.js
++++ b/src/user/email.js
+@@ -14,6 +14,13 @@ const groups = require('../groups');
+ const events = require('../events');
+ 
+ const UserEmail = module.exports;
++const DAY_IN_MS = 24 * 60 * 60 * 1000;
++const MINUTE_IN_MS = 60 * 1000;
++
++function getExpiryMs() {
++	const expiryDays = Number(meta.config.emailConfirmExpiry);
++	return Math.max(1, Math.floor((Number.isFinite(expiryDays) && expiryDays > 0 ? expiryDays : 1) * DAY_IN_MS));
++}
+ 
+ UserEmail.exists = async function (email) {
+ 	const uid = await user.getUidByEmail(email.toLowerCase());
+@@ -45,22 +52,65 @@ UserEmail.remove = async function (uid, sessionId) {
+ };
+ 
+ UserEmail.isValidationPending = async (uid, email) => {
+-	const code = await db.get(`confirm:byUid:${uid}`);
++	const markerKey = `confirm:byUid:${uid}`;
++	const code = await db.get(markerKey);
++	if (!code) {
++		return false;
++	}
++	const ttlMs = Number(await db.pttl(markerKey));
++	if (!Number.isFinite(ttlMs) || ttlMs <= 0) {
++		await UserEmail.expireValidation(uid);
++		return false;
++	}
+ 
+-	if (email) {
+-		const confirmObj = await db.getObject(`confirm:${code}`);
+-		return confirmObj && email === confirmObj.email;
++	const confirmObj = await db.getObject(`confirm:${code}`);
++	if (!confirmObj || !confirmObj.email || String(confirmObj.uid) !== String(uid)) {
++		return false;
+ 	}
+ 
+-	return !!code;
++	return email === undefined || email === null ||
++		String(email).toLowerCase() === String(confirmObj.email).toLowerCase();
++};
++
++UserEmail.getValidationExpiry = async (uid) => {
++	if (!(await UserEmail.isValidationPending(uid))) {
++		return null;
++	}
++
++	const ttlMs = Number(await db.pttl(`confirm:byUid:${uid}`));
++	if (!Number.isFinite(ttlMs) || ttlMs <= 0) {
++		await UserEmail.expireValidation(uid);
++		return null;
++	}
++
++	return Math.min(ttlMs, getExpiryMs());
++};
++
++UserEmail.canSendValidation = async (uid, email) => {
++	const pending = await UserEmail.isValidationPending(uid, email);
++	if (!pending) {
++		return true;
++	}
++
++	const ttlMs = await UserEmail.getValidationExpiry(uid);
++	if (ttlMs === null) {
++		return true;
++	}
++
++	const intervalMinutes = Number(meta.config.emailConfirmInterval);
++	const intervalMs = (Number.isFinite(intervalMinutes) ? intervalMinutes : 0) * MINUTE_IN_MS;
++	const expiryMs = getExpiryMs();
++	return ttlMs + intervalMs < expiryMs;
+ };
+ 
+ UserEmail.expireValidation = async (uid) => {
+-	const code = await db.get(`confirm:byUid:${uid}`);
+-	await db.deleteAll([
+-		`confirm:byUid:${uid}`,
+-		`confirm:${code}`,
+-	]);
++	const markerKey = `confirm:byUid:${uid}`;
++	const code = await db.get(markerKey);
++	const keys = [markerKey];
++	if (code) {
++		keys.push(`confirm:${code}`);
++	}
++	await db.deleteAll(keys);
+ };
+ 
+ UserEmail.sendValidationEmail = async function (uid, options) {
+@@ -99,7 +149,7 @@ UserEmail.sendValidationEmail = async function (uid, options) {
+ 	}
+ 	let sent = false;
+ 	if (!options.force) {
+-		sent = await UserEmail.isValidationPending(uid, options.email);
++		sent = !(await UserEmail.canSendValidation(uid, options.email));
+ 	}
+ 	if (sent) {
+ 		throw new Error(`[[error:confirm-email-already-sent, ${emailInterval}]]`);
+@@ -118,14 +168,16 @@ UserEmail.sendValidationEmail = async function (uid, options) {
+ 	});
+ 
+ 	await UserEmail.expireValidation(uid);
++	const expiryAt = Date.now() + getExpiryMs();
+ 	await db.set(`confirm:byUid:${uid}`, confirm_code);
+-	await db.pexpireAt(`confirm:byUid:${uid}`, Date.now() + (emailInterval * 60 * 1000));
+-
+ 	await db.setObject(`confirm:${confirm_code}`, {
+ 		email: options.email.toLowerCase(),
+ 		uid: uid,
+ 	});
+-	await db.expireAt(`confirm:${confirm_code}`, Math.floor((Date.now() / 1000) + (60 * 60 * 24)));
++	await Promise.all([
++		db.pexpireAt(`confirm:byUid:${uid}`, expiryAt),
++		db.pexpireAt(`confirm:${confirm_code}`, expiryAt),
++	]);
+ 
+ 	winston.verbose(`[user/email] Validation email for uid ${uid} sent to ${options.email}`);
+ 	events.log({
+diff --git a/src/views/admin/settings/user.tpl b/src/views/admin/settings/user.tpl
+index dbc9ca0..0d61ac2 100644
+--- a/src/views/admin/settings/user.tpl
++++ b/src/views/admin/settings/user.tpl
+@@ -10,6 +10,12 @@
+ 					value="10" />
+ 				<label for="emailConfirmInterval">[[admin/settings/user:email-confirm-interval2]]</label>
+ 			</div>
++			<div class="form-group form-inline">
++				<label for="emailConfirmExpiry">[[admin/settings/user:email-confirm-expiry]]</label>
++				<input class="form-control" data-field="emailConfirmExpiry" type="number" id="emailConfirmExpiry" min="1" placeholder="Default: 1"
++					value="1" />
++				<label for="emailConfirmExpiry">[[admin/settings/user:email-confirm-expiry2]]</label>
++			</div>
+ 
+ 			<div class="form-group">
+ 				<label for="allowLoginWith">[[admin/settings/user:allow-login-with]]</label>
+@@ -369,4 +375,4 @@
+ 	</div>
+ </div>
+ 
+-<!-- IMPORT admin/partials/settings/footer.tpl -->
+\ No newline at end of file
++<!-- IMPORT admin/partials/settings/footer.tpl -->

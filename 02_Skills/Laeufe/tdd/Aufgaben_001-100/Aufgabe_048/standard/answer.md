@@ -1,0 +1,3 @@
+Implemented structured plugin resolution results and contextual plugin errors. Tombstones now raise `AnsiblePluginRemovedError` during lookup; `get_with_context()` returns the plugin or `None` alongside resolution metadata. I updated the connection, action, and Jinja callers and centralized deprecation and removal message formatting in `Display`.
+
+The focused tests passed: **81 passed**. The broader unit suite completed with **3,099 passed, 58 failed, and 67 errors**, so broad regression status remains uncertain. The failures include CLI, module utility, collection loader, and display warning tests; details are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented the assistant upsell changes. Both paid flows now use `getScribeAddonNameByPlan`, build a `planIDs` object, and include the addon only when the resolver returns one. Exported the resolver and `SelectedPlan` from the public payments/core entrypoint, and updated affected imports.
+
+The focused assistant upsell suite passed: 9 tests. `git diff --check` passed. The components type check reported an unrelated OpenPGP `PartialConfig` error in [api.ts](/app/packages/crypto/lib/worker/api.ts:577); it reported no errors in the changed files.

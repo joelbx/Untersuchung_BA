@@ -1,0 +1,3 @@
+Added `content.javascript.log_message.levels` and `.excludes` in [configdata.yml](/app/qutebrowser/config/configdata.yml), with a migration from the old setting. The new [_js_log_to_ui helper](/app/qutebrowser/browser/shared.py) applies source and level filters, then message glob exclusions. Messages excluded from the UI continue through the existing JavaScript logger path.
+
+Verification: 255 relevant tests passed, 1 skipped. One unrelated config test was excluded because it expects `ValueError` for null bytes where Python 3.11 raises `SyntaxError`. `git diff --check` passed; `flake8` was unavailable locally. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

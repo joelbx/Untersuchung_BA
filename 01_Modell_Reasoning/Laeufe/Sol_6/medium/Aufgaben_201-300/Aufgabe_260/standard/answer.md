@@ -1,0 +1,3 @@
+Implemented selective SSE delivery. UI requests now send a per-page client UUID; middleware stores it in an HttpOnly cookie so EventSource requests can reuse it. Request events reach other sessions of the same user, while server-originated events broadcast to all subscribers. Updated the broker API, event call sites, diode method, and cookie expiry constant.
+
+Relevant Go tests, UI lint, and formatting checks passed.

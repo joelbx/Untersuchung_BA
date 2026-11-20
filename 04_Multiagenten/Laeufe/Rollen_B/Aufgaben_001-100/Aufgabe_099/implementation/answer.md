@@ -1,0 +1,3 @@
+BatchEvaluate now returns one response per input flag in order, including disabled flags, and continues evaluating later flags. Disabled entries have `match=false` and empty value and segment fields. Each entry has a timestamp and its own duration; the outer response retains the total duration.
+
+I added `ErrDisabled` and `ErrDisabledf`, migrated the direct protobuf imports and empty RPC results, and added mixed-batch coverage. `go test -mod=mod ./...` passes offline.

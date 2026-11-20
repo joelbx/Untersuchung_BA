@@ -1,0 +1,3 @@
+Extracted `RoleMixin._build_doc` to return `(fqcn, doc)` without mutating shared state. It preserves the supplied path, collection, and full entry point specifications, and returns `(fqcn, None)` when no entry points match. `_create_role_doc` now uses the method.
+
+Added direct and caller tests in [test_doc.py](/app/test/units/cli/test_doc.py). Verification: all 21 tests passed with `PYTHONPATH=lib`, and `git diff --check` passed.

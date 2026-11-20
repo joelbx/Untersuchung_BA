@@ -1,0 +1,7 @@
+The issue is localized to [auth_router.go](/app/core/agents/lastfm/auth_router.go): `sessionKeys` builds `LastFMSessionKey_<uid>` and uses the global property repository. The schema in [20200130083147_create_schema.go](/app/db/migration/20200130083147_create_schema.go) has only `property(id, value)`.
+
+The fix should add a `user_props` migration, a `model.UserPropsRepository` interface, and `DataStore.UserProps(ctx)` with a SQL implementation whose Put, Get, and Delete queries all scope by contextual user ID and key. Last.fm should use the constant `sessionKeyProperty = "LastFMSessionKey"` and log storage errors with context. [MockDataStore](/app/tests/mock_persistence.go) also needs the new interface method.
+
+**Key uncertainty:** the Last.fm callback is outside the authenticated route group, so its context may have no user. It must establish the callback user before a context scoped write. The migration should also address existing prefixed keys if previously linked users must retain their sessions.
+
+I recorded the findings in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). This run’s fault localization constraint prohibited source and test edits, so the issue remains unresolved in the checked out code.

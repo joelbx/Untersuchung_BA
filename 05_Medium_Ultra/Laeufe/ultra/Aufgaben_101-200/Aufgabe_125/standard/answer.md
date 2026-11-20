@@ -1,0 +1,3 @@
+Implemented topic backlinks in the checked-out repository. [Topics.syncBacklinks](/app/src/topics/posts.js) detects local topic links, records references per post, adds timeline events, and removes stale events after edits. Post creation and editing now call it. A disabled-by-default admin switch controls whether backlink events appear; the timeline has translation text, styling, and working post links.
+
+**Verification:** 12 focused backlink tests and 4 existing post/topic lifecycle tests passed. ESLint and `git diff --check` passed. Work was delegated across UI/configuration, create/edit integration, and tests; I reviewed the combined patch.

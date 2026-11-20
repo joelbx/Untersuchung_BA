@@ -1,0 +1,3 @@
+Added SQL Server connection testing to the diagnostic flow. The new pinger validates connection parameters, respects context deadlines during stalled handshakes, and categorizes connection refused, invalid user, and invalid database errors. Protocol selection now returns it for SQL Server and still errors on unsupported protocols.
+
+The relevant tests pass: `GOPROXY=off go test ./lib/client/conntest/database ./lib/client/conntest`.

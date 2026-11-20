@@ -1,0 +1,3 @@
+Updated the database proxy to shuffle all matching services, retry the next candidate when a tunnel has a connection problem, and return a specific error when none can be reached. Authorization now retains every candidate. I also added per-server offline tunnel simulation, a deterministic shuffle hook for tests, `HostID` in server logs, stable name and `HostID` sorting, and deduplication before `tsh db ls` renders.
+
+The new HA test confirms that an offline first candidate falls back to a healthy one. The relevant API types, database, reverse tunnel, and `tsh` tests passed; `git diff --check` passed.

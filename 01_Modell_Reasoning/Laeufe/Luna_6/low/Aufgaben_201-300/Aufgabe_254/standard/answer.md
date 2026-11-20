@@ -1,0 +1,3 @@
+Updated [ec2.go](/app/lib/utils/ec2.go) with functional client options, including `WithIMDSClient`, and changed `IsAvailable` to retrieve the instance identity document within 250 ms and validate its instance ID. The direct HTTP availability probe is removed.
+
+`go test ./lib/utils` and `go test ./lib/labels/ec2` passed. `go test ./lib/service` could not complete because the environment lacks Linux HID headers and its SQLite build also failed. `git diff --check` passed.

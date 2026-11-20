@@ -1,0 +1,3 @@
+Updated AIX processor facts in [aix.py](/app/lib/ansible/module_utils/facts/hardware/aix.py): processor count is fixed at `1`, cores are counted from available processor devices, SMT defaults to `1`, vCPUs are calculated from cores × threads per core, and the CPU type is returned as a list.
+
+Added tests for reported SMT and the default. **Verification:** 5 AIX hardware tests passed; `git diff --check` passed.

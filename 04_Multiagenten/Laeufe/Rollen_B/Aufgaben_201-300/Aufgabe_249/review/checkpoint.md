@@ -1,0 +1,3 @@
+VERDICT: ACCEPT
+Reviewed the applied changes to openlibrary/core/wikidata.py, openlibrary/templates/authors/infobox.html, static/css/components/author-infobox.less, the new SVG icons, and openlibrary/tests/core/test_wikidata.py. No correctness or regression defect found against the issue requirements. Wikipedia language fallback, valid statement extraction, multiple P1960 profiles, and infobox rendering are covered by the implementation; icon paths exist and the stylesheet is imported by page-user.less.
+Tests executed: `python -m pytest openlibrary/tests/core/test_wikidata.py -q` (10 passed); `python -m pytest openlibrary/tests/core/test_i18n.py -q` (2 passed). `git diff --check` passed. No TEST_ENVIRONMENT_PROBLEM.

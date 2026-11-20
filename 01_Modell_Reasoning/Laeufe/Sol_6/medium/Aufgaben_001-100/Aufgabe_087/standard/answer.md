@@ -1,0 +1,3 @@
+Implemented opt-out telemetry in `/app`. It stores a stable anonymous UUID, sends a `flipt.ping` when due and every four hours thereafter, and records successful reports. The config supports `FLIPT_META_TELEMETRY_ENABLED` and `FLIPT_META_STATE_DIRECTORY`; [advanced.yml](/app/config/testdata/advanced.yml) disables telemetry. I also added the [Flipt HTTP handler](/app/internal/info/flipt.go).
+
+`go test ./...` passed. Live delivery to the telemetry collector remains unverified because external verification was blocked.

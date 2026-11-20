@@ -1,0 +1,3 @@
+DynamoDB audit events now write metadata as a native `FieldsMap`. Reads accept both `FieldsMap` and legacy `Fields` while a locked background migration converts existing rows in batches. The migration saves its scan cursor, retries after failures, and validates the converted metadata.
+
+Tests passed: `go test ./lib/events ./lib/events/dynamoevents ./lib/backend`. A local DynamoDB test also verified resume after a failed batch write. The live AWS test suite remains environment gated.

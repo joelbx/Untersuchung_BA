@@ -1,0 +1,3 @@
+Updated the WordPress cache lookup to use the map directly and return `("", false)` for missing or nil entries. The scan now reads `IgnoreInactive` from the server’s configuration, so inactive plugins and themes are excluded when that setting is enabled.
+
+Regression tests cover cache hits and misses, nil values, and filtering with the setting enabled and disabled. `go test ./wordpress ./models ./report` and `git diff --check` passed.

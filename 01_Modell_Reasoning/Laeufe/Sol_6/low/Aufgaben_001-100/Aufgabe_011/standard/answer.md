@@ -1,0 +1,3 @@
+Updated the checked-out repository for the reported sentinel, traceback, YAML constructor, templar override, lookup message, early CLI error, deprecation, and `timedout` behaviors.
+
+Verification: **314 tests passed, 1 skipped**; `git diff --check` passed. The legacy `test_deprecate_warn.py` suite still has 7 failures because it expects target-side warning collection while running in controller mode. I recorded that limitation in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,244 @@
+diff --git a/install/data/defaults.json b/install/data/defaults.json
+index 2eb0a15..8d4cdf1 100644
+--- a/install/data/defaults.json
++++ b/install/data/defaults.json
+@@ -38,6 +38,7 @@
+     "registrationApprovalType": "normal",
+     "allowAccountDelete": 1,
+     "privateUploads": 0,
++    "preserveOrphanedUploads": 0,
+     "allowedFileExtensions": "png,jpg,bmp,txt",
+     "uploadRateLimitThreshold": 10,
+     "uploadRateLimitCooldown": 60,
+@@ -170,4 +171,4 @@
+     "composer:allowPluginHelp": 1,
+     "maxReconnectionAttempts": 5,
+     "reconnectionDelay": 1500
+-}
+\ No newline at end of file
++}
+diff --git a/public/language/en-GB/admin/settings/uploads.json b/public/language/en-GB/admin/settings/uploads.json
+index ba9d012..61b2925 100644
+--- a/public/language/en-GB/admin/settings/uploads.json
++++ b/public/language/en-GB/admin/settings/uploads.json
+@@ -1,6 +1,7 @@
+ {
+ 	"posts": "Posts",
+ 	"private": "Make uploaded files private",
++	"preserve-orphaned-uploads": "Keep uploaded files after their posts are purged",
+ 	"strip-exif-data": "Strip EXIF Data",
+ 	"private-extensions": "File extensions to make private",
+ 	"private-uploads-extensions-help": "Enter comma-separated list of file extensions to make private here (e.g. <code>pdf,xls,doc</code>). An empty list means all files are private.",
+diff --git a/src/posts/delete.js b/src/posts/delete.js
+index 9cb26b2..59b0754 100644
+--- a/src/posts/delete.js
++++ b/src/posts/delete.js
+@@ -61,7 +61,7 @@ module.exports = function (Posts) {
+ 			deletePostFromReplies(postData),
+ 			deletePostFromGroups(postData),
+ 			db.sortedSetsRemove(['posts:pid', 'posts:votes', 'posts:flagged'], pid),
+-			Posts.uploads.dissociateAll(pid),
++			Posts.uploads.purge(pid),
+ 		]);
+ 		await flags.resolveFlag('post', pid, uid);
+ 		plugins.hooks.fire('action:post.purge', { post: postData, uid: uid });
+diff --git a/src/posts/uploads.js b/src/posts/uploads.js
+index 132a73f..7c3389f 100644
+--- a/src/posts/uploads.js
++++ b/src/posts/uploads.js
+@@ -2,6 +2,7 @@
+ 
+ const nconf = require('nconf');
+ const crypto = require('crypto');
++const fs = require('fs');
+ const path = require('path');
+ const winston = require('winston');
+ const mime = require('mime');
+@@ -11,20 +12,50 @@ const db = require('../database');
+ const image = require('../image');
+ const topics = require('../topics');
+ const file = require('../file');
++const meta = require('../meta');
+ 
+ module.exports = function (Posts) {
+ 	Posts.uploads = {};
+ 
+ 	const md5 = filename => crypto.createHash('md5').update(filename).digest('hex');
+-	const pathPrefix = path.join(nconf.get('upload_path'), 'files');
++	const pathPrefix = path.resolve(nconf.get('upload_path'), 'files');
+ 	const searchRegex = /\/assets\/uploads\/files\/([^\s")]+\.?[\w]*)/g;
+ 
+ 	const _getFullPath = relativePath => path.resolve(pathPrefix, relativePath);
++	const _isWithinUploads = (relativePath) => {
++		if (typeof relativePath !== 'string' || !relativePath || path.isAbsolute(relativePath)) {
++			return false;
++		}
++		const relative = path.relative(pathPrefix, _getFullPath(relativePath));
++		return relative !== '' && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
++	};
+ 	const _filterValidPaths = async filePaths => (await Promise.all(filePaths.map(async (filePath) => {
++		if (!_isWithinUploads(filePath)) {
++			return false;
++		}
+ 		const fullPath = _getFullPath(filePath);
+-		return fullPath.startsWith(pathPrefix) && await file.exists(fullPath) ? filePath : false;
++		const realParent = await fs.promises.realpath(path.dirname(fullPath)).catch((err) => {
++			if (err.code === 'ENOENT') {
++				return null;
++			}
++			throw err;
++		});
++		const realRoot = await fs.promises.realpath(pathPrefix);
++		const relative = realParent && path.relative(realRoot, realParent);
++		return realParent && relative !== '..' && !relative.startsWith(`..${path.sep}`) &&
++			!path.isAbsolute(relative) && await file.exists(fullPath) ? filePath : false;
+ 	}))).filter(Boolean);
+ 
++	Posts.uploads.deleteFromDisk = async function (filePaths) {
++		if (typeof filePaths === 'string') {
++			filePaths = [filePaths];
++		} else if (!Array.isArray(filePaths)) {
++			throw new Error('[[error:invalid-data]]');
++		}
++		const validPaths = await _filterValidPaths(filePaths);
++		await Promise.all(validPaths.map(async filePath => file.delete(_getFullPath(filePath))));
++	};
++
+ 	Posts.uploads.sync = async function (pid) {
+ 		// Scans a post's content and updates sorted set of uploads
+ 
+@@ -125,7 +156,20 @@ module.exports = function (Posts) {
+ 
+ 	Posts.uploads.dissociateAll = async (pid) => {
+ 		const current = await Posts.uploads.list(pid);
+-		await Promise.all(current.map(async path => await Posts.uploads.dissociate(pid, path)));
++		await Posts.uploads.dissociate(pid, current);
++	};
++
++	Posts.uploads.purge = async (pid) => {
++		const uploads = await Posts.uploads.list(pid);
++		await Posts.uploads.dissociate(pid, uploads);
++		if (!meta.config.preserveOrphanedUploads) {
++			const orphaned = (await Promise.all(uploads.map(async upload => (
++				await Posts.uploads.isOrphan(upload) ? upload : null
++			)))).filter(Boolean);
++			await Posts.uploads.deleteFromDisk(orphaned.flatMap(upload => [
++				upload, file.appendToFileName(upload, '-resized'),
++			]));
++		}
+ 	};
+ 
+ 	Posts.uploads.saveSize = async (filePaths) => {
+diff --git a/src/topics/delete.js b/src/topics/delete.js
+index b30889a..d6496f8 100644
+--- a/src/topics/delete.js
++++ b/src/topics/delete.js
+@@ -94,7 +94,7 @@ module.exports = function (Topics) {
+ 			deleteTopicFromCategoryAndUser(tid),
+ 			Topics.deleteTopicTags(tid),
+ 			Topics.events.purge(tid),
+-			Topics.thumbs.deleteAll(tid),
++			db.delete(`topic:${tid}:thumbs`),
+ 			reduceCounters(tid),
+ 		]);
+ 		plugins.hooks.fire('action:topic.purge', { topic: deletedTopic, uid: uid });
+diff --git a/src/views/admin/settings/uploads.tpl b/src/views/admin/settings/uploads.tpl
+index 36edc6f..f34c923 100644
+--- a/src/views/admin/settings/uploads.tpl
++++ b/src/views/admin/settings/uploads.tpl
+@@ -6,6 +6,13 @@
+ 	</div>
+ 	<div class="col-sm-10 col-xs-12">
+ 		<form>
++			<div class="checkbox">
++				<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect">
++					<input class="mdl-switch__input" type="checkbox" data-field="preserveOrphanedUploads">
++					<span class="mdl-switch__label"><strong>[[admin/settings/uploads:preserve-orphaned-uploads]]</strong></span>
++				</label>
++			</div>
++
+ 			<div class="checkbox">
+ 				<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect">
+ 					<input class="mdl-switch__input" type="checkbox" data-field="privateUploads">
+diff --git a/test/posts/uploads.js b/test/posts/uploads.js
+index 689ae85..b105c74 100644
+--- a/test/posts/uploads.js
++++ b/test/posts/uploads.js
+@@ -14,6 +14,7 @@ const categories = require('../../src/categories');
+ const topics = require('../../src/topics');
+ const posts = require('../../src/posts');
+ const user = require('../../src/user');
++const meta = require('../../src/meta');
+ 
+ describe('upload methods', () => {
+ 	let pid;
+@@ -223,6 +224,69 @@ describe('upload methods', () => {
+ 			const uploads = await posts.uploads.list(purgePid);
+ 
+ 			assert.equal(uploads.length, 0);
++			assert.strictEqual(fs.existsSync(path.join(nconf.get('upload_path'), 'files', 'amazeballs.jpg')), false);
++			assert.strictEqual(fs.existsSync(path.join(nconf.get('upload_path'), 'files', 'whoa.gif')), false);
++		});
++	});
++
++	describe('.deleteFromDisk()', () => {
++		it('deletes a single path and a list of paths', async () => {
++			const root = path.join(nconf.get('upload_path'), 'files');
++			const names = ['delete-one.txt', 'delete-two.txt', 'delete-three.txt'];
++			for (const name of names) {
++				fs.writeFileSync(path.join(root, name), 'test');
++			}
++			await posts.uploads.deleteFromDisk(names[0]);
++			await posts.uploads.deleteFromDisk(names.slice(1));
++			assert(names.every(name => !fs.existsSync(path.join(root, name))));
++		});
++
++		it('rejects unsupported input and ignores paths outside the uploads directory', async () => {
++			const outside = path.join(nconf.get('upload_path'), 'outside-files.txt');
++			fs.writeFileSync(outside, 'keep');
++			try {
++				await assert.rejects(posts.uploads.deleteFromDisk(42));
++				await posts.uploads.deleteFromDisk(['../outside-files.txt', outside, null]);
++				assert.strictEqual(fs.existsSync(outside), true);
++			} finally {
++				fs.unlinkSync(outside);
++			}
++		});
++	});
++
++	describe('file cleanup on topic purge', () => {
++		it('keeps shared files until the last referencing topic is purged', async () => {
++			const filename = 'shared-purge-upload.txt';
++			const fullPath = path.join(nconf.get('upload_path'), 'files', filename);
++			const resizedPath = path.join(nconf.get('upload_path'), 'files', 'shared-purge-upload-resized.txt');
++			fs.writeFileSync(fullPath, 'shared');
++			fs.writeFileSync(resizedPath, 'resized');
++			const create = () => topics.post({ uid, cid, title: 'Shared upload', content: `[/](/assets/uploads/files/${filename})` });
++			const first = await create();
++			const second = await create();
++			await topics.thumbs.associate({ id: first.topicData.tid, path: `/files/${filename}` });
++			await topics.purgePostsAndTopic(first.topicData.tid, 1);
++			assert.strictEqual(fs.existsSync(fullPath), true);
++			await topics.purgePostsAndTopic(second.topicData.tid, 1);
++			assert.strictEqual(fs.existsSync(fullPath), false);
++			assert.strictEqual(fs.existsSync(resizedPath), false);
++		});
++
++		it('preserves orphaned uploads when configured', async () => {
++			const filename = 'preserved-purge-upload.txt';
++			const fullPath = path.join(nconf.get('upload_path'), 'files', filename);
++			fs.writeFileSync(fullPath, 'preserve');
++			const topic = await topics.post({ uid, cid, title: 'Preserved upload', content: `[/](/assets/uploads/files/${filename})` });
++			const previous = meta.config.preserveOrphanedUploads;
++			meta.config.preserveOrphanedUploads = 1;
++			try {
++				await topics.thumbs.associate({ id: topic.topicData.tid, path: `/files/${filename}` });
++				await topics.purgePostsAndTopic(topic.topicData.tid, 1);
++				assert.strictEqual(fs.existsSync(fullPath), true);
++			} finally {
++				meta.config.preserveOrphanedUploads = previous;
++				fs.unlinkSync(fullPath);
++			}
+ 		});
+ 	});
+ });

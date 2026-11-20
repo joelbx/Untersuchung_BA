@@ -1,0 +1,3 @@
+Fixed stale bypass entries. Optimistic mark-as actions now carry `markAsStatus`; the reducer uses it with the active Read or Unread filter to add IDs that need bypassing and remove IDs that no longer do. Added regression coverage for both filters and for conversation and message IDs.
+
+Verification passed: 13 relevant Jest tests, the mail TypeScript check, Prettier, and `git diff --check`. No delegation was used.

@@ -1,0 +1,3 @@
+Added generic `GetInstance[T]` in [singleton.go](/app/utils/singleton/singleton.go). It returns `T` directly, caches value and pointer types separately, and runs each type’s constructor once under concurrent calls.
+
+Regression tests cover reuse, type separation, nil interface results, and 20,000 concurrent callers. The singleton tests and race check passed, as did tests for the existing caller packages.

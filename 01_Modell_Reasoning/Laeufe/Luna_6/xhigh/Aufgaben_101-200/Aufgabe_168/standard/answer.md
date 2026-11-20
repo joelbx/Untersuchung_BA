@@ -1,0 +1,3 @@
+Implemented a private, per-room-member lock shared by Kick, Ban, and Mute. It disables all three controls before confirmation and releases on cancel, success, or failure. Failures show one clear error, and room update indicators are stopped reliably. See [UserInfo.tsx](/app/src/components/views/right_panel/UserInfo.tsx:612).
+
+The UserInfo suite passes (68 tests); ESLint, Prettier, and `git diff --check` pass. The TypeScript check still fails on existing SDK and dependency errors elsewhere; it reports no errors in the changed file.

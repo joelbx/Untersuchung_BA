@@ -1,0 +1,5 @@
+I reproduced the reported `RepresenterError` through `yaml.dump`, both filters, and `Templar.template`.
+
+The likely fault is in [dumper.py](/app/lib/ansible/parsing/yaml/dumper.py): `AnsibleDumper` has no representer for `AnsibleUndefined`. Registering `represent_undefined` with `return bool(data)` should trigger Jinja’s variable-specific `UndefinedError`. In [core.py](/app/lib/ansible/plugins/filter/core.py:47), `to_yaml` and `to_nice_yaml` also need to wrap dump failures as `AnsibleFilterError`, identify the filter, and preserve the original exception.
+
+The exception path after those changes is unverified. Coverage should include undefined values at the top level and inside collections, plus existing supported dumper types. I recorded the diagnosis in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). My assigned fault-localization role prohibited source and test edits, so the issue remains unfixed.

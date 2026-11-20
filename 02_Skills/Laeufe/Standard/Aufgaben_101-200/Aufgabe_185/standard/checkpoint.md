@@ -1,0 +1,2 @@
+Resolved cancellation expiry display by adding an optional cancellation context to subscriptionExpires. Cancellation and disabled renewal use the current subscription's PeriodEnd and plan title. Legacy cancel modal, B2C/B2B confirmation screens, and redirection screen now use this utility.
+Checks: 3 targeted Jest suites passed (36 tests); component TypeScript check passed; targeted ESLint passed; Prettier check passed; git diff --check passed.

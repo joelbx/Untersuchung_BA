@@ -1,0 +1,3 @@
+Updated the DynamoDB event write paths to store metadata in native `FieldsMap` maps. Reads support both `FieldsMap` and legacy `Fields` records. A resumable background migration converts legacy records in batches, validates their content, logs progress and errors, and uses distributed locks. Added `FlagKey` for the migration completion flag.
+
+Local tests passed: `go test ./lib/events/dynamoevents ./lib/backend -count=1`. The AWS-dependent integration suite was skipped by its existing environment gate.

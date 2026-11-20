@@ -1,0 +1,5 @@
+`DocCLI.tty_ify` inherits the formatter in [lib/ansible/cli/__init__.py](/app/lib/ansible/cli/__init__.py:449). A direct call confirmed that it leaves `L()`, `R()`, and `HORIZONTALLINE` unchanged, and turns `IBM(International Business Machines)` into `IB[International Business Machines]`.
+
+The likely fix belongs at the requested `DocCLI.tty_ify(text)` entry point in [lib/ansible/cli/doc.py](/app/lib/ansible/cli/doc.py:76). It needs to handle those three tokens, preserve ordinary parenthesized words, and render every macro in a mixed line while retaining the existing `I/B/M/U/C` output. I found no direct test coverage for this entry point. One scope uncertainty is whether other CLI callers also need the changed behavior.
+
+I recorded the findings in `.codex-role-output/checkpoint.md`. This specialist pass was restricted to diagnosis, so no project source or tests were changed.

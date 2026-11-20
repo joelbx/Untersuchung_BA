@@ -1,0 +1,3 @@
+Centralized storage units in [size.ts](/app/packages/shared/lib/helpers/size.ts) and updated member allocation, organization setup, CSV import, shared limits, and other storage calculations to use them. Drive Pro and Drive Business now initialize storage at `sizeUnits.TB`.
+
+The CSV import suite passed (64 tests), and formatting and diff checks passed. Shared and components type checks both stop on an error in the untouched crypto worker caused by incompatible installed OpenPGP types; neither reported an error in the changed files.

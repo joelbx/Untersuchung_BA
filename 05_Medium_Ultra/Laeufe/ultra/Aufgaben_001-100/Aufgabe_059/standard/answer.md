@@ -1,0 +1,3 @@
+Added a public [Dialog component](/app/packages/components/components/dialog/Dialog.tsx) that forwards attributes and its host ref. It uses a native `<dialog>` when the required API is available and an accessible fallback when it is limited. [ModalTwo](/app/packages/components/components/modalTwo/Modal.tsx) now renders that abstraction open, so interactive children are discoverable by role in JSDOM.
+
+Delegated component review and test coverage. The focused Jest run passed **2 suites, 11 tests**; TypeScript, targeted ESLint, Prettier, and `git diff --check` also passed.

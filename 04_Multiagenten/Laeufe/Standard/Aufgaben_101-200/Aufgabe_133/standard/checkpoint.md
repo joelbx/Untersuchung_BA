@@ -1,0 +1,3 @@
+Task completed: OSS migration now downgrades the existing admin role in place, keeps users and trusted cluster mappings on admin, and assigns legacy new users to admin.
+Changes: Added NewDowngradedOSSAdminRole with OSSMigratedV6 label and restricted rules. migrateOSS checks the admin label and logs/skips when already migrated. Previously labeled ossuser users and trust mappings are corrected. OSS system role deletion guard targets admin. Migration tests cover these cases.
+Verification: go test ./lib/auth -count=1, go test ./lib/services -count=1, go test ./tool/tctl/common -count=1, and git diff --check passed.

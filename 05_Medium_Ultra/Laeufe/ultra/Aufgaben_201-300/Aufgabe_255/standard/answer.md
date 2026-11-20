@@ -1,0 +1,3 @@
+Fixed the password lookup in [password.py](/app/lib/ansible/plugins/lookup/password.py). It now loads plugin options before parsing, applies inline values ahead of option defaults, and accepts `chars` as a list or comma-separated string while preserving `',,'` as a literal comma.
+
+A delegated agent updated [the unit tests](/app/test/units/plugins/lookup/test_password.py) after a separate delegated code audit. Final verification passed: **35 unit tests**, **31 integration tasks**, and `git diff --check`.

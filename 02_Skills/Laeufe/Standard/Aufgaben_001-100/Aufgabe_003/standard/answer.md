@@ -1,0 +1,3 @@
+Implemented `timeOffset` support through the public and Subsonic stream handlers, the streaming and transcoding call chain, FFmpeg commands, and transcoding cache keys. Updated the command templates, mocks, and tests.
+
+The focused tests and `git diff --check` pass. `go test ./...` still fails on three unrelated TagLib fixture and permission assertions; the details are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

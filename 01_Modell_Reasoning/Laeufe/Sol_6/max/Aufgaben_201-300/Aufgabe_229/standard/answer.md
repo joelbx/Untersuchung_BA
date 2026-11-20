@@ -1,0 +1,3 @@
+Implemented local image cleanup for group covers and thumbnails, user covers and avatars, and account deletion. The user image layer now exposes the requested path and removal functions; the socket handlers use them and retain the removal hooks. Cleanup covers legacy and timestamped filenames, supported extensions, and missing files.
+
+Added [regression tests](/app/test/imageCleanup.js). **Verification:** 339 user, group, and cleanup tests passed; ESLint and `git diff --check` passed. The [checkpoint](/app/.codex-role-output/checkpoint.md) records the work.

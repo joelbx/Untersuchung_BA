@@ -1,0 +1,3 @@
+Updated [redhatbase.go](/app/scanner/redhatbase.go) so unparseable source RPM filenames produce a warning and are skipped while binary package metadata is preserved. Epochs in source RPM filenames are included in the parsed version without being duplicated when building source package details. The repoquery parser gets the same handling.
+
+Verification: `go test ./scanner` passed; `git diff --check` passed.

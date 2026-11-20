@@ -1,0 +1,3 @@
+Implemented OCI feature flag storage. The new [OCI snapshot source](/app/internal/storage/fs/oci/source.go) polls for digest changes, reopens local OCI layouts on every fetch, and supports remote registries. I also wired `storage.type: oci` into the server, added a configurable poll interval, and updated `SnapshotSource.Get` and its callers to accept context.
+
+The relevant OCI, filesystem storage, config, and command tests pass, including tests for external local updates, remote fetching, and gzip layers.

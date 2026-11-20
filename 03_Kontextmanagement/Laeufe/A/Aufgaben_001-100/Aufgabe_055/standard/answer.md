@@ -1,0 +1,3 @@
+Updated Trivy parsing to store the OS version in `Release`, use `ArtifactName` for `ServerName` with `:latest` for untagged container images, and leave `Optional` nil. Package CVE detection now skips unsupported scans and uses `ScannedBy` to recognize Trivy results.
+
+Updated the existing tests and added coverage for missing OS names and detector skip conditions. `go test ./contrib/trivy/parser/v2 ./detector` and `git diff --check` passed.

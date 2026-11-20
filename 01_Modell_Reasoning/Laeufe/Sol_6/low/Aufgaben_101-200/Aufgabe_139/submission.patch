@@ -1,0 +1,331 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index f3476c4..a7c389a 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -1032,10 +1032,6 @@ def load(rec: dict, account_key=None, from_marc_record: bool = False):
+ 
+     normalize_import_record(rec)
+ 
+-    # For recs with a non-ISBN ASIN, supplement the record with BookWorm metadata.
+-    if non_isbn_asin := get_non_isbn_asin(rec):
+-        supplement_rec_with_import_item_metadata(rec=rec, identifier=non_isbn_asin)
+-
+     # Resolve an edition if possible, or create and return one if not.
+     edition_pool = build_pool(rec)
+     if not edition_pool:
+diff --git a/openlibrary/core/stats.py b/openlibrary/core/stats.py
+index f49f8d3..a050f1c 100644
+--- a/openlibrary/core/stats.py
++++ b/openlibrary/core/stats.py
+@@ -56,4 +56,10 @@ def increment(key, n=1, rate=1.0):
+                 client.incr(key, rate=rate)
+ 
+ 
++def gauge(key: str, value: int, rate: float = 1.0) -> None:
++    if client:
++        pystats_logger.debug('Gauging %s as %s', key, value)
++        client.gauge(key, value, rate)
++
++
+ client = create_stats_client()
+diff --git a/openlibrary/plugins/importapi/code.py b/openlibrary/plugins/importapi/code.py
+index 878e06e..d50d798 100644
+--- a/openlibrary/plugins/importapi/code.py
++++ b/openlibrary/plugins/importapi/code.py
+@@ -25,6 +25,7 @@ import web
+ import base64
+ import json
+ import re
++from typing import Any
+ 
+ from pydantic import ValidationError
+ 
+@@ -43,6 +44,8 @@ import lxml.etree
+ MARC_LENGTH_POS = 5
+ logger = logging.getLogger('openlibrary.importapi')
+ 
++from openlibrary.plugins.importapi.import_validator import is_complete_record
++
+ 
+ class DataError(ValueError):
+     pass
+@@ -68,6 +71,36 @@ def parse_meta_headers(edition_builder):
+             edition_builder.add(meta_key, v, restrict_keys=False)
+ 
+ 
++def supplement_rec_with_import_item_metadata(rec: dict[str, Any], identifier: str) -> None:
++    """Fill missing fields from a staged or pending import item in place."""
++    from openlibrary.core.imports import ImportItem
++
++    try:
++        item = ImportItem.find_staged_or_pending([identifier]).first()
++        if item:
++            metadata = json.loads(item.get('data', '{}'))
++            for field in (
++                'authors', 'isbn_10', 'isbn_13', 'number_of_pages',
++                'physical_format', 'publish_date', 'publishers', 'title',
++            ):
++                if not rec.get(field) and metadata.get(field):
++                    rec[field] = metadata[field]
++    except Exception:
++        logger.exception('Could not augment import item %s', identifier)
++
++
++def augment_incomplete_record(rec: dict) -> None:
++    if is_complete_record(rec):
++        return
++    isbn_10 = rec.get('isbn_10') or []
++    amazon = rec.get('identifiers', {}).get('amazon') or []
++    identifier = isbn_10[0] if isbn_10 else next(
++        (asin for asin in amazon if asin.upper().startswith('B')), None
++    )
++    if identifier:
++        supplement_rec_with_import_item_metadata(rec, identifier)
++
++
+ def parse_data(data: bytes) -> tuple[dict | None, str | None]:
+     """
+     Takes POSTed data and determines the format, and returns an Edition record
+@@ -100,6 +133,7 @@ def parse_data(data: bytes) -> tuple[dict | None, str | None]:
+             raise DataError('unrecognized-XML-format')
+     elif data.startswith(b'{') and data.endswith(b'}'):
+         obj = json.loads(data)
++        augment_incomplete_record(obj)
+         edition_builder = import_edition_builder.import_edition_builder(init_dict=obj)
+         format = 'json'
+     elif data[:MARC_LENGTH_POS].isdigit():
+diff --git a/openlibrary/plugins/importapi/import_validator.py b/openlibrary/plugins/importapi/import_validator.py
+index 41b23d4..bc0ee93 100644
+--- a/openlibrary/plugins/importapi/import_validator.py
++++ b/openlibrary/plugins/importapi/import_validator.py
+@@ -1,7 +1,7 @@
+ from typing import Annotated, Any, TypeVar
+ 
+ from annotated_types import MinLen
+-from pydantic import BaseModel, ValidationError
++from pydantic import BaseModel, ValidationError, model_validator
+ 
+ T = TypeVar("T")
+ 
+@@ -17,10 +17,27 @@ class Book(BaseModel):
+     title: NonEmptyStr
+     source_records: NonEmptyList[NonEmptyStr]
+     authors: NonEmptyList[Author]
+-    publishers: NonEmptyList[NonEmptyStr]
+     publish_date: NonEmptyStr
+ 
+ 
++class StrongIdentifierBookPlus(BaseModel):
++    title: NonEmptyStr
++    source_records: NonEmptyList[NonEmptyStr]
++    isbn_10: NonEmptyList[NonEmptyStr] | None = None
++    isbn_13: NonEmptyList[NonEmptyStr] | None = None
++    lccn: NonEmptyList[NonEmptyStr] | None = None
++
++    @model_validator(mode='after')
++    def require_identifier(self):
++        if not any((self.isbn_10, self.isbn_13, self.lccn)):
++            raise ValueError('A strong identifier is required')
++        return self
++
++
++def is_complete_record(data: dict[str, Any]) -> bool:
++    return all(data.get(field) for field in ('title', 'authors', 'publish_date'))
++
++
+ class import_validator:
+     def validate(self, data: dict[str, Any]):
+         """Validate the given import data.
+@@ -30,7 +47,7 @@ class import_validator:
+ 
+         try:
+             Book.model_validate(data)
+-        except ValidationError as e:
+-            raise e
++        except ValidationError:
++            StrongIdentifierBookPlus.model_validate(data)
+ 
+         return True
+diff --git a/openlibrary/plugins/importapi/tests/test_code.py b/openlibrary/plugins/importapi/tests/test_code.py
+index 2ce31ad..fcbc911 100644
+--- a/openlibrary/plugins/importapi/tests/test_code.py
++++ b/openlibrary/plugins/importapi/tests/test_code.py
+@@ -2,6 +2,36 @@ from .. import code
+ from openlibrary.catalog.add_book.tests.conftest import add_languages  # noqa: F401
+ import web
+ import pytest
++import json
++
++
++def test_parse_data_augments_incomplete_isbn_record(monkeypatch):
++    from openlibrary.core.imports import ImportItem
++    monkeypatch.setattr(web.ctx, 'env', {}, raising=False)
++
++    class Result:
++        def first(self):
++            return {'data': json.dumps({
++                'title': 'Staged title', 'authors': [{'name': 'Writer'}],
++                'publish_date': '2020', 'publishers': ['Press'],
++            })}
++
++    seen = []
++
++    def find(identifiers):
++        seen.extend(identifiers)
++        return Result()
++
++    monkeypatch.setattr(ImportItem, 'find_staged_or_pending', find)
++    record = {
++        'title': 'Original title', 'source_records': ['promise:123'],
++        'isbn_10': ['1234567890'], 'identifiers': {'amazon': ['B123']},
++    }
++    parsed, _ = code.parse_data(json.dumps(record).encode())
++    assert seen == ['1234567890']
++    assert parsed['title'] == 'Original title'
++    assert parsed['authors'] == [{'name': 'Writer'}]
++    assert parsed['publish_date'] == '2020'
+ 
+ 
+ def test_get_ia_record(monkeypatch, mock_site, add_languages) -> None:  # noqa F811
+diff --git a/openlibrary/plugins/importapi/tests/test_import_validator.py b/openlibrary/plugins/importapi/tests/test_import_validator.py
+index e21f266..e986ed9 100644
+--- a/openlibrary/plugins/importapi/tests/test_import_validator.py
++++ b/openlibrary/plugins/importapi/tests/test_import_validator.py
+@@ -28,7 +28,7 @@ def test_validate():
+ 
+ 
+ @pytest.mark.parametrize(
+-    'field', ["title", "source_records", "authors", "publishers", "publish_date"]
++    'field', ["title", "source_records", "authors", "publish_date"]
+ )
+ def test_validate_record_with_missing_required_fields(field):
+     invalid_values = valid_values.copy()
+@@ -45,7 +45,7 @@ def test_validate_empty_string(field):
+         validator.validate(invalid_values)
+ 
+ 
+-@pytest.mark.parametrize('field', ['source_records', 'authors', 'publishers'])
++@pytest.mark.parametrize('field', ['source_records', 'authors'])
+ def test_validate_empty_list(field):
+     invalid_values = valid_values.copy()
+     invalid_values[field] = []
+@@ -53,9 +53,20 @@ def test_validate_empty_list(field):
+         validator.validate(invalid_values)
+ 
+ 
+-@pytest.mark.parametrize('field', ['source_records', 'publishers'])
++@pytest.mark.parametrize('field', ['source_records'])
+ def test_validate_list_with_an_empty_string(field):
+     invalid_values = valid_values.copy()
+     invalid_values[field] = [""]
+     with pytest.raises(ValidationError):
+         validator.validate(invalid_values)
++
++
++def test_strong_identifier_accepts_incomplete_record():
++    assert validator.validate({
++        'title': 'Beowulf', 'source_records': ['promise:123'], 'isbn_10': ['1234567890']
++    })
++
++
++def test_incomplete_record_without_strong_identifier_fails():
++    with pytest.raises(ValidationError):
++        validator.validate({'title': 'Beowulf', 'source_records': ['promise:123']})
+diff --git a/scripts/promise_batch_imports.py b/scripts/promise_batch_imports.py
+index 345e709..53ac654 100644
+--- a/scripts/promise_batch_imports.py
++++ b/scripts/promise_batch_imports.py
+@@ -27,6 +27,8 @@ from infogami import config
+ from openlibrary.config import load_config
+ from openlibrary.core.imports import Batch, ImportItem
+ from openlibrary.core.vendors import get_amazon_metadata
++from openlibrary.core import stats
++from openlibrary.plugins.importapi.import_validator import is_complete_record
+ from scripts.solr_builder.solr_builder.fn_to_cli import FnToCLI
+ 
+ 
+@@ -77,6 +79,12 @@ def map_book_to_olbook(book, promise_id):
+     }
+     if not olbook['identifiers']:
+         del olbook['identifiers']
++    if olbook['publishers'] == ['????']:
++        del olbook['publishers']
++    if olbook['authors'] == [{'name': '????'}]:
++        del olbook['authors']
++    if olbook['publish_date'] == '????':
++        del olbook['publish_date']
+     return olbook
+ 
+ 
+@@ -98,19 +106,21 @@ def stage_b_asins_for_import(olbooks: list[dict[str, Any]]) -> None:
+     empty values.
+     """
+     for book in olbooks:
+-        if not (amazon := book.get('identifiers', {}).get('amazon', [])):
++        if is_complete_record(book):
+             continue
+-
+-        asin = amazon[0]
+-        if asin.upper().startswith("B"):
++        isbn_10 = book.get('isbn_10') or []
++        amazon = book.get('identifiers', {}).get('amazon') or []
++        identifier = isbn_10[0] if isbn_10 else next(
++            (asin for asin in amazon if asin.upper().startswith('B')), None
++        )
++        if identifier:
+             try:
+                 get_amazon_metadata(
+-                    id_=asin,
+-                    id_type="asin",
++                    id_=identifier,
++                    id_type='isbn' if isbn_10 else 'asin',
+                 )
+-
+-            except requests.exceptions.ConnectionError:
+-                logger.exception("Affiliate Server unreachable")
++            except Exception:
++                logger.exception('Amazon metadata lookup failed for %s', identifier)
+                 continue
+ 
+ 
+@@ -129,6 +139,8 @@ def batch_import(promise_id, batch_size=1000, dry_run=False):
+         return
+ 
+     olbooks = list(olbooks_gen)
++    stats.gauge('promise_items.total', len(olbooks))
++    stats.gauge('promise_items.incomplete', sum(not is_complete_record(b) for b in olbooks))
+ 
+     # Stage B* ASINs for import so as to supplement their metadata via `load()`.
+     stage_b_asins_for_import(olbooks)
+diff --git a/scripts/tests/test_promise_batch_imports.py b/scripts/tests/test_promise_batch_imports.py
+index 035b2ab..6e8ad50 100644
+--- a/scripts/tests/test_promise_batch_imports.py
++++ b/scripts/tests/test_promise_batch_imports.py
+@@ -1,8 +1,27 @@
+ import pytest
+ 
++from .. import promise_batch_imports
+ from ..promise_batch_imports import format_date
+ 
+ 
++def test_stage_incomplete_uses_isbn_first(monkeypatch):
++    calls = []
++    monkeypatch.setattr(
++        promise_batch_imports, 'get_amazon_metadata',
++        lambda **kwargs: calls.append(kwargs),
++    )
++    promise_batch_imports.stage_b_asins_for_import([
++        {'title': 'Complete', 'authors': [{'name': 'A'}], 'publish_date': '2020',
++         'isbn_10': ['111'], 'identifiers': {'amazon': ['B111']}},
++        {'title': 'Partial', 'isbn_10': ['222'], 'identifiers': {'amazon': ['B222']}},
++        {'title': 'Partial', 'identifiers': {'amazon': ['B333']}},
++    ])
++    assert calls == [
++        {'id_': '222', 'id_type': 'isbn'},
++        {'id_': 'B333', 'id_type': 'asin'},
++    ]
++
++
+ @pytest.mark.parametrize(
+     "date, only_year, expected",
+     [

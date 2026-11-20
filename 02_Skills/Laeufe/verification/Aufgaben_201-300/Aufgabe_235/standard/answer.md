@@ -1,0 +1,3 @@
+Updated [parse.py](/app/openlibrary/catalog/marc/parse.py) to collect unique alternate-script names from linked MARC `880` fields for person authors in `100`, `700`, and `720`. Added `name_from_list`, normalized names and dates, and updated the relevant tests and fixtures. Organization and event parsing remains unchanged.
+
+Verification: all 124 MARC tests passed, and `git diff --check` passed. Ruff and Black could not run because neither module is installed; their status is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

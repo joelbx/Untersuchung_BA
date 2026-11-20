@@ -1,0 +1,3 @@
+Fixed the RPM parsing issue in [redhatbase.go](/app/scanner/redhatbase.go). Installed package and repoquery output now preserve an empty release field, while still accepting tab separators. Source RPM parsing accepts both `.src.rpm` and `-src.rpm`, omits an empty release from the source version, and rejects malformed filenames. Update candidates also treat `(none)` as an absent epoch.
+
+Added regression cases in [redhatbase_test.go](/app/scanner/redhatbase_test.go). Verification passed: `GOPROXY=off go test ./scanner -count=1` and `git diff --check`.

@@ -1,0 +1,3 @@
+Added `storage.readOnly` to backend metadata and frontend types, with validation that rejects the flag on non-database storage. The UI now derives readonly state from the flag, falls back by storage type when it is absent, and shows a backend-specific icon in the “Read-Only” badge. Authentication bootstrap also avoids a database connection for non-database storage when authentication is disabled.
+
+The new [invalid_readonly.yml](/app/internal/config/testdata/storage/invalid_readonly.yml) fixture and regression tests pass. `go test ./internal/config ./internal/cmd -count=1` and `git diff --check` pass. UI tests could not run because `npm` is unavailable; that limitation is recorded in the [checkpoint](/app/.codex-role-output/checkpoint.md).

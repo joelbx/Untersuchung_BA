@@ -1,0 +1,3 @@
+Updated [AIX hardware facts](/app/lib/ansible/module_utils/facts/hardware/aix.py) so `processor_count` is 1, `processor_cores` counts available devices, `processor_threads_per_core` defaults to 1, `processor_vcpus` is computed from cores and threads, and `processor` is a list.
+
+Added [regression tests](/app/test/units/module_utils/facts/hardware/test_aix_get_cpu_facts.py). The hardware fact suite passed: **18 tests**. The selected AIX platform tests passed: **9 tests**. No delegation was used.

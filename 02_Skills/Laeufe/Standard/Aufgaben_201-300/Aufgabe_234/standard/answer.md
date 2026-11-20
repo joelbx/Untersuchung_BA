@@ -1,0 +1,3 @@
+Updated the repository to use one SQLite `*sql.DB` pool. [Db()](/app/db/db.go) now applies the requested connection settings, and [WithTx()](/app/persistence/persistence.go) uses the connection passed to `persistence.New()` and keeps repository operations on the transaction.
+
+The issue’s final interface requirements conflict with its stated goal of removing read/write separation, so I followed the single-connection behavior. Focused tests were added. `go test ./db ./persistence ./scanner ./cmd` and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Token-only invitation registration is implemented. The form reads `token` from the URL, and registration now uses it to join invite groups and clean up invitation records without requiring an email. A matching entered email is confirmed; an absent or different email is left unconfirmed. Invitation metadata and cleanup now use token-based keys.
+
+Verification: 31 invite tests passed, along with ESLint and `git diff --check`.

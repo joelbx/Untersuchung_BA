@@ -1,0 +1,3 @@
+Updated the album, artist, and share models so unset timestamps can be read safely. The album `image_files` field now accepts NULL, addressing the reported scan error. Added the public `gg.P` and `gg.V` helpers and updated callers to use them.
+
+The affected package tests and `git diff --check` pass. The full test suite still has four unrelated TagLib failures involving fixture metadata and an unreadable file check.

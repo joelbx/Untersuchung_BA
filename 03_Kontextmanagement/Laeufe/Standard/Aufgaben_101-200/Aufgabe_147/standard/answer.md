@@ -1,0 +1,3 @@
+Updated [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts) so persisted fields live in one config object. Loading a current version config with an existing signup token now leaves storage untouched. Migration preserves the recognized settings, converts legacy credentials to a userId keyed object, and writes only when migration or token creation changes the config.
+
+Updated [DeviceConfigTest.ts](/app/test/client/misc/DeviceConfigTest.ts) to cover load, migration, and invalid JSON recovery. TypeScript checks passed, and the client suite passed all 3,077 assertions.

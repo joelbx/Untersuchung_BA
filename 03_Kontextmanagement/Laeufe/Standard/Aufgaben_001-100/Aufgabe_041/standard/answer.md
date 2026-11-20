@@ -1,0 +1,3 @@
+Removed `ListMixin` and moved its methods into `List`. `get_owner()` now parses `/people/{username}/lists/{list_id}` and returns the user or `None`. The new `register_models()` in [openlibrary/core/lists/model.py](/app/openlibrary/core/lists/model.py) registers `List` as `/type/list` and `ListChangeset` as `lists`.
+
+Verification: 26 relevant tests passed, and `git diff --check` passed. The broader run also hit two unrelated test issues: a missing `cookielib` module and a test that expects `web.ctx.env` to be set.

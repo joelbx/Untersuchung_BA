@@ -1,0 +1,3 @@
+Added a kebab menu to the Current session header. It exposes accessible, destructive “Sign out” and, when other sessions exist, “Sign out all other sessions” actions. The bulk action passes only non-current device IDs. Menu interactions close it and return focus to the trigger.
+
+The affected session and context menu suites pass: **58 tests, 9 snapshots**. Targeted lint checks pass. The repository-wide type check remains blocked by existing SDK type errors unrelated to the changed files; details are in `.codex-role-output/checkpoint.md`.

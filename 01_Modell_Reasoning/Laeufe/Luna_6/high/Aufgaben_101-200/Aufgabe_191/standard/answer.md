@@ -1,0 +1,3 @@
+Implemented registration-token support in [InteractiveAuthEntryComponents.tsx](/app/src/components/views/auth/InteractiveAuthEntryComponents.tsx). Both stable and MSC3231 stages now open a dedicated entry with the required field, label, help text, autofocus, accessible error, and primary action. Enter and clicking submit the same guarded handler, which sends the token with the server-advertised stage type.
+
+Validation: the focused InteractiveAuth Jest test passed, ESLint passed, and `git diff --check` passed. The full TypeScript check reported unrelated existing Sliding Sync errors; it reported none in the changed component.

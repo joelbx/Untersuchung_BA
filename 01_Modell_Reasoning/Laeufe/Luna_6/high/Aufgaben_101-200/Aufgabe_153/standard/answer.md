@@ -1,0 +1,3 @@
+Implemented share scoped member data in the Drive view. Members, internal invitations, and external invitations are now stored and updated by `shareId`, and missing shares return empty arrays. Added `getExistingEmails` and reset the selected share when the view changes links.
+
+Verification passed: the Drive package typecheck, the existing share actions test (5 tests), and `git diff --check`. No existing tests directly cover these Zustand stores.

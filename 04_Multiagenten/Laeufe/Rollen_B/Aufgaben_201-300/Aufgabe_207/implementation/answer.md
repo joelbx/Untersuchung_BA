@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) to combine CLI, `qt.args`, and QtWebEngine features into one `--enable-features=` argument. The non QtWebEngine path remains unchanged. Added coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+Validation: 82 tests passed. The remaining existing Chromium version test segfaults during QtWebEngine initialization in this environment.

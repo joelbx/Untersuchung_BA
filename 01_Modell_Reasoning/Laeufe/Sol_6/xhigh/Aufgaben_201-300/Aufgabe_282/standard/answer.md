@@ -1,0 +1,3 @@
+Implemented JavaScript message filtering with `content.javascript.log_message.levels` and `.excludes`. Source and message globs now control which messages appear in the UI; excluded messages continue through the standard logger. Existing saved level settings migrate to `.levels`, and the setting reference includes a CSP example.
+
+Verification: 112 relevant tests pass, and `git diff --check` passes.

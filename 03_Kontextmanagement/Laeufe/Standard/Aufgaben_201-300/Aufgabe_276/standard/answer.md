@@ -1,0 +1,3 @@
+GitHub and enabled OIDC providers now fail startup validation when `client_id`, `client_secret`, or `redirect_address` is empty. Errors identify the provider and field in the requested format. The GitHub `read:org` check remains in place and now reports the requested provider-qualified error.
+
+Added loader tests for omitted fields and updated the scope test fixture. `go test ./internal/config` and `git diff --check` pass.

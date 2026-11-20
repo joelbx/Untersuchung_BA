@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` support for new rooms. The policy helper gives server force-enable precedence when the policies conflict. The room creation dialog keeps the encryption toggle disabled while policy is being resolved, then shows and submits the enforced value. Private-room encryption defaults also honor forced disable.
+
+Validation: 31 relevant tests passed; ESLint and Prettier passed on changed files. The full TypeScript check remains blocked by an error in untouched `src/Unread.ts:167`. No delegation was used, so there were no worker changes to adopt.

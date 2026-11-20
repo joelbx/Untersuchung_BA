@@ -1,0 +1,3 @@
+Fixed Meraki module failures after exhausted retries. All 19 Meraki entry points now turn request exceptions into structured Ansible failures, so an HTTP 429 failure includes the final status and a warning with the retry count. `MerakiModule.request()` still raises `RateLimitException` when its retry budget is exhausted.
+
+The exact reviewed test command passed: **12 tests**. Syntax compilation and `git diff --check` also passed. No test environment problems remain.

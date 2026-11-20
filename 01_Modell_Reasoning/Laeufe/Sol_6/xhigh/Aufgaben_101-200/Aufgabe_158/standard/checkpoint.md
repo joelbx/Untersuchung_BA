@@ -1,0 +1,2 @@
+Task: fix unarchive ZIP timestamp parsing for malformed dates such as 19800000.000000.
+Status: implemented `ZipArchive._valid_time_stamp` with strict regex parsing, ZIP year limits, calendar validation, and the 1980 epoch fallback. `is_unarchived` now uses it for mtime comparison. Added parser and existing-file regression tests. Verification: `PYTHONPATH=lib pytest -q test/units/modules/test_unarchive.py` passed (20 tests); `git diff --check` passed.

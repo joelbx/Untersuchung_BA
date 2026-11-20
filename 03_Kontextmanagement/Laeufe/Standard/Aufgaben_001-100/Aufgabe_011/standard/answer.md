@@ -1,0 +1,3 @@
+Resolved the reported behaviors in the checked-out repository, including unset handling, YAML constructors, `None` templar overrides, lookup and deprecation messages, the `timedout` result, and early CLI errors. Added focused regression tests.
+
+**Verification:** 336 focused tests passed, and `git diff --check` passed. A broader module utility run encountered controller-side stdin fixture errors; the focused module exit tests passed.

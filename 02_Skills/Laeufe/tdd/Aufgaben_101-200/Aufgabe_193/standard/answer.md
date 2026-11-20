@@ -1,0 +1,3 @@
+Updated [ansible-galaxy’s install flow](/app/lib/ansible/cli/galaxy.py) so an implicit `install -r` processes roles and collections in one run when using default paths. Custom role paths skip collections with a warning; explicit role and collection commands report ignored items. Empty requirements files now skip installation.
+
+Added five regression tests. **All 131 focused Galaxy tests pass.** The full pytest run did not pass: 3,091 passed, 52 failed, and 82 errored across broader tests. The command and results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

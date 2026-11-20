@@ -1,0 +1,3 @@
+Updated `useMyCountry` to return a country code or `undefined`, and changed all listed consumers to use that single value. `PhoneInput` now starts with no country when the default is empty or undefined, adopts the first later default only if its country is still empty, and ignores subsequent default changes.
+
+The focused tests pass (17 tests), and formatting and diff checks are clean. Type checks remain blocked by an existing `openpgp`/`pmcrypto` type mismatch in `packages/crypto/lib/worker/api.ts`; the commands and error are recorded in the checkpoint.

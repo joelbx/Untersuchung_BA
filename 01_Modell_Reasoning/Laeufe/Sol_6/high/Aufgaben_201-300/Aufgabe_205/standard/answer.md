@@ -1,0 +1,3 @@
+Implemented the `utils.tokens` lifecycle interface in [src/api/utils.js](/app/src/api/utils.js), including creation, lookup, listing, description updates, deletion, and usage tracking. Tokens now store millisecond timestamps and use the required creation, ownership, and last-seen indices. Generated tokens also work with bearer authentication through [authentication.js](/app/src/routes/authentication.js).
+
+The new [lifecycle tests](/app/test/api-utils-tokens.js) pass (4 tests), as do the existing API token authentication tests (4 tests). ESLint and `git diff --check` pass.

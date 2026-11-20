@@ -1,0 +1,3 @@
+Correction round: inspecting existing process patch and independent review; will fix the two reported test failures and rerun the reviewed suite.
+Reviewed failures fixed: verbose failure test filters ERROR messages; PID test permits expected ERROR log. Reviewer command reached 45 passed, then XIO during X server teardown (exit 1); checking alternate local invocation.
+Final verification: exact reviewed PyQt6/offscreen command reports 45 passed, then exits 1 from XIO on :0 during X server teardown (reproduced twice). Disabling xvfb causes 45 setup errors because tests/conftest.py requires a display. git diff --check passes. No test assertion failures remain.

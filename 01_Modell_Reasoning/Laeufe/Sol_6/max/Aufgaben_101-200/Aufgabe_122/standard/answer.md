@@ -1,0 +1,3 @@
+Implemented `storage.readOnly` in backend configuration and metadata, with the required validation error for non-database storage. The UI now uses the exported `selectConfig` selector, defaults read-only state by storage type when the flag is absent, and shows the active backend icon and type in the header with “Read-Only” when active. Authentication bootstrap also skips database access when authentication is disabled on non-database storage. The requested [invalid fixture](/app/internal/config/testdata/storage/invalid_readonly.yml) is included.
+
+Relevant Go tests passed: `go test ./internal/config ./internal/cmd ./config ./internal/server/metadata`. UI tests could not run because Node and npm are unavailable.

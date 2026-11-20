@@ -1,0 +1,3 @@
+Forked calls to `Display.display`, `warning`, and `deprecated` now pass their method name and exact caller-supplied arguments through the queue. The results thread invokes that method on the main-process `Display`, so its warning and deprecation caches deduplicate messages across workers.
+
+Relevant tests passed: 28 passed, 1 skipped across separate runs. A combined run still hits an existing test-order interaction caused by `test_logger.py` reloading Ansible modules.

@@ -1,0 +1,3 @@
+Updated the Kubernetes backend to export and use `NamespaceEnv` (`KUBE_NAMESPACE`) and `ReleaseNameEnv` (`RELEASE_NAME`). `NewWithClient()` continues to reject an empty namespace or replica name with the required error, and its configuration now uses the exported constants.
+
+Updated the environment setup in the existing `Exists`, `Get`, and `Put` tests and added constructor coverage. `go test ./lib/backend/kubernetes` and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Moved `interpolate_color` and `_get_color_percentage` to [qtutils.py](/app/qutebrowser/utils/qtutils.py) and updated the download and tab progress indicators to call the new location. The helper now validates percentages for every color space and preserves the start color’s spec when interpolation is disabled.
+
+Moved the interpolation tests to `test_qtutils.py` and added coverage for those edge cases. **All 335 relevant tests passed**, and `git diff --check` passed.

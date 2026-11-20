@@ -1,0 +1,3 @@
+Updated `incdec_number` to skip digits in percent escapes, preserve encoded URL segments, leave ports unchanged, validate operations and counts, and reject decrements below zero. It now defaults to the path and changes the first number in the first selected segment, following the issue’s final selection rule.
+
+Updated the existing tests. The full URL utility test module passed: **416 passed, 1 skipped**.

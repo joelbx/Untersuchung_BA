@@ -1,0 +1,3 @@
+Added `LogConfig.GRPCLevel` with an `ERROR` default and made `Load(path)` read `log.grpc_level`. The existing logging settings retain their behavior.
+
+The new tests failed before the change and pass now; `go test ./config` passes. The repository-wide suite is incomplete because three Redis tests could not connect to the Docker daemon. That limitation is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

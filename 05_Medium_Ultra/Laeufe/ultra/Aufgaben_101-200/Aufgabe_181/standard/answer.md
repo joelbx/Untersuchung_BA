@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) so finish messages include the finishing process’s PID and name known crash signals. SIGTERM now has a `terminated` state; it produces no final message in quiet mode and an outcome message in verbose mode.
+
+A test agent added focused coverage, and a second agent reviewed the behavior. Verification: **46 process tests passed**, and **69 related userscript/editor tests passed** (4 skipped). The spawn end-to-end scenario passed its steps but failed during Qt offscreen teardown, so that run did not complete cleanly.

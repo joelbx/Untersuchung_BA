@@ -1,0 +1,3 @@
+Updated TaskExecutor to resolve `delegate_to` from the current task variables before each execution, including loop iterations. Loop items are evaluated once; the loop cache and duplicate delegation path are removed. VariableManager now provides `get_delegated_vars_and_hostname`, and Task provides `get_play`.
+
+Verification passed: 34 relevant unit tests and the existing random loop, loop caching, and lookup context delegation playbooks.

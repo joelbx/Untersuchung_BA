@@ -1,0 +1,3 @@
+Updated collection builds to distinguish an absent `manifest` with `Sentinel`. Explicit `manifest: {}` and `manifest: null` now select the default manifest directives, while absent manifests still apply `build_ignore`. The file walk also excludes symlinks that point outside the collection and retains internal links under their linked path once. Documentation and tests were updated.
+
+Verification: 68 collection tests and 56 collection install tests passed. The local environment lacks `distlib`, so the explicit manifest route was verified with a mock rather than an end-to-end build.

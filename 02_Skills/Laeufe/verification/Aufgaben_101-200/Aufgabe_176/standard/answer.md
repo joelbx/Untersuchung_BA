@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py:557) to skip digits in percent-encoded triplets, preserve encoded URL data, reject invalid counts and decrements below zero, and leave ports untouched. It now defaults to the path and uses the specified path, query, anchor, host priority. Added and updated [tests](/app/tests/unit/utils/test_urlutils.py:619).
+
+Verification: `git diff --check` passed; the URL utility suite passed with **348 passed, 1 skipped** using Qt’s offscreen platform.

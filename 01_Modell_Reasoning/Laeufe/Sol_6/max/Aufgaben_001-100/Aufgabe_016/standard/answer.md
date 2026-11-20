@@ -1,0 +1,3 @@
+Implemented host-scoped monitoring in `/app`. [OlAsyncIOScheduler](/app/scripts/monitoring/utils.py) now registers jobs only when `HOSTNAME` matches an exact or prefix-wildcard allowlist, with function names as default job IDs. Added the [HAProxy collector](/app/scripts/monitoring/haproxy_monitor.py), scheduled it on `ol-www0`, and connected monitoring to `webnet` so it can reach HAProxy.
+
+Verification: all 17 monitoring tests pass; Ruff, mypy, and `git diff --check` pass.

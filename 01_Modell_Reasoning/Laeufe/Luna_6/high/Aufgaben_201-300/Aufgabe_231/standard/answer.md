@@ -1,0 +1,3 @@
+Implemented explicit Vuls2 schema validation. A mismatch now forces a download when updates are enabled and returns a path-specific error when `SkipUpdate` is set. `newDBConnection` also reports path-specific errors for connection and metadata failures, and rejects nil metadata or a mismatched schema.
+
+Added regression cases for both mismatch update modes. `go test ./detector/vuls2` and `git diff --check` passed.

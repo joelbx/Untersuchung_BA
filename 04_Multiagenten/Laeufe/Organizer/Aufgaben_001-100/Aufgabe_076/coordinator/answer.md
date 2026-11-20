@@ -1,0 +1,3 @@
+Address parsing now splits on commas and semicolons, trims tokens, removes angle brackets, and drops empty entries. `inputToRecipient` uses the resulting bare address for both `Name` and `Address`. Both autocomplete paste paths use the shared splitter, and [regression specs](/app/packages/shared/test/mail/recipient.spec.ts) cover the reported cases.
+
+The two new specs pass. Shared and component type checks, ESLint, Prettier, and `git diff --check` pass. The full Karma suite could not launch because its configured Chromium binary is missing. No delegation was used.

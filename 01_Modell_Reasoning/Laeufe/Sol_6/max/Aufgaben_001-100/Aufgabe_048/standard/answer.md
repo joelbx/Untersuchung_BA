@@ -1,0 +1,3 @@
+Implemented contextual plugin errors and `get_with_context` in the [loader](/app/lib/ansible/plugins/loader.py) and [errors](/app/lib/ansible/errors/__init__.py). Tombstones now raise a contextual removal error; deprecation and removal messages use the shared [Display formatter](/app/lib/ansible/utils/display.py). Connection, action, and Jinja loading now use the resolution context to surface removed plugins and failed redirects.
+
+**Verification:** 148 focused unit tests pass, and `git diff --check` is clean. A broader run passed 462 of 472 tests; its failures included collection import and display state interactions, plus an FQCN facts configuration test that also fails when its file runs separately.

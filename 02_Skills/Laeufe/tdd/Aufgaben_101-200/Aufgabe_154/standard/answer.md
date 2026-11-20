@@ -1,0 +1,3 @@
+Updated Windows SSH stderr handling to replace complete embedded CLIXML blocks with readable bytes while preserving surrounding text and leaving malformed or incomplete blocks unchanged. The decoder uses UTF-8 with cp437 fallback. I also corrected the UTF-16-BE escape regex so Unicode lookalikes stay intact.
+
+The connection and shell unit suites pass: **106 tests**. Repository-wide `pytest` stops during integration-test collection; a broader unit run showed unrelated CLI failures. Those limits are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

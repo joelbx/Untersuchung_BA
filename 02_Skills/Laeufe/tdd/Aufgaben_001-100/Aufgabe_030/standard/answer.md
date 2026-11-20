@@ -1,0 +1,3 @@
+Updated [AIX processor facts](/app/lib/ansible/module_utils/facts/hardware/aix.py) so `processor_count` is 1, available processor devices determine `processor_cores`, missing SMT data defaults to one thread per core, `processor_vcpus` is derived from cores and threads, and `processor` is a list.
+
+The new [regression tests](/app/test/units/module_utils/facts/hardware/test_aix.py) failed before the fix and pass afterward. All 17 hardware unit tests pass. The full `pytest` run was interrupted after unrelated collection errors and CLI failures; its overall result remains unknown. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

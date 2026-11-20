@@ -1,0 +1,3 @@
+Implemented trusted reverse proxy login. Configure `ReverseProxyWhitelist` with allowed IPv4 or IPv6 CIDRs, `ReverseProxyUserHeader` (default `Remote-User`), and optionally `ReverseProxyDefaultUser`. Only requests from an allowed socket peer receive an `auth` payload; first-time proxy users are created, and the UI stores the resulting session fields. Nested log maps now have sensitive values redacted.
+
+Verification passed: relevant Go tests, all 35 UI tests, formatting, and `git diff --check`.

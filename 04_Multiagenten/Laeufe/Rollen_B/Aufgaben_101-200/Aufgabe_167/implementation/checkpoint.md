@@ -1,0 +1,1 @@
+Implemented and verified OCI snapshot source: fresh local layout per fetch, digest reuse, polling, layer namespace metadata, gzip handling, context-aware source interface, and gRPC/config wiring. Focused tests and diff check pass.

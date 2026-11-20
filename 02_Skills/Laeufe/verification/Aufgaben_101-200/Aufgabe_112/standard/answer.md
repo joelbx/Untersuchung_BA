@@ -1,0 +1,3 @@
+Fortinet advisories are now included in CPE detection, CVE enrichment, confidence ranking, advisory IDs, and report content ordering. I updated `go-cve-dictionary` to a locally cached version with Fortinet models and added focused tests.
+
+Formatting and `git diff --check` passed. **The tests could not run:** offline module resolution stopped at the uncached `github.com/pelletier/go-toml/v2@v2.0.8`. The exact command and error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

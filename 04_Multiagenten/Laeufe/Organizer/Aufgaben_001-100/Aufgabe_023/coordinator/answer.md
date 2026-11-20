@@ -1,0 +1,3 @@
+Authentication now opens a database only when an enabled method requires one. JWT is marked as database free; static token, OIDC, GitHub, and Kubernetes are marked as requiring persistence. JWT middleware still initializes for non-database storage, and cleanup runs only for enabled methods that require a database and have a schedule.
+
+Added regression tests for method combinations and JWT-only startup with Local, Git, OCI, and Object storage. `go test ./internal/cmd ./internal/config ./internal/cleanup` and `git diff --check` passed. No delegation was used.

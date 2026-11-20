@@ -1,0 +1,157 @@
+diff --git a/internal/cmd/grpc.go b/internal/cmd/grpc.go
+index 80b4360..754c77d 100644
+--- a/internal/cmd/grpc.go
++++ b/internal/cmd/grpc.go
+@@ -296,6 +296,7 @@ func NewGRPCServer(
+ 	grpc_zap.ReplaceGrpcLoggerV2(logger.WithOptions(zap.IncreaseLevel(grpcLogLevel)))
+ 
+ 	// add auth interceptors to the server
++	interceptors = append(interceptors, middlewaregrpc.FliptAcceptServerVersionUnaryInterceptor(logger))
+ 	interceptors = append(interceptors,
+ 		append(authInterceptors,
+ 			middlewaregrpc.ErrorUnaryInterceptor,
+diff --git a/internal/server/middleware/grpc/middleware.go b/internal/server/middleware/grpc/middleware.go
+index 6d101f0..682cf4b 100644
+--- a/internal/server/middleware/grpc/middleware.go
++++ b/internal/server/middleware/grpc/middleware.go
+@@ -5,8 +5,10 @@ import (
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
++	"strings"
+ 	"time"
+ 
++	"github.com/blang/semver/v4"
+ 	"github.com/gofrs/uuid"
+ 	errs "go.flipt.io/flipt/errors"
+ 	"go.flipt.io/flipt/internal/cache"
+@@ -22,10 +24,55 @@ import (
+ 	"go.uber.org/zap"
+ 	"google.golang.org/grpc"
+ 	"google.golang.org/grpc/codes"
++	"google.golang.org/grpc/metadata"
+ 	"google.golang.org/grpc/status"
+ 	"google.golang.org/protobuf/proto"
+ )
+ 
++const fliptAcceptServerVersionHeader = "x-flipt-accept-server-version"
++
++var defaultFliptAcceptServerVersion = semver.Version{Major: 1}
++
++type fliptAcceptServerVersionContextKey struct{}
++
++// WithFliptAcceptServerVersion returns a context containing the client's accepted server version.
++func WithFliptAcceptServerVersion(ctx context.Context, version semver.Version) context.Context {
++	return context.WithValue(ctx, fliptAcceptServerVersionContextKey{}, version)
++}
++
++// FliptAcceptServerVersionFromContext returns the client's accepted server version,
++// or the default version when none is stored in the context.
++func FliptAcceptServerVersionFromContext(ctx context.Context) semver.Version {
++	version, ok := ctx.Value(fliptAcceptServerVersionContextKey{}).(semver.Version)
++	if !ok {
++		return defaultFliptAcceptServerVersion
++	}
++
++	return version
++}
++
++// FliptAcceptServerVersionUnaryInterceptor stores the accepted server version
++// from incoming gRPC metadata in the request context.
++func FliptAcceptServerVersionUnaryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
++	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
++		version := defaultFliptAcceptServerVersion
++		if md, ok := metadata.FromIncomingContext(ctx); ok {
++			if values := md.Get(fliptAcceptServerVersionHeader); len(values) > 0 {
++				parsed, err := semver.Parse(strings.TrimPrefix(values[0], "v"))
++				if err != nil {
++					if logger != nil {
++						logger.Debug("invalid accepted server version", zap.String("version", values[0]), zap.Error(err))
++					}
++				} else {
++					version = parsed
++				}
++			}
++		}
++
++		return handler(WithFliptAcceptServerVersion(ctx, version), req)
++	}
++}
++
+ // ValidationUnaryInterceptor validates incoming requests
+ func ValidationUnaryInterceptor(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+ 	if v, ok := req.(flipt.Validator); ok {
+diff --git a/internal/server/middleware/grpc/middleware_test.go b/internal/server/middleware/grpc/middleware_test.go
+index 8d09d88..b20b723 100644
+--- a/internal/server/middleware/grpc/middleware_test.go
++++ b/internal/server/middleware/grpc/middleware_test.go
+@@ -6,6 +6,7 @@ import (
+ 	"testing"
+ 	"time"
+ 
++	"github.com/blang/semver/v4"
+ 	"go.flipt.io/flipt/errors"
+ 	"go.flipt.io/flipt/internal/cache/memory"
+ 	"go.flipt.io/flipt/internal/common"
+@@ -27,10 +28,61 @@ import (
+ 	"go.flipt.io/flipt/rpc/flipt/evaluation"
+ 	"google.golang.org/grpc"
+ 	"google.golang.org/grpc/codes"
++	"google.golang.org/grpc/metadata"
+ 	"google.golang.org/grpc/status"
+ 	"google.golang.org/protobuf/types/known/timestamppb"
+ )
+ 
++func TestFliptAcceptServerVersionFromContext(t *testing.T) {
++	ctx := context.Background()
++	assert.Equal(t, semver.Version{Major: 1}, FliptAcceptServerVersionFromContext(ctx))
++
++	version := semver.Version{Major: 2, Minor: 3, Patch: 4}
++	withVersion := WithFliptAcceptServerVersion(ctx, version)
++	assert.Equal(t, version, FliptAcceptServerVersionFromContext(withVersion))
++	assert.Equal(t, semver.Version{Major: 1}, FliptAcceptServerVersionFromContext(ctx))
++}
++
++func TestFliptAcceptServerVersionUnaryInterceptor(t *testing.T) {
++	tests := []struct {
++		name       string
++		header     string
++		withHeader bool
++		version    semver.Version
++	}{
++		{name: "missing header", version: semver.Version{Major: 1}},
++		{name: "empty header", withHeader: true, version: semver.Version{Major: 1}},
++		{name: "invalid header", header: "not-a-version", withHeader: true, version: semver.Version{Major: 1}},
++		{name: "incomplete version", header: "2.3", withHeader: true, version: semver.Version{Major: 1}},
++		{name: "prefixed version", header: "v2.3.4", withHeader: true, version: semver.Version{Major: 2, Minor: 3, Patch: 4}},
++		{name: "unprefixed version", header: "2.3.4", withHeader: true, version: semver.Version{Major: 2, Minor: 3, Patch: 4}},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			ctx := context.Background()
++			if tt.withHeader {
++				ctx = metadata.NewIncomingContext(ctx, metadata.Pairs(fliptAcceptServerVersionHeader, tt.header))
++			}
++
++			called := false
++			resp, err := FliptAcceptServerVersionUnaryInterceptor(zaptest.NewLogger(t))(
++				ctx, "request", nil,
++				func(handlerCtx context.Context, req interface{}) (interface{}, error) {
++					called = true
++					assert.Equal(t, tt.version, FliptAcceptServerVersionFromContext(handlerCtx))
++					assert.Equal(t, "request", req)
++					return "response", nil
++				},
++			)
++
++			require.NoError(t, err)
++			assert.True(t, called)
++			assert.Equal(t, "response", resp)
++		})
++	}
++}
++
+ type validatable struct {
+ 	err error
+ }

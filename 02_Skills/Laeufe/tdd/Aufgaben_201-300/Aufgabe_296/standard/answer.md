@@ -1,0 +1,3 @@
+Invitation registration now works with a valid token and no email. The form copies the URL token into its hidden `token` field; registration uses token-backed metadata to join invited groups, confirms an entered email only when it matches the invitation, and cleans up token and inviter records. Multiple tokens for one email are supported.
+
+The invitation tests pass (31 passing), and ESLint and `git diff --check` pass. The full suite had 778 passing and one admin plugins test failure caused by a blocked external package fetch. Running `test/user.js` alone had 206 passing and one email-confirmation test failure; that test passed in the full-suite run. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

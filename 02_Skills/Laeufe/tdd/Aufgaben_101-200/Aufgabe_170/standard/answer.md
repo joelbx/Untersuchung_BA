@@ -1,0 +1,3 @@
+Updated [merge_marc.py](/app/openlibrary/catalog/merge/merge_marc.py) so edition matching expands raw records, enriches author and contributor names, combines ISBN variants, and handles missing titles without awarding a false title match. The shared helpers remain available through [catalog.utils](/app/openlibrary/catalog/utils/__init__.py).
+
+The relevant tests passed: **94 passed, 1 skipped, 2 expected failures**. The full Python suite still has five unrelated issues: three home-template failures, a dump-test collection error, and a partner-import collection error caused by a blocked proxy request. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

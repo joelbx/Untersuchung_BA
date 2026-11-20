@@ -1,0 +1,3 @@
+Implemented unified voice broadcast liveness across the badge, header, playback model, hook, and all header callers. Playback now emits `LivenessChanged` only when the derived state changes, and final chunk detection informs completion handling.
+
+Verification: focused Jest tests passed (4 suites, 51 tests, 3 snapshots), and `git diff --check` passed. The TypeScript check remains blocked by an existing error in [notifications.ts](/app/src/utils/notifications.ts:79): “Expected 1-2 arguments, but got 3.”

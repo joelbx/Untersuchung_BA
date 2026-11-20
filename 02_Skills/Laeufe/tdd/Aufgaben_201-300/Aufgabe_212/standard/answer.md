@@ -1,0 +1,3 @@
+Updated [WPScan ingestion](/app/detector/wordpress.go) to produce one record per vulnerability using the first CVE reference, normalize timestamps to UTC, and preserve Enterprise summaries, PoC and introduced-version metadata, and CVSS metrics. Basic and null-valued payloads leave optional metadata empty.
+
+Added [regression coverage](/app/detector/wordpress_test.go) for all three payload forms. `go test ./...` and `git diff --check` passed.

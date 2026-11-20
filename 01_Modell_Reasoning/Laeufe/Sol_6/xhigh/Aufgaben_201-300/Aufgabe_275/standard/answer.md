@@ -1,0 +1,3 @@
+Updated [authenticate](/app/lib/kube/proxy/forwarder.go) to preserve non-access errors from authorization and context setup. Authorization failures and unsupported user types remain `AccessDenied`; unknown local Kubernetes clusters and remote requests without a reverse tunnel remain non-`AccessDenied`. I left `setupContext`’s no-tunnel `BadParameter` classification intact.
+
+Updated the [authentication tests](/app/lib/kube/proxy/forwarder_test.go) and added the requested error-writer wrappers in [httplib](/app/lib/httplib/httplib.go). The Kubernetes proxy and `httplib` package tests pass.

@@ -1,0 +1,3 @@
+OCI bundle manifests now use `storage.oci.manifest_version`. The accepted values are `"1.0"` and `"1.1"`; omitted values default to `"1.1"`, and unsupported values return the requested validation error. Bundle creation uses the new `WithManifestVersion` option.
+
+Configuration and generated manifest tests pass, along with `go test ./internal/config ./internal/oci ./internal/storage/fs/store ./internal/storage/fs/oci`.

@@ -1,0 +1,3 @@
+Updated the mailbox list so requests wait until tracked backend item actions finish. Failed fetches now schedule a retry after two seconds; responses marked stale are discarded and retried after one second. The loading selector now uses the current page and query parameters.
+
+Validation passed: the Mail TypeScript check, `git diff --check`, and all 12 focused mailbox element tests.

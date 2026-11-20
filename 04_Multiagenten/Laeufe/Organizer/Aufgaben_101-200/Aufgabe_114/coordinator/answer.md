@@ -1,0 +1,3 @@
+Artist artwork now checks for `artist.*` in the folder derived from the artist’s albums before trying album image files, URLs, or the placeholder. Albums now store their unique media directories, and every artwork lookup attempt records its duration in trace logs. The database migration triggers a full rescan to populate the new directory data.
+
+`go test ./model ./core/artwork ./scanner ./db ./persistence` passed, as did `git diff --check`. No delegation was used.

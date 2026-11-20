@@ -1,0 +1,3 @@
+Fixed undefined values passed to `to_yaml` and `to_nice_yaml`. [AnsibleDumper](/app/lib/ansible/parsing/yaml/dumper.py:44) now triggers Jinja’s undefined-variable error; the [filters](/app/lib/ansible/plugins/filter/core.py:47) name the failing filter and preserve the original cause; and [Templar](/app/lib/ansible/template/__init__.py:1166) reports it as `AnsibleUndefinedVariable`. The reproduction now names `MYSVC_ENV`.
+
+I delegated the dumper, filter, and regression-test edits to three agents, then integrated and verified the patch. The focused run passed **62 tests**. A wider run passed **163 tests** and had one setup error because the environment lacks the `mocker` pytest fixture.

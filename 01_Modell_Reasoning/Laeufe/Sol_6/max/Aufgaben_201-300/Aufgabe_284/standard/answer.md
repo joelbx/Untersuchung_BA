@@ -1,0 +1,3 @@
+Updated [reversetunnel.Server](/app/lib/reversetunnel/srv.go:74) to keep one `localSite` for connection registration, lookups, reconnect notices, and proxy updates. The [local-site constructor](/app/lib/reversetunnel/localsite.go:46) now reuses the server’s auth client, proxy access point, and peer client without creating a second resource cache. Service connections also reject empty or mismatched certificate cluster names.
+
+Added focused coverage in [srv_test.go](/app/lib/reversetunnel/srv_test.go:160). `GOPROXY=off GOSUMDB=off go test ./lib/reversetunnel` passed.

@@ -1,0 +1,3 @@
+Updated `Load` to return a `Result` with separate `Config` and `Warnings` fields. Deprecation checks now run before defaults and warn only when a deprecated key is explicitly present in the configuration file, including `ui.enabled`. The CLI logs warnings from the result when it loads configuration.
+
+Updated the existing tests and added cases for explicit `false` values, defaults, and environment values. `GOPROXY=off go test ./internal/config ./cmd/flipt` passes.

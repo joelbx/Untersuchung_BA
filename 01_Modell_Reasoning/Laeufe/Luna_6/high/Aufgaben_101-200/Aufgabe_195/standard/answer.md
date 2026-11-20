@@ -1,0 +1,3 @@
+Implemented the configuration loader refactor. `Load` now returns a `Result` with separate `Config` and `Warnings` fields, and the CLI logs warnings from the result. Deprecation warnings are collected before defaults and only for keys explicitly present in the config file, including `ui.enabled` and explicit false values.
+
+Verification passed: `go test ./internal/config ./cmd/flipt` and `git diff --check`.

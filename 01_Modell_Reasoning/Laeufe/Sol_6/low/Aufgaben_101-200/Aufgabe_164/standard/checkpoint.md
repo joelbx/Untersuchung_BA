@@ -1,0 +1,1 @@
+Implemented YAML v3 import decoding, JSON first-line # header skipping, and direct JSON serialization of YAML attachments. Added focused import coverage for nested metadata, namespace fields, and JSON header. go test ./internal/ext and git diff --check pass.

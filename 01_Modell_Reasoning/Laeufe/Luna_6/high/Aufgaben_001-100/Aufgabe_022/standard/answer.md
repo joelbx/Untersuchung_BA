@@ -1,0 +1,3 @@
+Updated [redhatbase.go](/app/scanner/redhatbase.go:577) so unparseable source RPM filenames add a warning and no longer prevent the binary package from being returned. Epochs in source RPM filenames are now included in the parsed source version, and the binary/source package link is preserved. Applied the warning behavior to the repoquery parser too.
+
+The relevant existing parser tests passed with module downloads disabled. `git diff --check` passed.

@@ -1,0 +1,3 @@
+Refactored [directory traversal](/app/scanner/walk_dir_tree.go) to use `fs.FS` and return result and error channels. [Scan](/app/scanner/tag_scanner.go) now starts the walker directly; `getRootFolderWalker` and `utils.IsDirReadable` were removed. Added virtual filesystem tests.
+
+An agent audited callers, and another updated the tests. The focused scanner tests and `go test ./scanner ./utils` passed offline.

@@ -1,0 +1,3 @@
+Updated the repository’s sentinel handling, YAML constructors, templar overrides, lookup messages, deprecation display, `timedout` result, and early CLI errors.
+
+Verification: **343 relevant tests passed**; `git diff --check` and Python compilation passed. A separate run had **7 failures** in `test_deprecate_warn.py`: those tests expected target-side deprecation storage, but this run emitted warnings through controller-side `Display`. That test group remains unverified.

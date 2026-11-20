@@ -1,0 +1,3 @@
+Fixed module shebang handling in [module_common.py](/app/lib/ansible/executor/module_common.py). New-style Python modules now use their declared interpreter and arguments by default; explicit interpreter overrides still take precedence. Modules without a shebang fall back to `/usr/bin/python`, and the encoding line follows the shebang.
+
+Verification: 60 module-common tests passed; `git diff --check` passed. The test run emitted one `ZipFile.__del__` warning.

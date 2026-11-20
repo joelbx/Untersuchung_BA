@@ -1,0 +1,3 @@
+Added [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py) with E-Series connection parameters, firmware upload, compatible drive selection, check mode, online or offline upgrades, completion polling, and clear failure messages. Added [unit tests](/app/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py).
+
+Verification: 38 relevant tests passed, and the module compiled. No array integration test was available. Check mode uploads firmware to obtain controller compatibility data, but does not start an upgrade.

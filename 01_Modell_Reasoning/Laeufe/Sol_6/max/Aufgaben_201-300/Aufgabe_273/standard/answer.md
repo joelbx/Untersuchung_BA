@@ -1,0 +1,3 @@
+Updated [addbook.py](/app/openlibrary/plugins/upstream/addbook.py:69) so `make_work()` returns an empty author list when either author field is missing, preserves supplied fields, and applies the requested metadata defaults. `make_author()` now has the requested type annotations.
+
+The addbook tests passed (11 tests). Direct checks also covered missing author fields, author creation, and preservation of supplied metadata.

@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) to show stdout and stderr live when output messages are enabled. At completion, it reports each nonempty stream separately: stdout as information first, then stderr as an error. Empty streams produce no output messages.
+
+Updated the [tests](/app/tests/unit/misc/test_guiprocess.py) to check live delivery and final ordering. All 41 focused tests pass; `git diff --check` passes.

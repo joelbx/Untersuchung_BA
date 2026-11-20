@@ -1,0 +1,3 @@
+Updated the config loader to read the three database pool options and `meta.check_for_updates`. When the update-check key is absent, it now defaults to `false`. The existing default fixture equality tests pass; the advanced fixture explicitly enables update checks to preserve its expected value.
+
+The regression tests failed for the reported behavior before the fix. Afterward, `go test ./config` and `go test ./...` passed. The full suite emitted a compiler warning from sqlite3-binding.c; no tests failed.

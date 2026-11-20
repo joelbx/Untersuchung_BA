@@ -1,0 +1,3 @@
+Centralized `add_db_name` in [catalog utils](/app/openlibrary/catalog/utils/__init__.py) and made edition expansion apply it to every author. Existing editions now pass author names and birth or death dates into expansion, so matching uses the same generated identifier on both sides.
+
+The focused tests passed: **73 passed, 2 expected failures, 1 unexpected pass**. The full Python suite still has three template test failures and two collection errors, including a blocked network request; these are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated [recipient.ts](/app/packages/shared/lib/mail/recipient.ts) with `splitBySeparator`, which splits on commas and semicolons, trims tokens, removes angle brackets, and drops empty results. `inputToRecipient` now uses the bare email for both `Name` and `Address`. Added focused tests in [recipient.spec.ts](/app/packages/shared/test/mail/recipient.spec.ts).
+
+The shared TypeScript check passed. The test bundle compiled, but Karma could not run the tests because its configured Chromium binary is missing locally.

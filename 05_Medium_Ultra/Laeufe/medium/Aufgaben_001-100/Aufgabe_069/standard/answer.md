@@ -1,0 +1,3 @@
+Implemented matcher support in [parse.go](/app/lib/utils/parse/parse.go), including literals, anchored wildcards, raw regexps, `regexp.match`, `regexp.not_match`, prefix and suffix matching, and the requested validation errors. Added coverage in [parse_test.go](/app/lib/utils/parse/parse_test.go).
+
+The parser tests and focused `GlobToRegexp` test pass. The full `lib/utils` suite has an unrelated failure because a certificate fixture expired in 2021.

@@ -1,0 +1,3 @@
+Updated `SocketPosts.getUpvoters` to check `topics:read` across every category returned by `posts.getCidsByPids`, rejecting non-administrators with `[[error:no-privileges]]` before fetching upvoters. Administrators retain access. The method now deduplicates UIDs for one username lookup, preserves their order, and returns a cutoff of 6 with excess voters counted in `otherCount`. The frontend uses the returned cutoff and enables HTML tooltips. I added a regression test for mixed readable and restricted categories.
+
+ESLint and `git diff --check` passed. The targeted Mocha test could not run because local Redis refused the connection at `127.0.0.1:6379`.

@@ -1,0 +1,3 @@
+Updated DynamoDB audit event writes to store metadata in the native `FieldsMap` attribute. Reads support both `FieldsMap` and legacy `Fields` records. A locked, resumable background migration converts legacy records in batches, validates their semantic content, and logs progress and conversion errors. Added `backend.FlagKey`.
+
+The focused event and backend tests pass. The full `go test ./...` run timed out after 180 seconds without reporting a failure; the AWS backed migration test was skipped because `TEST_AWS` was not enabled. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Added `luqum_replace_child` in [query_utils.py](/app/openlibrary/solr/query_utils.py). It replaces matching direct children in place for `BaseOperation`, `Group`, and `Unary`, preserves their order and sequence type, leaves absent children unchanged, and raises the existing `ValueError` for unsupported parents.
+
+Added focused tests in [test_query_utils.py](/app/openlibrary/tests/solr/test_query_utils.py). All 11 tests in that file pass; `git diff --check` passes.

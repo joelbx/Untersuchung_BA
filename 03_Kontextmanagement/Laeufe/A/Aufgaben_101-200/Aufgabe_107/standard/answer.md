@@ -1,0 +1,3 @@
+Fixed stale bypass entries for optimistic read and unread changes. The dispatch now includes `markAsStatus`, and the reducer uses the new [filter helper](/app/applications/mail/src/app/logic/elements/helpers/elementBypassFilters.ts) to add IDs when bypassing is needed and remove them when the new status matches the active filter.
+
+Verification passed: 13 tests across 3 suites, the TypeScript check, and Prettier.

@@ -1,0 +1,3 @@
+Extracted `RoleMixin._build_doc` so role entry point documentation can be tested directly. It returns `(fqcn, doc)`, preserves the supplied path, collection, and entry point specifications, and returns `(fqcn, None)` when no entry points match. `_create_role_doc` now uses that result.
+
+The focused doc and CLI tests passed: **45 passed**. The broader CLI suite still has failures in Galaxy and ad hoc tests; the command and errors are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Migrated `get_ia.py` to `requests`: `urlopen_keep_trying` now accepts headers and keyword arguments, validates response status, and returns a response. Updated callers to use `.content` for binary/XML data and `.text` for text, and converted Range requests to a headers dictionary. Updated the shared helper’s legacy consumers and test fixtures to match.
+
+Verification: `python -m pytest openlibrary/tests/catalog/test_get_ia.py -q` passed (42 tests); `git diff --check` passed.

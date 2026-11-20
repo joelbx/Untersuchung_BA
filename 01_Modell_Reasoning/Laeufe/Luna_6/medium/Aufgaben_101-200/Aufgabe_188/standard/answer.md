@@ -1,0 +1,3 @@
+Centralized storage units in [size.ts](/app/packages/shared/lib/helpers/size.ts) and updated member allocation flows, CSV import, organization setup, calendar and contacts limits, bonus storage values, and remaining inline GB calculations to use `sizeUnits`.
+
+The focused CSV suite passed: 64 tests. `git diff --check` passed. The components type check reported an unrelated `openpgp` type incompatibility in [api.ts](/app/packages/crypto/lib/worker/api.ts:579); it reported no errors in the changed files.

@@ -1,0 +1,3 @@
+Implemented gzip response handling in [urls.py](/app/lib/ansible/module_utils/urls.py). Responses decode by default; `decompress=False` preserves the compressed bytes. The option is exposed by [uri.py](/app/lib/ansible/modules/uri.py) and [get_url.py](/app/lib/ansible/modules/get_url.py). I added regression tests for both modes, response metadata, and missing gzip support.
+
+Verification: all 89 URL utility tests passed, module files compiled, and `git diff --check` passed. Native Python 2 execution was unavailable; its file pointer path was tested with a simulated Python 2 style response.

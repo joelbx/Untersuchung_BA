@@ -1,0 +1,3 @@
+Implemented Fortinet advisory support for FortiOS CVE detection and enrichment. The scanner now includes Fortinet sourced CVEs, records advisory IDs, converts advisory metadata into CVE contents, ranks Fortinet detection signals with NVD and JVN, and includes Fortinet in report selection order. The go-cve-dictionary dependency was updated to a locally cached version with Fortinet models.
+
+Formatting and `git diff --check` passed. I attempted the relevant existing Go tests, but they could not run offline: the updated dependency requires transitive module versions that are not cached.

@@ -1,0 +1,3 @@
+Implemented the generic `fanoutbuffer` package in [buffer.go](/app/lib/utils/fanoutbuffer/buffer.go). It provides ordered reads for independent concurrent cursors, a fixed ring with overflow storage, grace period expiry, blocking and nonblocking reads, and cleanup on cursor or buffer close.
+
+Added focused tests in [buffer_test.go](/app/lib/utils/fanoutbuffer/buffer_test.go). The package passed `go test -race ./lib/utils/fanoutbuffer`, and the existing fanout tests passed with `go test ./lib/services -run 'TestFanout' -count=1`.

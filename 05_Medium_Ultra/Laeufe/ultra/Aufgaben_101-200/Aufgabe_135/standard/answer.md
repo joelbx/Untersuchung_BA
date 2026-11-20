@@ -1,0 +1,3 @@
+Updated [mathstuff.py](/app/lib/ansible/plugins/filter/mathstuff.py) so `min` and `max` receive the Jinja environment and forward all keyword arguments to `do_min` and `do_max` when available. Otherwise, calls without keywords use Python’s built-ins, and calls with keywords raise the required error. Added coverage in [test_mathstuff.py](/app/test/units/plugins/filter/test_mathstuff.py).
+
+Two subagents reviewed the implementation and test approach; neither edited files. Verification: **57 tests passed** with `PYTHONPATH=/app/lib python -m pytest -q test/units/plugins/filter/test_mathstuff.py`. `git diff --check` is clean.

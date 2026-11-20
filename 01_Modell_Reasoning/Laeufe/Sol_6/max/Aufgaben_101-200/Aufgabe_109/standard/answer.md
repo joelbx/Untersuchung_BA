@@ -1,0 +1,3 @@
+Added a disabled by default Poll history Labs setting. When enabled, [RoomSummaryCard](/app/src/components/views/right_panel/RoomSummaryCard.tsx:342) shows “Polls history”; clicking it opens the new [PollHistoryDialog](/app/src/components/views/dialogs/polls/PollHistoryDialog.tsx:23) with the current `roomId`. The dialog is the requested titled shell; it does not display poll entries yet.
+
+The RightPanel, Labs, and SettingsStore tests passed, as did targeted lint and formatting checks. Full TypeScript checking still fails on an existing SDK type error in the unchanged [RoomCreate.tsx](/app/src/components/views/messages/RoomCreate.tsx:50).

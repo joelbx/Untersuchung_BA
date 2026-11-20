@@ -1,0 +1,3 @@
+Resolved the OCI storage configuration issue. Repository validation now returns the required errors, the schema and loader support bundle directory, credentials, and duration based polling, and `NewStore` uses its directory argument. I also wired OCI into server startup and registered `fs/oci` in the integration suite and CI matrix.
+
+The focused Go tests and `git diff --check` passed. The Dagger integration suite was registered and compiled, but was not run.

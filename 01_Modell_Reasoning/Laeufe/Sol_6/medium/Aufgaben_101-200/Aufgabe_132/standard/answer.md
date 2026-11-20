@@ -1,0 +1,3 @@
+Added a configurable, comma-separated `systemTags` setting in [Tag Settings](/app/src/views/admin/settings/tags.tpl). Topic creation, editing, and queue validation now reject reserved tags for users who are not privileged with the message “You can not use this system tag.” The `isTagAllowed` check also returns false for reserved tags.
+
+The focused topic privilege and category whitelist tests passed (10 tests), and ESLint passed. A broader filtered run stopped in a tag-search test whose prerequisite tests were excluded by the filter.

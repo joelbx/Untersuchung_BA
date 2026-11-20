@@ -1,0 +1,3 @@
+Implemented separate database settings for SQLite, Postgres, and MySQL. Configuration now accepts `db.protocol`, `host` or SQLite `path`, `port`, `user`, `password`, and `name`. An explicit `db.url` takes precedence. Both normal connections and migrations use the same validated target and pooling settings; parsing and connection errors no longer echo credentials.
+
+Added field-qualified validation and tests for defaults, precedence, invalid values, migration setup, and password redaction. `GOPROXY=off go test ./...` and `git diff --check` passed.

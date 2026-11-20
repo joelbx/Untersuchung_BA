@@ -1,0 +1,5 @@
+Implemented reusable payment verification in [paymentTokenHelper.tsx](/app/packages/components/containers/payments/paymentTokenHelper.tsx). Token creation now accepts an injected verifier: chargeable tokens return immediately, pending tokens enter verification, and terminal failures reject. Polling uses configurable timers and cleans up on completion or cancellation.
+
+Wired the five requested components and the additional single-signup caller. Updated PayPal callers to proceed only when verification returns a chargeable outcome. Three native subagents handled the helper, consumer edits, and tests; I integrated and verified their changes.
+
+TypeScript checks, ESLint, Prettier, and `git diff --check` passed. The helper suite passed 22/22 tests, PaymentStep passed 2/2, and the broader component run passed 33/35. The two remaining [CreditsModal test](/app/packages/components/containers/payments/CreditsModal.test.tsx) failures expect `PaymentMethodID` in the final credit request; the pre-refactor component and [API contract](/app/packages/shared/lib/api/payments.ts:175) both send the token payment without that field.

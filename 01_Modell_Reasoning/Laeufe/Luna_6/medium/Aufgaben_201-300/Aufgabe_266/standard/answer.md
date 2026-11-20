@@ -1,0 +1,3 @@
+Implemented `STAGED_SOURCES` and `ImportItem.find_staged_or_pending()` in [imports.py](/app/openlibrary/core/imports.py). The lookup builds source-prefixed IDs and returns matching staged or pending rows. ISBN resolution now uses it to check local import records.
+
+Added coverage for source prefixes and status filtering. `pytest -q openlibrary/tests/core/test_imports.py -o reruns=0` passed: **6 tests**. The initial run hit fixture data collisions on retries; the clean rerun passed.

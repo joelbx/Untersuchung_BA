@@ -1,0 +1,3 @@
+Implemented consistent Kubernetes session routing in [forwarder.go](/app/lib/kube/proxy/forwarder.go). Sessions now reject a missing cluster with `trace.NotFound`, prefer configured local credentials, and dial discovered kube_service endpoints using each endpoint’s address and server ID. Successful endpoint selection is recorded on the session.
+
+Updated the remote-session test fixture to specify its cluster. `go test ./lib/kube/proxy` and `git diff --check` pass.

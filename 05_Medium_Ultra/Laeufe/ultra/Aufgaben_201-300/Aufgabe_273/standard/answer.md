@@ -1,0 +1,3 @@
+Updated [make_work](/app/openlibrary/plugins/upstream/addbook.py:69) to return a `web.Storage` when either author field is missing, with an empty `authors` list and the requested metadata defaults. It preserves supplied fields, including `cover_url`, and adds the requested type annotations.
+
+A subagent added [regression tests](/app/openlibrary/plugins/upstream/tests/test_addbook.py:25); I reviewed the patch and reran the test file. **15 tests passed**, and `git diff --check` passed.

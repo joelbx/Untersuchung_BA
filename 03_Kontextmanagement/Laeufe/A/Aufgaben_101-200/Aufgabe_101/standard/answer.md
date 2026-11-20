@@ -1,0 +1,3 @@
+Updated `listRemoveAll` in the Redis, MongoDB, and PostgreSQL backends to remove multiple specified strings while preserving the order of the remaining list. Added a shared regression test that reads the list immediately after removal.
+
+Verification: 20 list tests passed on Redis, and ESLint passed. MongoDB and PostgreSQL integration tests were not run because their servers were unavailable locally.

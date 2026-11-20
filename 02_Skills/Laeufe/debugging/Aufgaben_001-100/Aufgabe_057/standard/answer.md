@@ -1,0 +1,3 @@
+Implemented YAML-native variant attachments in [internal/ext](/app/internal/ext/common.go). Export now decodes stored JSON into YAML structures; import accepts nested YAML values and stores them as JSON strings. The CLI import and export commands use the new package.
+
+`go test ./...` and `git diff --check` passed. The referenced fixture files are absent from this checkout, so exact fixture comparison was unavailable; focused tests cover nested attachment round trips and missing attachments.

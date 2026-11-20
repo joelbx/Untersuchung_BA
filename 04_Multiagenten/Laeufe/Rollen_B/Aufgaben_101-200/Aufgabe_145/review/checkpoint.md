@@ -1,0 +1,4 @@
+VERDICT: FIX
+Reviewed both mirrored recovery implementations and tests. Code defect: cleanup combines move failures and remaining photo counts with Math.max (packages/drive-store/store/_photos/usePhotosRecovery.ts:222 and mirror), undercounting distinct failed and still-present items. Track failed link IDs and count the union with remaining IDs.
+Tests: yarn workspace proton-drive test --runInBand --coverage=false --watch=false src/app/store/_photos/usePhotosRecovery.test.ts: PASS (11/11). yarn workspace @proton/drive-store test --runInBand --coverage=false --watch=false store/_photos/usePhotosRecovery.test.ts: PASS (11/11).
+TEST_ENVIRONMENT_PROBLEM: yarn workspace @proton/drive-store check-types: FAIL (exit 2) in packages/crypto/lib/worker/api.ts:579 due incompatible openpgp and pmcrypto nested openpgp types; independent of changed files. Align installed OpenPGP dependency types, then rerun check-types.

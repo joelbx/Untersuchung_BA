@@ -1,0 +1,7 @@
+I located the fault, but did not implement the fix: this run was restricted to diagnosis and prohibited edits to project source or tests.
+
+The main change belongs in [lib/utils/parse/parse.go](/app/lib/utils/parse/parse.go:38). `Expression` holds only one variable and one transform; `walk` drops an inner transform when parsing a nested call, so nested `email.local` and `regexp.replace` cannot compose. The same walk flattens selectors and indices without checking their shape or namespace, accepts literals as variable parts, and returns inconsistent errors for malformed expressions. Its depth check runs after Go has already parsed the input.
+
+[ApplyValueTraits](/app/lib/services/role.go:491) and [PAM interpolation](/app/lib/srv/ctx.go:973) validate only the single variable exposed by that structure. They need validation for every variable in the proposed AST. PAM’s missing trait warning also includes the claim name.
+
+The fix should replace the parser result with typed string and boolean AST nodes, validate variable shape and function arguments during parsing, evaluate nested string expressions, and use the same compiled regex path for matching and replacement. Existing [parser tests](/app/lib/utils/parse/parse_test.go:28) pass (`go test ./lib/utils/parse`), but assert the legacy concrete structs and do not establish the requested nested behavior. I recorded the findings in `.codex-role-output/checkpoint.md`; project source and tests are untouched.

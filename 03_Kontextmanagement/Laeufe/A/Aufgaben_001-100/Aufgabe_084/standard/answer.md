@@ -1,0 +1,3 @@
+Added `removeTechnicalFields` in [EntityUtils.ts](/app/src/api/common/utils/EntityUtils.ts). It mutates the entity, removing keys with the three specified prefixes at the root and throughout nested objects and arrays while preserving other fields. Added coverage in [EntityUtilsTest.ts](/app/test/tests/api/common/utils/EntityUtilsTest.ts).
+
+TypeScript passed, and `npm run fasttest` passed with 8,678 assertions.

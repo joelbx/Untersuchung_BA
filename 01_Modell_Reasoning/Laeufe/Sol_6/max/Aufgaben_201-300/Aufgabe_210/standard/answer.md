@@ -1,0 +1,3 @@
+Resolved the duplicate evaluation in `/app`. [TaskExecutor](/app/lib/ansible/executor/task_executor.py) now evaluates loop items once, resolves item-independent delegation before iterations, and resolves item-dependent delegation once for each item. [VariableManager](/app/lib/ansible/vars/manager.py) provides the new delegation method and no longer resolves delegation during ordinary `get_vars()` calls. [Task](/app/lib/ansible/playbook/task.py) now exposes its containing play.
+
+Verification passed: 37 relevant unit tests, five existing delegation playbooks, and `git diff --check`.

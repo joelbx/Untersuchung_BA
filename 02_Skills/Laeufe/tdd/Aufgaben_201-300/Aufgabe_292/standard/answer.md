@@ -1,0 +1,3 @@
+Polling now has a managed lifecycle in the Git, local, Azure Blob, S3, and OCI snapshot stores. Each store exposes `Close()`, which safely does nothing when polling is inactive and otherwise cancels polling and waits for the worker to exit.
+
+Focused storage tests and the poller race test passed. The full suite did not pass: Redis tests require an unavailable Docker daemon, and `Test_FS_Submodule` failed on a forbidden remote fetch.

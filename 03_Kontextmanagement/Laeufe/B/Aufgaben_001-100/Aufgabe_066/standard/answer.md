@@ -1,0 +1,3 @@
+Implemented the inline height fix. [transformStyleAttributes.ts](/app/applications/mail/src/app/helpers/transforms/transformStyleAttributes.ts) changes `vh` heights to `auto`, and [prepareHtml](/app/applications/mail/src/app/helpers/transforms/transforms.ts) calls it after `transformStylesheet` and before `transformRemote`.
+
+The focused test and existing remote transform tests passed: **5 tests across 2 suites**. Formatting and lint checks passed.

@@ -1,0 +1,3 @@
+Updated anonymous telemetry to schema `1.3`. When audit sinks are enabled, the payload now includes `audit.sinks` with `log`, `webhook`, or both; when neither is enabled, it omits `audit`. Existing telemetry fields remain unchanged.
+
+The telemetry tests pass, including new tests for all four sink combinations. The full Go suite did not pass: Redis tests `TestSet`, `TestGet`, and `TestDelete` require a Docker daemon, which is unavailable in this environment.

@@ -1,0 +1,3 @@
+Task complete: BSD hardware collectors (FreeBSD/DragonFly, NetBSD, OpenBSD, Darwin) now use sysctl -n kern.boottime for numeric uptime_seconds. Shared sysctl parser handles =, :, and space delimiters, multiline continuation values, malformed-line warnings, and command failure warnings. Missing sysctl binaries raise ValueError. Added focused tests.
+Verification: PYTHONPATH=lib:test python -m pytest -q test/units/module_utils/facts/test_sysctl.py test/units/module_utils/facts/test_facts.py test/units/module_utils/facts/hardware/test_sunos_get_uptime_facts.py => 105 passed, 5 skipped.
+Delegation: none.

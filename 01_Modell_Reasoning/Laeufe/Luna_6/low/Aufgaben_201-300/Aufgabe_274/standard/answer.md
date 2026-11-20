@@ -1,0 +1,3 @@
+Implemented the `always`, `auto`, and `never` setting modes, with `auto` enabled only on Qt 6 when the Chromium major version is known and below 111. The default is now `auto`.
+
+`QT_QPA_PLATFORM=offscreen pytest -q tests/unit/config/test_qtargs.py tests/unit/config/test_configdata.py` passed: **133 tests**. `git diff --check` also passed. The first test run aborted while initializing Qt without the offscreen platform; the offscreen run succeeded.

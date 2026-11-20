@@ -1,0 +1,3 @@
+Migrated `get_ia.py` to `requests`, including status validation, retries, optional headers and keyword arguments, UTF-8 fallback, and Range requests. MARC and XML retrieval now uses response content; text checks use `.text`. Updated the dependent callers in [marc_subject.py](/app/openlibrary/catalog/marc/marc_subject.py:53) and the response fixture in [test_get_ia.py](/app/openlibrary/tests/catalog/test_get_ia.py:18).
+
+Validation: `pytest -q openlibrary/tests/catalog/test_get_ia.py` passed (42 tests), and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Added the shared `add_db_name` function in [catalog utils](/app/openlibrary/catalog/utils/__init__.py). Edition expansion now generates an identifier for every author, and existing editions pass author names and birth/death dates through that same path. The duplicate generators were removed.
+
+The catalog add-book and merge test suites ran: **105 passed**, 1 skipped, 2 expected failures, and 1 unexpected pass. `git diff --check` passed.

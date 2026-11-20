@@ -1,0 +1,1 @@
+Completed plugin resolution metadata, contextual plugin errors, tombstone and redirect handling, centralized deprecation formatting, and connection/action/Jinja caller updates. Relevant unit tests passed: 100 across the affected suites; subsequent focused checks passed (11 template tests, 13 loader tests). git diff --check passed.

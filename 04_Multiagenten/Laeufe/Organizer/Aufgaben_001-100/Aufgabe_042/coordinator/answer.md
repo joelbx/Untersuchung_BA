@@ -1,0 +1,3 @@
+Added `/.well-known/webfinger` through the [dedicated controller](/app/src/controllers/well-known.js) and [router](/app/src/routes/well-known.js). The handler validates `resource`, checks the `groups:view:users` permission with anonymous requests evaluated as Guest, resolves the user slug, and returns a WebFinger JSON response with the subject, UID and profile aliases, and an HTML profile link.
+
+The focused integration suite passed **4 tests** using a temporary local Redis instance. ESLint and `git diff --check` also passed. No delegation was used.

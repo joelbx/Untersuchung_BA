@@ -1,0 +1,5 @@
+**Diagnosis:** [`routes()`](/app/server/subsonic/api.go:58) applies required parameter checks and authentication to the root router before registering `getOpenSubsonicExtensions` at [line 186](/app/server/subsonic/api.go:186). The endpoint therefore requires credentials, and moving it out of its small route group alone would not make it public.
+
+The fix should register this route outside the protected middleware chain while retaining the existing response path. [`sendResponse()`](/app/server/subsonic/api.go:291) already uses `?f=json` to produce the JSON wrapper, and [`GetOpenSubsonicExtensions()`](/app/server/subsonic/opensubsonic.go:9) already returns exactly `transcodeOffset`, `formPost`, and `songLyrics`.
+
+No route level test currently establishes unauthenticated access. I did not edit source or tests in this diagnosis-only pass, so the issue remains unresolved.

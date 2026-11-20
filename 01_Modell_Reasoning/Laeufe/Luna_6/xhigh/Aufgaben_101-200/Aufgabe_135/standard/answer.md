@@ -1,0 +1,3 @@
+Updated [mathstuff.py](/app/lib/ansible/plugins/filter/mathstuff.py) so `min` and `max` use `@environmentfilter`, forward keyword arguments to Jinja’s enhanced filters when available, and provide the specified error or built-in fallback otherwise. Updated the existing direct-call tests to pass the environment.
+
+The focused pytest run passed: **49 tests**. `ansible-test` could not run because its isolated Python 3.8 environment lacks pytest.

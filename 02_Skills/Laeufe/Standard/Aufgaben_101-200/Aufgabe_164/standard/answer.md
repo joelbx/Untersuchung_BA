@@ -1,0 +1,3 @@
+Updated the import reader to use YAML v3, so nested metadata and attachments decode with JSON-compatible map keys. JSON import now skips one leading line only when its first character is `#`. Added tests covering both formats, nested data, namespace fields, and JSON header handling.
+
+`go test ./internal/ext` and `git diff --check` passed. The additional `go test ./cmd/flipt` check was interrupted after prolonged silence, so its result remains unverified. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

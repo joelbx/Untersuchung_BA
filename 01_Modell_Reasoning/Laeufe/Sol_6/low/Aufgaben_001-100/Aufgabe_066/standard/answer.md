@@ -1,0 +1,3 @@
+Added `transformStyleAttributes` to replace inline height values containing `vh` with `auto`, including on the root element. It preserves other styles and any `!important` priority. The HTML preparation pipeline now calls it after `transformStylesheet` and before `transformRemote`.
+
+The focused test passed, and `git diff --check` found no issues. Jest remained open after reporting the pass, so it did not exit cleanly.

@@ -1,0 +1,3 @@
+Updated the [Solr work builder](/app/openlibrary/solr/update_work.py:742) to prefer a public IA edition for `lending_edition_s` and keep its IA identifier paired with it. Legacy `lendinglibrary` editions are classified as borrowable, and multiple print-disabled edition IDs are included in `printdisabled_s`. The [tests](/app/openlibrary/tests/solr/test_update_work.py:390) verify the availability flags, IA membership, and collection union.
+
+Verification: all 61 Solr tests passed; `git diff --check` passed.

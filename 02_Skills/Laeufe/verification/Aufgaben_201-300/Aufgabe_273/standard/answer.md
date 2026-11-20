@@ -1,0 +1,3 @@
+Updated [make_work()](/app/openlibrary/plugins/upstream/addbook.py:69) to return a `web.Storage` when either author field is missing, with an empty authors list and the required metadata defaults. It now preserves a supplied cover URL. `make_author` has the requested type annotations.
+
+Added coverage in [test_addbook.py](/app/openlibrary/plugins/upstream/tests/test_addbook.py:25). The upstream test suite passed: **48 passed, 5 expected failures**. `git diff --check` also passed.

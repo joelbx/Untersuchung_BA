@@ -1,0 +1,3 @@
+Implemented failed-fetch reuse in [useLink.ts](/app/applications/drive/src/app/store/_links/useLink.ts). The three specified API errors are cached per share and link for 30 seconds, then expire. Other links and successful fetches continue normally.
+
+Added [focused tests](/app/applications/drive/src/app/store/_links/useLink.fetch.test.ts). All 17 relevant tests passed; ESLint and Drive’s TypeScript check passed.

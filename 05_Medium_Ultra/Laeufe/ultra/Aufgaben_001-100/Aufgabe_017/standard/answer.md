@@ -1,0 +1,3 @@
+SQL Server connection diagnostics are implemented. The diagnostic factory now selects [SQLServerPinger](/app/lib/client/conntest/database/sqlserver.go:34), which validates connection parameters, respects context deadlines, and categorizes refused connections, login failures, and invalid database names, including errors forwarded by the Teleport agent. The [Discovery form](/app/web/packages/teleport/src/Discover/Database/TestConnection/TestConnection.tsx:131) now keeps the required SQL Server database name selected.
+
+I delegated the pinger, focused tests, and a read only path audit, then reviewed the combined changes. The full database pinger tests, diagnostic package check, and final focused SQL Server tests passed with module downloads disabled.

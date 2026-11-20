@@ -1,0 +1,3 @@
+Resolved the Red Hat OVAL issue. Scans now use the cached goval-dictionary v0.9.5 release with resolution data, propagate package fix states through HTTP and database results, and add advisories only when their IDs match the distribution. Red Hat family package CVE detection now uses OVAL instead of Gost.
+
+Added regression tests for fix states, modular packages, advisory IDs, and both OVAL collection paths. The full offline `go test -mod=mod ./...` suite passed; focused tests passed again after the final modular resolution change.

@@ -1,0 +1,7 @@
+I localized the issue but made no source or test edits: this run’s fault-localization instruction limits me to a diagnosis. I recorded the findings in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+- [basic.py](/app/lib/ansible/module_utils/basic.py:402): `remove_values` sends mapping keys through the same redaction path as values. That path also replaces exact matches with a sentinel, changes matching numbers, converts dates to strings, and changes tuple and frozenset container types. It needs a values-only path that preserves keys and scalar types, alongside a separate iterative `sanitize_keys` traversal.
+- [uri.py](/app/lib/ansible/modules/uri.py:691): `uresp` goes directly to `fail_json` or `exit_json`. There is no `NO_MODIFY_KEYS` constant or conditional `sanitize_keys(uresp, module.no_log_values, NO_MODIFY_KEYS)` call.
+- [test_no_log.py](/app/test/units/module_utils/basic/test_no_log.py:76): existing assertions require several of the old behaviors, so they conflict with the requested contract.
+
+One contract detail needs care in implementation: the issue says non-mapping lists pass through unchanged, but also requires sanitizing mappings nested inside lists. I read that as preserving the list’s type and non-mapping elements while traversing its nested mappings.

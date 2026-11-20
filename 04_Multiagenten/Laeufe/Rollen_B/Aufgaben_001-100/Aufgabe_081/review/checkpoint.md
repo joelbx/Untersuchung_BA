@@ -1,0 +1,3 @@
+VERDICT: ACCEPT
+The applied patch meets the requested behavior: session domain normalization uses url.Parse and Hostname with parse errors returned; localhost state and token cookies omit Domain; the state cookie keeps the provider callback path; callbackURL trims exactly one trailing slash. No code defect found in the reviewed diff.
+Tests: `GOPROXY=off GOSUMDB=off go test ./internal/config ./internal/server/auth/method/oidc` exited 0; both packages passed (`internal/config` 0.040s, `internal/server/auth/method/oidc` 2.185s). `git diff --check` exited 0. TEST_ENVIRONMENT_PROBLEM: none. No project code or tests changed during review.

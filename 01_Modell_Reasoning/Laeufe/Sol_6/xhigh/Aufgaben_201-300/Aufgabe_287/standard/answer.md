@@ -1,0 +1,3 @@
+Implemented album image tracking. The scanner now collects every image filename in a directory, combines it with the sorted, unique directories from `MediaFiles.Dirs()`, and saves the resulting path list on each album. A new `image_files` database column triggers a full media rescan when migrated. The album field is exposed as `imageFiles` to clients.
+
+The relevant Go tests passed (`./model ./scanner ./persistence ./db/...`), including new refresh and database round-trip checks. `git diff --check` passed.

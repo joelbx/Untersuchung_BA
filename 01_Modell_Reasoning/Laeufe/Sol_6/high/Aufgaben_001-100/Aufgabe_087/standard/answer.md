@@ -1,0 +1,3 @@
+Implemented opt-out anonymous telemetry in [telemetry.go](/app/telemetry/telemetry.go) and connected it to server startup. It stores a random host UUID in `telemetry.json`, sends `flipt.ping` every four hours, and updates the timestamp only after an accepted response. [Config](/app/config/config.go) now supports both requested environment variables; the advanced example disables telemetry. I also moved the `/meta/info` handler to [internal/info/flipt.go](/app/internal/info/flipt.go).
+
+`go test ./...`, focused race tests, and `git diff --check` pass. Live delivery to the telemetry endpoint remains unverified.

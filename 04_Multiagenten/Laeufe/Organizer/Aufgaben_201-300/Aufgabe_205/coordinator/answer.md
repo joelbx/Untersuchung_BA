@@ -1,0 +1,3 @@
+Implemented the API token lifecycle interface in [src/api/utils.js](/app/src/api/utils.js). It stores token metadata and the creation, ownership, and last-seen indexes; supports list, generate, get, update, delete, log, and getLastSeen; and preserves the existing direct utility calls. [Bearer authentication](/app/src/routes/authentication.js) now accepts tokens created through the new interface while continuing to accept legacy settings tokens.
+
+The [focused lifecycle test](/app/test/api-utils-tokens-unit.js) passes, as do ESLint and `git diff --check`. The database-backed authentication tests were not run because their setup reads credential-bearing configuration. No delegation was used.

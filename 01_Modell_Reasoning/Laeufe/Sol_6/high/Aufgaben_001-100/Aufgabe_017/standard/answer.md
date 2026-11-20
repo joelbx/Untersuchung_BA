@@ -1,0 +1,3 @@
+Added SQL Server connection diagnostics. `getDatabaseConnTester` now selects `SQLServerPinger` for SQL Server and still errors on unsupported protocols. The pinger validates parameters, enforces the context deadline during connection, and categorizes refused connections, invalid users, and invalid database names, including errors forwarded by the Teleport agent.
+
+The affected package tests pass: `go test ./lib/client/conntest/database ./lib/client/conntest -count=1 -timeout=120s`.

@@ -1,0 +1,3 @@
+Issue: New-style Python modules ignored the source shebang and used /usr/bin/python.
+Status: Fixed in lib/ansible/executor/module_common.py. The source interpreter and arguments are extracted before building ansiballz; explicit overrides retain precedence. _get_shebang always returns a shebang and interpreter. Old-style modules only replace a shebang when the interpreter changes, and place the encoding line immediately after it.
+Verification: 58 tests in test/units/executor/module_common passed; 2 existing ZipFile destructor warnings in recursive finder tests. Focused 52 tests passed after final code edit. git diff --check passed.

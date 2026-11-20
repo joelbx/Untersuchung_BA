@@ -1,0 +1,3 @@
+Updated the composer so replaced-room notices use paragraphs and clearly state that the room is inactive. Added a reusable, labeled `CancelButton`, used it in the reply preview, search bar, and dial pad, and made reply previews name the sender. Profiles can now render inline in reply previews.
+
+All 18 relevant tests pass; ESLint, Stylelint, and `git diff --check` pass. The full TypeScript check still fails on unrelated SDK and room settings errors, with no errors reported in the changed files. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

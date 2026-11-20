@@ -1,0 +1,3 @@
+Implemented OCI storage configuration and startup wiring. The loader now accepts `storage.type: oci`, requires a repository, and returns the specified error for unsupported schemes. It parses the bundle directory, credentials, and duration based poll interval; `NewStore` uses its directory argument; and `DefaultBundleDir` creates the default bundles path. Registered `fs/oci` in the integration suite and CI matrix.
+
+The affected Go tests passed with `GOPROXY=off`. The Dagger integration suite was not run locally. No delegation was used.

@@ -1,0 +1,3 @@
+Updated [WordPress ingestion](/app/detector/wordpress.go) to map Enterprise summaries, proof-of-concept and introduced-version metadata, and CVSS metrics. It now selects the requested core version, uses the first CVE reference, preserves URL order and UTC timestamps, and keeps records without a fix version.
+
+Added enriched, null, and absent-field coverage in [WordPress tests](/app/detector/wordpress_test.go). `go test ./detector -count=1` and `git diff --check` passed.

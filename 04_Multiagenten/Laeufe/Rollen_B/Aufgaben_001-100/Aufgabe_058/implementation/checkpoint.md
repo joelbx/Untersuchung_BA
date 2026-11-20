@@ -1,0 +1,1 @@
+Completed: implemented enum based anonymity, DNT enforcement, config validation, lifecycle gates, awaited capture, room hashing, and logout. Focused Jest suite passes (21 tests); focused ESLint and git diff --check pass. Full TypeScript check fails on existing errors elsewhere in the repository, with no PosthogAnalytics diagnostics.

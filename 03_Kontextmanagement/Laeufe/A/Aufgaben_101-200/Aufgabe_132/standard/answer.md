@@ -1,0 +1,3 @@
+Implemented configurable system tags through `meta.config.systemTags` and the admin tag settings. Topic creation, editing, queued topics, and the tagging API now reject reserved tags for unprivileged users with the exact message “You can not use this system tag.” The check uses the cleaned tag name, and `isTagAllowed` excludes reserved tags.
+
+Verification: 219 topic and category tests passed; `git diff --check` passed.

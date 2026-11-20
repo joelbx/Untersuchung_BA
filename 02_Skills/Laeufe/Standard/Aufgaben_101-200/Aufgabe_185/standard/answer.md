@@ -1,0 +1,3 @@
+Fixed the cancellation expiry date. The expiry utility now uses the current term when cancellation context is active or auto-renew is disabled, while preserving scheduled-term behavior for renewing subscriptions and existing free-plan behavior. The cancellation screens now display the date returned by that utility.
+
+Verification passed: 36 targeted tests across three suites, the component type check, ESLint, Prettier, and `git diff --check`.

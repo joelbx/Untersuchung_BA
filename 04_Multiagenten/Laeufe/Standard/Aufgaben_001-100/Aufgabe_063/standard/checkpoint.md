@@ -1,0 +1,3 @@
+# Checkpoint
+
+Implemented `proxy_service.kube_listen_addr` in YAML parsing and key validation. It enables the Kubernetes proxy, uses the Kubernetes default port, overrides an explicitly disabled legacy block, and rejects an enabled legacy block with a clear conflict error. Added a warning when Kubernetes and proxy services are enabled without an explicit Kubernetes proxy listen address. Client address resolution uses the web proxy host for wildcard Kubernetes hosts and prefers configured public addresses. Added focused config and client tests. `go test ./lib/config ./lib/client` and `git diff --check` pass.

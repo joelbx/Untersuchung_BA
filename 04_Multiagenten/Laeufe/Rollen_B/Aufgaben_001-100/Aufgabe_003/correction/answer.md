@@ -1,0 +1,3 @@
+Fixed the reviewed raw streaming defect: a positive `timeOffset` now seeks by timestamp through FFmpeg instead of returning the file from its beginning. Zero-offset raw streams retain their existing behavior. Added a regression test.
+
+The reviewer’s exact test command passed in all four packages: `GOPROXY=off GOSUMDB=off go test ./core/ffmpeg ./core ./server/public ./server/subsonic`. No `TEST_ENVIRONMENT_PROBLEM`.

@@ -1,0 +1,1 @@
+Implemented host-scoped registration with an asyncio scheduler, added HAProxy metric collection and Graphite output, and migrated monitoring jobs to conditional registration. Monitoring tests: 5 passed. git diff --check passed.

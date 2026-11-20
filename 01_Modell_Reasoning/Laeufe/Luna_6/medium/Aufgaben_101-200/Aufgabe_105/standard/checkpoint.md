@@ -1,0 +1,1 @@
+Progress: moved getOpenSubsonicExtensions onto the outer router so it bypasses authentication while retaining public form and required-parameter middleware. Existing Subsonic package tests pass with `go test ./server/subsonic/...`.

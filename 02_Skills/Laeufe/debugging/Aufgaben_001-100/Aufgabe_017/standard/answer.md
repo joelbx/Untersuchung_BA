@@ -1,0 +1,3 @@
+Added SQL Server connection diagnostics through `SQLServerPinger` and registered it in the database tester factory. It validates connection parameters, respects the context during connect and ping, and categorizes refused connections, login failures, and invalid database errors.
+
+The focused regression tests failed before the implementation as expected. After the fix, `GOPROXY=off GOSUMDB=off go test ./lib/client/conntest/... -count=1` passed.

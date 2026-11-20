@@ -1,0 +1,3 @@
+YAML values that exactly match `${VARIABLE_NAME}` now resolve from the environment during configuration decoding, before type conversion. Missing variables and values that do not match the pattern remain unchanged. Existing `FLIPT_` environment overrides still take precedence.
+
+Added tests for multiple substitutions, integer ports, string values, overrides, and unchanged values. The full `internal/config` test package passes.

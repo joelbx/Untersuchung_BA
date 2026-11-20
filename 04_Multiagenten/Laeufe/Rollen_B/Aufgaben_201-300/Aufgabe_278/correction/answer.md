@@ -1,0 +1,3 @@
+Fixed both reviewed races. Label changes now wait for every request to settle before ending the backend action. A list fetch that overlaps an action is discarded, then retried after the action; actions without an overlapping fetch no longer trigger an extra reload that could overwrite optimistic UI state.
+
+The reviewer’s exact test command passed: **31 tests**. Two new race regression tests also passed. No remaining failures or test environment problems.

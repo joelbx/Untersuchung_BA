@@ -1,0 +1,3 @@
+Implemented `user_props` with a user-scoped repository exposed through `DataStore.UserProps`. The migration moves existing Last.fm session keys for known users; Last.fm now uses the `sessionKeyProperty` constant and includes request IDs in property error logs when available. Unmatched legacy keys remain in the global table to avoid data loss.
+
+The full Go suite passed. The migration, persistence, and Last.fm tests also passed after the final adjustment.

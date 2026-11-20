@@ -1,0 +1,3 @@
+Updated the [WinRM connection plugin](/app/lib/ansible/plugins/connection/winrm.py) to accept `ansible_winrm_kinit_args`. It splits the argument string into tokens, places them between the executable and principal, and suppresses the automatic delegation `-f` when custom arguments are set. Both execution paths use the same command and one invocation per attempt.
+
+For the reported command, set `ansible_winrm_kinit_cmd` to `/opt/CA/uxauth/bin/uxconsole` and `ansible_winrm_kinit_args` to `-krb -init`. I delegated the [guide update](/app/docs/docsite/rst/user_guide/windows_winrm.rst) and [test additions](/app/test/units/plugins/connection/test_winrm.py), then verified the combined patch: **36 WinRM unit tests passed**, and `git diff --check` passed.

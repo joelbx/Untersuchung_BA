@@ -1,0 +1,3 @@
+Added the download mechanism success metric to the existing metrics client. Terminal download outcomes now record status, retry, and the selected mechanism. Stateful downloads use `meta.size`; preview downloads pass the link size to the metrics hook. The new selector covers memory, service worker, and memory fallback paths.
+
+Verification passed: 20 focused tests, both Drive and metrics type checks, and `git diff --check`.

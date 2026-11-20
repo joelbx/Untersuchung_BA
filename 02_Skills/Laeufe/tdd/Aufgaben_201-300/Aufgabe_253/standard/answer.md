@@ -1,0 +1,3 @@
+`GUIProcess` now reports stderr live as an error. On completion, it publishes a summary for each stream that produced output, with stdout first and stderr second; empty streams produce no output messages.
+
+The [GUIProcess tests](/app/tests/unit/misc/test_guiprocess.py) pass: **41 passed**. The full suite could not complete because the end-to-end tests require QtWebKit, which is unavailable here. A broader misc unit run also stopped at `test_elf.py::test_result` on a QtWebEngine import error. Commands and results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

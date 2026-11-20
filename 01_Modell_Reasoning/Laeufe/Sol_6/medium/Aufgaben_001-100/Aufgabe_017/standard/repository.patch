@@ -1,0 +1,304 @@
+diff --git a/lib/client/conntest/database.go b/lib/client/conntest/database.go
+index b54bc78..07aef1e 100644
+--- a/lib/client/conntest/database.go
++++ b/lib/client/conntest/database.go
+@@ -419,6 +419,8 @@ func getDatabaseConnTester(protocol string) (databasePinger, error) {
+ 		return &database.PostgresPinger{}, nil
+ 	case defaults.ProtocolMySQL:
+ 		return &database.MySQLPinger{}, nil
++	case defaults.ProtocolSQLServer:
++		return &database.SQLServerPinger{}, nil
+ 	}
+ 	return nil, trace.NotImplemented("database protocol %q is not supported yet for testing connection", protocol)
+ }
+diff --git a/lib/client/conntest/database/sqlserver.go b/lib/client/conntest/database/sqlserver.go
+new file mode 100644
+index 0000000..748a3aa
+--- /dev/null
++++ b/lib/client/conntest/database/sqlserver.go
+@@ -0,0 +1,132 @@
++/*
++Copyright 2022 Gravitational, Inc.
++
++Licensed under the Apache License, Version 2.0 (the "License");
++you may not use this file except in compliance with the License.
++You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++*/
++
++package database
++
++import (
++	"context"
++	"database/sql/driver"
++	"errors"
++	"net"
++	"strings"
++	"sync"
++	"syscall"
++
++	"github.com/gravitational/trace"
++	mssql "github.com/microsoft/go-mssqldb"
++	"github.com/microsoft/go-mssqldb/msdsn"
++
++	"github.com/gravitational/teleport/lib/defaults"
++)
++
++// SQLServerPinger implements database connection checks for SQL Server.
++type SQLServerPinger struct{}
++
++// Ping logs in and runs a simple query through the SQL Server protocol.
++func (p *SQLServerPinger) Ping(ctx context.Context, params PingParams) error {
++	if err := params.CheckAndSetDefaults(defaults.ProtocolSQLServer); err != nil {
++		return trace.Wrap(err)
++	}
++	if params.Port < 1 || params.Port > 65535 {
++		return trace.BadParameter("invalid Port %d", params.Port)
++	}
++
++	connector := mssql.NewConnectorConfig(msdsn.Config{
++		Host:       params.Host,
++		Port:       uint64(params.Port),
++		User:       params.Username,
++		Database:   params.DatabaseName,
++		Encryption: msdsn.EncryptionDisabled,
++		Protocols:  []string{"tcp"},
++	}, nil)
++	connector.Dialer = sqlServerDialer{ctx: ctx}
++	conn, err := connector.Connect(ctx)
++	if err != nil {
++		if ctx.Err() != nil {
++			return trace.Wrap(ctx.Err())
++		}
++		return trace.Wrap(err)
++	}
++	defer conn.Close()
++	err = conn.(driver.Pinger).Ping(ctx)
++	if ctx.Err() != nil {
++		return trace.Wrap(ctx.Err())
++	}
++	return trace.Wrap(err)
++}
++
++// sqlServerDialer makes login reads obey the ping context as well as dialing.
++type sqlServerDialer struct{ ctx context.Context }
++
++func (d sqlServerDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
++	var dialer net.Dialer
++	conn, err := dialer.DialContext(ctx, network, address)
++	if err != nil {
++		return nil, err
++	}
++	if deadline, ok := d.ctx.Deadline(); ok {
++		if err := conn.SetDeadline(deadline); err != nil {
++			conn.Close()
++			return nil, err
++		}
++	}
++	bound := &sqlServerContextConn{Conn: conn, done: make(chan struct{})}
++	go func() {
++		select {
++		case <-d.ctx.Done():
++			bound.Close()
++		case <-bound.done:
++		}
++	}()
++	return bound, nil
++}
++
++type sqlServerContextConn struct {
++	net.Conn
++	done chan struct{}
++	once sync.Once
++}
++
++func (c *sqlServerContextConn) Close() error {
++	c.once.Do(func() { close(c.done) })
++	return c.Conn.Close()
++}
++
++// IsConnectionRefusedError reports whether the server refused the TCP connection.
++func (p *SQLServerPinger) IsConnectionRefusedError(err error) bool {
++	if err == nil {
++		return false
++	}
++	return errors.Is(err, syscall.ECONNREFUSED) || strings.Contains(strings.ToLower(err.Error()), "connection refused")
++}
++
++// IsInvalidDatabaseUserError reports a SQL Server login failure.
++func (p *SQLServerPinger) IsInvalidDatabaseUserError(err error) bool {
++	return sqlServerErrorNumber(err) == 18456
++}
++
++// IsInvalidDatabaseNameError reports a missing or inaccessible database.
++func (p *SQLServerPinger) IsInvalidDatabaseNameError(err error) bool {
++	return sqlServerErrorNumber(err) == 4060
++}
++
++func sqlServerErrorNumber(err error) int32 {
++	var sqlErr interface{ SQLErrorNumber() int32 }
++	if errors.As(err, &sqlErr) {
++		return sqlErr.SQLErrorNumber()
++	}
++	return 0
++}
+diff --git a/lib/client/conntest/database/sqlserver_test.go b/lib/client/conntest/database/sqlserver_test.go
+new file mode 100644
+index 0000000..cc2c783
+--- /dev/null
++++ b/lib/client/conntest/database/sqlserver_test.go
+@@ -0,0 +1,105 @@
++/*
++Copyright 2022 Gravitational, Inc.
++
++Licensed under the Apache License, Version 2.0 (the "License");
++you may not use this file except in compliance with the License.
++You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++*/
++
++package database
++
++import (
++	"context"
++	"errors"
++	"fmt"
++	"net"
++	"strconv"
++	"syscall"
++	"testing"
++	"time"
++
++	"github.com/gravitational/trace"
++	mssql "github.com/microsoft/go-mssqldb"
++	"github.com/stretchr/testify/require"
++
++	"github.com/gravitational/teleport/lib/srv/db/common"
++	"github.com/gravitational/teleport/lib/srv/db/sqlserver"
++)
++
++func TestSQLServerErrors(t *testing.T) {
++	p := SQLServerPinger{}
++	tests := []struct {
++		name                string
++		err                 error
++		connectionRefused   bool
++		invalidDatabaseUser bool
++		invalidDatabaseName bool
++	}{
++		{name: "nil"},
++		{name: "refused", err: fmt.Errorf("dial: %w", syscall.ECONNREFUSED), connectionRefused: true},
++		{name: "wrapped login failure", err: trace.Wrap(mssql.Error{Number: 18456}), invalidDatabaseUser: true},
++		{name: "database unavailable", err: fmt.Errorf("login: %w", mssql.Error{Number: 4060}), invalidDatabaseName: true},
++		{name: "other server error", err: mssql.Error{Number: 208}},
++		{name: "unrelated error", err: errors.New("invalid user")},
++	}
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			require.Equal(t, tt.connectionRefused, p.IsConnectionRefusedError(tt.err))
++			require.Equal(t, tt.invalidDatabaseUser, p.IsInvalidDatabaseUserError(tt.err))
++			require.Equal(t, tt.invalidDatabaseName, p.IsInvalidDatabaseNameError(tt.err))
++		})
++	}
++}
++
++func TestSQLServerPing(t *testing.T) {
++	server, err := sqlserver.NewTestServer(common.TestServerConfig{AuthClient: setupMockClient(t)})
++	require.NoError(t, err)
++	go func() { _ = server.Serve() }()
++	t.Cleanup(func() { server.Close() })
++
++	port, err := strconv.Atoi(server.Port())
++	require.NoError(t, err)
++	p := SQLServerPinger{}
++	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
++	defer cancel()
++	require.NoError(t, p.Ping(ctx, PingParams{Host: "localhost", Port: port, Username: "someuser", DatabaseName: "somedb"}))
++}
++
++func TestSQLServerPingValidationAndDeadline(t *testing.T) {
++	p := SQLServerPinger{}
++	for _, params := range []PingParams{
++		{Port: 1433, DatabaseName: "db"},
++		{Username: "user", DatabaseName: "db"},
++		{Port: 1433, Username: "user"},
++		{Port: -1, Username: "user", DatabaseName: "db"},
++		{Port: 65536, Username: "user", DatabaseName: "db"},
++	} {
++		require.Error(t, p.Ping(context.Background(), params))
++	}
++
++	listener, err := net.Listen("tcp", "127.0.0.1:0")
++	require.NoError(t, err)
++	defer listener.Close()
++	go func() {
++		conn, err := listener.Accept()
++		if err == nil {
++			defer conn.Close()
++			<-time.After(time.Second)
++		}
++	}()
++	port := listener.Addr().(*net.TCPAddr).Port
++	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
++	defer cancel()
++	start := time.Now()
++	err = p.Ping(ctx, PingParams{Host: "127.0.0.1", Port: port, Username: "user", DatabaseName: "db"})
++	require.Error(t, err)
++	require.Less(t, time.Since(start), time.Second)
++}
+diff --git a/lib/client/conntest/database_test.go b/lib/client/conntest/database_test.go
+new file mode 100644
+index 0000000..0e27194
+--- /dev/null
++++ b/lib/client/conntest/database_test.go
+@@ -0,0 +1,36 @@
++/*
++Copyright 2022 Gravitational, Inc.
++
++Licensed under the Apache License, Version 2.0 (the "License");
++you may not use this file except in compliance with the License.
++You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++*/
++
++package conntest
++
++import (
++	"testing"
++
++	"github.com/stretchr/testify/require"
++
++	"github.com/gravitational/teleport/lib/client/conntest/database"
++	"github.com/gravitational/teleport/lib/defaults"
++)
++
++func TestGetDatabaseConnTesterSQLServer(t *testing.T) {
++	pinger, err := getDatabaseConnTester(defaults.ProtocolSQLServer)
++	require.NoError(t, err)
++	require.IsType(t, &database.SQLServerPinger{}, pinger)
++
++	pinger, err = getDatabaseConnTester("unsupported")
++	require.Nil(t, pinger)
++	require.Error(t, err)
++}

@@ -1,0 +1,3 @@
+Updated Drive’s public pages to select the newest valid persisted session as one object containing both UID and localID. Session resumption now updates authentication and user state; the public user hook and telemetry use the new session path. Malformed stored JSON and unavailable storage return null with an error report. Session selection no longer uses `LAST_ACTIVE_PING`.
+
+The Drive test suite passed: **84 suites, 605 tests passed, 5 skipped**. ESLint and Prettier passed. Type checking still fails in untouched `packages/crypto/lib/worker/api.ts:579` because two installed OpenPGP type definitions conflict.

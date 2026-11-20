@@ -1,0 +1,3 @@
+Implemented HTTPS support for the REST API, UI, and gRPC endpoint. Configuration now supports `http` or `https`, separate HTTP and HTTPS ports, certificate and key paths, environment overrides, and startup validation for HTTPS credentials. HTTP remains the default. I also updated the sample YAML and documentation and added configuration and handler tests.
+
+Verification: `GOPROXY=off go test ./...` and `git diff --check` passed.

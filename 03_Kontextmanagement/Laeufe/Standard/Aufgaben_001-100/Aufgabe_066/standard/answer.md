@@ -1,0 +1,3 @@
+Added [transformStyleAttributes.ts](/app/applications/mail/src/app/helpers/transforms/transformStyleAttributes.ts) to replace inline `height` values containing `vh` with `auto`, while preserving other styles. It runs after `transformStylesheet` and before `transformRemote` in [transforms.ts](/app/applications/mail/src/app/helpers/transforms/transforms.ts).
+
+Verification: all 91 transform tests passed; ESLint, Prettier, and diff checks passed.

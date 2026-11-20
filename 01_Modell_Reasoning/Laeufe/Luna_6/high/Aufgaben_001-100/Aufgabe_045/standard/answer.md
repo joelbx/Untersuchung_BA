@@ -1,0 +1,3 @@
+Implemented keyword aware collection name validation. `is_valid_collection_name` now requires exactly two Python identifiers and rejects keywords in either segment. Dependency resolution uses the same validator, and the legacy helpers and compatibility fallback were removed from [dataclasses.py](/app/lib/ansible/galaxy/dependency_resolution/dataclasses.py).
+
+Verification: the collection loader suite passed (57 tests), and a focused check rejected all four reported names while accepting valid names. The broader Galaxy run had 136 passing tests and 4 failures in existing install tests that assert warning counts. `git diff --check` passed.

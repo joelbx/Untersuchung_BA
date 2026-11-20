@@ -1,0 +1,5 @@
+The missing behavior is in [gRPC middleware](/app/internal/server/middleware/grpc/middleware.go): it has no header parser, version context value, or `FliptAcceptServerVersionFromContext` accessor. The production unary chain in [grpc.go](/app/internal/cmd/grpc.go:298) also needs to register the new interceptor; defining it alone would not affect requests.
+
+The fix should pass both `v1.0.0` and `1.0.0` through to handlers as `semver.Version`, and use a predefined default when metadata is missing or parsing fails. The repository uses `github.com/blang/semver/v4` and `semver.ParseTolerant` elsewhere, but I found no existing default for this header. [Middleware tests](/app/internal/server/middleware/grpc/middleware_test.go) have no version coverage.
+
+I recorded the findings in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). This specialist run was restricted to fault localization, so project source and tests were not changed.

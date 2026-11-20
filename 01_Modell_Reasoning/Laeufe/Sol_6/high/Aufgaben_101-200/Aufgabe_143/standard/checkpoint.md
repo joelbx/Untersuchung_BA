@@ -1,0 +1,3 @@
+Task: centralize author base identifier generation for edition comparison.
+Status: complete. Added add_db_name to catalog.utils; expand_record now invokes it. Existing-edition conversion supplies name and birth/death dates for expansion. Removed duplicate generators, retained add_book import compatibility, and updated relevant tests.
+Verification: pytest -q openlibrary/catalog/add_book/tests openlibrary/catalog/merge/tests: 104 passed, 1 skipped, 2 xfailed, 1 xpassed. git diff --check passed. Ruff passed on changed production files and the other changed test files; test_add_book.py has a pre-existing F811 duplicate normalize_import_record import.

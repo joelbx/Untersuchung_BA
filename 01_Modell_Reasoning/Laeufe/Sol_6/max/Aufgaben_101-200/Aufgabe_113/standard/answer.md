@@ -1,0 +1,3 @@
+Added `route_targets` to [nxos_vrf_af.py](/app/lib/ansible/modules/network/nxos/nxos_vrf_af.py). Each entry can add or remove an import, export, or both route-target values. The module compares exact lines in the selected VRF address-family, so matching configuration produces no change. The new `match_current_rt` helper is available at module level.
+
+Added coverage in [test_nxos_vrf_af.py](/app/test/units/modules/network/nxos/test_nxos_vrf_af.py). All 9 module unit tests pass, and `git diff --check` passes. Device integration was not run.

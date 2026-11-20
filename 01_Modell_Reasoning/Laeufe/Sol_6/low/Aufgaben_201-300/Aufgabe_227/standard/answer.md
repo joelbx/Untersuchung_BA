@@ -1,0 +1,3 @@
+The MIME suffix workaround now checks **runtime Qt only** at both bounds: 6.2.3 inclusive and 6.7.0 exclusive. The version utility documents `compiled=False` and raises `RuntimeError` when `compiled=True` is combined with `exact=True`.
+
+All 17 version check tests and 11 targeted suffix tests passed. An earlier combined run aborted during Qt application fixture setup; the targeted tests passed with `QT_QPA_PLATFORM=offscreen`.

@@ -1,0 +1,3 @@
+Call sounds now clear a muted audio element before playback, while already unmuted elements proceed without a mute-state change. I also exported the ring, ringback, busy, and call-end IDs from [LegacyCallHandler.tsx](/app/src/LegacyCallHandler.tsx) and added the public [handleEvent listener](/app/src/legacy/LegacyCallHandler/handleEvent.ts).
+
+Verification passed: 19 relevant tests, TypeScript, targeted ESLint, and `git diff --check`.

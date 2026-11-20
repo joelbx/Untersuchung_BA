@@ -1,0 +1,3 @@
+Added `qcolor_to_qsscolor` in [qtutils.py](/app/qutebrowser/utils/qtutils.py) and used it in the WebView and TabBar background stylesheet templates. It preserves the integer RGBA components, including an implicit alpha of 255.
+
+All 123 `qtutils` tests pass, as do syntax and diff checks. TabWidget tests stop during setup on an existing float-to-`QSize` error, before reaching the new stylesheet code.

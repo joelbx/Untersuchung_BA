@@ -1,0 +1,3 @@
+Implemented a dedicated [EvaluatorStorage](/app/storage/evaluator.go) and wired [Server.Evaluate](/app/server/evaluator.go) to the new `Evaluator` interface. `RuleStore` now handles rule storage only. The evaluator applies rules in rank order, checks typed constraints, and selects variants with deterministic CRC32 rollout boundaries. It also returns request IDs, UTC timestamps, and the request context.
+
+Added evaluation tests. `GOPROXY=off GOSUMDB=off go test ./...` passes.

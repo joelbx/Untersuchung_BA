@@ -1,0 +1,3 @@
+Updated [format_languages](/app/openlibrary/catalog/utils/__init__.py:455) to resolve two-letter codes and English or native names to canonical language keys, then deduplicate keys in first-occurrence order. Unknown or ambiguous names still raise `InvalidLanguage`.
+
+Added regression cases in [test_utils.py](/app/openlibrary/tests/catalog/test_utils.py:431). All 134 relevant tests passed; Ruff and `git diff --check` passed.

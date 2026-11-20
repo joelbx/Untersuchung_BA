@@ -1,0 +1,3 @@
+Updated notifications to render string HTML through DOMPurify and give every link `rel="noopener noreferrer"` and `target="_blank"`. React element content remains supported. Non-success notifications now deduplicate by an explicit key, or by string text or notification ID when no key is provided; repeated success notifications remain visible.
+
+Verification passed: 33 component test suites (121 tests passed, 1 skipped), type checking, lint, and `git diff --check`.

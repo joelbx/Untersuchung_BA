@@ -1,0 +1,3 @@
+Implemented trusted reverse proxy login. Navidrome now checks the connection peer against the configured whitelist, creates a user on first proxy login, issues a token, and sends the auth payload to the UI for session initialization. Nested log redaction now preserves map keys while redacting sensitive values.
+
+Verification passed: focused Go tests, all 35 UI tests, UI lint and formatting, and `git diff --check`.

@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) to emit structured JSON on exit paths, write job records atomically, and record timeout failures with the child PID. Added coverage in [test_async_wrapper.py](/app/test/units/modules/test_async_wrapper.py).
+
+Verification: **4 tests passed**; `git diff --check` and Python compilation passed. The verification record is in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` in both [Mongo hash.js](/app/src/database/mongo/hash.js) and [Redis hash.js](/app/src/database/redis/hash.js). The methods validate input and safe integer increments, apply each object’s changes atomically, continue processing other objects after a key-level failure, and invalidate cache only for successful writes. Empty inputs perform no database or cache calls.
+
+Verification: `test/database/hash.js` passed (64 tests) with a temporary local Redis server. ESLint and `git diff --check` passed.

@@ -1,0 +1,1 @@
+Correction round complete. Inspected current useLink patch and independent review; reviewer found no correctness defect, so retained the patch. Reran exact flagged command alone: yarn workspace proton-drive test src/app/store/_links/useLink.test.ts --watch=false; 17/17 passed. git diff --check passed. No test environment problem.

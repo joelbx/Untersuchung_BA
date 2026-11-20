@@ -1,0 +1,3 @@
+Updated [SubscribeCalendarModal.tsx](/app/packages/components/containers/calendar/subscribeCalendarModal/SubscribeCalendarModal.tsx) to use the shared 10,000 character calendar URL limit, trim input, show one warning in the requested priority order, and block invalid or oversized submissions. Removed the counter and input `maxLength`. ResizeObserver mocks now live in the relevant Jest setup files, and the new [modal tests](/app/packages/components/containers/calendar/subscribeCalendarModal/SubscribeCalendarModal.spec.tsx) use a default export mock for `useGetCalendarSetup`.
+
+Verification: 21 targeted tests passed across the modal, calendar, and mail suites; the components type check, Prettier check, and `git diff --check` passed. No delegation was used.

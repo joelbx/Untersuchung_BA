@@ -1,0 +1,1 @@
+Implemented and verified: RoomLoaded triggers viewRoomOpts with buttons; ViewRoom no longer recomputes options; RoomView dispatches after load and retains initial event fallback. RoomViewStore Jest suite passed (36 tests); targeted ESLint and git diff --check passed. Full tsc exceeded Node heap.

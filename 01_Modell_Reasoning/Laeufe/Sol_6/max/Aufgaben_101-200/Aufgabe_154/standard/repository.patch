@@ -1,0 +1,204 @@
+diff --git a/lib/ansible/plugins/connection/ssh.py b/lib/ansible/plugins/connection/ssh.py
+index 299039f..48a91e6 100644
+--- a/lib/ansible/plugins/connection/ssh.py
++++ b/lib/ansible/plugins/connection/ssh.py
+@@ -378,6 +378,7 @@ import shlex
+ import subprocess
+ import time
+ import typing as t
++import xml.etree.ElementTree as ET
+ 
+ from functools import wraps
+ from ansible.errors import (
+@@ -409,6 +410,86 @@ SSHPASS_AVAILABLE = None
+ SSH_DEBUG = re.compile(r'^debug\d+: .*')
+ 
+ 
++def _replace_stderr_clixml(stderr: bytes) -> bytes:
++    """Replace complete CLIXML records in stderr, preserving all other bytes."""
++    header = b"#< CLIXML\r\n"
++    bare_header = b"CLIXML\r\n"
++    if bare_header not in stderr:
++        return stderr
++
++    # Keep byte offsets so that text before and after each record (including
++    # text on the same line as a record) can be copied without re-encoding it.
++    headers: list[int] = []
++    offset = 0
++    for line in stderr.splitlines(keepends=True):
++        header_index = line.find(header)
++        if header_index != -1:
++            headers.append(offset + header_index)
++        elif line.startswith(bare_header) and (offset == 0 or stderr[offset - 2:offset] == b"\r\n"):
++            headers.append(offset)
++        offset += len(line)
++
++    if not headers:
++        return stderr
++
++    output = bytearray()
++    cursor = 0
++    for start in headers:
++        if start < cursor:
++            continue
++
++        position = start + (len(header) if stderr.startswith(header, start) else len(bare_header))
++        # PowerShell can emit several headers before the XML starts.
++        while True:
++            while position < len(stderr) and stderr[position] in b" \t\r\n":
++                position += 1
++            if stderr.startswith(header, position):
++                position += len(header)
++            elif stderr.startswith(bare_header, position):
++                position += len(bare_header)
++            else:
++                break
++
++        if not stderr.startswith(b"<Objs ", position):
++            continue
++
++        end = stderr.find(b"</Objs>", position)
++        if end == -1:
++            continue
++        end += len(b"</Objs>")
++
++        # A single CLIXML header can be followed by several XML roots.
++        while True:
++            next_start = end
++            while next_start < len(stderr) and stderr[next_start] in b" \t\r\n":
++                next_start += 1
++            if not stderr.startswith(b"<Objs ", next_start):
++                break
++            next_end = stderr.find(b"</Objs>", next_start)
++            if next_end == -1:
++                break
++            end = next_end + len(b"</Objs>")
++
++        original = stderr[start:end]
++        try:
++            try:
++                clixml = original.decode("utf-8")
++            except UnicodeDecodeError:
++                clixml = original.decode("cp437")
++            decoded = _parse_clixml(clixml.encode("utf-8"))
++        except (ET.ParseError, UnicodeError, ValueError):
++            continue
++
++        output.extend(stderr[cursor:start])
++        output.extend(decoded)
++        cursor = end
++
++    if cursor == 0:
++        return stderr
++    output.extend(stderr[cursor:])
++    return bytes(output)
++
++
+ class AnsibleControlPersistBrokenPipeError(AnsibleError):
+     """ ControlPersist broken pipe """
+     pass
+@@ -1329,8 +1410,8 @@ class Connection(ConnectionBase):
+         (returncode, stdout, stderr) = self._run(cmd, in_data, sudoable=sudoable)
+ 
+         # When running on Windows, stderr may contain CLIXML encoded output
+-        if getattr(self._shell, "_IS_WINDOWS", False) and stderr.startswith(b"#< CLIXML"):
+-            stderr = _parse_clixml(stderr)
++        if getattr(self._shell, "_IS_WINDOWS", False):
++            stderr = _replace_stderr_clixml(stderr)
+ 
+         return (returncode, stdout, stderr)
+ 
+diff --git a/lib/ansible/plugins/shell/powershell.py b/lib/ansible/plugins/shell/powershell.py
+index a6e10b4..576817e 100644
+--- a/lib/ansible/plugins/shell/powershell.py
++++ b/lib/ansible/plugins/shell/powershell.py
+@@ -25,10 +25,9 @@ import ntpath
+ from ansible.module_utils.common.text.converters import to_bytes, to_text
+ from ansible.plugins.shell import ShellBase
+ 
+-# This is weird, we are matching on byte sequences that match the utf-16-be
+-# matches for '_x(a-fA-F0-9){4}_'. The \x00 and {8} will match the hex sequence
+-# when it is encoded as utf-16-be.
+-_STRING_DESERIAL_FIND = re.compile(rb"\x00_\x00x([\x00(a-fA-F0-9)]{8})\x00_")
++# Match '_x(a-fA-F0-9){4}_' encoded as UTF-16-BE. Each hex digit must be
++# preceded by a null byte; otherwise ordinary Unicode text can match here.
++_STRING_DESERIAL_FIND = re.compile(rb"\x00_\x00x((?:\x00[a-fA-F0-9]){4})\x00_")
+ 
+ _common_args = ['PowerShell', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Unrestricted']
+ 
+diff --git a/test/units/plugins/connection/test_ssh.py b/test/units/plugins/connection/test_ssh.py
+index 0bba41b..71dcde9 100644
+--- a/test/units/plugins/connection/test_ssh.py
++++ b/test/units/plugins/connection/test_ssh.py
+@@ -34,6 +34,43 @@ from ansible.plugins.connection import ssh
+ from ansible.plugins.loader import connection_loader, become_loader
+ 
+ 
++_CLIXML = b'#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">failure</S></Objs>'
++
++
++@pytest.mark.parametrize('stderr, expected', [
++    (_CLIXML, b'failure'),
++    (b'before\r\n' + _CLIXML + b'after\r\n', b'before\r\nfailureafter\r\n'),
++    (b'\xff' + _CLIXML + b'\xfe', b'\xfffailure\xfe'),
++    (b'first ' + _CLIXML + b' middle ' + _CLIXML + b' last', b'first failure middle failure last'),
++    (b'before\r\nCLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">failure</S></Objs>after', b'before\r\nfailureafter'),
++    (b'#< CLIXML\r\n<Objs Version="1.1.0.1">\r\n<S S="Error">failure</S>\r\n</Objs>tail', b'failuretail'),
++    (b'#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">caf\xc3\xa9</S></Objs>', 'café'.encode()),
++    (b'#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">caf\x82</S></Objs>', 'café'.encode()),
++    (b'#< CLIXML\r\n#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">first</S></Objs>'
++     b'<Objs Version="1.1.0.1"><S S="Error">second</S></Objs>', b'first\r\nsecond'),
++])
++def test_replace_stderr_clixml(stderr, expected):
++    assert ssh._replace_stderr_clixml(stderr) == expected
++
++
++@pytest.mark.parametrize('stderr', [
++    b'plain stderr\r\n',
++    b'#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">incomplete</S>',
++    b'#< CLIXML\r\n<Objs Version="1.1.0.1">\r\n<S S="Error">incomplete</S>',
++    b'#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">invalid</Objs>',
++    b'#< CLI\r\nXML\r\n<Objs Version="1.1.0.1"><S S="Error">failure</S></Objs>',
++])
++def test_replace_stderr_clixml_preserves_non_clixml_and_invalid_blocks(stderr):
++    assert ssh._replace_stderr_clixml(stderr) is stderr
++
++
++def test_replace_stderr_clixml_continues_after_invalid_block():
++    invalid = b'#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">incomplete</S>\r\n'
++    stderr = invalid + _CLIXML
++
++    assert ssh._replace_stderr_clixml(stderr) == invalid + b'failure'
++
++
+ class TestConnectionBaseClass(unittest.TestCase):
+ 
+     def test_plugins_connection_ssh_module(self):
+@@ -96,6 +133,15 @@ class TestConnectionBaseClass(unittest.TestCase):
+         res, stdout, stderr = conn.exec_command('ssh')
+         res, stdout, stderr = conn.exec_command('ssh', 'this is some data')
+ 
++    def test_plugins_connection_ssh_exec_command_windows_stderr(self):
++        conn = connection_loader.get('ssh', PlayContext(), StringIO())
++        conn._build_command = MagicMock(return_value='ssh something something')
++        conn._run = MagicMock(return_value=(0, b'stdout', b'before ' + _CLIXML + b' after'))
++        conn.get_option = MagicMock(return_value=True)
++
++        with patch.object(conn._shell, '_IS_WINDOWS', True, create=True):
++            self.assertEqual(conn.exec_command('ssh'), (0, b'stdout', b'before failure after'))
++
+     def test_plugins_connection_ssh__examine_output(self):
+         pc = PlayContext()
+         new_stdin = StringIO()
+diff --git a/test/units/plugins/shell/test_powershell.py b/test/units/plugins/shell/test_powershell.py
+index b7affce..19fc379 100644
+--- a/test/units/plugins/shell/test_powershell.py
++++ b/test/units/plugins/shell/test_powershell.py
+@@ -91,6 +91,7 @@ def test_parse_clixml_multiple_elements():
+     ('surrogate low _xDFB5_', 'surrogate low \uDFB5'),
+     ('lower case hex _x005f_', 'lower case hex _'),
+     ('invalid hex _x005G_', 'invalid hex _x005G_'),
++    ('Unicode lookalike _x\u6100\u6200\u6300\u6400_', 'Unicode lookalike _x\u6100\u6200\u6300\u6400_'),
+ ])
+ def test_parse_clixml_with_comlex_escaped_chars(clixml, expected):
+     clixml_data = (

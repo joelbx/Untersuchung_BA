@@ -1,0 +1,3 @@
+Implemented the Qt wrapper error and initialization changes in [machinery.py](/app/qutebrowser/qt/machinery.py) and [earlyinit.py](/app/qutebrowser/misc/earlyinit.py). Added `NoWrapperAvailableError`, returned `SelectionInfo` from `init()`, added early availability checking and selection logging, and updated `SelectionInfo` formatting.
+
+The requested test files still have 3 failures: one expects the old no-wrapper error, and two assume a fake wrapper selection despite implicit initialization now probing imports. The other 24 tests passed. `git diff --check` was clean.

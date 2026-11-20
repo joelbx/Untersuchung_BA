@@ -1,0 +1,4 @@
+Correction round: inspecting current patch and independent review. Reviewer found three readers of AlertDict.CISA that need to consume KEVs while keeping older JSON compatibility. Next: inspect paths, fix them, rerun flagged tests.
+Confirmed: FormatAlertSummary, reporter full text, and TUI changelog read legacy CISA alerts; list/summary source columns also use AlertDict.FormatSource. Plan: surface KEVs in summaries and detail, preserve old alerts without duplicate CISA display.
+Implemented KEV-aware alert summary, text header/one-line count, report details, TUI detail, and source labels. Added regression test for KEV plus legacy alert compatibility. Running local tests.
+Verification complete: GOPROXY=off GOSUMDB=off go test ./models ./detector passed (reviewer command). go test ./models ./detector ./reporter ./tui passed after reporter regression test correction; TUI has no test files. git diff --check passed. No dependency environment problem.

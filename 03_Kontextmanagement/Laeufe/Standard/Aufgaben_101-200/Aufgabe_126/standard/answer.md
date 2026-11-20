@@ -1,0 +1,3 @@
+Updated the mail assistant’s HTML/Markdown path to carry the composer’s messageID through preparation, preview, and editor insertion. URL restoration now accepts only links and images stored for that message; unknown or cross-message links lose their URL while keeping visible text, and unknown images are removed. The conversion also preserves `class` and `style` on links and images, repairs nested lists, and renders Markdown lists.
+
+All 8 relevant tests pass. The TypeScript check remains blocked by an existing `openpgp`/`pmcrypto` type mismatch in `packages/crypto/lib/worker/api.ts`; it reported no errors in the changed mail files.

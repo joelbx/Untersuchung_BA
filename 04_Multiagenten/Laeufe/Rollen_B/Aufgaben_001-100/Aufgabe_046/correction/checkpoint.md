@@ -1,0 +1,1 @@
+Correction round complete. Legacy routing now checks the full dotted path below ansible.module_utils; missing redirect target collections raise AnsibleError naming the collection. Added regression tests for both reviewed defects. Exact reviewer test command passed: 51 passed. git diff --check passed.

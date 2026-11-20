@@ -1,0 +1,1 @@
+Correction round complete: KubeAddr searches the configured Kubernetes public addresses, or generic proxy addresses when no Kubernetes addresses are configured. Invalid entries are skipped; if none is valid, it returns an error. Added regression cases for invalid first addresses in both lists. Both reviewer test commands passed; git diff --check passed.

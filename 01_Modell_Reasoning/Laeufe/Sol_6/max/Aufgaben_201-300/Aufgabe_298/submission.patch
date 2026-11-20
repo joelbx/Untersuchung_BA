@@ -1,0 +1,260 @@
+diff --git a/utils/cache/simple_cache.go b/utils/cache/simple_cache.go
+index b416fd2..6eedae4 100644
+--- a/utils/cache/simple_cache.go
++++ b/utils/cache/simple_cache.go
+@@ -2,6 +2,7 @@ package cache
+ 
+ import (
+ 	"errors"
++	"sync/atomic"
+ 	"time"
+ 
+ 	"github.com/jellydator/ttlcache/v3"
+@@ -13,20 +14,25 @@ type SimpleCache[K comparable, V any] interface {
+ 	Get(key K) (V, error)
+ 	GetWithLoader(key K, loader func(key K) (V, time.Duration, error)) (V, error)
+ 	Keys() []K
++	Values() []V
+ }
+ 
++const evictionInterval = 10 * time.Millisecond
++
+ type Options struct {
+ 	SizeLimit  uint64
+ 	DefaultTTL time.Duration
+ }
+ 
+ func NewSimpleCache[K comparable, V any](options ...Options) SimpleCache[K, V] {
++	var sizeLimit uint64
+ 	opts := []ttlcache.Option[K, V]{
+ 		ttlcache.WithDisableTouchOnHit[K, V](),
+ 	}
+ 	if len(options) > 0 {
+ 		o := options[0]
+ 		if o.SizeLimit > 0 {
++			sizeLimit = o.SizeLimit
+ 			opts = append(opts, ttlcache.WithCapacity[K, V](o.SizeLimit))
+ 		}
+ 		if o.DefaultTTL > 0 {
+@@ -36,12 +42,35 @@ func NewSimpleCache[K comparable, V any](options ...Options) SimpleCache[K, V] {
+ 
+ 	c := ttlcache.New[K, V](opts...)
+ 	return &simpleCache[K, V]{
+-		data: c,
++		data:      c,
++		sizeLimit: sizeLimit,
+ 	}
+ }
+ 
+ type simpleCache[K comparable, V any] struct {
+-	data *ttlcache.Cache[K, V]
++	data             *ttlcache.Cache[K, V]
++	sizeLimit        uint64
++	evictionDeadline atomic.Pointer[time.Time]
++}
++
++func (c *simpleCache[K, V]) evictExpired() {
++	now := time.Now()
++	deadline := c.evictionDeadline.Load()
++	if deadline != nil && now.Before(*deadline) {
++		return
++	}
++
++	next := now.Add(evictionInterval)
++	if c.evictionDeadline.CompareAndSwap(deadline, &next) {
++		c.data.DeleteExpired()
++	}
++}
++
++func (c *simpleCache[K, V]) evictAtCapacity() {
++	// Expired items still occupy capacity until they are deleted.
++	if c.sizeLimit > 0 && uint64(c.data.Len()) >= c.sizeLimit {
++		c.data.DeleteExpired()
++	}
+ }
+ 
+ func (c *simpleCache[K, V]) Add(key K, value V) error {
+@@ -49,6 +78,8 @@ func (c *simpleCache[K, V]) Add(key K, value V) error {
+ }
+ 
+ func (c *simpleCache[K, V]) AddWithTTL(key K, value V, ttl time.Duration) error {
++	c.evictExpired()
++	c.evictAtCapacity()
+ 	item := c.data.Set(key, value, ttl)
+ 	if item == nil {
+ 		return errors.New("failed to add item")
+@@ -57,6 +88,7 @@ func (c *simpleCache[K, V]) AddWithTTL(key K, value V, ttl time.Duration) error
+ }
+ 
+ func (c *simpleCache[K, V]) Get(key K) (V, error) {
++	c.evictExpired()
+ 	item := c.data.Get(key)
+ 	if item == nil {
+ 		var zero V
+@@ -66,12 +98,15 @@ func (c *simpleCache[K, V]) Get(key K) (V, error) {
+ }
+ 
+ func (c *simpleCache[K, V]) GetWithLoader(key K, loader func(key K) (V, time.Duration, error)) (V, error) {
++	c.evictExpired()
+ 	loaderWrapper := ttlcache.LoaderFunc[K, V](
+ 		func(t *ttlcache.Cache[K, V], key K) *ttlcache.Item[K, V] {
+ 			value, ttl, err := loader(key)
+ 			if err != nil {
+ 				return nil
+ 			}
++			c.evictExpired()
++			c.evictAtCapacity()
+ 			return t.Set(key, value, ttl)
+ 		},
+ 	)
+@@ -84,5 +119,25 @@ func (c *simpleCache[K, V]) GetWithLoader(key K, loader func(key K) (V, time.Dur
+ }
+ 
+ func (c *simpleCache[K, V]) Keys() []K {
+-	return c.data.Keys()
++	c.evictExpired()
++	keys := c.data.Keys()
++	active := keys[:0]
++	for _, key := range keys {
++		if c.data.Get(key) != nil {
++			active = append(active, key)
++		}
++	}
++	return active
++}
++
++func (c *simpleCache[K, V]) Values() []V {
++	c.evictExpired()
++	keys := c.data.Keys()
++	values := make([]V, 0, len(keys))
++	for _, key := range keys {
++		if item := c.data.Get(key); item != nil {
++			values = append(values, item.Value())
++		}
++	}
++	return values
+ }
+diff --git a/utils/cache/simple_cache_test.go b/utils/cache/simple_cache_test.go
+index 3b25d30..9c4d1b3 100644
+--- a/utils/cache/simple_cache_test.go
++++ b/utils/cache/simple_cache_test.go
+@@ -69,6 +69,31 @@ var _ = Describe("SimpleCache", func() {
+ 			_, err := cache.GetWithLoader("key", loader)
+ 			Expect(err).To(HaveOccurred())
+ 		})
++
++		It("should cache loaded values until their TTL expires", func() {
++			calls := 0
++			loader := func(key string) (string, time.Duration, error) {
++				calls++
++				return key + "=value", 10 * time.Millisecond, nil
++			}
++
++			value, err := cache.GetWithLoader("key", loader)
++			Expect(err).NotTo(HaveOccurred())
++			Expect(value).To(Equal("key=value"))
++			value, err = cache.GetWithLoader("key", loader)
++			Expect(err).NotTo(HaveOccurred())
++			Expect(value).To(Equal("key=value"))
++			Expect(calls).To(Equal(1))
++
++			time.Sleep(50 * time.Millisecond)
++			Expect(cache.Keys()).To(BeEmpty())
++			Expect(cache.Values()).To(BeEmpty())
++
++			value, err = cache.GetWithLoader("key", loader)
++			Expect(err).NotTo(HaveOccurred())
++			Expect(value).To(Equal("key=value"))
++			Expect(calls).To(Equal(2))
++		})
+ 	})
+ 
+ 	Describe("Keys", func() {
+@@ -84,6 +109,57 @@ var _ = Describe("SimpleCache", func() {
+ 		})
+ 	})
+ 
++	Describe("Keys and Values", func() {
++		It("should return only unexpired entries and evict expired ones", func() {
++			Expect(cache.AddWithTTL("expired", "old", 10*time.Millisecond)).To(Succeed())
++			Expect(cache.Add("active", "new")).To(Succeed())
++
++			time.Sleep(50 * time.Millisecond)
++
++			Expect(cache.Keys()).To(ConsistOf("active"))
++			Expect(cache.Values()).To(ConsistOf("new"))
++			Expect(cache.(*simpleCache[string, string]).data.Len()).To(Equal(1))
++		})
++
++		It("should exclude expired entries even before the next cleanup pass", func() {
++			Expect(cache.AddWithTTL("expired", "old", 10*time.Millisecond)).To(Succeed())
++			future := time.Now().Add(time.Hour)
++			cache.(*simpleCache[string, string]).evictionDeadline.Store(&future)
++
++			time.Sleep(50 * time.Millisecond)
++
++			Expect(cache.Keys()).To(BeEmpty())
++			Expect(cache.Values()).To(BeEmpty())
++		})
++
++		It("should evict expired entries when accessing another key", func() {
++			Expect(cache.AddWithTTL("expired", "old", 10*time.Millisecond)).To(Succeed())
++			Expect(cache.Add("active", "new")).To(Succeed())
++
++			time.Sleep(50 * time.Millisecond)
++
++			value, err := cache.Get("active")
++			Expect(err).NotTo(HaveOccurred())
++			Expect(value).To(Equal("new"))
++			Expect(cache.(*simpleCache[string, string]).data.Len()).To(Equal(1))
++		})
++
++		It("should evict expired entries before adding a loaded value", func() {
++			Expect(cache.AddWithTTL("expired", "old", 10*time.Millisecond)).To(Succeed())
++
++			time.Sleep(50 * time.Millisecond)
++
++			value, err := cache.GetWithLoader("loaded", func(key string) (string, time.Duration, error) {
++				return key + "=value", time.Second, nil
++			})
++			Expect(err).NotTo(HaveOccurred())
++			Expect(value).To(Equal("loaded=value"))
++			Expect(cache.(*simpleCache[string, string]).data.Len()).To(Equal(1))
++			Expect(cache.Keys()).To(ConsistOf("loaded"))
++			Expect(cache.Values()).To(ConsistOf("loaded=value"))
++		})
++	})
++
+ 	Describe("Options", func() {
+ 		Context("when size limit is set", func() {
+ 			BeforeEach(func() {
+@@ -99,6 +175,20 @@ var _ = Describe("SimpleCache", func() {
+ 				}
+ 
+ 				Expect(cache.Keys()).To(ConsistOf("key2", "key3"))
++				Expect(cache.Values()).To(ConsistOf("value2", "value3"))
++			})
++
++			It("should keep active items when an expired item occupies capacity", func() {
++				Expect(cache.Add("active", "oldest")).To(Succeed())
++				Expect(cache.AddWithTTL("expired", "stale", 10*time.Millisecond)).To(Succeed())
++				future := time.Now().Add(time.Hour)
++				cache.(*simpleCache[string, string]).evictionDeadline.Store(&future)
++
++				time.Sleep(50 * time.Millisecond)
++
++				Expect(cache.Add("new", "newest")).To(Succeed())
++				Expect(cache.Keys()).To(ConsistOf("active", "new"))
++				Expect(cache.Values()).To(ConsistOf("oldest", "newest"))
+ 			})
+ 		})
+ 
+@@ -116,6 +206,8 @@ var _ = Describe("SimpleCache", func() {
+ 
+ 				_, err := cache.Get("key")
+ 				Expect(err).To(HaveOccurred())
++				Expect(cache.Keys()).To(BeEmpty())
++				Expect(cache.Values()).To(BeEmpty())
+ 			})
+ 		})
+ 	})

@@ -1,0 +1,3 @@
+Fixed RPM parsing in [redhatbase.go](/app/scanner/redhatbase.go:504): empty fields now retain their positions, and epoch/release formatting is consistent across installed packages, repoquery, and update candidates. `splitFileName` now handles `-src.rpm` names and rejects malformed filenames.
+
+Added regression coverage in [redhatbase_test.go](/app/scanner/redhatbase_test.go:323). `go test ./scanner` and `git diff --check` passed.

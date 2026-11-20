@@ -1,0 +1,510 @@
+diff --git a/scripts/affiliate_server.py b/scripts/affiliate_server.py
+index 5746f38..f65df4a 100644
+--- a/scripts/affiliate_server.py
++++ b/scripts/affiliate_server.py
+@@ -33,6 +33,7 @@ web.amazon_api = AmazonAPI(*params, throttling=0.9)
+ products = web.amazon_api.get_products(["195302114X", "0312368615"], serialize=True)
+ ```
+ """
++import heapq
+ import itertools
+ import json
+ import logging
+@@ -96,10 +97,10 @@ web.amazon_lookup_thread = None
+ 
+ class Priority(Enum):
+     """
+-    Priority for the `PrioritizedISBN` class.
++    Priority for the `PrioritizedIdentifier` class.
+ 
+     `queue.PriorityQueue` has a lowest-value-is-highest-priority system, but
+-    setting `PrioritizedISBN.priority` to 0 can make it look as if priority is
++    setting `PrioritizedIdentifier.priority` to 0 can make it look as if priority is
+     disabled. Using an `Enum` can help with that.
+     """
+ 
+@@ -112,40 +113,79 @@ class Priority(Enum):
+         return NotImplemented
+ 
+ 
+-@dataclass(order=True, slots=True)
+-class PrioritizedISBN:
++@dataclass(slots=True)
++class PrioritizedIdentifier:
+     """
+-    Represent an ISBN's priority in the queue. Sorting is based on the `priority`
+-    attribute, then the `timestamp` to solve tie breaks within a specific priority,
+-    with priority going to whatever `min([items])` would return.
++    Represent an ISBN or ASIN in the queue. Queue ordering uses `priority` and
++    then `timestamp`, with the lowest priority value processed first.
+     For more, see https://docs.python.org/3/library/queue.html#queue.PriorityQueue.
+ 
+-    Therefore, priority 0, which is equivalent to `Priority.HIGH`, is the highest
+-    priority.
+-
+-    This exists so certain ISBNs can go to the front of the queue for faster
+-    processing as their look-ups are time sensitive and should return look up data
+-    to the caller (e.g. interactive API usage through `/isbn`).
+-
+-    Note: also handles Amazon-specific ASINs.
++    Equality and hashing use only the identifier, so repeated requests for the
++    same product can be deduplicated regardless of priority or staging preference.
+     """
+ 
+-    isbn: str = field(compare=False)
+-    priority: Priority = field(default=Priority.LOW)
++    identifier: str
++    stage_import: bool = True
++    priority: Priority = Priority.LOW
+     timestamp: datetime = field(default_factory=datetime.now)
+ 
+-    def to_dict(self):
+-        """
+-        Convert the PrioritizedISBN object to a dictionary representation suitable
+-        for JSON serialization.
+-        """
++    def __eq__(self, other: object) -> bool:
++        if isinstance(other, PrioritizedIdentifier):
++            return self.identifier == other.identifier
++        return NotImplemented
++
++    def __hash__(self) -> int:
++        return hash(self.identifier)
++
++    def __lt__(self, other: object) -> bool:
++        if not isinstance(other, PrioritizedIdentifier):
++            return NotImplemented
++        if self == other:
++            return False
++        return (self.priority, self.timestamp, self.identifier) < (
++            other.priority,
++            other.timestamp,
++            other.identifier,
++        )
++
++    def to_dict(self) -> dict[str, str | bool]:
++        """Return JSON-compatible queue metadata."""
+         return {
+-            "isbn": self.isbn,
++            "identifier": self.identifier,
++            "stage_import": self.stage_import,
+             "priority": self.priority.name,
+             "timestamp": self.timestamp.isoformat(),
+         }
+ 
+ 
++class PrioritizedISBN(PrioritizedIdentifier):
++    """Compatibility wrapper for callers using the former ISBN-specific name."""
++
++    __slots__ = ()
++
++    def __init__(
++        self,
++        isbn: str,
++        priority: Priority = Priority.LOW,
++        timestamp: datetime | None = None,
++        stage_import: bool = True,
++    ) -> None:
++        super().__init__(
++            identifier=isbn,
++            stage_import=stage_import,
++            priority=priority,
++            timestamp=timestamp if timestamp is not None else datetime.now(),
++        )
++
++    @property
++    def isbn(self) -> str:
++        return self.identifier
++
++    @isbn.setter
++    def isbn(self, value: str) -> None:
++        self.identifier = value
++
++
+ def get_current_amazon_batch() -> Batch:
+     """
+     At startup, get the Amazon openlibrary.core.imports.Batch() for global use.
+@@ -247,14 +287,24 @@ def make_cache_key(product: dict[str, Any]) -> str:
+     return ""
+ 
+ 
+-def process_amazon_batch(isbn_10s_or_asins: list[str]) -> None:
++def process_amazon_batch(items: list[PrioritizedIdentifier | str]) -> None:
+     """
+-    Call the Amazon API to get the products for a list of isbn_10s and store
+-    each product in memcache using amazon_product_{isbn_13} as the cache key.
++    Fetch products for ISBN-10s or ASINs and cache them. Stage only products
++    requested for import. Strings remain supported and default to staging.
+     """
+-    logger.info(f"process_amazon_batch(): {len(isbn_10s_or_asins)} items")
++    identifiers = [
++        item.identifier if isinstance(item, PrioritizedIdentifier) else item
++        for item in items
++    ]
++    stage_identifiers = {
++        item.identifier if isinstance(item, PrioritizedIdentifier) else item
++        for item in items
++        if not isinstance(item, PrioritizedIdentifier) or item.stage_import
++    }
++    stage_all = len(stage_identifiers) == len(set(identifiers))
++    logger.info(f"process_amazon_batch(): {len(identifiers)} items")
+     try:
+-        products = web.amazon_api.get_products(isbn_10s_or_asins, serialize=True)
++        products = web.amazon_api.get_products(identifiers, serialize=True) or []
+         # stats_ol_affiliate_amazon_imports - Open Library - Dashboards - Grafana
+         # http://graphite.us.archive.org Metrics.stats.ol...
+         stats.increment(
+@@ -262,9 +312,7 @@ def process_amazon_batch(isbn_10s_or_asins: list[str]) -> None:
+             n=len(products),
+         )
+     except Exception:
+-        logger.exception(
+-            f"amazon_api.get_products({isbn_10s_or_asins}, serialize=True)"
+-        )
++        logger.exception(f"amazon_api.get_products({identifiers}, serialize=True)")
+         return
+ 
+     for product in products:
+@@ -273,12 +321,24 @@ def process_amazon_batch(isbn_10s_or_asins: list[str]) -> None:
+             f'amazon_product_{cache_key}', product, expires=WEEK_SECS
+         )
+ 
+-    # Only proceed if config finds infobase db creds
++    # Only proceed if an item requested staging and infobase has DB credentials.
++    if not stage_identifiers:
++        return
+     if not config.infobase.get('db_parameters'):  # type: ignore[attr-defined]
+         logger.debug("DB parameters missing from affiliate-server infobase")
+         return
+ 
+-    books = [clean_amazon_metadata_for_load(product) for product in products]
++    books = [
++        clean_amazon_metadata_for_load(product)
++        for product in products
++        if stage_all
++        or stage_identifiers.intersection(get_isbns_from_book(product))
++        or any(
++            record.removeprefix('amazon:') in stage_identifiers
++            for record in product.get('source_records', [])
++            if record.startswith('amazon:')
++        )
++    ]
+ 
+     if books:
+         stats.increment(
+@@ -297,10 +357,28 @@ def seconds_remaining(start_time: float) -> float:
+     return max(API_MAX_WAIT_SECONDS - (time.time() - start_time), 0)
+ 
+ 
++def queue_identifier(item: PrioritizedIdentifier) -> None:
++    """Queue an identifier once, retaining any later import or priority request."""
++    with web.amazon_queue.mutex:
++        existing = next(
++            (queued for queued in web.amazon_queue.queue if queued == item), None
++        )
++        if existing is not None:
++            existing.stage_import |= item.stage_import
++            if item.priority < existing.priority:
++                existing.priority = item.priority
++                heapq.heapify(web.amazon_queue.queue)
++            return
++
++        heapq.heappush(web.amazon_queue.queue, item)
++        web.amazon_queue.unfinished_tasks += 1
++        web.amazon_queue.not_empty.notify()
++
++
+ def amazon_lookup(site, stats_client, logger) -> None:
+     """
+     A separate thread of execution that uses the time up to API_MAX_WAIT_SECONDS to
+-    create a list of isbn_10s that is not larger than API_MAX_ITEMS_PER_CALL and then
++    create a batch of identifiers that is not larger than API_MAX_ITEMS_PER_CALL and then
+     passes them to process_amazon_batch()
+     """
+     stats.client = stats_client
+@@ -308,22 +386,24 @@ def amazon_lookup(site, stats_client, logger) -> None:
+ 
+     while True:
+         start_time = time.time()
+-        isbn_10s_or_asins: set[str] = set()  # no duplicates in the batch
+-        while len(isbn_10s_or_asins) < API_MAX_ITEMS_PER_CALL and seconds_remaining(
++        items: dict[str, PrioritizedIdentifier] = {}
++        while len(items) < API_MAX_ITEMS_PER_CALL and seconds_remaining(
+             start_time
+         ):
+             try:  # queue.get() will block (sleep) until successful or it times out
+-                isbn_10s_or_asins.add(
+-                    web.amazon_queue.get(timeout=seconds_remaining(start_time)).isbn
+-                )
++                item = web.amazon_queue.get(timeout=seconds_remaining(start_time))
++                if item.identifier in items:
++                    items[item.identifier].stage_import |= item.stage_import
++                else:
++                    items[item.identifier] = item
+             except queue.Empty:
+                 pass
+-        logger.info(f"Before amazon_lookup(): {len(isbn_10s_or_asins)} items")
+-        if isbn_10s_or_asins:
++        logger.info(f"Before amazon_lookup(): {len(items)} items")
++        if items:
+             time.sleep(seconds_remaining(start_time))
+             try:
+-                process_amazon_batch(list(isbn_10s_or_asins))
+-                logger.info(f"After amazon_lookup(): {len(isbn_10s_or_asins)} items")
++                process_amazon_batch(list(items.values()))
++                logger.info(f"After amazon_lookup(): {len(items)} items")
+             except Exception:
+                 logger.exception("Amazon Lookup Thread died")
+                 stats_client.incr("ol.affiliate.amazon.lookup_thread_died")
+@@ -348,7 +428,7 @@ class Status:
+                     web.amazon_lookup_thread and web.amazon_lookup_thread.is_alive()
+                 ),
+                 "queue_size": web.amazon_queue.qsize(),
+-                "queue": [isbn.to_dict() for isbn in web.amazon_queue.queue],
++                "queue": [item.to_dict() for item in web.amazon_queue.queue],
+             }
+         )
+ 
+@@ -399,7 +479,10 @@ class Submit:
+ 
+         `Priority.HIGH` is set when `?high_priority=true` and is the highest priority.
+         It is used when the caller is waiting for a response with the AMZ data, if
+-        available. See `PrioritizedISBN` for more on prioritization.
++        available. See `PrioritizedIdentifier` for more on prioritization.
++
++        `?stage_import=false` fetches and caches metadata without staging it for
++        import. Staging remains enabled by default.
+ 
+         NOTE: For this API, "ASINs" are ISBN 10s when valid ISBN 10s, and otherwise
+         they are Amazon-specific identifiers starting with "B".
+@@ -414,10 +497,11 @@ class Submit:
+                 {"error": "rejected_isbn", "asin": asin, "isbn13": isbn13}
+             )
+ 
+-        input = web.input(high_priority=False)
++        input = web.input(high_priority=False, stage_import="true")
+         priority = (
+             Priority.HIGH if input.get("high_priority") == "true" else Priority.LOW
+         )
++        stage_import = input.get("stage_import") != "false"
+ 
+         # Cache lookup by isbn13 or asin. If there's a hit return the product to
+         # the caller.
+@@ -431,9 +515,11 @@ class Submit:
+ 
+         # Cache misses will be submitted to Amazon as ASINs (isbn10 if possible, or
+         # an 'true' ASIN otherwise) and the response will be `staged` for import.
+-        if asin not in web.amazon_queue.queue:
+-            asin_queue_item = PrioritizedISBN(isbn=asin, priority=priority)
+-            web.amazon_queue.put_nowait(asin_queue_item)
++        queue_identifier(
++            PrioritizedIdentifier(
++                identifier=asin, stage_import=stage_import, priority=priority
++            )
++        )
+ 
+         # Give us a snapshot over time of how many new isbns are currently queued
+         stats.put(
+@@ -450,6 +536,8 @@ class Submit:
+                 if product := cache.memcache_cache.get(
+                     f'amazon_product_{isbn13 or asin}'
+                 ):
++                    if not stage_import:
++                        return json.dumps({"status": "success", "hit": product})
+                     cleaned_metadata = clean_amazon_metadata_for_load(product)
+                     source, pid = cleaned_metadata['source_records'][0].split(":")
+                     if ImportItem.find_staged_or_pending(
+diff --git a/scripts/tests/test_affiliate_server.py b/scripts/tests/test_affiliate_server.py
+index c3366db..cc03c83 100644
+--- a/scripts/tests/test_affiliate_server.py
++++ b/scripts/tests/test_affiliate_server.py
+@@ -6,7 +6,9 @@ for access to the mocker fixture.
+ """
+ 
+ import json
++import queue
+ import sys
++from datetime import datetime
+ from typing import Any
+ from unittest.mock import MagicMock
+ 
+@@ -16,8 +18,10 @@ import pytest
+ sys.modules['_init_path'] = MagicMock()
+ 
+ from openlibrary.mocks.mock_infobase import mock_site  # noqa: F401
++from scripts import affiliate_server  # noqa: E402
+ from scripts.affiliate_server import (  # noqa: E402
+     PrioritizedISBN,
++    PrioritizedIdentifier,
+     Priority,
+     Submit,
+     get_isbns_from_book,
+@@ -25,6 +29,8 @@ from scripts.affiliate_server import (  # noqa: E402
+     get_editions_for_books,
+     get_pending_books,
+     make_cache_key,
++    process_amazon_batch,
++    queue_identifier,
+ )
+ 
+ ol_editions = {
+@@ -129,17 +135,149 @@ def test_get_isbns_from_books():
+     ]
+ 
+ 
+-def test_prioritized_isbn_can_serialize_to_json() -> None:
+-    """
+-    `PrioritizedISBN` needs to be be serializable to JSON because it is sometimes
+-    called in, e.g. `json.dumps()`.
+-    """
+-    p_isbn = PrioritizedISBN(isbn="1111111111", priority=Priority.HIGH)
+-    dumped_isbn = json.dumps(p_isbn.to_dict())
+-    dict_isbn = json.loads(dumped_isbn)
++def test_prioritized_identifier_serializes_all_fields() -> None:
++    timestamp = datetime(2026, 10, 20, 12, 30)
++    item = PrioritizedIdentifier(
++        identifier="B012346789",
++        stage_import=False,
++        priority=Priority.HIGH,
++        timestamp=timestamp,
++    )
++
++    assert json.loads(json.dumps(item.to_dict())) == {
++        "identifier": "B012346789",
++        "stage_import": False,
++        "priority": "HIGH",
++        "timestamp": timestamp.isoformat(),
++    }
++    assert PrioritizedIdentifier("9780747532699").stage_import is True
++
++
++def test_prioritized_identifier_deduplicates_by_identifier() -> None:
++    earlier = datetime(2026, 10, 20, 12, 30)
++    later = datetime(2026, 10, 20, 12, 31)
++    isbn = PrioritizedIdentifier("9780747532699", timestamp=earlier)
++    duplicate = PrioritizedIdentifier(
++        "9780747532699", False, Priority.HIGH, later
++    )
++    asin = PrioritizedIdentifier("B012346789", timestamp=later)
++
++    assert isbn == duplicate
++    assert hash(isbn) == hash(duplicate)
++    assert len({isbn, duplicate, asin}) == 2
++    assert isbn != "9780747532699"
++    assert min([isbn, asin]) == isbn
++    highest = PrioritizedIdentifier("B999999999", priority=Priority.HIGH)
++    assert min([isbn, asin, highest]) == highest
++
++
++def test_prioritized_isbn_remains_compatible() -> None:
++    old = PrioritizedISBN(isbn="1111111111", priority=Priority.HIGH)
++
++    assert old.isbn == old.identifier == "1111111111"
++    assert old == PrioritizedIdentifier("1111111111")
++    assert len({old, PrioritizedIdentifier("1111111111")}) == 1
++    assert old.to_dict()["identifier"] == "1111111111"
++
++
++def test_queue_identifier_merges_duplicate_requests(monkeypatch) -> None:
++    amazon_queue = queue.PriorityQueue()
++    monkeypatch.setattr(affiliate_server.web, "amazon_queue", amazon_queue)
++    queue_identifier(PrioritizedIdentifier("B012346789", stage_import=False))
++    queue_identifier(
++        PrioritizedIdentifier("B012346789", priority=Priority.HIGH)
++    )
++
++    assert amazon_queue.qsize() == 1
++    queued = amazon_queue.get_nowait()
++    assert queued.identifier == "B012346789"
++    assert queued.stage_import is True
++    assert queued.priority == Priority.HIGH
++
++
++def test_submit_deduplicates_and_updates_staging(monkeypatch) -> None:
++    amazon_queue = queue.PriorityQueue()
++    monkeypatch.setattr(affiliate_server.web, "amazon_queue", amazon_queue)
++    monkeypatch.setattr(affiliate_server.web, "amazon_api", object(), raising=False)
++    monkeypatch.setattr(affiliate_server.cache.memcache_cache, "get", lambda _: None)
++    monkeypatch.setattr(affiliate_server.stats, "put", MagicMock())
++    monkeypatch.setattr(
++        affiliate_server.web,
++        "input",
++        lambda **_: {"high_priority": "false", "stage_import": "false"},
++    )
++
++    assert json.loads(Submit().GET("B012346789"))["status"] == "submitted"
++    monkeypatch.setattr(
++        affiliate_server.web,
++        "input",
++        lambda **_: {"high_priority": "false", "stage_import": "true"},
++    )
++    assert json.loads(Submit().GET("B012346789"))["queue"] == 1
++
++    assert amazon_queue.qsize() == 1
++    assert amazon_queue.queue[0].stage_import is True
++    assert json.loads(affiliate_server.Status().GET())["queue"][0]["identifier"] == (
++        "B012346789"
++    )
++
++
++def test_process_amazon_batch_stages_only_requested_identifiers(monkeypatch) -> None:
++    products = [
++        {
++            "source_records": ["amazon:0123456789"],
++            "isbn_10": ["0123456789"],
++            "isbn_13": ["9780123456786"],
++            "title": "ISBN book",
++        },
++        {
++            "source_records": ["amazon:B012346789"],
++            "isbn_10": [],
++            "isbn_13": [],
++            "title": "ASIN book",
++        },
++    ]
++    api = MagicMock()
++    api.get_products.return_value = products
++    batch = MagicMock()
++    cache_set = MagicMock()
++    monkeypatch.setattr(affiliate_server.web, "amazon_api", api, raising=False)
++    monkeypatch.setattr(affiliate_server.cache.memcache_cache, "set", cache_set)
++    monkeypatch.setattr(affiliate_server.config, "infobase", {"db_parameters": True})
++    monkeypatch.setattr(affiliate_server, "get_current_amazon_batch", lambda: batch)
++    monkeypatch.setattr(affiliate_server.stats, "increment", MagicMock())
++
++    process_amazon_batch(
++        [
++            PrioritizedIdentifier("0123456789"),
++            PrioritizedIdentifier("B012346789", stage_import=False),
++        ]
++    )
++
++    api.get_products.assert_called_once_with(
++        ["0123456789", "B012346789"], serialize=True
++    )
++    assert cache_set.call_count == 2
++    batch.add_items.assert_called_once()
++    staged = batch.add_items.call_args.args[0]
++    assert [item["ia_id"] for item in staged] == ["amazon:0123456789"]
++
++
++def test_process_amazon_batch_accepts_legacy_strings(monkeypatch) -> None:
++    # Amazon may return a canonical ASIN different from the requested alias.
++    product = {"source_records": ["amazon:B999999999"], "title": "ASIN book"}
++    api = MagicMock()
++    api.get_products.return_value = [product]
++    batch = MagicMock()
++    monkeypatch.setattr(affiliate_server.web, "amazon_api", api, raising=False)
++    monkeypatch.setattr(affiliate_server.cache.memcache_cache, "set", MagicMock())
++    monkeypatch.setattr(affiliate_server.config, "infobase", {"db_parameters": True})
++    monkeypatch.setattr(affiliate_server, "get_current_amazon_batch", lambda: batch)
++    monkeypatch.setattr(affiliate_server.stats, "increment", MagicMock())
++
++    process_amazon_batch(["B012346789"])
+ 
+-    assert dict_isbn["priority"] == "HIGH"
+-    assert isinstance(dict_isbn["timestamp"], str)
++    batch.add_items.assert_called_once()
+ 
+ 
+ @pytest.mark.parametrize(

@@ -1,0 +1,3 @@
+Added an OCI snapshot source with context-aware `Get`, digest-based change detection, and configurable polling. Local OCI fetches now reopen the directory each time, so changes made by external processes appear on the next fetch. Updated the existing sources and callers for the new interface.
+
+Verification passed: `GOPROXY=off go test ./internal/oci ./internal/storage/fs/...` and `git diff --check`.

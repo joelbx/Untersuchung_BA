@@ -1,0 +1,5 @@
+**Diagnosis:** [qtargs.py](/app/qutebrowser/config/qtargs.py:41) builds `argv` from CLI and `qt.args` values, then appends QtWebEngine arguments. [_qtwebengine_args](/app/qutebrowser/config/qtargs.py:195) emits its own `--enable-features=OverlayScrollbar` without collecting existing feature entries, so separate flags remain.
+
+The fix belongs in `qt_args` and its two QtWebEngine helpers: remove existing `--enable-features=` entries from the assembled arguments, split their comma separated values, combine them with configuration required features, and emit one entry only when the combined list is nonempty. Preserve the current non QtWebEngine return path.
+
+Existing focused tests passed (12/12), but do not cover user supplied feature flags. One detail needs resolution during implementation: the current Qt check includes version 5.11, while the requirement says “> 5.11.” I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were not changed under this specialist role’s constraints.

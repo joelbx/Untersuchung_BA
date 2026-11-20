@@ -1,0 +1,3 @@
+Implemented the module-level `extra_suffixes_workaround` and updated `WebEnginePage.chooseFiles` to pass a deduplicated merged suffix list through one superclass call. Updated the existing tests to use the new helper and call the chooser with `None` as `self`.
+
+Validation: `QT_QPA_PLATFORM=offscreen pytest -q tests/unit/browser/webengine/test_webview.py` passed (20 tests); `git diff --check` passed. The initial run without the offscreen platform aborted during Qt fixture startup.

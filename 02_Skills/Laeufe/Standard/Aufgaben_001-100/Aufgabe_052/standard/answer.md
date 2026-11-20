@@ -1,0 +1,3 @@
+Implemented token accounting across `Chat.Complete` and `Agent.PlanAndExecute`. Both now return a non-nil `*model.TokenCount`; the agent aggregates usage across steps, and streamed completions are tokenized from the assembled response. Assist and web usage reporting now read the returned counts.
+
+AI package tests and `git diff --check` passed. Assist and web tests remain unverified because this environment lacks required C headers and CGO-backed builds. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

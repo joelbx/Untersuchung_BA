@@ -1,0 +1,1 @@
+Checkpoint: investigating composer replacement notice semantics and shared cancel/profile/reply component patterns. Next: inspect source, implement the applicable requirements, and run existing focused tests.

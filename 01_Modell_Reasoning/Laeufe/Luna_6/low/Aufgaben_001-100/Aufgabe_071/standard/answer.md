@@ -1,0 +1,3 @@
+Implemented CLIXML stream filtering and escape decoding in [powershell.py](/app/lib/ansible/plugins/shell/powershell.py). It now decodes UTF-16 code units and surrogate pairs, handles empty `<S>` elements, preserves control characters and unpaired surrogates, and joins `<Objs>` blocks with CRLF.
+
+The focused tests found one conflict with an existing expectation: `test_parse_clixml_single_stream` expects `_x000D__x000A_` to be removed, while the issue requires those escapes to decode to `\r\n`. The other 5 tests passed; 3 were rerun by pytest. I haven’t updated the tests or checkpoint to record that conflict.

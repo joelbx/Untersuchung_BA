@@ -1,0 +1,1 @@
+Progress: Inspected the current patch and review. Fixed List.get_book_keys() to filter seed keys before document resolution. Added a regression test with a failing subject lookup and a valid edition. The exact reviewer command passed: 13 tests passed.

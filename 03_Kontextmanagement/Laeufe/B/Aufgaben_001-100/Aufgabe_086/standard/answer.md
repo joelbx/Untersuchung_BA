@@ -1,0 +1,1 @@
+Added `destination_ports` to the checked-out [iptables module](/app/lib/ansible/modules/iptables.py). It defaults to an empty list and uses multiport for the five requested protocols. Added coverage in [test_iptables.py](/app/test/units/modules/test_iptables.py); all 24 relevant tests pass.

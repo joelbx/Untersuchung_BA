@@ -1,0 +1,3 @@
+Updated the list model with typed seed inputs, key-based duplicate detection, subject key normalization, and exports that always include `authors`, `works`, and `editions` with type-filtered documents. I also annotated the related helpers and added tests for seed formats and subject parsing.
+
+Validation: 34 tests passed, 2 were expected failures; mypy and Ruff passed. Mypy ignored missing third-party import stubs. Changes are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

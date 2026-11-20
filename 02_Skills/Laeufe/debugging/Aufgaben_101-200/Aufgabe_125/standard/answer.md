@@ -1,0 +1,3 @@
+Implemented topic backlinks. Post creation and edits now call `Topics.syncBacklinks` to update per-post associations and add or remove backlink events. The topic timeline shows those events only when the new admin setting is enabled, with localized “Referenced by” text and a link to the referencing post.
+
+The offline backlink test, ESLint, and `git diff --check` passed. The existing topic event integration test could not run: its setup failed to connect to Redis at `127.0.0.1:6379`, so integration behavior remains unverified.

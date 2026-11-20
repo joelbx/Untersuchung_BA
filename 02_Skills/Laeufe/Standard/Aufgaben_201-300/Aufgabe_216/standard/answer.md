@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to resolve its runtime settings through `get_option()`, including retries, transfer method, command arguments, timeout, and control paths. Reset now runs `ssh -O check` with the effective connection settings and sends `-O stop` only when a persistent socket responds. I also removed the duplicate SSH-specific core configuration definitions and added precedence and reset tests.
+
+Verification: **66 connection plugin tests passed**; `git diff --check` passed.

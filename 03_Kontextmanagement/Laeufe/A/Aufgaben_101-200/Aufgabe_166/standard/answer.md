@@ -1,0 +1,3 @@
+Restored vaulted file caching in [DataLoader](/app/lib/ansible/parsing/dataloader.py) and switched `vars_files` to use it in [VariableManager](/app/lib/ansible/vars/manager.py). `cache='none'` leaves the file cache empty; `cache='vaulted'` reuses parsed vaulted files without rereading and decrypting them.
+
+Added coverage in [test_dataloader.py](/app/test/units/parsing/test_dataloader.py). All 43 relevant unit tests pass.

@@ -1,0 +1,3 @@
+Fixed the room load flow. `RoomView` now dispatches exactly `{ action: Action.RoomLoaded }` after loading a room, and `RoomViewStore` recomputes widget buttons for that action, even without a preceding `ViewRoom`. Initial event focus now falls back to `RoomView` state when the store has no event ID.
+
+The relevant tests pass (65 tests), as do ESLint and Prettier. The full TypeScript check still reports errors in untouched files; it reports none in the changed files.

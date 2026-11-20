@@ -1,0 +1,3 @@
+Implemented anonymous telemetry with a stable per-host UUID, a `telemetry.json` state file, four-hour `flipt.ping` reports, and a configuration or environment-variable opt out. Added the `internal/info.Flipt` HTTP handler and set the advanced example to disable telemetry.
+
+`GOPROXY=off go test ./...` passes. The issue did not specify a reporting destination, so the implementation uses `https://telemetry.flipt.io/v1/track`; that endpoint needs to be confirmed before deployment.

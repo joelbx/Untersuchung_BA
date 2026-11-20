@@ -1,0 +1,3 @@
+Added `storage.oci.manifest_version` with `1.0` and `1.1` as valid values. It defaults to `1.1`; unsupported values return `wrong manifest version, it should be 1.0 or 1.1`. Bundle creation now uses the configured version through `WithManifestVersion`.
+
+The relevant tests pass: `go test ./internal/oci ./internal/config ./config ./cmd/flipt`. They cover config loading, validation, and the resulting manifest formats.

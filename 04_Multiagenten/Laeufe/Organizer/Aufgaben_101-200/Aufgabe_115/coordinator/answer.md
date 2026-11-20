@@ -1,0 +1,3 @@
+Expanded `ROLES` to map MARC relator codes and common abbreviations to readable names. `read_author_person` now reads `$e` and `$4`, gives `$4` precedence, and omits unrecognized roles. `new_work` preserves each role with its author in order and raises an exception when edition and record author counts differ.
+
+Updated the MARC fixtures and added focused tests. **All 289 tests passed** in the MARC and add_book test directories; Ruff lint and `git diff --check` passed. No delegation was used.

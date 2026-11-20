@@ -1,0 +1,3 @@
+Updated the repository so email confirmations use `confirm:byUid:<uid>` and `confirm:<code>` records with an explicit millisecond expiry. Pending checks now use that timestamp; resends replace expired codes, confirmation and deletion remove both keys, and admin actions can find an email in a pending confirmation when the profile has none. The ACP user list now shows **Validated**, **Validation Pending**, **Validation Expired**, or **(no email)**.
+
+ESLint, diff checks, and the focused confirmation and profile suites passed (5 and 42 tests). The broader user suite stopped at an invitation group membership assertion; that failure also reproduced when the invitation section ran alone.

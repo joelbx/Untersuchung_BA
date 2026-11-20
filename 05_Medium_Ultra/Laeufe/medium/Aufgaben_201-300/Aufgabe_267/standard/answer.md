@@ -1,0 +1,3 @@
+Fixed the room widget button update. `RoomView` now dispatches the exact `{ action: Action.RoomLoaded }` payload after a room loads, and `RoomViewStore` recomputes button options on that action, even when no `ViewRoom` action came first. The initial event ID also falls back to `RoomView` state when the store returns `null` or `undefined`.
+
+The focused suites pass (66 tests), as do Prettier and ESLint. The full TypeScript check reports existing dependency and unrelated source errors; it reports none in the changed files.

@@ -1,0 +1,3 @@
+Implemented [`pollEvents`]( /app/packages/shared/lib/eventManager/polling.ts) with exported `interval = 5000` and `maxPollingSteps = 5`. It optionally watches for a matching property/action, stops early when found, and cleans up its timer and subscription on completion or error.
+
+Validation passed: `yarn workspace @proton/shared check-types` and `yarn prettier --check packages/shared/lib/eventManager/polling.ts`.

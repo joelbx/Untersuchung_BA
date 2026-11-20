@@ -1,0 +1,3 @@
+Implemented runtime MIME configuration from [mime_types.yaml](/app/resources/mime_types.yaml). The `mime` package loads it through a `conf.AddHook`, registers the configured MIME types plus `.js` and `.css`, and exposes the lossless extensions without periods. Updated the model and server UI to use the new package, and removed the hardcoded definitions from `consts`.
+
+`go test ./model ./server/... ./mime` passed. `go test ./...` still fails two TagLib M4A gain tag assertions due to duplicate parsed values. `git diff --check` passed.

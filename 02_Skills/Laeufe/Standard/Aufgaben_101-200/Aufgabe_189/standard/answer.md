@@ -1,0 +1,3 @@
+Moved `extra_suffixes_workaround` to module scope in [webview.py](/app/qutebrowser/browser/webengine/webview.py). `chooseFiles` now passes a deduplicated union of the requested suffixes and workaround extras as the third argument to `super().chooseFiles(...)`, without using instance state.
+
+The relevant tests passed: **23 passed** with Qt’s offscreen platform. Flake8 could not run because it is not installed; the command and error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

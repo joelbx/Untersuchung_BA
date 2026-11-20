@@ -1,0 +1,3 @@
+Updated [format_languages](/app/openlibrary/catalog/utils/__init__.py:566) to resolve two-letter ISO codes and English or native names to canonical language keys, then deduplicate them in first-occurrence order. Added [tests](/app/openlibrary/tests/catalog/test_utils.py:430) for mixed identifiers, sparse metadata, ambiguity, and invalid inputs.
+
+I delegated language-data review and test additions to two agents, then integrated and verified the patch. **153 relevant tests passed**; Ruff and `git diff --check` passed.

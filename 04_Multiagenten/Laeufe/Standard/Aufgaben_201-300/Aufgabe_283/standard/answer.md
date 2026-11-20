@@ -1,0 +1,3 @@
+Added [isFromProton](/app/applications/mail/src/app/helpers/elements.ts) for mail elements. It returns `true` only when `IsProton === 1`, with the flag typed for messages, conversations, and encrypted search messages. I also added the named [VerifiedBadge](/app/applications/mail/src/app/components/list/VerifiedBadge.tsx) component with a “Verified message” tooltip and used it in the list layout.
+
+The element tests passed (22 tests), along with the mail type check, targeted ESLint, and `git diff --check`.

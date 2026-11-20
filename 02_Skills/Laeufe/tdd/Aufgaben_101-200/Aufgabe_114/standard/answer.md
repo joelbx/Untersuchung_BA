@@ -1,0 +1,3 @@
+Artist artwork now checks for `artist.*` in the folder derived from its albums before trying external files, URLs, or the placeholder. Albums retain their unique media directories, and every image source attempt records its duration in trace logs.
+
+The focused model, artwork, database, persistence, and scanner tests pass. The full suite has two TagLib failures: running as root lets those tests read a fixture they expect to be unreadable.

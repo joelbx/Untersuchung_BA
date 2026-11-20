@@ -1,0 +1,3 @@
+Added SQL Server support to Teleport Discovery connection diagnostics. The new `SQLServerPinger` validates connection parameters, uses the request context for connection attempts, and categorizes refused connections, login failures, and invalid database names. The protocol selector now returns it for SQL Server and still returns an error for unsupported protocols.
+
+Verification passed: `GOMAXPROCS=2 go test -p 1 ./lib/client/conntest/database ./lib/client/conntest`.

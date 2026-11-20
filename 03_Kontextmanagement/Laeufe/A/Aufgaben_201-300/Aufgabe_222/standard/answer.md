@@ -1,0 +1,3 @@
+Extracted the entry point documentation logic into `RoleMixin._build_doc` in [doc.py](/app/lib/ansible/cli/doc.py:232). It returns `(fqcn, doc)` or `(fqcn, None)` when no entry points match, while preserving the required document fields and full entry point specifications.
+
+Added direct and caller coverage in [test_doc.py](/app/test/units/cli/test_doc.py:38). The focused suite passed: **17 tests**.

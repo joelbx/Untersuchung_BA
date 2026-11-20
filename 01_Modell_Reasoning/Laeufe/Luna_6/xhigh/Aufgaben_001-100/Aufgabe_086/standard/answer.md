@@ -1,0 +1,3 @@
+Added `destination_ports` with an empty-list default. Rules now use `-m multiport --dports ...`, and nonempty lists require `tcp`, `udp`, `udplite`, `dccp`, or `sctp`. Added documentation, an example, a changelog entry, and unit coverage.
+
+`PYTHONPATH=lib pytest -q test/units/modules/test_iptables.py` passed: **23 tests**. `git diff --check` passed. The `ansible-test` wrapper used a module copy missing the working-tree change; the direct pytest run passed against the checked-out source.

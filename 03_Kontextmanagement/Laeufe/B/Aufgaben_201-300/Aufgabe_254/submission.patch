@@ -1,0 +1,199 @@
+diff --git a/lib/utils/ec2.go b/lib/utils/ec2.go
+index c44ff48..a80b935 100644
+--- a/lib/utils/ec2.go
++++ b/lib/utils/ec2.go
+@@ -20,7 +20,6 @@ import (
+ 	"context"
+ 	"fmt"
+ 	"io"
+-	"net/http"
+ 	"regexp"
+ 	"strings"
+ 	"time"
+@@ -34,10 +33,6 @@ import (
+ // metadataReadLimit is the largest number of bytes that will be read from imds responses.
+ const metadataReadLimit = 1_000_000
+ 
+-// instanceMetadataURL is the URL for EC2 instance metadata.
+-// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
+-const instanceMetadataURL = "http://169.254.169.254/latest/meta-data"
+-
+ // GetEC2IdentityDocument fetches the PKCS7 RSA2048 InstanceIdentityDocument
+ // from the IMDS for this EC2 instance.
+ func GetEC2IdentityDocument() ([]byte, error) {
+@@ -79,13 +74,21 @@ func GetEC2NodeID() (string, error) {
+ }
+ 
+ // EC2 Node IDs are {AWS account ID}-{EC2 resource ID} eg:
+-//   123456789012-i-1234567890abcdef0
++//
++//	123456789012-i-1234567890abcdef0
++//
+ // AWS account ID is always a 12 digit number, see
+-//   https://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html
++//
++//	https://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html
++//
+ // EC2 resource ID is i-{8 or 17 hex digits}, see
+-//   https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/resource-ids.html
++//
++//	https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/resource-ids.html
+ var ec2NodeIDRE = regexp.MustCompile("^[0-9]{12}-i-[0-9a-f]{8,}$")
+ 
++// EC2 instance IDs use either the legacy 8 digit or current 17 digit form.
++var ec2InstanceIDRE = regexp.MustCompile(`^i-([0-9a-f]{8}|[0-9a-f]{17})$`)
++
+ // IsEC2NodeID returns true if the given ID looks like an EC2 node ID. Uses a
+ // simple regex to check. Node IDs are almost always UUIDs when set
+ // automatically, but can be manually overridden by admins. If someone manually
+@@ -106,34 +109,43 @@ type InstanceMetadataClient struct {
+ 	c *imds.Client
+ }
+ 
++// InstanceMetadataClientOption configures an InstanceMetadataClient.
++type InstanceMetadataClientOption func(client *InstanceMetadataClient) error
++
++// WithIMDSClient sets the underlying EC2 instance metadata client.
++func WithIMDSClient(client *imds.Client) InstanceMetadataClientOption {
++	return func(metadataClient *InstanceMetadataClient) error {
++		metadataClient.c = client
++		return nil
++	}
++}
++
+ // NewInstanceMetadataClient creates a new instance metadata client.
+-func NewInstanceMetadataClient(ctx context.Context) (*InstanceMetadataClient, error) {
++func NewInstanceMetadataClient(ctx context.Context, opts ...InstanceMetadataClientOption) (*InstanceMetadataClient, error) {
+ 	cfg, err := config.LoadDefaultConfig(ctx)
+ 	if err != nil {
+ 		return nil, trace.Wrap(err)
+ 	}
+-	return &InstanceMetadataClient{
++	client := &InstanceMetadataClient{
+ 		c: imds.NewFromConfig(cfg),
+-	}, nil
++	}
++	for _, opt := range opts {
++		if err := opt(client); err != nil {
++			return nil, trace.Wrap(err)
++		}
++	}
++	return client, nil
+ }
+ 
+ // IsAvailable checks if instance metadata is available.
+ func (client *InstanceMetadataClient) IsAvailable(ctx context.Context) bool {
+-	// Doing this check via imds.Client.GetMetadata() involves several unrelated requests and takes a few seconds
+-	// to complete when not on EC2. This approach is faster.
+-	httpClient := http.Client{
+-		Timeout: 250 * time.Millisecond,
+-	}
+-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, instanceMetadataURL, nil)
+-	if err != nil {
+-		return false
+-	}
+-	resp, err := httpClient.Do(req)
++	ctx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
++	defer cancel()
++	id, err := client.getMetadata(ctx, "instance-id")
+ 	if err != nil {
+ 		return false
+ 	}
+-	defer resp.Body.Close()
+-	return resp.StatusCode == http.StatusOK
++	return ec2InstanceIDRE.MatchString(id)
+ }
+ 
+ // getMetadata gets the raw metadata from a specified path.
+diff --git a/lib/utils/ec2_test.go b/lib/utils/ec2_test.go
+index 0d1dd56..b9bdb2c 100644
+--- a/lib/utils/ec2_test.go
++++ b/lib/utils/ec2_test.go
+@@ -17,12 +17,87 @@ limitations under the License.
+ package utils
+ 
+ import (
++	"context"
++	"errors"
++	"io"
++	"net/http"
++	"strings"
+ 	"testing"
++	"time"
+ 
++	"github.com/aws/aws-sdk-go-v2/aws"
++	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
+ 	"github.com/google/uuid"
+ 	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
+ )
+ 
++type metadataRoundTripper func(*http.Request) (*http.Response, error)
++
++func (f metadataRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
++	return f(req)
++}
++
++func TestInstanceMetadataClientIsAvailable(t *testing.T) {
++	tests := []struct {
++		name string
++		body string
++		want bool
++	}{
++		{name: "legacy instance ID", body: "i-1a2b3c4d", want: true},
++		{name: "current instance ID", body: "i-1234567890abcdef0", want: true},
++		{name: "captive portal", body: "<!DOCTYPE html><html>Login</html>"},
++		{name: "invalid length", body: "i-123456789"},
++		{name: "trailing content", body: "i-1a2b3c4d\n"},
++	}
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			metadataRequests := 0
++			transport := metadataRoundTripper(func(req *http.Request) (*http.Response, error) {
++				body := "test-token"
++				switch req.URL.Path {
++				case "/latest/api/token":
++					// The SDK obtains an IMDSv2 token before requesting metadata.
++				case "/latest/meta-data/instance-id":
++					metadataRequests++
++					body = tt.body
++				default:
++					t.Errorf("unexpected IMDS request: %s", req.URL.Path)
++					return nil, errors.New("unexpected IMDS request")
++				}
++				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header), Request: req}, nil
++			})
++			imdsClient := imds.NewFromConfig(aws.Config{HTTPClient: &http.Client{Transport: transport}})
++			client, err := NewInstanceMetadataClient(context.Background(), WithIMDSClient(imdsClient))
++			require.NoError(t, err)
++			assert.Equal(t, tt.want, client.IsAvailable(context.Background()))
++			assert.Equal(t, 1, metadataRequests)
++		})
++	}
++}
++
++func TestInstanceMetadataClientOptionError(t *testing.T) {
++	wantErr := errors.New("option failed")
++	_, err := NewInstanceMetadataClient(context.Background(), func(*InstanceMetadataClient) error {
++		return wantErr
++	})
++	require.ErrorIs(t, err, wantErr)
++}
++
++func TestInstanceMetadataClientIsAvailableTimeout(t *testing.T) {
++	transport := metadataRoundTripper(func(req *http.Request) (*http.Response, error) {
++		<-req.Context().Done()
++		return nil, req.Context().Err()
++	})
++	imdsClient := imds.NewFromConfig(aws.Config{HTTPClient: &http.Client{Transport: transport}})
++	client, err := NewInstanceMetadataClient(context.Background(), WithIMDSClient(imdsClient))
++	require.NoError(t, err)
++
++	start := time.Now()
++	assert.False(t, client.IsAvailable(context.Background()))
++	assert.Less(t, time.Since(start), time.Second)
++}
++
+ func TestIsEC2NodeID(t *testing.T) {
+ 	// EC2 Node IDs are {AWS account ID}-{EC2 resource ID} eg:
+ 	//   123456789012-i-1234567890abcdef0

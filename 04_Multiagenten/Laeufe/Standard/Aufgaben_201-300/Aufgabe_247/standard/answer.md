@@ -1,0 +1,3 @@
+Updated `SocketPosts.getUpvoters` to require `topics:read` access to every category in the request before returning upvoter data. Administrators remain exempt. The method now returns a cutoff of 6, shows at most five usernames when the cutoff is reached, and resolves visible voter IDs once while preserving their order.
+
+The frontend uses the server’s cutoff and enables HTML tooltips. The voting test group passed (12 tests), and ESLint and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented token accounting for `Chat.Complete` and `Agent.PlanAndExecute`. Both return a non-nil `*model.TokenCount`; agent counts accumulate across steps, and streaming counts use the full response text so tokens split across deltas are counted accurately. Updated Assist and web usage reporting to use `CountAll()`.
+
+`go test ./lib/ai/...` and `git diff --check` pass. Assist tests could not build in this environment because required C headers are missing; disabling CGO also leaves required PKCS#11 and SQLite symbols unavailable.

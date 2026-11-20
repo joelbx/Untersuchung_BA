@@ -1,0 +1,3 @@
+Fixed the no-file startup path. [config.Load](/app/internal/config/config.go:63) now applies defaults and `FLIPT_` environment overrides when the path is empty, and [buildConfig](/app/cmd/flipt/main.go:186) uses that loader when no file is found. File based config still accepts environment overrides.
+
+Regression tests cover default values, `FLIPT_LOG_LEVEL`, `FLIPT_SERVER_HTTP_PORT`, file precedence, and debug logging in the CLI. `go test ./internal/config -count=1` and `go test ./cmd/flipt -count=1` passed.

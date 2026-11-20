@@ -1,0 +1,3 @@
+Implemented upload cleanup on post purge. Files with no remaining post references, including resized copies, are deleted by default; shared files are retained. Added an ACP option to preserve orphaned uploads and a `Posts.uploads.deleteFromDisk` function that accepts one path or an array, rejects other input types, and ignores invalid or escaping paths. Topic thumbnail cleanup now respects shared references during purge.
+
+Verification: 55 relevant tests passed, ESLint passed, and `git diff --check` passed.

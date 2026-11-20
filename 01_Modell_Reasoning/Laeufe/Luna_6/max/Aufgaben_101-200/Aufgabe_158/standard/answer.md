@@ -1,0 +1,3 @@
+Added `_valid_time_stamp` in [unarchive.py](/app/lib/ansible/modules/unarchive.py:334). It parses the ZIP timestamp with a regular expression, validates the date and the 1980–2107 year range, and returns the ZIP epoch for invalid timestamps. `is_unarchived()` now uses this helper.
+
+The existing unarchive unit tests passed: **3 passed**. The `ansible-test` wrapper could not start because pytest in the environment does not recognize its `-n` option; running the test file directly succeeded.

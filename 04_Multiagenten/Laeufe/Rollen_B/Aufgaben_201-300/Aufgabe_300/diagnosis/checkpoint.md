@@ -1,0 +1,7 @@
+Progress: Fault localization complete. No project source or tests changed.
+- openlibrary/plugins/importapi/code.py: importapi.POST (around 126-155) reads body, parses it, and calls add_book.load(edition), but never reads `override-validation` from web.input() or forwards a flag.
+- openlibrary/catalog/add_book/__init__.py: load (around 928-941) has only account_key and calls validate_record(rec). validate_record (around 774-794) has no override parameter and raises PublicationYearTooOld/PublishedInFutureYear via validate_publication_year, then IndependentlyPublished and SourceNeedsISBN.
+- validate_publication_year (around 762-772) already has an `override` that suppresses only the too-old check. For the new override, validate_record should skip the publication-year check entirely when true, preserving the separate helper's current behavior and existing tests.
+- openlibrary/catalog/utils/__init__.py: source_records based helpers are at around 363-397; add public is_promise_item(rec) here, matching prefix case-insensitively and returning false for missing/empty source_records.
+- Existing tests: test_validate_publication_year in add_book/tests/test_add_book.py (around 1192), source-specific helper tests in openlibrary/tests/catalog/test_utils.py (around 350-372). No direct importapi.POST override or validate_record override tests found.
+- Open question: The requirement only covers general /api/import; separate IA import paths also call add_book.load. Preserve their default behavior.

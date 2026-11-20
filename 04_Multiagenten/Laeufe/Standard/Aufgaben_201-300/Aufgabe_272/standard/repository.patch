@@ -1,0 +1,666 @@
+diff --git a/lib/ansible/module_utils/urls.py b/lib/ansible/module_utils/urls.py
+index 0b66b1e..43ac067 100644
+--- a/lib/ansible/module_utils/urls.py
++++ b/lib/ansible/module_utils/urls.py
+@@ -535,12 +535,13 @@ UnixHTTPSConnection = None
+ if hasattr(httplib, 'HTTPSConnection') and hasattr(urllib_request, 'HTTPSHandler'):
+     class CustomHTTPSConnection(httplib.HTTPSConnection):  # type: ignore[no-redef]
+         def __init__(self, *args, **kwargs):
++            ansible_context = kwargs.pop('ansible_context', None)
+             httplib.HTTPSConnection.__init__(self, *args, **kwargs)
+             self.context = None
+             if HAS_SSLCONTEXT:
+                 self.context = self._context
+             elif HAS_URLLIB3_PYOPENSSLCONTEXT:
+-                self.context = self._context = PyOpenSSLContext(PROTOCOL)
++                self.context = self._context = ansible_context or PyOpenSSLContext(PROTOCOL)
+             if self.context and self.cert_file:
+                 self.context.load_cert_chain(self.cert_file, self.key_file)
+ 
+@@ -574,6 +575,8 @@ if hasattr(httplib, 'HTTPSConnection') and hasattr(urllib_request, 'HTTPSHandler
+             kwargs = {}
+             if HAS_SSLCONTEXT:
+                 kwargs['context'] = self._context
++            elif getattr(self, '_ansible_context', None) is not None:
++                kwargs['ansible_context'] = self._ansible_context
+             return self.do_open(
+                 functools.partial(
+                     CustomHTTPSConnection,
+@@ -976,6 +979,155 @@ def atexit_remove_file(filename):
+             pass
+ 
+ 
++def _normalize_ciphers(ciphers):
++    if ciphers is None:
++        return None
++    if isinstance(ciphers, string_types):
++        cipher_string = ciphers
++    elif isinstance(ciphers, (list, tuple)) and ciphers and all(
++            isinstance(cipher, string_types) and cipher for cipher in ciphers):
++        cipher_string = ':'.join(ciphers)
++    else:
++        raise ValueError('ciphers must be a non-empty OpenSSL cipher string or list of strings')
++    if not cipher_string:
++        raise ValueError('ciphers must be a non-empty OpenSSL cipher string or list of strings')
++    return cipher_string
++
++
++def make_context(cafile=None, cadata=None, ciphers=None, validate_certs=True):
++    """Create a TLS context with optional CA data and OpenSSL cipher selection."""
++    cipher_string = _normalize_ciphers(ciphers)
++
++    if HAS_SSLCONTEXT:
++        if validate_certs:
++            context = create_default_context(cafile=cafile)
++        else:
++            context = SSLContext(ssl.PROTOCOL_SSLv23)
++            if ssl.OP_NO_SSLv2:
++                context.options |= ssl.OP_NO_SSLv2
++            context.options |= ssl.OP_NO_SSLv3
++            context.verify_mode = ssl.CERT_NONE
++            context.check_hostname = False
++    elif HAS_URLLIB3_PYOPENSSLCONTEXT:
++        context = PyOpenSSLContext(PROTOCOL)
++        if not validate_certs:
++            context.verify_mode = ssl.CERT_NONE
++    else:
++        raise NotImplementedError('Host libraries are too old to support creating an sslcontext')
++
++    if cipher_string is not None:
++        try:
++            context.set_ciphers(cipher_string)
++        except Exception:
++            raise ValueError('Invalid or unsupported TLS ciphers configuration')
++    if validate_certs and (cafile or cadata):
++        context.load_verify_locations(cafile=cafile, cadata=cadata)
++    return context
++
++
++def get_ca_certs(cafile=None):
++    # tries to find a valid CA cert in one of the
++    # standard locations for the current distribution
++
++    ca_certs = []
++    cadata = bytearray()
++    paths_checked = []
++
++    if cafile:
++        paths_checked = [cafile]
++        with open(to_bytes(cafile, errors='surrogate_or_strict'), 'rb') as f:
++            if HAS_SSLCONTEXT:
++                for b_pem in extract_pem_certs(f.read()):
++                    cadata.extend(
++                        ssl.PEM_cert_to_DER_cert(
++                            to_native(b_pem, errors='surrogate_or_strict')
++                        )
++                    )
++        return cafile, cadata, paths_checked
++
++    if not HAS_SSLCONTEXT:
++        paths_checked.append('/etc/ssl/certs')
++
++    system = to_text(platform.system(), errors='surrogate_or_strict')
++    # build a list of paths to check for .crt/.pem files
++    # based on the platform type
++    if system == u'Linux':
++        paths_checked.append('/etc/pki/ca-trust/extracted/pem')
++        paths_checked.append('/etc/pki/tls/certs')
++        paths_checked.append('/usr/share/ca-certificates/cacert.org')
++    elif system == u'FreeBSD':
++        paths_checked.append('/usr/local/share/certs')
++    elif system == u'OpenBSD':
++        paths_checked.append('/etc/ssl')
++    elif system == u'NetBSD':
++        ca_certs.append('/etc/openssl/certs')
++    elif system == u'SunOS':
++        paths_checked.append('/opt/local/etc/openssl/certs')
++    elif system == u'AIX':
++        paths_checked.append('/var/ssl/certs')
++        paths_checked.append('/opt/freeware/etc/ssl/certs')
++
++    # fall back to a user-deployed cert in a standard
++    # location if the OS platform one is not available
++    paths_checked.append('/etc/ansible')
++
++    tmp_path = None
++    if not HAS_SSLCONTEXT:
++        tmp_fd, tmp_path = tempfile.mkstemp()
++        atexit.register(atexit_remove_file, tmp_path)
++
++    # Write the dummy ca cert if we are running on macOS
++    if system == u'Darwin':
++        if HAS_SSLCONTEXT:
++            cadata.extend(
++                ssl.PEM_cert_to_DER_cert(
++                    to_native(b_DUMMY_CA_CERT, errors='surrogate_or_strict')
++                )
++            )
++        else:
++            os.write(tmp_fd, b_DUMMY_CA_CERT)
++        # Default Homebrew path for OpenSSL certs
++        paths_checked.append('/usr/local/etc/openssl')
++
++    # for all of the paths, find any  .crt or .pem files
++    # and compile them into single temp file for use
++    # in the ssl check to speed up the test
++    for path in paths_checked:
++        if os.path.exists(path) and os.path.isdir(path):
++            dir_contents = os.listdir(path)
++            for f in dir_contents:
++                full_path = os.path.join(path, f)
++                if os.path.isfile(full_path) and os.path.splitext(f)[1] in ('.crt', '.pem'):
++                    try:
++                        if full_path not in LOADED_VERIFY_LOCATIONS:
++                            with open(full_path, 'rb') as cert_file:
++                                b_cert = cert_file.read()
++                            if HAS_SSLCONTEXT:
++                                try:
++                                    for b_pem in extract_pem_certs(b_cert):
++                                        cadata.extend(
++                                            ssl.PEM_cert_to_DER_cert(
++                                                to_native(b_pem, errors='surrogate_or_strict')
++                                            )
++                                        )
++                                except Exception:
++                                    continue
++                            else:
++                                os.write(tmp_fd, b_cert)
++                                os.write(tmp_fd, b'\n')
++                    except (OSError, IOError):
++                        pass
++
++    if HAS_SSLCONTEXT:
++        default_verify_paths = ssl.get_default_verify_paths()
++        paths_checked[:0] = [default_verify_paths.capath]
++    else:
++        os.close(tmp_fd)
++
++    return (tmp_path, cadata, paths_checked)
++
++
++
+ class SSLValidationHandler(urllib_request.BaseHandler):
+     '''
+     A custom handler class for SSL validation.
+@@ -992,105 +1144,7 @@ class SSLValidationHandler(urllib_request.BaseHandler):
+         self.ca_path = ca_path
+ 
+     def get_ca_certs(self):
+-        # tries to find a valid CA cert in one of the
+-        # standard locations for the current distribution
+-
+-        ca_certs = []
+-        cadata = bytearray()
+-        paths_checked = []
+-
+-        if self.ca_path:
+-            paths_checked = [self.ca_path]
+-            with open(to_bytes(self.ca_path, errors='surrogate_or_strict'), 'rb') as f:
+-                if HAS_SSLCONTEXT:
+-                    for b_pem in extract_pem_certs(f.read()):
+-                        cadata.extend(
+-                            ssl.PEM_cert_to_DER_cert(
+-                                to_native(b_pem, errors='surrogate_or_strict')
+-                            )
+-                        )
+-            return self.ca_path, cadata, paths_checked
+-
+-        if not HAS_SSLCONTEXT:
+-            paths_checked.append('/etc/ssl/certs')
+-
+-        system = to_text(platform.system(), errors='surrogate_or_strict')
+-        # build a list of paths to check for .crt/.pem files
+-        # based on the platform type
+-        if system == u'Linux':
+-            paths_checked.append('/etc/pki/ca-trust/extracted/pem')
+-            paths_checked.append('/etc/pki/tls/certs')
+-            paths_checked.append('/usr/share/ca-certificates/cacert.org')
+-        elif system == u'FreeBSD':
+-            paths_checked.append('/usr/local/share/certs')
+-        elif system == u'OpenBSD':
+-            paths_checked.append('/etc/ssl')
+-        elif system == u'NetBSD':
+-            ca_certs.append('/etc/openssl/certs')
+-        elif system == u'SunOS':
+-            paths_checked.append('/opt/local/etc/openssl/certs')
+-        elif system == u'AIX':
+-            paths_checked.append('/var/ssl/certs')
+-            paths_checked.append('/opt/freeware/etc/ssl/certs')
+-
+-        # fall back to a user-deployed cert in a standard
+-        # location if the OS platform one is not available
+-        paths_checked.append('/etc/ansible')
+-
+-        tmp_path = None
+-        if not HAS_SSLCONTEXT:
+-            tmp_fd, tmp_path = tempfile.mkstemp()
+-            atexit.register(atexit_remove_file, tmp_path)
+-
+-        # Write the dummy ca cert if we are running on macOS
+-        if system == u'Darwin':
+-            if HAS_SSLCONTEXT:
+-                cadata.extend(
+-                    ssl.PEM_cert_to_DER_cert(
+-                        to_native(b_DUMMY_CA_CERT, errors='surrogate_or_strict')
+-                    )
+-                )
+-            else:
+-                os.write(tmp_fd, b_DUMMY_CA_CERT)
+-            # Default Homebrew path for OpenSSL certs
+-            paths_checked.append('/usr/local/etc/openssl')
+-
+-        # for all of the paths, find any  .crt or .pem files
+-        # and compile them into single temp file for use
+-        # in the ssl check to speed up the test
+-        for path in paths_checked:
+-            if os.path.exists(path) and os.path.isdir(path):
+-                dir_contents = os.listdir(path)
+-                for f in dir_contents:
+-                    full_path = os.path.join(path, f)
+-                    if os.path.isfile(full_path) and os.path.splitext(f)[1] in ('.crt', '.pem'):
+-                        try:
+-                            if full_path not in LOADED_VERIFY_LOCATIONS:
+-                                with open(full_path, 'rb') as cert_file:
+-                                    b_cert = cert_file.read()
+-                                if HAS_SSLCONTEXT:
+-                                    try:
+-                                        for b_pem in extract_pem_certs(b_cert):
+-                                            cadata.extend(
+-                                                ssl.PEM_cert_to_DER_cert(
+-                                                    to_native(b_pem, errors='surrogate_or_strict')
+-                                                )
+-                                            )
+-                                    except Exception:
+-                                        continue
+-                                else:
+-                                    os.write(tmp_fd, b_cert)
+-                                    os.write(tmp_fd, b'\n')
+-                        except (OSError, IOError):
+-                            pass
+-
+-        if HAS_SSLCONTEXT:
+-            default_verify_paths = ssl.get_default_verify_paths()
+-            paths_checked[:0] = [default_verify_paths.capath]
+-        else:
+-            os.close(tmp_fd)
+-
+-        return (tmp_path, cadata, paths_checked)
++        return get_ca_certs(self.ca_path)
+ 
+     def validate_proxy_response(self, response, valid_codes=None):
+         '''
+@@ -1122,22 +1176,7 @@ class SSLValidationHandler(urllib_request.BaseHandler):
+         return True
+ 
+     def make_context(self, cafile, cadata):
+-        cafile = self.ca_path or cafile
+-        if self.ca_path:
+-            cadata = None
+-        else:
+-            cadata = cadata or None
+-
+-        if HAS_SSLCONTEXT:
+-            context = create_default_context(cafile=cafile)
+-        elif HAS_URLLIB3_PYOPENSSLCONTEXT:
+-            context = PyOpenSSLContext(PROTOCOL)
+-        else:
+-            raise NotImplementedError('Host libraries are too old to support creating an sslcontext')
+-
+-        if cafile or cadata:
+-            context.load_verify_locations(cafile=cafile, cadata=cadata)
+-        return context
++        return make_context(cafile=self.ca_path or cafile, cadata=None if self.ca_path else cadata)
+ 
+     def http_request(self, req):
+         tmp_ca_cert_path, cadata, paths_checked = self.get_ca_certs()
+@@ -1277,7 +1316,7 @@ class Request:
+     def __init__(self, headers=None, use_proxy=True, force=False, timeout=10, validate_certs=True,
+                  url_username=None, url_password=None, http_agent=None, force_basic_auth=False,
+                  follow_redirects='urllib2', client_cert=None, client_key=None, cookies=None, unix_socket=None,
+-                 ca_path=None, unredirected_headers=None, decompress=True):
++                 ca_path=None, unredirected_headers=None, decompress=True, ciphers=None):
+         """This class works somewhat similarly to the ``Session`` class of from requests
+         by defining a cookiejar that an be used across requests as well as cascaded defaults that
+         can apply to repeated requests
+@@ -1312,6 +1351,7 @@ class Request:
+         self.client_key = client_key
+         self.unix_socket = unix_socket
+         self.ca_path = ca_path
++        self.ciphers = ciphers
+         self.unredirected_headers = unredirected_headers
+         self.decompress = decompress
+         if isinstance(cookies, cookiejar.CookieJar):
+@@ -1329,7 +1369,7 @@ class Request:
+              url_username=None, url_password=None, http_agent=None,
+              force_basic_auth=None, follow_redirects=None,
+              client_cert=None, client_key=None, cookies=None, use_gssapi=False,
+-             unix_socket=None, ca_path=None, unredirected_headers=None, decompress=None):
++             unix_socket=None, ca_path=None, unredirected_headers=None, decompress=None, ciphers=None):
+         """
+         Sends a request via HTTP(S) or FTP using urllib2 (Python2) or urllib (Python3)
+ 
+@@ -1367,8 +1407,10 @@ class Request:
+         :kwarg unix_socket: (optional) String of file system path to unix socket file to use when establishing
+             connection to the provided url
+         :kwarg ca_path: (optional) String of file system path to CA cert bundle to use
++        :kwarg ciphers: (optional) OpenSSL cipher string or ordered list of cipher names
+         :kwarg unredirected_headers: (optional) A list of headers to not attach on a redirected request
+         :kwarg decompress: (optional) Whether to attempt to decompress gzip content-encoded responses
++    :kwarg ciphers: (optional) OpenSSL cipher string or ordered list of cipher names
+         :returns: HTTPResponse. Added in Ansible 2.9
+         """
+ 
+@@ -1394,6 +1436,8 @@ class Request:
+         cookies = self._fallback(cookies, self.cookies)
+         unix_socket = self._fallback(unix_socket, self.unix_socket)
+         ca_path = self._fallback(ca_path, self.ca_path)
++        ciphers = self._fallback(ciphers, self.ciphers)
++        _normalize_ciphers(ciphers)
+         unredirected_headers = self._fallback(unredirected_headers, self.unredirected_headers)
+         decompress = self._fallback(decompress, self.decompress)
+ 
+@@ -1472,28 +1516,24 @@ class Request:
+ 
+         context = None
+         if HAS_SSLCONTEXT and not validate_certs:
+-            # In 2.7.9, the default context validates certificates
+-            context = SSLContext(ssl.PROTOCOL_SSLv23)
+-            if ssl.OP_NO_SSLv2:
+-                context.options |= ssl.OP_NO_SSLv2
+-            context.options |= ssl.OP_NO_SSLv3
+-            context.verify_mode = ssl.CERT_NONE
+-            context.check_hostname = False
+-            handlers.append(HTTPSClientAuthHandler(client_cert=client_cert,
+-                                                   client_key=client_key,
+-                                                   context=context,
+-                                                   unix_socket=unix_socket))
+-        elif client_cert or unix_socket:
+-            handlers.append(HTTPSClientAuthHandler(client_cert=client_cert,
+-                                                   client_key=client_key,
+-                                                   unix_socket=unix_socket))
+-
+-        if ssl_handler and HAS_SSLCONTEXT and validate_certs:
+-            tmp_ca_path, cadata, paths_checked = ssl_handler.get_ca_certs()
+-            try:
+-                context = ssl_handler.make_context(tmp_ca_path, cadata)
+-            except NotImplementedError:
+-                pass
++            context = make_context(ciphers=ciphers, validate_certs=False)
++        elif HAS_SSLCONTEXT and validate_certs and (ssl_handler or ciphers is not None):
++            cafile, cadata = None, None
++            if ssl_handler:
++                cafile, cadata, paths_checked = ssl_handler.get_ca_certs()
++            context = make_context(cafile=ca_path or cafile, cadata=None if ca_path else cadata,
++                                   ciphers=ciphers, validate_certs=True)
++
++        elif ciphers is not None:
++            if not HAS_URLLIB3_PYOPENSSLCONTEXT:
++                raise ValueError('TLS ciphers are unsupported by this Python SSL implementation')
++            context = make_context(ciphers=ciphers, validate_certs=validate_certs)
++
++        if (not validate_certs and HAS_SSLCONTEXT) or client_cert or unix_socket:
++            kwargs = dict(client_cert=client_cert, client_key=client_key, unix_socket=unix_socket)
++            if context is not None:
++                kwargs['context'] = context
++            handlers.append(HTTPSClientAuthHandler(**kwargs))
+ 
+         # pre-2.6 versions of python cannot use the custom https
+         # handler, since the socket class is lacking create_connection.
+@@ -1502,7 +1542,10 @@ class Request:
+             kwargs = {}
+             if HAS_SSLCONTEXT:
+                 kwargs['context'] = context
+-            handlers.append(CustomHTTPSHandler(**kwargs))
++            https_handler = CustomHTTPSHandler(**kwargs)
++            if not HAS_SSLCONTEXT and context is not None:
++                https_handler._ansible_context = context
++            handlers.append(https_handler)
+ 
+         handlers.append(RedirectHandlerFactory(follow_redirects, validate_certs, ca_path=ca_path))
+ 
+@@ -1639,20 +1682,20 @@ def open_url(url, data=None, headers=None, method=None, use_proxy=True,
+              force_basic_auth=False, follow_redirects='urllib2',
+              client_cert=None, client_key=None, cookies=None,
+              use_gssapi=False, unix_socket=None, ca_path=None,
+-             unredirected_headers=None, decompress=True):
++             unredirected_headers=None, decompress=True, ciphers=None):
+     '''
+     Sends a request via HTTP(S) or FTP using urllib2 (Python2) or urllib (Python3)
+ 
+     Does not require the module environment
+     '''
+     method = method or ('POST' if data else 'GET')
+-    return Request().open(method, url, data=data, headers=headers, use_proxy=use_proxy,
++    return Request(ciphers=ciphers).open(method, url, data=data, headers=headers, use_proxy=use_proxy,
+                           force=force, last_mod_time=last_mod_time, timeout=timeout, validate_certs=validate_certs,
+                           url_username=url_username, url_password=url_password, http_agent=http_agent,
+                           force_basic_auth=force_basic_auth, follow_redirects=follow_redirects,
+                           client_cert=client_cert, client_key=client_key, cookies=cookies,
+                           use_gssapi=use_gssapi, unix_socket=unix_socket, ca_path=ca_path,
+-                          unredirected_headers=unredirected_headers, decompress=decompress)
++                          unredirected_headers=unredirected_headers, decompress=decompress, ciphers=ciphers)
+ 
+ 
+ def prepare_multipart(fields):
+@@ -1797,13 +1840,14 @@ def url_argument_spec():
+         client_cert=dict(type='path'),
+         client_key=dict(type='path'),
+         use_gssapi=dict(type='bool', default=False),
++        ciphers=dict(type='raw'),
+     )
+ 
+ 
+ def fetch_url(module, url, data=None, headers=None, method=None,
+               use_proxy=None, force=False, last_mod_time=None, timeout=10,
+               use_gssapi=False, unix_socket=None, ca_path=None, cookies=None, unredirected_headers=None,
+-              decompress=True):
++              decompress=True, ciphers=None):
+     """Sends a request via HTTP(S) or FTP (needs the module as parameter)
+ 
+     :arg module: The AnsibleModule (used to get username, password etc. (s.b.).
+@@ -1872,6 +1916,7 @@ def fetch_url(module, url, data=None, headers=None, method=None,
+     client_cert = module.params.get('client_cert')
+     client_key = module.params.get('client_key')
+     use_gssapi = module.params.get('use_gssapi', use_gssapi)
++    ciphers = module.params.get('ciphers') if ciphers is None else ciphers
+ 
+     if not isinstance(cookies, cookiejar.CookieJar):
+         cookies = cookiejar.LWPCookieJar()
+@@ -1886,7 +1931,7 @@ def fetch_url(module, url, data=None, headers=None, method=None,
+                      follow_redirects=follow_redirects, client_cert=client_cert,
+                      client_key=client_key, cookies=cookies, use_gssapi=use_gssapi,
+                      unix_socket=unix_socket, ca_path=ca_path, unredirected_headers=unredirected_headers,
+-                     decompress=decompress)
++                     decompress=decompress, ciphers=ciphers)
+         # Lowercase keys, to conform to py2 behavior, so that py3 and py2 are predictable
+         info.update(dict((k.lower(), v) for k, v in r.info().items()))
+ 
+diff --git a/lib/ansible/modules/get_url.py b/lib/ansible/modules/get_url.py
+index f07864b..c31fbe4 100644
+--- a/lib/ansible/modules/get_url.py
++++ b/lib/ansible/modules/get_url.py
+@@ -97,6 +97,12 @@ options:
+         an environment variable on the target hosts.
+     type: bool
+     default: yes
++  ciphers:
++    description:
++      - SSL/TLS cipher suites to use for HTTPS connections.
++      - Provide an OpenSSL cipher string or an ordered list of cipher names.
++    type: raw
++    version_added: '2.12'
+   validate_certs:
+     description:
+       - If C(no), SSL certificates will not be validated.
+diff --git a/lib/ansible/modules/uri.py b/lib/ansible/modules/uri.py
+index e6e330a..9880429 100644
+--- a/lib/ansible/modules/uri.py
++++ b/lib/ansible/modules/uri.py
+@@ -126,6 +126,12 @@ options:
+           generated by supplying C(json) or C(form-urlencoded) for I(body_format).
+     type: dict
+     version_added: '2.1'
++  ciphers:
++    description:
++      - SSL/TLS cipher suites to use for HTTPS connections.
++      - Provide an OpenSSL cipher string or an ordered list of cipher names.
++    type: raw
++    version_added: '2.12'
+   validate_certs:
+     description:
+       - If C(no), SSL certificates will not be validated.
+diff --git a/lib/ansible/plugins/lookup/url.py b/lib/ansible/plugins/lookup/url.py
+index 9e2d911..42af8aa 100644
+--- a/lib/ansible/plugins/lookup/url.py
++++ b/lib/ansible/plugins/lookup/url.py
+@@ -14,6 +14,10 @@ description:
+ options:
+   _terms:
+     description: urls to query
++  ciphers:
++    description: SSL/TLS cipher suites as an OpenSSL cipher string or ordered list of cipher names.
++    type: raw
++    version_added: '2.12'
+   validate_certs:
+     description: Flag to control SSL certificate validation
+     type: boolean
+@@ -198,6 +202,7 @@ class LookupModule(LookupBase):
+             display.vvvv("url lookup connecting to %s" % term)
+             try:
+                 response = open_url(term, validate_certs=self.get_option('validate_certs'),
++                                    ciphers=self.get_option('ciphers'),
+                                     use_proxy=self.get_option('use_proxy'),
+                                     url_username=self.get_option('username'),
+                                     url_password=self.get_option('password'),
+@@ -211,6 +216,8 @@ class LookupModule(LookupBase):
+                                     unix_socket=self.get_option('unix_socket'),
+                                     ca_path=self.get_option('ca_path'),
+                                     unredirected_headers=self.get_option('unredirected_headers'))
++            except ValueError as e:
++                raise AnsibleError("Invalid TLS ciphers for URL lookup: %s" % to_native(e))
+             except HTTPError as e:
+                 raise AnsibleError("Received HTTP error for %s : %s" % (term, to_native(e)))
+             except URLError as e:
+diff --git a/test/units/module_utils/urls/test_Request.py b/test/units/module_utils/urls/test_Request.py
+index 44db8b8..1ad930f 100644
+--- a/test/units/module_utils/urls/test_Request.py
++++ b/test/units/module_utils/urls/test_Request.py
+@@ -68,12 +68,13 @@ def test_Request_fallback(urlopen_mock, install_opener_mock, mocker):
+         call(None, cookies),  # cookies
+         call(None, '/foo/bar/baz.sock'),  # unix_socket
+         call(None, '/foo/bar/baz.pem'),  # ca_path
++        call(None, None),  # ciphers
+         call(None, None),  # unredirected_headers
+         call(None, True),  # auto_decompress
+     ]
+     fallback_mock.assert_has_calls(calls)
+ 
+-    assert fallback_mock.call_count == 16  # All but headers use fallback
++    assert fallback_mock.call_count == 17  # All but headers use fallback
+ 
+     args = urlopen_mock.call_args[0]
+     assert args[1] is None  # data, this is handled in the Request not urlopen
+@@ -455,4 +456,21 @@ def test_open_url(urlopen_mock, install_opener_mock, mocker):
+                                      url_username=None, url_password=None, http_agent=None,
+                                      force_basic_auth=False, follow_redirects='urllib2',
+                                      client_cert=None, client_key=None, cookies=None, use_gssapi=False,
+-                                     unix_socket=None, ca_path=None, unredirected_headers=None, decompress=True)
++                                     unix_socket=None, ca_path=None, unredirected_headers=None, decompress=True, ciphers=None)
++
++
++@pytest.mark.skipif(not HAS_SSLCONTEXT, reason='requires SSLContext')
++@pytest.mark.parametrize('url, options', [
++    ('https://ansible.com/', {}),
++    ('http://ansible.com/', {}),
++    ('https://ansible.com/', {'unix_socket': '/tmp/ansible-test.sock'}),
++    ('https://ansible.com/', {'client_cert': '/tmp/client.pem'}),
++])
++def test_Request_ciphers_context_on_https_handlers(urlopen_mock, install_opener_mock, url, options):
++    cipher = 'ECDHE-RSA-AES128-SHA256'
++    Request().open('GET', url, ciphers=[cipher], **options)
++    opener = install_opener_mock.call_args[0][0]
++    handlers = [handler for handler in opener.handlers if isinstance(handler, urllib_request.HTTPSHandler)]
++    assert handlers
++    assert all(handler._context is not None for handler in handlers)
++    assert all(any(entry['name'] == cipher for entry in handler._context.get_ciphers()) for handler in handlers)
+diff --git a/test/units/module_utils/urls/test_fetch_url.py b/test/units/module_utils/urls/test_fetch_url.py
+index d9379ba..da32d50 100644
+--- a/test/units/module_utils/urls/test_fetch_url.py
++++ b/test/units/module_utils/urls/test_fetch_url.py
+@@ -69,7 +69,7 @@ def test_fetch_url(open_url_mock, fake_ansible_module):
+                                           follow_redirects='urllib2', force=False, force_basic_auth='', headers=None,
+                                           http_agent='ansible-httpget', last_mod_time=None, method=None, timeout=10, url_password='', url_username='',
+                                           use_proxy=True, validate_certs=True, use_gssapi=False, unix_socket=None, ca_path=None, unredirected_headers=None,
+-                                          decompress=True)
++                                          decompress=True, ciphers=None)
+ 
+ 
+ def test_fetch_url_params(open_url_mock, fake_ansible_module):
+@@ -82,6 +82,7 @@ def test_fetch_url_params(open_url_mock, fake_ansible_module):
+         'follow_redirects': 'all',
+         'client_cert': 'client.pem',
+         'client_key': 'client.key',
++        'ciphers': ['ECDHE-RSA-AES128-SHA256'],
+     }
+ 
+     r, info = fetch_url(fake_ansible_module, 'http://ansible.com/')
+@@ -92,7 +93,7 @@ def test_fetch_url_params(open_url_mock, fake_ansible_module):
+                                           follow_redirects='all', force=False, force_basic_auth=True, headers=None,
+                                           http_agent='ansible-test', last_mod_time=None, method=None, timeout=10, url_password='passwd', url_username='user',
+                                           use_proxy=True, validate_certs=False, use_gssapi=False, unix_socket=None, ca_path=None, unredirected_headers=None,
+-                                          decompress=True)
++                                          decompress=True, ciphers=['ECDHE-RSA-AES128-SHA256'])
+ 
+ 
+ def test_fetch_url_cookies(mocker, fake_ansible_module):
+diff --git a/test/units/module_utils/urls/test_urls.py b/test/units/module_utils/urls/test_urls.py
+index 69c1b82..5f05bbf 100644
+--- a/test/units/module_utils/urls/test_urls.py
++++ b/test/units/module_utils/urls/test_urls.py
+@@ -107,3 +107,30 @@ def test_unix_socket_patch_httpconnection_connect(mocker):
+     with urls.unix_socket_patch_httpconnection_connect():
+         conn.connect()
+     assert unix_conn.call_count == 1
++
++
++@pytest.mark.parametrize('ciphers', [
++    'ECDHE-RSA-AES128-SHA256',
++    ['ECDHE-RSA-AES128-SHA256', 'ECDHE-RSA-AES256-SHA384'],
++])
++def test_make_context_ciphers(ciphers, mocker):
++    context = mocker.Mock()
++    create = mocker.patch.object(urls, 'create_default_context', return_value=context)
++    urls.make_context(ciphers=ciphers)
++    create.assert_called_once_with(cafile=None)
++    expected = ':'.join(ciphers) if isinstance(ciphers, list) else ciphers
++    context.set_ciphers.assert_called_once_with(expected)
++
++
++@pytest.mark.parametrize('ciphers', ['', [], [42], 42, 'INVALID-CIPHER'])
++def test_make_context_invalid_ciphers(ciphers):
++    with pytest.raises(ValueError, match='ciphers|TLS ciphers'):
++        urls.make_context(ciphers=ciphers)
++
++
++def test_make_context_without_verification_preserves_protocol_options():
++    context = urls.make_context(ciphers='ECDHE-RSA-AES128-SHA256', validate_certs=False)
++    assert context.verify_mode == urls.ssl.CERT_NONE
++    assert context.options & urls.ssl.OP_NO_SSLv3
++    if urls.ssl.OP_NO_SSLv2:
++        assert context.options & urls.ssl.OP_NO_SSLv2
+diff --git a/test/units/plugins/lookup/test_url.py b/test/units/plugins/lookup/test_url.py
+index 2aa77b3..c0cb83a 100644
+--- a/test/units/plugins/lookup/test_url.py
++++ b/test/units/plugins/lookup/test_url.py
+@@ -24,3 +24,11 @@ def test_user_agent(mocker, kwargs, agent):
+         url_lookup.run(['https://nourl'], **kwargs)
+     assert 'http_agent' in mock_open_url.call_args.kwargs
+     assert mock_open_url.call_args.kwargs['http_agent'] == agent
++
++
++def test_ciphers_option(mocker):
++    mock_open_url = mocker.patch('ansible.plugins.lookup.url.open_url', side_effect=AttributeError('raised intentionally'))
++    url_lookup = lookup_loader.get('url')
++    with pytest.raises(AttributeError):
++        url_lookup.run(['https://nourl'], ciphers=['ECDHE-RSA-AES128-SHA256'])
++    assert mock_open_url.call_args.kwargs['ciphers'] == ['ECDHE-RSA-AES128-SHA256']

@@ -1,0 +1,3 @@
+MIME mappings and lossless formats now load from [mime_types.yaml](/app/resources/mime_types.yaml) during startup through a `conf.AddHook` hook. Operators can override the bundled file at `<DataFolder>/resources/mime_types.yaml`. The UI uses the loaded lossless list, and explicit `.js` and `.css` registrations remain.
+
+The resource override test and relevant Go tests passed: `./mime`, `./model`, `./core`, `./server`, `./server/subsonic`, and `./cmd`.

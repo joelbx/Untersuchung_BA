@@ -1,0 +1,3 @@
+Implemented the `build_marc()` to `expand_record()` refactor. `expand_record()` and `build_titles()` now live in [catalog/utils/__init__.py](/app/openlibrary/catalog/utils/__init__.py); add_book callers, merge docs, tests, and comments use the new function. `merge_marc.py` no longer defines `build_marc()`.
+
+Focused tests passed: **21 passed, 2 xfailed**. `git diff --check` was clean, and no Python references to `build_marc` remain.

@@ -1,0 +1,1 @@
+Complete: SQL Server selector and pinger added. Pinger validates parameters, bounds the TCP/login connection with the caller context, and classifies refused connections plus SQL Server login/database error numbers. Focused and full package tests pass: GOPROXY=off go test ./lib/client/conntest/database ./lib/client/conntest -count=1.

@@ -1,0 +1,3 @@
+Updated notifications to render string content as sanitized HTML. Links now receive `rel="noopener noreferrer"` and `target="_blank"`; React elements still render directly. Non-success notifications deduplicate by explicit key, string text, or notification ID, while repeated success notifications remain visible.
+
+The component typecheck, targeted lint, existing Alert tests, and `git diff --check` passed.

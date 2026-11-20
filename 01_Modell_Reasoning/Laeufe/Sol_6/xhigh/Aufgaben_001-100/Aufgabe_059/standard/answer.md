@@ -1,0 +1,3 @@
+Added a public [Dialog component](/app/packages/components/components/dialog/Dialog.tsx) that forwards attributes, children, and its host ref. It uses a native `<dialog>` when supported and an accessible fallback in limited DOM environments. [ModalTwo](/app/packages/components/components/modalTwo/Modal.tsx) now uses it and keeps the host open through its exit animation.
+
+Verification passed: 11 focused tests, the package TypeScript check, Prettier, and `git diff --check`.

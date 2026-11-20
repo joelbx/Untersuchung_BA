@@ -1,0 +1,1 @@
+Task: implement `scrolling.bar=overlay`, gated to QtWebEngine/Qt >= 5.11/non-macOS, update boolean migration (False -> overlay), and adjust JS header test marker support. Next: inspect config, migration, Qt arguments and tests; edit and run focused existing tests.

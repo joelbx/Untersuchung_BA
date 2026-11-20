@@ -1,0 +1,3 @@
+Collection-name validation now rejects Python keywords in either segment and names that are not valid Python identifiers. Galaxy requirement parsing uses the same validator, and the legacy helpers and their Python 2/3 compatibility code have been removed from [dataclasses.py](/app/lib/ansible/galaxy/dependency_resolution/dataclasses.py).
+
+Verification: 73 collection-loader tests and 17 targeted galaxy CLI tests passed.

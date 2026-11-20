@@ -1,0 +1,3 @@
+Added JXL MIME and extension support, and enabled HEIC, HEIF, and JXL previews when browser detection reports macOS or iOS Safari 17+. Both Drive upload parser copies now prefer a specific file MIME type and otherwise use the extension, without reading file chunks.
+
+**Verification:** 3 focused suites passed (14 tests); Prettier and `git diff --check` passed. Package type checks failed on errors outside the edited files, and ESLint exceeded Node’s heap limit. No delegation was used.

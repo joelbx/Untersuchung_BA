@@ -1,0 +1,3 @@
+Added an OCI snapshot source that fetches from local layouts and remote registries, reopens local layouts on each fetch, caches snapshots by digest, and polls for changes. Updated `SnapshotSource.Get` and its callers to accept a context. Added tests for external local updates, subscriptions, and gzip layers.
+
+Verification: `GOPROXY=off GOSUMDB=off go test ./internal/oci ./internal/storage/fs/... -count=1` passed; `git diff --check` passed.

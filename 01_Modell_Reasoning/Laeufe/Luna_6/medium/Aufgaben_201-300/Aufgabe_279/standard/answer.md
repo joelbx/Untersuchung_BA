@@ -1,0 +1,3 @@
+Implemented reusable payment verification with `VerifyPayment`, `getDefaultVerifyPayment`, and `getCreatePaymentToken`, and wired the five requested consumers to create and reuse those handlers. Chargeable tokens return immediately, pending tokens use the injected verifier, and initial terminal failure statuses reject.
+
+`git diff --check` passed. The focused Jest run could not start because the repository’s Jest configuration failed to parse the TypeScript test file. The component TypeScript check produced no errors, though the command did not return a clear completion status.

@@ -1,0 +1,7 @@
+# Fault localization checkpoint
+
+Diagnosis: `lib/ansible/module_utils/facts/hardware/aix.py:get_cpu_facts` (lines 57-84) is the fault site. It counts `Available` entries from `lsdev -Cc processor` into `processor_count` (line 72), stores the `lsattr type` value as a string despite initializing `processor` as a list (lines 59, 77), and stores `smt_threads` in `processor_cores` (line 82). It never assigns `processor_threads_per_core` or `processor_vcpus`. A mocked 12-device, 4-thread run reproduces `{'processor': 'PowerPC_POWER7', 'processor_count': 12, 'processor_cores': 4}`.
+
+Expected fix behavior: count available device entries as total cores; set processor_count=1; keep CPU type in a one-element list; set threads per core from `smt_threads`, defaulting to 1 when absent; calculate vcpus as cores times threads per core. Guard empty/no-available device output before using `cpudev`, and parse attribute output with generic whitespace splitting if robustness is in scope.
+
+Coverage: `test/units/module_utils/facts/test_facts.py:112-115` only checks AIX class/collector wiring. `test/integration/targets/hardware_facts/tasks/main.yml` includes Linux tasks only. No AIX processor-value test exists in the inspected tests. Uncertainty: no live AIX device output was available, so exact behavior for unusual `lsdev` states and malformed `lsattr` output remains unverified. Project source and tests were not modified.

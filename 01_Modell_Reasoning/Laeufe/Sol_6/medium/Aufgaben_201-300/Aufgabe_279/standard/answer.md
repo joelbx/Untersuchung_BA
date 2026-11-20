@@ -1,0 +1,3 @@
+Payment token verification is now injectable through `getCreatePaymentToken` and `getDefaultVerifyPayment` in [paymentTokenHelper.tsx](/app/packages/components/containers/payments/paymentTokenHelper.tsx). All five requested components, plus the additional account signup caller, use the new flow. Chargeable tokens return immediately; pending tokens go to verification; terminal failures reject. Polling stops and cleans up on completion or cancellation.
+
+Component and account type checks passed, along with the relevant payment and signup test suites.

@@ -1,0 +1,2 @@
+# Checkpoint
+Implemented U2F challenge aggregation for every registered device, with a legacy embedded challenge and a challenges array. Propagated the payload through auth client and web endpoints; CLI signing accepts the array and falls back to the legacy challenge. This checkout contains compiled web assets only; no editable MFA management UI was exposed. Tests: lib/auth and lib/client passed; full lib/web suite had one proxy startup timeout; focused rerun of that test and U2F-named tests passed. git diff --check passed.

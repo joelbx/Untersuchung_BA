@@ -1,0 +1,3 @@
+Implemented disk cleanup for removed group covers, user covers, and uploaded avatars, including supported fixed and timestamped filenames. Account deletion now uses the same user image cleanup. Removal validates local upload paths, tolerates missing files, and preserves the socket action hooks. Added regression tests for file removal.
+
+ESLint and the diff check pass. A focused local file check passed; the Mocha tests could not start because Redis at `127.0.0.1:6379` refused connections.

@@ -1,0 +1,3 @@
+Updated `flipt validate` to report all validation errors with field paths, descriptive messages, and locations in the original YAML. JSON returns the complete structured result; text output identifies each issue. Validation failures now exit with a `validation failed` message on stderr.
+
+The validator and command tests pass. `go test ./...` remains red only for Redis tests `TestSet`, `TestGet`, and `TestDelete`, which require an unavailable Docker daemon.

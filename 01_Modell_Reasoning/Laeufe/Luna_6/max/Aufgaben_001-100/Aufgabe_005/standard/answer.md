@@ -1,0 +1,5 @@
+Implemented early Qt initialization, detailed wrapper selection errors, predictable `SelectionInfo` formatting, and the `init()` return value. Updated startup to pass the selection info to the Qt availability checker and added the requested diagnostic spacing and debug log.
+
+Validation: machinery and early-init tests passed (27); qutebrowser tests passed (19); affected version-info tests passed (9). `compileall` and `git diff --check` passed. Broader `test_version.py` runs exited during unrelated QtWebEngine/Chromium tests without a traceback.
+
+Files: [machinery.py](/app/qutebrowser/qt/machinery.py:86), [earlyinit.py](/app/qutebrowser/misc/earlyinit.py:144), [qutebrowser.py](/app/qutebrowser/qutebrowser.py:240).

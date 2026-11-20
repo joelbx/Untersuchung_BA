@@ -1,0 +1,3 @@
+Updated voice broadcast liveness across playback, the hook, header, and badge. The UI now shows a red badge while live, a grey badge while buffering or paused, and no badge when stopped or no longer live. Added `VoiceBroadcastLiveness`, `getLiveness()`, change events, `isLast()`, and regression tests. Findings and the check results are recorded in the checkpoint.
+
+The voice broadcast suite passed: **24 suites, 215 tests**. Targeted lint and style checks passed. The full TypeScript check remains blocked by an unrelated existing error in [notifications.ts](/app/src/utils/notifications.ts:79) (`TS2554`).

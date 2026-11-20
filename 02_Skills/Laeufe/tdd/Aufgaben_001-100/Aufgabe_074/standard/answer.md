@@ -1,0 +1,3 @@
+Updated [FnToCLI](/app/scripts/solr_builder/solr_builder/fn_to_cli.py) to parse `Path` and typed lists, use `--<parameter_name>` for optional arguments, accept an explicit sequence in `parse_args`, and return results from synchronous and asynchronous functions. Required lists are positional; omitted optional lists receive `None`.
+
+The [regression tests](/app/scripts/solr_builder/tests/test_fn_to_cli.py) pass (10/10), and lint passes. `make test-py` remains red: three Solr tests require an OSP dump location, and two test modules hit proxy errors during collection. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

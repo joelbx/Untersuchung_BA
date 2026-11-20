@@ -1,0 +1,3 @@
+Centralized `BASE_SIZE` and `sizeUnits` in [helpers/size.ts](/app/packages/shared/lib/helpers/size.ts). Member allocation, CSV import, organization setup, shared bonus constants, and other storage calculations now use that source. Drive Pro and Drive Business initial allocation uses `sizeUnits.TB` as requested.
+
+The CSV suite passed: 64 tests and 5 snapshots. Targeted lint, Prettier, and `git diff --check` passed. Both workspace type checks remain blocked by a TS2345 error in the unchanged [crypto worker API](/app/packages/crypto/lib/worker/api.ts:579), caused by incompatible installed `openpgp` types.

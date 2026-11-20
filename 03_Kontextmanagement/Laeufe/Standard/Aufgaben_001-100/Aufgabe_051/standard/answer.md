@@ -1,0 +1,3 @@
+`tsh` now uses `TELEPORT_KUBE_CLUSTER` as the default Kubernetes cluster when no cluster is specified on the CLI. The CLI value takes precedence. Existing handling already gives `TELEPORT_CLUSTER` precedence over `TELEPORT_SITE` and lets `TELEPORT_HOME` override the CLI home path while removing trailing slashes.
+
+Added focused tests for the Kubernetes cluster precedence and home override. The relevant `tool/tsh` tests and `git diff --check` pass.

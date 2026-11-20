@@ -1,0 +1,3 @@
+Implemented disk cleanup for local group covers and thumbnails, user covers and avatars, and account deletion. The user image layer now provides the requested path lookup and removal functions, clears the associated fields, and handles files that are already missing. Socket removal hooks remain in place.
+
+Added disk regression tests for `.png`, `.jpeg`, `.jpg`, and `.bmp` files, including timestamped names. ESLint and 16 focused Mocha tests pass. A broader test run stopped on an unrelated existing user icon assertion.

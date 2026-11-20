@@ -1,0 +1,3 @@
+Implemented the namespace access fix. Both authorization engines now evaluate viewable namespaces; the middleware passes the result to `ListNamespaces`, which filters the response and reports an accessible namespace count. The UI redirects a saved route for an inaccessible namespace to an accessible one.
+
+`go test ./internal/server/authz/... ./internal/server -count=1` passed. UI checks could not run because dependencies are not installed locally.

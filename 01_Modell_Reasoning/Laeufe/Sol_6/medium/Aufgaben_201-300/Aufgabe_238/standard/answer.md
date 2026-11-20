@@ -1,0 +1,3 @@
+Replaced the deprecated `:buffer` command with `:tab-select` in command registration, completion, the default `gt` binding, current help, and examples. The existing selection behavior remains available, including count precedence, URL and title matching, and cross-window selection.
+
+Verification: 159 unit tests passed (1 expected failure); 13 tab-selection scenarios passed (1 skipped); and 2 completion scenarios passed.

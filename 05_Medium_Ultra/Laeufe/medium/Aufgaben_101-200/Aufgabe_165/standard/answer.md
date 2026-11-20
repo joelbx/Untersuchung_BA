@@ -1,0 +1,3 @@
+Added `.well-known` `force_disable` support for new rooms. The shared policy helper gives server forced encryption precedence when policies conflict. The creation dialog now shows the enforced encryption state, keeps the switch disabled while policy loads, and submits the value it displays.
+
+The affected Jest tests pass (26 tests), and targeted lint and formatting checks pass. TypeScript still reports an unrelated existing error in [Unread.ts](/app/src/Unread.ts:167).

@@ -1,0 +1,387 @@
+diff --git a/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py b/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py
+new file mode 100644
+index 00000000..8ad58536
+--- /dev/null
++++ b/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py
+@@ -0,0 +1,247 @@
++#!/usr/bin/python
++# (c) 2019, NetApp, Inc
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++ANSIBLE_METADATA = {'metadata_version': '1.1', 'status': ['preview'], 'supported_by': 'community'}
++
++DOCUMENTATION = '''
++---
++module: netapp_e_drive_firmware
++short_description: Manage NetApp E-Series drive firmware
++description:
++  - Uploads drive firmware and upgrades compatible drives whose firmware differs from the supplied version.
++  - By default an accepted upgrade continues in the background.
++version_added: '2.9'
++author: NetApp
++extends_documentation_fragment:
++  - netapp.eseries
++options:
++  firmware:
++    description: Local paths to E-Series drive firmware files.
++    type: list
++    elements: str
++    required: true
++  wait_for_completion:
++    description: Wait for each selected drive to finish upgrading.
++    type: bool
++    default: false
++  ignore_inaccessible_drives:
++    description: Skip inaccessible drives instead of failing the task.
++    type: bool
++    default: false
++  upgrade_drives_online:
++    description: Upgrade drives while they are online and accepting I/O.
++    type: bool
++    default: true
++notes:
++  - Check mode reports whether drives need an upgrade without initiating one.
++'''
++
++EXAMPLES = '''
++- name: Upgrade compatible drives
++  netapp_e_drive_firmware:
++    api_url: https://array.example.com/devmgr/v2
++    api_username: admin
++    api_password: "{{ password }}"
++    ssid: '1'
++    firmware:
++      - /tmp/drive_firmware.dlp
++    wait_for_completion: true
++'''
++
++RETURN = '''
++upgrade_in_process:
++  description: Whether an accepted drive firmware upgrade is still running.
++  returned: always
++  type: bool
++'''
++
++import os
++import time
++
++from ansible.module_utils._text import to_native
++from ansible.module_utils.netapp import NetAppESeriesModule, create_multipart_formdata, request
++
++
++class NetAppESeriesDriveFirmware(NetAppESeriesModule):
++    WAIT_TIMEOUT_SEC = 1800
++    POLL_INTERVAL_SEC = 5
++    ACTIVE_STATUSES = frozenset(('inProgress', 'inProgressRecon', 'pending', 'notAttempted'))
++
++    def __init__(self):
++        options = dict(firmware=dict(type='list', elements='str', required=True),
++                       wait_for_completion=dict(type='bool', default=False),
++                       ignore_inaccessible_drives=dict(type='bool', default=False),
++                       upgrade_drives_online=dict(type='bool', default=True))
++        super(NetAppESeriesDriveFirmware, self).__init__(options, supports_check_mode=True)
++        args = self.module.params
++        self.firmware_list = args['firmware']
++        self.wait_for_completion = args['wait_for_completion']
++        self.ignore_inaccessible_drives = args['ignore_inaccessible_drives']
++        self.upgrade_drives_online = args['upgrade_drives_online']
++        self.upgrade_in_progress = False
++        self.upgrade_drives = None
++        if not self.firmware_list:
++            self.module.fail_json(msg='At least one drive firmware file is required.')
++        names = [os.path.basename(path) for path in self.firmware_list]
++        if len(names) != len(set(names)) or any(not name for name in names):
++            self.module.fail_json(msg='Drive firmware file basenames must be unique and nonempty.')
++
++    def _request(self, path, error_message, **kwargs):
++        try:
++            code, response = self.request(path, **kwargs)
++            if code < 200 or code >= 300:
++                raise ValueError('HTTP %s: %s' % (code, response))
++            return response
++        except Exception as error:
++            self.module.fail_json(msg='%s Array [%s]. Error [%s].' %
++                                  (error_message, self.ssid, to_native(error)))
++
++    @staticmethod
++    def _items(response, keys):
++        if isinstance(response, list):
++            return response
++        if isinstance(response, dict):
++            for key in keys:
++                if isinstance(response.get(key), list):
++                    return response[key]
++        raise ValueError('Unexpected response format')
++
++    def upload_firmware(self):
++        for path in self.firmware_list:
++            filename = os.path.basename(path)
++            try:
++                headers, body = create_multipart_formdata([('file', filename, path)])
++                # The shared request wrapper logs request bodies; firmware binaries must not be logged.
++                code, response = request(self.url + 'storage-systems/%s/files/drive' % self.ssid,
++                                         data=body, method='POST', headers=headers, **self.creds)
++                if code < 200 or code >= 300:
++                    raise ValueError('HTTP %s: %s' % (code, response))
++            except Exception as error:
++                self.module.fail_json(msg='Failed to upload drive firmware [%s] to array [%s]. Error [%s].' %
++                                      (path, self.ssid, to_native(error)))
++
++    def upgrade_list(self):
++        if self.upgrade_drives is not None:
++            return self.upgrade_drives
++        response = self._request('storage-systems/%s/firmware/drives' % self.ssid,
++                                 'Failed to complete compatibility and health check.')
++        try:
++            compatibilities = self._items(response, ('compatibilities', 'firmware', 'files'))
++        except (TypeError, ValueError) as error:
++            self.module.fail_json(msg='Failed to complete compatibility and health check. Array [%s]. Error [%s].' %
++                                  (self.ssid, to_native(error)))
++
++        by_name = {os.path.basename(path): [] for path in self.firmware_list}
++        matched = set()
++        for compatibility in compatibilities:
++            try:
++                filename = os.path.basename(compatibility.get('filename') or compatibility.get('fileName') or '')
++                if filename not in by_name:
++                    continue
++                matched.add(filename)
++                target_version = (compatibility.get('firmwareVersion') or compatibility.get('version') or
++                                  compatibility.get('targetVersion'))
++                refs = (compatibility.get('driveRefList') or compatibility.get('driveRefs') or
++                        compatibility.get('compatibleDrives') or [])
++                if isinstance(refs, dict):
++                    refs = refs.get('driveRef', [])
++                if not isinstance(refs, list) or not target_version:
++                    raise ValueError('Missing target version or compatible drive references for %s' % filename)
++                for ref in refs:
++                    drive_ref = ref.get('driveRef') if isinstance(ref, dict) else ref
++                    if not drive_ref:
++                        raise ValueError('Missing drive reference for %s' % filename)
++                    drive = self._request('storage-systems/%s/drives/%s' % (self.ssid, drive_ref),
++                                          'Failed to retrieve drive information.')
++                    if not isinstance(drive, dict):
++                        self.module.fail_json(msg='Failed to retrieve drive information. Drive [%s], array [%s].' %
++                                              (drive_ref, self.ssid))
++                    if drive.get('firmwareVersion') is None:
++                        self.module.fail_json(msg='Failed to retrieve drive information. Drive [%s] on array [%s] '
++                                                  'has no firmware version.' % (drive_ref, self.ssid))
++                    health = (drive.get('status') or drive.get('driveStatus') or
++                              drive.get('operationalState') or '').lower()
++                    if (health in ('offline', 'unavailable', 'inaccessible', 'failed') or
++                            drive.get('accessible') is False or drive.get('removed') is True):
++                        if self.ignore_inaccessible_drives:
++                            continue
++                        self.module.fail_json(msg='Inaccessible drive [%s] on array [%s].' % (drive_ref, self.ssid))
++                    if drive.get('firmwareVersion') == target_version:
++                        continue
++                    online = compatibility.get('onlineUpgradeCapable',
++                                               compatibility.get('canUpgradeOnline',
++                                                                 drive.get('onlineUpgradeCapable', True)))
++                    if self.upgrade_drives_online and not online:
++                        self.module.fail_json(msg='Drive is not capable of online upgrade. Drive [%s], array [%s].' %
++                                              (drive_ref, self.ssid))
++                    if drive_ref not in by_name[filename]:
++                        by_name[filename].append(drive_ref)
++            except (AttributeError, TypeError, ValueError) as error:
++                self.module.fail_json(msg='Failed to complete compatibility and health check. Array [%s]. Error [%s].' %
++                                      (self.ssid, to_native(error)))
++
++        missing = set(by_name) - matched
++        if missing:
++            self.module.fail_json(msg='Invalid or incompatible drive firmware file(s) for array [%s]: %s.' %
++                                  (self.ssid, ', '.join(sorted(missing))))
++        self.upgrade_drives = [dict(filename=name, driveRefList=by_name[name])
++                               for name in [os.path.basename(path) for path in self.firmware_list] if by_name[name]]
++        return self.upgrade_drives
++
++    def wait_for_upgrade_completion(self):
++        targets = set(ref for item in self.upgrade_list() for ref in item['driveRefList'])
++        deadline = time.time() + self.WAIT_TIMEOUT_SEC
++        while targets:
++            response = self._request('storage-systems/%s/firmware/drives/state' % self.ssid,
++                                     'Failed to retrieve drive status.')
++            try:
++                states = self._items(response, ('driveStateList', 'drives', 'states'))
++                for state in states:
++                    ref = state.get('driveRef') or state.get('ref')
++                    if ref not in targets:
++                        continue
++                    status = state.get('status') or state.get('state')
++                    if status == 'okay':
++                        targets.remove(ref)
++                    elif status not in self.ACTIVE_STATUSES:
++                        self.module.fail_json(msg='Drive firmware upgrade failed. Drive [%s], status [%s], array [%s].' %
++                                              (ref, status, self.ssid))
++            except (AttributeError, TypeError, ValueError) as error:
++                self.module.fail_json(msg='Failed to retrieve drive status. Array [%s]. Error [%s].' %
++                                      (self.ssid, to_native(error)))
++            if targets:
++                if time.time() >= deadline:
++                    self.module.fail_json(msg='Timed out waiting for drive firmware upgrade. Array [%s]. Drives [%s].' %
++                                          (self.ssid, ', '.join(sorted(targets))))
++                time.sleep(min(self.POLL_INTERVAL_SEC, max(0, deadline - time.time())))
++        self.upgrade_in_progress = False
++
++    def upgrade(self):
++        changes = self.upgrade_list()
++        if not changes:
++            return
++        self._request('storage-systems/%s/firmware/drives/initiate-upgrade' % self.ssid,
++                      'Failed to upgrade drive firmware.', method='POST',
++                      data=dict(onlineUpgrade=self.upgrade_drives_online, firmware=changes))
++        self.upgrade_in_progress = True
++        if self.wait_for_completion:
++            self.wait_for_upgrade_completion()
++
++    def apply(self):
++        self.upload_firmware()
++        changes = self.upgrade_list()
++        if changes and not self.module.check_mode:
++            self.upgrade()
++        self.module.exit_json(changed=bool(changes), upgrade_in_process=self.upgrade_in_progress)
++
++
++def main():
++    NetAppESeriesDriveFirmware().apply()
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py b/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py
+new file mode 100644
+index 00000000..6b2405d0
+--- /dev/null
++++ b/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py
+@@ -0,0 +1,128 @@
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++from ansible.modules.storage.netapp.netapp_e_drive_firmware import NetAppESeriesDriveFirmware
++from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
++from units.compat import mock
++
++
++class DriveFirmwareTests(ModuleTestCase):
++    def make_module(self, **options):
++        args = dict(api_url='https://array.example/devmgr/v2', api_username='admin',
++                    api_password='password', ssid='1', firmware=['/tmp/target.dlp'])
++        args.update(options)
++        set_module_args(args)
++        return NetAppESeriesDriveFirmware()
++
++    def test_upgrade_list_filters_version_health_and_unrelated_firmware(self):
++        firmware = self.make_module(ignore_inaccessible_drives=True)
++        compatibility = [dict(filename='target.dlp', firmwareVersion='2',
++                              driveRefList=['new', 'current', 'offline']),
++                         dict(filename='other.dlp', firmwareVersion='9', driveRefList=['other'])]
++        drives = {'new': dict(status='optimal', firmwareVersion='1'),
++                  'current': dict(status='optimal', firmwareVersion='2'),
++                  'offline': dict(status='offline', firmwareVersion='1')}
++
++        def response(path, **kwargs):
++            if path.endswith('/firmware/drives'):
++                return 200, compatibility
++            return 200, drives[path.rsplit('/', 1)[-1]]
++
++        with mock.patch.object(firmware, 'request', side_effect=response) as request:
++            self.assertEqual(firmware.upgrade_list(), [dict(filename='target.dlp', driveRefList=['new'])])
++            self.assertEqual(firmware.upgrade_list(), [dict(filename='target.dlp', driveRefList=['new'])])
++            self.assertEqual(request.call_count, 4)
++
++    def test_inaccessible_drive_fails_by_default(self):
++        firmware = self.make_module()
++        with mock.patch.object(firmware, 'request', side_effect=[
++                (200, [dict(filename='target.dlp', firmwareVersion='2', driveRefList=['bad'])]),
++                (200, dict(status='unavailable', firmwareVersion='1'))]):
++            with self.assertRaises(AnsibleFailJson) as error:
++                firmware.upgrade_list()
++        self.assertIn('Inaccessible drive', error.exception.args[0]['msg'])
++
++    def test_online_capability_fails(self):
++        firmware = self.make_module()
++        with mock.patch.object(firmware, 'request', side_effect=[
++                (200, [dict(filename='target.dlp', firmwareVersion='2', driveRefList=['drive'],
++                            onlineUpgradeCapable=False)]),
++                (200, dict(status='optimal', firmwareVersion='1'))]):
++            with self.assertRaises(AnsibleFailJson) as error:
++                firmware.upgrade_list()
++        self.assertIn('Drive is not capable of online upgrade.', error.exception.args[0]['msg'])
++
++    def test_check_mode_reports_change_without_initiating_upgrade(self):
++        firmware = self.make_module(_ansible_check_mode=True)
++        with mock.patch.object(firmware, 'upload_firmware'), mock.patch.object(
++                firmware, 'upgrade_list', return_value=[dict(filename='target.dlp', driveRefList=['drive'])]), mock.patch.object(
++                firmware, 'upgrade') as upgrade:
++            with self.assertRaises(AnsibleExitJson) as result:
++                firmware.apply()
++        self.assertEqual(result.exception.args[0]['changed'], True)
++        self.assertEqual(result.exception.args[0]['upgrade_in_process'], False)
++        upgrade.assert_not_called()
++
++    def test_upgrade_waits_for_only_selected_drives(self):
++        firmware = self.make_module(wait_for_completion=True)
++        firmware.upgrade_drives = [dict(filename='target.dlp', driveRefList=['drive'])]
++        responses = [(202, {}),
++                     (200, [dict(driveRef='other', status='failed'), dict(driveRef='drive', status='pending')]),
++                     (200, [dict(driveRef='drive', status='okay')])]
++        with mock.patch.object(firmware, 'request', side_effect=responses) as request:
++            firmware.upgrade()
++        self.assertFalse(firmware.upgrade_in_progress)
++        self.assertEqual(request.call_args_list[0][1]['data']['onlineUpgrade'], True)
++        self.assertEqual(request.call_count, 3)
++
++    def test_upload_failure_identifies_file_and_array(self):
++        firmware = self.make_module()
++        with mock.patch('ansible.modules.storage.netapp.netapp_e_drive_firmware.create_multipart_formdata',
++                        side_effect=IOError('missing file')):
++            with self.assertRaises(AnsibleFailJson) as error:
++                firmware.upload_firmware()
++        message = error.exception.args[0]['msg']
++        self.assertIn('Failed to upload drive firmware', message)
++        self.assertIn('target.dlp', message)
++        self.assertIn('array [1]', message)
++
++    def test_upload_posts_multipart_to_array(self):
++        firmware = self.make_module()
++        with mock.patch('ansible.modules.storage.netapp.netapp_e_drive_firmware.create_multipart_formdata',
++                        return_value=({'Content-Type': 'multipart/form-data'}, b'firmware')) as multipart:
++            with mock.patch('ansible.modules.storage.netapp.netapp_e_drive_firmware.request',
++                            return_value=(200, {})) as post:
++                firmware.upload_firmware()
++        multipart.assert_called_once_with([('file', 'target.dlp', '/tmp/target.dlp')])
++        self.assertTrue(post.call_args[0][0].endswith('/storage-systems/1/files/drive'))
++        self.assertEqual(post.call_args[1]['method'], 'POST')
++        self.assertEqual(post.call_args[1]['data'], b'firmware')
++
++    def test_wait_fails_on_targeted_drive_error(self):
++        firmware = self.make_module()
++        firmware.upgrade_drives = [dict(filename='target.dlp', driveRefList=['drive'])]
++        with mock.patch.object(firmware, 'request', return_value=(200, [dict(driveRef='drive', status='failed')])):
++            with self.assertRaises(AnsibleFailJson) as error:
++                firmware.wait_for_upgrade_completion()
++        self.assertIn('Drive firmware upgrade failed.', error.exception.args[0]['msg'])
++
++    def test_wait_times_out_when_selected_drive_is_missing(self):
++        firmware = self.make_module()
++        firmware.upgrade_drives = [dict(filename='target.dlp', driveRefList=['drive'])]
++        firmware.WAIT_TIMEOUT_SEC = 0
++        with mock.patch.object(firmware, 'request', return_value=(200, [dict(driveRef='other', status='okay')])):
++            with self.assertRaises(AnsibleFailJson) as error:
++                firmware.wait_for_upgrade_completion()
++        self.assertIn('Timed out waiting for drive firmware upgrade.', error.exception.args[0]['msg'])
++
++    def test_no_upgrade_is_idempotent(self):
++        firmware = self.make_module()
++        with mock.patch.object(firmware, 'upload_firmware'), mock.patch.object(
++                firmware, 'upgrade_list', return_value=[]), mock.patch.object(firmware, 'upgrade') as upgrade:
++            with self.assertRaises(AnsibleExitJson) as result:
++                firmware.apply()
++        self.assertFalse(result.exception.args[0]['changed'])
++        self.assertFalse(result.exception.args[0]['upgrade_in_process'])
++        upgrade.assert_not_called()

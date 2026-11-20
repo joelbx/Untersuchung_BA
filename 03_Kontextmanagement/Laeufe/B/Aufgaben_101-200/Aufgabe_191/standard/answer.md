@@ -1,0 +1,3 @@
+Implemented registration token entry in [InteractiveAuthEntryComponents.tsx](/app/src/components/views/auth/InteractiveAuthEntryComponents.tsx) for both stable and unstable stage identifiers. The form provides the focused token field, error and busy states, and submits the advertised type with the token; the upper flow adds the session.
+
+All 8 relevant tests pass, including new coverage for both identifiers and the completion callback. ESLint and Prettier pass. Full TypeScript checking remains blocked by existing Sliding Sync errors outside the changed files.

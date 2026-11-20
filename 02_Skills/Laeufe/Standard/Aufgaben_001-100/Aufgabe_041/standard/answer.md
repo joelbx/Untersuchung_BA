@@ -1,0 +1,3 @@
+Removed `ListMixin` and consolidated its behavior in `List`. Owner lookup now parses complete `/people/{username}/lists/{list_id}` keys and returns `None` when no owner resolves. The new `openlibrary.core.lists.model.register_models()` registers both `/type/list` and the `lists` changeset.
+
+The focused tests passed (16), Ruff passed, and an upstream setup check confirmed both registrations. The broader plugin run remains unverified: one test requires unavailable `cookielib`, and another fails because `web.ctx.env` is absent. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

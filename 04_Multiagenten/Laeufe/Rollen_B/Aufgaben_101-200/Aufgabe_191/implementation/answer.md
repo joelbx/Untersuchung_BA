@@ -1,0 +1,3 @@
+Added a registration token entry view and routed both the stable and unstable authentication stages to it. The view submits the advertised stage type and entered token; InteractiveAuth adds the session and preserves the completion callback arguments.
+
+The targeted tests pass (4 tests), and the edited files pass ESLint and Prettier. The full type check remains blocked by existing errors in unrelated sliding sync files.

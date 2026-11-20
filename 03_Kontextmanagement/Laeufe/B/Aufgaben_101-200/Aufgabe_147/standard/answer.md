@@ -1,0 +1,3 @@
+The `DeviceConfig` issue is resolved. Loading a current config with an existing signup token no longer writes to storage. Migration preserves the recognized fields and converts credentials to a user ID keyed object; invalid JSON falls back to a default config.
+
+The [implementation](/app/src/misc/DeviceConfig.ts) and [tests](/app/test/client/misc/DeviceConfigTest.ts) are updated. Type checking and the client test suite passed.

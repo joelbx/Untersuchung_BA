@@ -1,0 +1,3 @@
+Resolved the PassAliases drawer issue. The provider now loads aliases when a vault exists, shows “No aliases” when the list is empty, and creates a default vault when the user starts alias creation. The bridge now separates vault lookup from creation, and the provider refreshes its cached list after an alias is saved.
+
+Verification: all 3 PassAliases tests pass; the components and Pass type checks pass; `git diff --check` passes.

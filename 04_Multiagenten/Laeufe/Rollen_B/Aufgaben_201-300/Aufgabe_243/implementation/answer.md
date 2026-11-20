@@ -1,0 +1,3 @@
+Updated [forwarder.go](/app/lib/kube/proxy/forwarder.go) so session creation rejects a missing or unknown Kubernetes cluster with `trace.NotFound`, uses local credentials before looking for kube_service registrations, and records one selected endpoint for consistent headers and dialing. Remote sessions use `LocalKubernetes`.
+
+Updated the session tests. `go test ./lib/kube/proxy -count=1` and `git diff --check` pass.

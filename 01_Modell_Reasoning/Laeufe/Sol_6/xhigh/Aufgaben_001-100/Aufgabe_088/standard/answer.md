@@ -1,0 +1,3 @@
+Added optional field selection to `getObject` and `getObjects` across Redis, MongoDB, and Postgres. An empty `fields` array returns the full object through all four retrieval methods. Requested fields are returned with `null` for absent fields, input key order is preserved, and missing keys return `null` from `getObject` and `getObjects`.
+
+The relevant Redis suites pass: **990 tests**. ESLint and `git diff --check` pass. MongoDB and Postgres could not be tested against local servers.

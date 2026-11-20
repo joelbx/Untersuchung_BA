@@ -1,0 +1,3 @@
+Artist artwork now checks for `artist.*` in the folder derived from the artist’s albums before using external files, URLs, or the placeholder. Albums retain their unique media directories, local image changes update the artwork cache key, and lookup attempts record durations in trace logs.
+
+The focused regressions failed before the fix and pass now. `go test ./core/artwork ./model ./scanner ./persistence ./db/migration -count=1` and `git diff --check` passed.

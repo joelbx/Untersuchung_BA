@@ -1,0 +1,3 @@
+Resolved the tsh test environment issues. `Run` now accepts runtime options after argument parsing and returns command errors to callers; the CLI entry point still reports them to users. tsh can inject an SSO login function, and Auth and Proxy startup propagate the addresses assigned when listeners bind to `:0`.
+
+Relevant tsh, client, and service tests passed, including new checks for SSO injection, returned errors, runtime options, and assigned listener ports. `git diff --check` passed. I recorded the work in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

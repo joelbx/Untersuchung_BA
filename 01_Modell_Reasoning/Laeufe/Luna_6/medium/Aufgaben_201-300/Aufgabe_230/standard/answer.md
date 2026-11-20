@@ -1,0 +1,3 @@
+Implemented `PrioritizedIdentifier` in [affiliate_server.py](/app/scripts/affiliate_server.py). It supports generic identifiers and `stage_import`, compares and hashes by identifier, and serializes all fields with JSON-compatible priority and timestamp values. Existing callers remain compatible through the `PrioritizedISBN` alias, `isbn=` constructor argument, and `.isbn` property.
+
+Verification: `python -m pytest scripts/tests/test_affiliate_server.py -q` passed (16 tests); `git diff --check` passed.

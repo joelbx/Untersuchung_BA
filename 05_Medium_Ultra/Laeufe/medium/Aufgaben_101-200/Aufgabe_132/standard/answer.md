@@ -1,0 +1,3 @@
+Reserved tags can now be configured through `meta.config.systemTags`. Topic creation, editing, queued posts, and the tag write API reject their use by unprivileged users with the exact error “You can not use this system tag.” The composer tag check also disallows them for unprivileged users.
+
+The focused tag tests passed (13 passing), and ESLint and `git diff --check` passed. A broader name-filtered test run hit a tag score assertion that depends on earlier tests excluded by that filter.

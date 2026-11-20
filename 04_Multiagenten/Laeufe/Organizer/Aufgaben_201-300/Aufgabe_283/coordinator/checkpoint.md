@@ -1,0 +1,1 @@
+Task complete: implemented isFromProton for mail Element. IsProton is optional 0|1 on MessageMetadata and Conversation, and encrypted-search messages retain it. Added VerifiedBadge component with tooltip and used it in the column layout. Focused elements tests passed (21/21); mail check-types passed; targeted eslint passed; git diff --check passed. No delegations or adoptions.

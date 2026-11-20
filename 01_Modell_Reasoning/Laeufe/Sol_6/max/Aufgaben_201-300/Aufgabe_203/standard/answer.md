@@ -1,0 +1,3 @@
+Implemented the accessibility fix. [ExternalLink.tsx](/app/src/components/views/elements/ExternalLink.tsx) now provides secure new-tab defaults, a decorative icon, and a translated screen reader cue. External links throughout settings use it, including the hosting-signup link, which is now a single accessible link. The [Share dialog](/app/src/components/views/dialogs/ShareDialog.tsx) gives the room link a contextual name, supported by [localization entries](/app/src/i18n/strings/en_EN.json).
+
+All three existing settings tests, ESLint, and Stylelint pass. TypeScript still reports six errors in untouched thread files.

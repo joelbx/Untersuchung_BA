@@ -1,0 +1,3 @@
+Updated rule configuration to accept `segment` as a string or a `keys`/`operator` object. Import, export, filesystem snapshots, and SQL rule and rollout persistence now use the unified format. A single key always uses `OR_SEGMENT_OPERATOR`, and exports always use the object form. I also updated the requested fixtures and added regression tests.
+
+The focused ext, filesystem, and SQL tests passed. The full `go test ./... -count=1` run failed only in `internal/cache/redis` because the Docker daemon was unavailable.

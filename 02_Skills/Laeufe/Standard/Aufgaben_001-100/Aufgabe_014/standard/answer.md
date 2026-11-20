@@ -1,0 +1,3 @@
+Resolved the dropdown and related regressions in the checked-out repository. Notifications now load through `app.require` when their dropdown opens, use the clicked trigger, and ignore stale responses. The patch also updates category selector dropups, quick search focus and navigation behavior, hash field handling, email sender formatting, route error handling, and the requested template changes.
+
+Validation: lint and `git diff --check` passed. The selected hash, email, and notification suites passed **102 tests** using a temporary local Redis instance, which was stopped afterward. Check details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

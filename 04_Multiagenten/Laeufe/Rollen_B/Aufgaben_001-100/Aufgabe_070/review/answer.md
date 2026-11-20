@@ -1,0 +1,5 @@
+VERDICT: FIX
+
+**Code defect:** [format_languages](/app/openlibrary/catalog/utils/__init__.py:486) accepts the abbreviation helper’s `Irish → iri` result before checking language names. The patch’s fixture defines Irish as `/languages/gle`, so `["Irish"]` raises `InvalidLanguage` there. The repository’s [MARC mapping](/app/openlibrary/catalog/marc/parse.py:338) also maps deprecated `iri` to `gle`. Resolve full names against language records before accepting that fallback, and return the canonical key. The new tests omit `"Irish"`.
+
+**Tests executed:** `python -m pytest -q openlibrary/tests/catalog/test_utils.py -k format_language` — 11 passed; `python -m pytest -q openlibrary/plugins/upstream/tests/test_utils.py -k get_abbrev_from_full_lang_name` — 1 passed; `python -m pytest -q openlibrary/tests/catalog/test_utils.py` — 100 passed. No TEST_ENVIRONMENT_PROBLEM.

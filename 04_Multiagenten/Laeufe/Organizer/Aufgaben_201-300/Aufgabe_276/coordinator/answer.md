@@ -1,0 +1,3 @@
+GitHub and enabled OIDC providers now fail configuration loading when `client_id`, `client_secret`, or `redirect_address` is blank. Errors name the provider and field in the requested format. GitHub’s `read:org` check also returns the requested error.
+
+I updated the scope fixture and added load-time tests for the required fields and provider names. `go test ./internal/config` and `git diff --check` passed. I completed the work directly; no delegation was used.

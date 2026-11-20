@@ -1,0 +1,3 @@
+Voice broadcast playback liveness now comes from the broadcast info state through `determineVoiceBroadcastLiveness`. Playback actions and chunk changes no longer set it independently. The mapping covers Started and Resumed as **live**, Paused as **grey**, and Stopped, unknown, or undefined states as **not-live**.
+
+The focused tests pass (52 tests). ESLint and Prettier pass for the changed files. The full TypeScript check still reports errors in unrelated files.

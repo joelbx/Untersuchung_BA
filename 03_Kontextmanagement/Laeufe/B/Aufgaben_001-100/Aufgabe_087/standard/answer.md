@@ -1,0 +1,3 @@
+Implemented batch-independent telemetry in the repository: default-on with configuration and environment opt-out, a persisted anonymous UUID, four-hour `flipt.ping` reporting, and startup integration. The advanced example disables telemetry. Focused tests passed with `GOPROXY=off`.
+
+The delivery endpoint is set in [telemetry.go](/app/telemetry/telemetry.go); external delivery could not be verified locally.

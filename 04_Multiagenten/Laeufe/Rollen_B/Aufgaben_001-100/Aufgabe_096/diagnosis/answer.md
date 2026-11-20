@@ -1,0 +1,7 @@
+The issue is localized to [common/file.py](/app/lib/ansible/module_utils/common/file.py:62) and [basic.py](/app/lib/ansible/module_utils/basic.py:665).
+
+`_DEFAULT_PERM` is `0o0666`. For a newly created destination, `atomic_move()` already calls `os.chmod(b_dest, DEFAULT_PERM & ~umask)`; changing the constant to `0o0600` would give a final mode of `0600` with umask `0022`.
+
+The warning behavior is missing. `AnsibleModule` needs a private `_created_files` set. `atomic_move()` should record newly created paths when the module accepts `mode` and its value is omitted. `set_mode_if_different()` should remove a recorded path when given a mode. `_return_formatted()` should call `add_atomic_move_warnings()` before it collects warning messages, using the exact message in the requirements for each remaining path. Paths need consistent bytes/string normalization between recording and removal.
+
+The focused existing tests pass (43/43), but they do not cover tracking or warnings. One remaining uncertainty is whether a source file could be briefly readable between rename and the destination `chmod`; the current code and tests do not establish that timing. Per the specialist constraint, I changed no project source or tests and recorded progress in `.codex-role-output/checkpoint.md`.

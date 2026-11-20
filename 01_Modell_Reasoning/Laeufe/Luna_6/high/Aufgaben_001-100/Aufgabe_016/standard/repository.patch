@@ -1,0 +1,352 @@
+diff --git a/scripts/monitoring/haproxy_monitor.py b/scripts/monitoring/haproxy_monitor.py
+new file mode 100644
+index 0000000..b0c30e0
+--- /dev/null
++++ b/scripts/monitoring/haproxy_monitor.py
+@@ -0,0 +1,141 @@
++"""Collect and publish selected HAProxy statistics as Graphite metrics."""
++
++import asyncio
++import csv
++import pickle
++import re
++import struct
++import time
++import urllib.request
++from dataclasses import dataclass
++from typing import Iterable, Iterator, Literal
++
++
++@dataclass(frozen=True)
++class GraphiteEvent:
++    path: str
++    value: float
++    timestamp: int
++
++    def serialize(self) -> tuple[str, tuple[int, float]]:
++        return self.path, (self.timestamp, self.value)
++
++
++@dataclass(frozen=True)
++class HaproxyCapture:
++    pxname: str
++    svname: str
++    field: list[str]
++
++    def matches(self, row: dict) -> bool:
++        return (
++            re.search(self.pxname, row.get("pxname", "")) is not None
++            and re.search(self.svname, row.get(" svname", row.get("svname", ""))) is not None
++            and all(field in row for field in self.field)
++        )
++
++    def to_graphite_events(
++        self, prefix: str, row: dict, ts: float
++    ) -> Iterator[GraphiteEvent]:
++        if not self.matches(row):
++            return
++        proxy = row.get("pxname", "").strip()
++        service = row.get(" svname", row.get("svname", "")).strip()
++        timestamp = int(ts)
++        for field in self.field:
++            raw_value = row.get(field)
++            if raw_value in (None, ""):
++                continue
++            try:
++                value = float(raw_value)
++            except ValueError:
++                continue
++            yield GraphiteEvent(
++                f"{prefix}.{proxy}.{service}.{field}", value, timestamp
++            )
++
++
++# The fields commonly useful for frontend and backend HAProxy health monitoring.
++TO_CAPTURE = [
++    HaproxyCapture(r".+", r"(FRONTEND|BACKEND)", ["scur", "rate", "qcur"])
++]
++
++
++def fetch_events(
++    haproxy_url: str, prefix: str, ts: float
++) -> Iterable[GraphiteEvent]:
++    """Fetch and parse HAProxy's CSV stats endpoint."""
++    url = haproxy_url
++    if not url.endswith(";csv"):
++        url = f"{url};csv"
++    request = urllib.request.Request(url, headers={"Accept": "text/csv"})
++    with urllib.request.urlopen(request, timeout=10) as response:
++        contents = response.read().decode("utf-8")
++    reader = csv.reader(contents.splitlines())
++    headers = next(reader, [])
++    headers = [header.strip().lstrip("#").strip() for header in headers]
++    for values in reader:
++        row = dict(zip(headers, (value.strip() for value in values), strict=False))
++        for capture in TO_CAPTURE:
++            yield from capture.to_graphite_events(prefix, row, ts)
++
++
++async def _fetch_events(haproxy_url: str, prefix: str, ts: float):
++    return await asyncio.to_thread(fetch_events, haproxy_url, prefix, ts)
++
++
++async def _send_events(address: str, events: list[GraphiteEvent]):
++    host, port = address.rsplit(":", 1)
++    reader, writer = await asyncio.open_connection(host, int(port))
++    del reader
++    payload = pickle.dumps([event.serialize() for event in events], protocol=2)
++    writer.write(struct.pack("!L", len(payload)) + payload)
++    await writer.drain()
++    writer.close()
++    await writer.wait_closed()
++
++
++async def main(
++    haproxy_url: str = "http://openlibrary.org/admin?stats",
++    graphite_address: str = "graphite.us.archive.org:2004",
++    prefix: str = "stats.ol.haproxy",
++    dry_run: bool = True,
++    fetch_freq: int = 10,
++    commit_freq: int = 30,
++    agg: Literal["max", "min", "sum", None] = None,
++) -> None:
++    """Poll HAProxy continuously and periodically publish buffered events."""
++    if fetch_freq <= 0 or commit_freq <= 0:
++        raise ValueError("fetch_freq and commit_freq must be positive")
++
++    buffer: list[GraphiteEvent] = []
++    last_commit = time.monotonic()
++    while True:
++        now = time.time()
++        buffer.extend(await _fetch_events(haproxy_url, prefix, now))
++        if time.monotonic() - last_commit >= commit_freq:
++            events = buffer
++            if agg and buffer:
++                grouped: dict[str, list[GraphiteEvent]] = {}
++                for event in buffer:
++                    grouped.setdefault(event.path, []).append(event)
++                events = [
++                    GraphiteEvent(
++                        path,
++                        _aggregate(agg, [e.value for e in values]),
++                        max(e.timestamp for e in values),
++                    )
++                    for path, values in grouped.items()
++                ]
++            if dry_run:
++                for event in events:
++                    print(event.serialize(), flush=True)
++            elif events:
++                await _send_events(graphite_address, events)
++            buffer = []
++            last_commit = time.monotonic()
++        await asyncio.sleep(fetch_freq)
++
++
++def _aggregate(method: Literal["max", "min", "sum"], values: list[float]) -> float:
++    return {"max": max, "min": min, "sum": sum}[method](values)
+diff --git a/scripts/monitoring/monitor.py b/scripts/monitoring/monitor.py
+index fa89885..24c6142 100644
+--- a/scripts/monitoring/monitor.py
++++ b/scripts/monitoring/monitor.py
+@@ -3,9 +3,11 @@
+ Defines various monitoring jobs, that check the health of the system.
+ """
+ 
++import asyncio
+ import os
+ 
+-from scripts.monitoring.utils import OlBlockingScheduler, bash_run, limit_server
++from scripts.monitoring.haproxy_monitor import main as haproxy_main
++from scripts.monitoring.utils import OlAsyncIOScheduler, bash_run, get_service_ip, limit_server
+ 
+ HOST = os.getenv("HOSTNAME")  # eg "ol-www0.us.archive.org"
+ 
+@@ -13,7 +15,7 @@ if not HOST:
+     raise ValueError("HOSTNAME environment variable not set.")
+ 
+ SERVER = HOST.split(".")[0]  # eg "ol-www0"
+-scheduler = OlBlockingScheduler()
++scheduler = OlAsyncIOScheduler()
+ 
+ 
+ @limit_server(["ol-web*", "ol-covers0"], scheduler)
+@@ -83,15 +85,31 @@ def log_top_ip_counts():
+     )
+ 
+ 
+-# Print out all jobs
+-jobs = scheduler.get_jobs()
+-print(f"{len(jobs)} job(s) registered:", flush=True)
+-for job in jobs:
+-    print(job, flush=True)
++@limit_server(["ol-web*"], scheduler)
++@scheduler.scheduled_job('interval', seconds=60)
++async def monitor_haproxy():
++    """Collect HAProxy metrics from the local web proxy."""
++    haproxy_ip = get_service_ip("openlibrary-web_haproxy-1")
++    await haproxy_main(
++        haproxy_url=f"http://{haproxy_ip}:1936/admin?stats",
++        dry_run=False,
++    )
++
+ 
+-# Start the scheduler
+-print(f"Monitoring started ({HOST})", flush=True)
+-try:
++async def main():
++    """Start scheduled monitoring jobs and keep the service alive."""
++    jobs = scheduler.get_jobs()
++    print(f"{len(jobs)} job(s) registered:", flush=True)
++    for job in jobs:
++        print(job, flush=True)
++
++    print(f"Monitoring started ({HOST})", flush=True)
+     scheduler.start()
+-except (KeyboardInterrupt, SystemExit):
+-    scheduler.shutdown()
++    try:
++        await asyncio.Event().wait()
++    finally:
++        scheduler.shutdown()
++
++
++if __name__ == "__main__":
++    asyncio.run(main())
+diff --git a/scripts/monitoring/utils.py b/scripts/monitoring/utils.py
+index 1bc45c4..1821143 100644
+--- a/scripts/monitoring/utils.py
++++ b/scripts/monitoring/utils.py
+@@ -1,5 +1,5 @@
+-import fnmatch
+ import os
++import re
+ import subprocess
+ import typing
+ 
+@@ -9,17 +9,13 @@ from apscheduler.events import (
+     EVENT_JOB_SUBMITTED,
+     JobEvent,
+ )
++from apscheduler.jobstores.base import JobLookupError
++from apscheduler.schedulers.asyncio import AsyncIOScheduler
+ from apscheduler.schedulers.blocking import BlockingScheduler
+ from apscheduler.util import undefined
+ 
+ 
+-class OlBlockingScheduler(BlockingScheduler):
+-    def __init__(self):
+-        super().__init__({'apscheduler.timezone': 'UTC'})
+-        self.add_listener(
+-            job_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR | EVENT_JOB_SUBMITTED
+-        )
+-
++class _DefaultJobIdMixin:
+     @typing.override
+     def add_job(
+         self,
+@@ -43,7 +39,6 @@ class OlBlockingScheduler(BlockingScheduler):
+             trigger,
+             args,
+             kwargs,
+-            # Override to avoid duplicating the function name everywhere
+             id or func.__name__,
+             name,
+             misfire_grace_time,
+@@ -57,6 +52,24 @@ class OlBlockingScheduler(BlockingScheduler):
+         )
+ 
+ 
++class OlAsyncIOScheduler(_DefaultJobIdMixin, AsyncIOScheduler):
++    """Async scheduler with the monitoring service's standard job logging."""
++
++    def __init__(self):
++        super().__init__({'apscheduler.timezone': 'UTC'})
++        self.add_listener(
++            job_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR | EVENT_JOB_SUBMITTED
++        )
++
++
++class OlBlockingScheduler(_DefaultJobIdMixin, BlockingScheduler):
++    def __init__(self):
++        super().__init__({'apscheduler.timezone': 'UTC'})
++        self.add_listener(
++            job_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR | EVENT_JOB_SUBMITTED
++        )
++
++
+ def job_listener(event: JobEvent):
+     if event.code == EVENT_JOB_SUBMITTED:
+         print(f"Job {event.job_id} has started.", flush=True)
+@@ -99,22 +112,61 @@ def bash_run(cmd: str, sources: list[str] | None = None, capture_output=False):
+     )
+ 
+ 
+-def limit_server(allowed_servers: list[str], scheduler: BlockingScheduler):
++def limit_server(allowed_hosts: list[str], scheduler):
+     """
+-    Decorate that un-registers a job if the server does not match any of the allowed servers.
++    Decorate a scheduled job, removing its registration when this host is not allowed.
+ 
+-    :param allowed_servers: List of allowed servers. Can include `*` for globbing, eg "ol-web*"
++    :param allowed_hosts: Exact hostnames or prefix patterns such as "ol-web*".
+     """
+ 
+     def decorator(func):
+         hostname = os.environ.get("HOSTNAME")
+-        assert hostname
+-        server = hostname
+-        if hostname.endswith(".us.archive.org"):
+-            server = hostname.split(".")[0]
+-
+-        if not any(fnmatch.fnmatch(server, pattern) for pattern in allowed_servers):
+-            scheduler.remove_job(func.__name__)
++        short_hostname = hostname.split(".", 1)[0] if hostname else ""
++
++        def matches(pattern: str) -> bool:
++            # Wildcards are intentionally limited to a trailing '*'.
++            if "*" in pattern and not pattern.endswith("*"):
++                return False
++            patterns = {pattern, pattern.split(".", 1)[0]}
++            return any(
++                re.fullmatch(re.escape(candidate).replace(r"\*", ".*"), name)
++                is not None
++                for candidate in patterns
++                for name in {hostname or "", short_hostname}
++            )
++
++        if not any(matches(pattern) for pattern in allowed_hosts):
++            # scheduled_job runs before this decorator in the established decorator
++            # order. Jobs added before scheduler.start() live in APScheduler's
++            # pending list and cannot be removed through remove_job yet.
++            pending_jobs = getattr(scheduler, "_pending_jobs", None)
++            if pending_jobs is not None:
++                pending_jobs[:] = [
++                    pending for pending in pending_jobs
++                    if pending[0].id != func.__name__
++                ]
++            try:
++                scheduler.remove_job(func.__name__)
++            except JobLookupError:
++                pass
+         return func
+ 
+     return decorator
++
++
++def get_service_ip(image_name: str) -> str:
++    """Return the IP of a running Docker container identified by image/name."""
++    container_name = image_name.rsplit("/", 1)[-1]
++    result = subprocess.check_output(
++        [
++            "docker",
++            "inspect",
++            "--format",
++            "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}",
++            container_name,
++        ],
++        text=True,
++    ).strip()
++    if not result:
++        raise RuntimeError(f"No IP address found for container {container_name}")
++    return result

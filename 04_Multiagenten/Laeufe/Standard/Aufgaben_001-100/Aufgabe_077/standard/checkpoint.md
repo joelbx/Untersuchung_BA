@@ -1,0 +1,2 @@
+Task: implement module deprecation by date across Python and C# paths, schema validation, and relevant existing tests.
+Status: implemented date deprecations in Python warnings/module output, argument handling, display, validate-modules schema and expiry checks, and C# overload/alias checks. Added Python and PowerShell coverage. Focused Python suite passes (101 tests with --forked); syntax compilation and git diff --check pass. Validator runtime lacks voluptuous and C# runtime is unavailable.

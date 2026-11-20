@@ -1,0 +1,3 @@
+Implemented HTTPS configuration and listener support. Config loading now uses the provided YAML path, applies `FLIPT_*` overrides, preserves defaults, and validates certificate paths when HTTPS is selected. CORS origins accept either a string or a list.
+
+Verified with `go test ./cmd/flipt` and `go test ./server ./storage/...`; both passed. `git diff --check` passed. The SQLite dependency emitted a compiler warning.

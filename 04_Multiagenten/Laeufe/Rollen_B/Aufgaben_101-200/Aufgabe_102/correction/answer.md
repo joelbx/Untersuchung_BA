@@ -1,0 +1,3 @@
+Fixed the Linux network fact to collect `scope host` routes from all routing tables, including untyped IPv4 and IPv6 prefixes. The results remain normalized, deduplicated, and ordered. Added regression cases for prefixes in table 100.
+
+Both reviewer test commands pass: 4/4 in the focused test file and 9/9 in the network fact directory. **TEST_ENVIRONMENT_PROBLEM:** `ip` is absent here, so live routing output could not be checked.

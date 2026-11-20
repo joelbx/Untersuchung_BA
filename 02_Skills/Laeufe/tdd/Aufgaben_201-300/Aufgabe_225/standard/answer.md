@@ -1,0 +1,3 @@
+Added a dedicated `KEVs` field to the vulnerability model, with CISA and VulnCheck details. `FillWithKEVuln` now populates it from both sources, including XDB and reported exploitation records, and normalizes invalid due dates to `nil`. JSON sorting and the `FormatKEVCveSummary()` method are in place.
+
+The change uses a newer go-kev version already in the local cache. New tests and the full `go test ./...` suite passed.

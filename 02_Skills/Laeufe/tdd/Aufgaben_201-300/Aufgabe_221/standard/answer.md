@@ -1,0 +1,3 @@
+Implemented Best Book Awards in the checked-out repository: persistent nominations with read-status and uniqueness checks, work accessors, add/update/remove and count JSON APIs, and updates for work redirects and account anonymization.
+
+Verification: 2,326 tests passed, 9 skipped, and 8 xfailed. One unrelated ISBNdb test could not collect because it requests a GitHub file during import and the offline proxy rejected it. The exact command and error are recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

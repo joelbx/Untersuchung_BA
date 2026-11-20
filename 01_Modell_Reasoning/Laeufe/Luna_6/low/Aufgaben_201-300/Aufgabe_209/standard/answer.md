@@ -1,0 +1,3 @@
+Implemented the calendar URL limit and warning priority in [SubscribeCalendarModal.tsx](/app/packages/components/containers/calendar/subscribeCalendarModal/SubscribeCalendarModal.tsx), added `CALENDAR_URL: 10000` to the shared constants, and centralized the ResizeObserver mock in the calendar Jest setup. Updated the calendar setup hook exports and imports as requested.
+
+The existing calendar sidebar and main container test suites passed: 2 suites, 6 tests. `git diff --check` also passed.

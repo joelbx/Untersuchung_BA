@@ -1,0 +1,3 @@
+Goal: implement persisted Best Book Awards, API validation/counts, Work accessors, and award updates during account anonymization and work redirects.
+
+Implemented the bestbook_awards schema and Bestbook model; added the read prerequisite helper, Work accessors, redirect integration, anonymization count, and award/count JSON endpoints. Added a collision aware award redirect updater that preserves PostgreSQL transaction integrity. Focused tests cover validation, uniqueness, CRUD, filters, JSON APIs, redirect collisions, and anonymization. The relevant existing and new tests pass (53 total); Ruff checks pass. Final review complete.

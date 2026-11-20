@@ -1,0 +1,3 @@
+Updated the list model with explicit types, a shared `SeedDict`, and consistent seed key handling across add, remove, and lookup operations. Subject keys now normalize through one helper, and exports always return `authors`, `works`, and `editions` lists containing loaded, type-filtered records. Added regression tests and return types for the related URL and user helpers.
+
+Verification: 14 relevant tests passed; Ruff, mypy for the list modules, and `git diff --check` passed.

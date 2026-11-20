@@ -1,0 +1,3 @@
+Implemented `guessDateFromText` and wired it into CSV and vCard date conversion. It parses ISO and the requested common text formats into valid `Date` objects; unparseable text no longer becomes today’s date. A regression test confirms an imported birthday serializes to the intended vCard calendar date.
+
+The 12 focused contact tests, type check, and lint pass. The full shared suite has two unrelated failures in cookie expiry and base64 handling. The configured Playwright Chromium could not launch, so browser tests ran with the available system Chromium.

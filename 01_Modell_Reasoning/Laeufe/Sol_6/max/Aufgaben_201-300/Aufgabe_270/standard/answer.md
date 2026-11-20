@@ -1,0 +1,3 @@
+Implemented [getLastActivePersistedUserSession](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts), which returns the full session with the highest `persistedAt` and reports malformed or unavailable storage. Updated the public session provider, user hook, SRP flow, and telemetry to use the selected session consistently. Removed the `LAST_ACTIVE_PING` dependency while preserving active-ping throttling, and aligned the copied Drive store.
+
+**Verification:** 17 Drive tests and 14 copied-store tests pass; formatting and diff checks pass. Type checks stop on an unchanged OpenPGP type conflict in `packages/crypto/lib/worker/api.ts`. ESLint exceeded Node’s default heap limit.

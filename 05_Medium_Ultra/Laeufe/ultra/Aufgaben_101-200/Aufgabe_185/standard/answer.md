@@ -1,0 +1,3 @@
+Fixed the cancellation expiry date. The expiry utility now uses the **current term’s end date and plan name** when cancellation is in progress or auto-renew is disabled. Normal renewal and free-plan behavior remain unchanged. The legacy and B2C/B2B cancellation screens, post-cancellation screen, and days-remaining display now source their dates from the utility.
+
+I delegated the utility, UI, and caller audit work to subagents, then reviewed the combined patch. Verification passed: **47 tests across 4 suites**, the components TypeScript check, Prettier, and `git diff --check`.

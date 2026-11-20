@@ -1,0 +1,3 @@
+Added a registration token entry step to [InteractiveAuthEntryComponents.tsx](/app/src/components/views/auth/InteractiveAuthEntryComponents.tsx). It handles both stable and unstable stage identifiers, submits the token with the server’s advertised type, and provides the requested focus, busy, and error behavior.
+
+Added [integration tests](/app/test/components/structures/InteractiveAuth-test.tsx). All 8 relevant auth tests pass, as do ESLint and formatting checks. The repository-wide TypeScript check still fails on existing Sliding Sync errors; it reported no errors in the changed files.

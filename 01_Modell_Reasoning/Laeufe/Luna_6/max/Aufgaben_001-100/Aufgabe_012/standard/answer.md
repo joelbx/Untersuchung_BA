@@ -1,0 +1,3 @@
+Updated [shared.py](/app/qutebrowser/browser/shared.py) so `custom_headers` accepts `fallback_accept_language=True`. With fallback disabled, it omits the global value for URL requests while retaining a matching domain override; URL-less calls still use the global value. [interceptor.py](/app/qutebrowser/browser/webengine/interceptor.py) disables fallback only for XHR requests.
+
+The existing shared-header and WebEngine interceptor tests passed: **22 passed** using Qt’s offscreen platform. `git diff --check` is clean.

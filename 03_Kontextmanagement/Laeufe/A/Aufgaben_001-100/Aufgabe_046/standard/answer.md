@@ -1,0 +1,3 @@
+Updated [module_common.py](/app/lib/ansible/executor/module_common.py) to resolve `module_utils` dependencies with a queue and separate legacy and collection locators. Collection package initializers are now scanned, missing `__init__.py` files are synthesized, and redirects produce shims while including their targets. Redirect deprecations and tombstones are handled during resolution.
+
+Added focused tests in [test_recursive_finder.py](/app/test/units/executor/module_common/test_recursive_finder.py). **Verification:** 104 relevant unit tests passed, and `git diff --check` passed.

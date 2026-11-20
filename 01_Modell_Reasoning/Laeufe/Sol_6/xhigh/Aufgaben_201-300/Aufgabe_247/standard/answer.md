@@ -1,0 +1,3 @@
+`SocketPosts.getUpvoters` now checks `topics:read` across every category associated with the requested posts before fetching votes. It rejects the whole request with `[[error:no-privileges]]` if any category is unreadable; administrators retain access. The method also resolves each visible UID once, preserves vote order, and returns a cutoff of 6 with at most five explicit usernames.
+
+The [tooltip](/app/public/src/client/topic/votes.js) now uses the server’s cutoff, supports HTML, and escapes usernames. [Focused regression tests](/app/test/socket-posts-upvoters.js) pass, as does ESLint. The existing post test could not reach its assertion because Redis refused the connection at `127.0.0.1:6379`.

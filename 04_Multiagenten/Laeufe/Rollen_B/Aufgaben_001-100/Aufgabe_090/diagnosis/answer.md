@@ -1,0 +1,7 @@
+The likely fault is in [ListRecord.from_input()](/app/openlibrary/plugins/openlibrary/lists.py:50). It passes defaults through `web.input()` before calling `unflatten`, allowing query parameters to affect POST form values. The `/lists/add` POST handler reaches this code through `lists_edit.POST`.
+
+Two further failure paths are visible: [unflatten()](/app/openlibrary/plugins/upstream/utils.py:286) can recurse into the default `seeds=[]` when it encounters `seeds--0--key`, and [seed normalization](/app/openlibrary/plugins/openlibrary/lists.py:38) reads `seed['key']` before checking whether a nested item is valid. `unflatten` also keeps the first simple-key assignment, contrary to the required last-assignment precedence.
+
+A fix should parse a present body with `parse_qs`, take each key’s first value, omit defaults that are ancestors of body fields, and unflatten body values without merging the query string. With no body, it should unflatten `web.input()` with the stated defaults. It should then ignore empty or invalid nested seeds and allow later simple-key assignments to win. The existing [list tests](/app/openlibrary/plugins/openlibrary/tests/test_lists.py) do not cover these paths.
+
+I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). No project source or tests were changed; this was a fault-localization pass, so the issue remains unresolved.

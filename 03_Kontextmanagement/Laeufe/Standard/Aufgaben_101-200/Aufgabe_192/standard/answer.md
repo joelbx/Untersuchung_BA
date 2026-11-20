@@ -1,0 +1,3 @@
+Added shared event date validation in [CalendarUtils.ts](/app/src/calendar/date/CalendarUtils.ts). It reports distinct results for invalid dates, pre-1970 starts, and start times that are equal to or after the end time, in that priority order.
+
+Manual creation and ICS parsing now use the check. ICS imports reject invalid ordering instead of silently changing the end time. Updated the relevant tests; `npm run test:app` passed with 7,991 assertions.

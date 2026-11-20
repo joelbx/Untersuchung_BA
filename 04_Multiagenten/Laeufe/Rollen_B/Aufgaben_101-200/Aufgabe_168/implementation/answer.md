@@ -1,0 +1,3 @@
+Fixed the user info panel’s Kick, Ban, and Mute controls. They now share a synchronous lock for the target member, so rapid activation opens only one confirmation or request. All three buttons receive `disabled` and `aria-disabled="true"` until the action settles. Cancellation sends no request; failure releases the lock and shows one error.
+
+The UserInfo test suite passes (70/70), including new rapid-click, cancellation, and failure tests. ESLint passes on the changed files. The full type check still reports unrelated existing repository and SDK errors.

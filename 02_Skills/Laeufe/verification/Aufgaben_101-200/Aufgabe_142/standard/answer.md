@@ -1,0 +1,3 @@
+Implemented AST-based expression parsing and evaluation in [lib/utils/parse](/app/lib/utils/parse/ast.go), including nested functions, strict variable and argument validation, boolean matchers, and a depth limit. Updated [trait interpolation](/app/lib/services/role.go) and [PAM interpolation](/app/lib/srv/ctx.go) to validate every referenced variable.
+
+Fresh parser tests and targeted service tests passed. PAM package tests remain unverified because the local build lacks HID headers and has unrelated BPF/HID compilation errors; the exact commands and errors are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

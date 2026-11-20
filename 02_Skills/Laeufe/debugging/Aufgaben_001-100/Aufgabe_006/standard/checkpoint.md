@@ -1,0 +1,9 @@
+# Fanout buffer checkpoint
+
+Investigation started. The repository has no existing fanoutbuffer package; related code is in lib/services/fanout.go and lib/utils/circular_buffer.go. Working tree was clean. `rg` is unavailable, so searches use local `find`/`grep`. Next: inspect local patterns, establish a failing test, then implement and run relevant tests.
+
+Root cause: requested utility is absent, so callers cannot construct a generic fanout buffer. Existing `lib/services/fanout.go` is a watcher dispatcher, not a shared cursor buffer; `lib/utils/circular_buffer.go` is float64-only and overwrites old entries. Neither preserves independent cursor positions or overflow history. Hypothesis: a shared sequence-indexed ring plus overflow, with cursor positions and per-cursor grace timestamps under one mutex, supplies ordered lossless reads and bounded grace. A minimal package test will first fail to compile against the missing API.
+
+Implementation: added `lib/utils/fanoutbuffer/buffer.go` and focused tests. A test exposed sequence regression when discarding overflow after the last cursor closed (end 3 became 2); fixed by capturing end before clearing. Ring cleanup now advances an overflow slice without repeated copies; consumed references are zeroed. Per-cursor lag uses an explicit boolean so a fake clock at the zero time works. `GOPROXY=off GOSUMDB=off go test -race ./lib/utils/fanoutbuffer` passed. Existing `lib/services` fanout test command started and is still running at checkpoint update.
+
+Final checks: `GOPROXY=off GOSUMDB=off go test -race ./lib/utils/fanoutbuffer` passed; `GOPROXY=off GOSUMDB=off go vet ./lib/utils/fanoutbuffer` passed; `GOPROXY=off GOSUMDB=off go test ./lib/services -run '^TestFanout' -count=1` passed. No offline tooling limitation remains. New files are untracked and left in the checked-out workspace for coordinator export; git history and index were untouched.

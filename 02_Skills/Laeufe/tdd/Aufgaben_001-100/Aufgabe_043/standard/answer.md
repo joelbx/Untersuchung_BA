@@ -1,0 +1,3 @@
+Extracted tracing resource, provider, and exporter setup into [internal/tracing/tracing.go](/app/internal/tracing/tracing.go). The [gRPC server](/app/internal/cmd/grpc.go) now uses those functions and registers their shutdown functions. Exporter creation handles Jaeger, Zipkin, and the requested OTLP endpoint formats; repeated calls use the supplied configuration independently.
+
+`go test ./internal/tracing ./internal/cmd` passed. The full `go test ./...` run failed in `internal/cache/redis` (Docker daemon unavailable) and `internal/gitfs` (GitHub request returned Forbidden). Those failures are recorded in `.codex-role-output/checkpoint.md`.

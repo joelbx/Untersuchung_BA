@@ -1,0 +1,3 @@
+Updated the repository so lockfiles are analyzed separately and vulnerability entries carry their source path. Library lookups now use both path and name, and findings with the same CVE retain fixed-version entries from each file. Unknown lockfile types return an error.
+
+Added focused tests for path lookup and source path conversion. `GOPROXY=off go test ./models ./scan ./report ./libmanager` and `git diff --check` passed.

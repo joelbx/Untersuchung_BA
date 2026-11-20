@@ -1,0 +1,3 @@
+Diff reports now mark newly detected CVEs with `+` and resolved CVEs with `-`. The comparison filters by the requested direction, excludes unchanged CVEs, and uses package data from the scan where each CVE appeared. I added `DiffStatus`, `CveIDDiffFormat`, `CountDiff`, and `-diff-plus` / `-diff-minus` flags. With `-diff` alone, reports include both directions.
+
+Verified with `go test ./models ./report ./subcmds` and `git diff --check`.

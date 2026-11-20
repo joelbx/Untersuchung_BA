@@ -1,0 +1,3 @@
+Implemented the listed chat requirements: v3 message editing and validation, `Messaging.messageExists`, the PUT route, client edit requests, the error translation, and a deprecation warning for socket edits. Added integration tests for the new behavior.
+
+The messaging suite passed **76 tests**. The full `npm test` run stopped after **883 passing tests** on `Admin Controllers > should load /admin/extend/plugins`, where the response lacked `installed`. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

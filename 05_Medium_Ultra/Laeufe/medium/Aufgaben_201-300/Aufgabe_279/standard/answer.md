@@ -1,0 +1,3 @@
+Extracted token verification into reusable `VerifyPayment`, `getDefaultVerifyPayment`, and `getCreatePaymentToken` functions in [paymentTokenHelper.tsx](/app/packages/components/containers/payments/paymentTokenHelper.tsx). Migrated the requested payment components and the additional single signup caller. Polling now cleans up timers and listeners on completion or cancellation, and the modal and PayPal flows check that a token is chargeable before submitting it.
+
+Both components and account TypeScript checks passed. The helper, verification modal, and edit card tests passed (25 tests). The CreditsModal suite has two failing expectations for `PaymentMethodID` in the final token payload; the existing token formatter does not include that field.

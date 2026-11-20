@@ -1,0 +1,5 @@
+Implemented the Python 3.12 controller minimum in the CLI and `ansible-test`, updated packaging and controller requirements, and added a changelog fragment. Older Python versions remain supported as managed-node targets.
+
+Collection directory extraction now passes the original `dirname` to `TarFile.getmember()`, raises the requested error when missing, and no longer uses `_ansible_normalized_cache`. I also removed controller compatibility fallbacks for tar filtering, TOML parsing, and importlib resources.
+
+**Verification:** 73 existing collection extraction and loader tests passed; changed Python files compile, and `git diff --check` passes. Both CLI entry points produce the same version error under the available Python 3.11.13. Galaxy suites that import the CLI could not run under that interpreter because the new guard exits as intended.

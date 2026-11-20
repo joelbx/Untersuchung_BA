@@ -1,0 +1,3 @@
+Updated the assistant conversion path so the composer’s messageID reaches content preparation, preview, and editor insertion. URL placeholders now restore only for their originating message; unmatched links keep their visible text, and unmatched images are removed. The conversion also preserves `class` and `style` on links and images, repairs nested lists through the new `fixNestedLists` helper, and enables list parsing in assistant Markdown.
+
+All 7 focused tests pass. The package type check remains blocked by an unrelated OpenPGP type mismatch in the untouched crypto package.

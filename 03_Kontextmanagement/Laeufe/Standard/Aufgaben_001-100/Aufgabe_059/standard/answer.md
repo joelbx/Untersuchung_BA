@@ -1,0 +1,3 @@
+Added a public [Dialog component](/app/packages/components/components/dialog/Dialog.tsx) that forwards attributes and refs to a native dialog when supported, and uses an accessible fallback host in limited DOM environments. [ModalTwo](/app/packages/components/components/modalTwo/Modal.tsx) now uses it with `open`, so its interactive children are discoverable by role in JSDOM.
+
+Verification passed: 10 focused Jest tests and the components TypeScript check.

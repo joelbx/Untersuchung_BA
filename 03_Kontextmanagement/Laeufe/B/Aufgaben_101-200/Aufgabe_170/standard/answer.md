@@ -1,0 +1,3 @@
+Updated [merge_marc.py](/app/openlibrary/catalog/merge/merge_marc.py) so edition matching accepts raw records. Expansion now derives title and ISBN fields, handles missing author dates, and supports author and contributor comparisons. The existing utility imports use the same helpers.
+
+Validation passed: 35 tests passed, 1 skipped, and 2 expected failures across the merge and add-book matching tests. Ruff and diff checks passed.

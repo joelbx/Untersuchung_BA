@@ -1,0 +1,3 @@
+Implemented separate database settings in [config.go](/app/config/config.go): a public `DatabaseProtocol` type, field-qualified validation, and URL precedence. [Database connections and migrations](/app/storage/db/db.go) now build the connection target internally, apply the same pool settings in either mode, and redact credentials from errors. Migration calls, documentation, and examples were updated; repeated database opens no longer panic during metrics registration.
+
+Three agents handled configuration, database code, and call sites; I integrated and reviewed their changes. `GOPROXY=off GOSUMDB=off go test ./... -count=1` passed. Postgres and MySQL driver parsing was checked without a live database connection.

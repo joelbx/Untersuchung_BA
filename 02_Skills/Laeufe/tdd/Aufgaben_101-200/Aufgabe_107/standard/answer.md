@@ -1,0 +1,3 @@
+Updated optimistic mark-as handling so elements are removed from `bypassFilter` when their new read status matches the active filter. The action now carries `markAsStatus`, and the reducer uses the new [filter helper](/app/applications/mail/src/app/logic/elements/helpers/elementBypassFilters.ts) to add or remove the appropriate message or conversation IDs. A [regression test](/app/applications/mail/src/app/logic/elements/elementsReducers.test.ts) covers both read and unread filters.
+
+Verification passed: type checking, lint, formatting, and the full mail suite (87 suites; 791 tests passed, 1 skipped).

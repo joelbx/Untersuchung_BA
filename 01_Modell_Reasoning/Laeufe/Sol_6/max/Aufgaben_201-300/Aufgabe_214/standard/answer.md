@@ -1,0 +1,3 @@
+Implemented per-server `nmap` scanning with TOML validation, capability checks, XML result parsing, and a [native scanner fallback](/app/scanner/portscan.go:16). The [discover template](/app/subcmds/discover.go:222) now includes a commented `portscan` example.
+
+Tests passed: `go test ./config ./scanner ./subcmds` and `git diff --check`. The external scan tests used a fake executable because `nmap` is not installed here.

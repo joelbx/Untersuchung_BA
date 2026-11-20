@@ -1,0 +1,3 @@
+Implemented worker display proxying in [display.py](/app/lib/ansible/utils/display.py), method-aware queue messages in [task_queue_manager.py](/app/lib/ansible/executor/task_queue_manager.py), and dynamic method dispatch in [strategy/__init__.py](/app/lib/ansible/plugins/strategy/__init__.py). The proxy forwards the method name and exactly the caller-supplied arguments.
+
+Focused tests: **10 passed, 7 skipped, 2 failed**. One failure is the existing fork test, which expects the old queue call format. The other is a warning output test that received no stderr output; I haven’t established whether that failure is caused by this change.

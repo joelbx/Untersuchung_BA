@@ -1,0 +1,3 @@
+Updated the repository to require **Python 3.12 or newer on the controller**. The CLI and `ansible-test` now show the same version error. Collection extraction passes the directory name unchanged to `tar.getmember()`, reports the specified error when it is missing, and no longer uses the private TarFile cache. I also simplified controller compatibility code, updated package metadata, and added a [changelog fragment](/app/changelogs/fragments/controller-python-3.12.yml).
+
+The focused tests passed: **74 passed, 1 skipped**. CLI and role installation tests could not collect because this workspace runs Python 3.11 and the new version check exits during import. A broader test run had three failures outside the focused suite.

@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) to supply the localized verified and unverified copy. [CurrentDeviceSection](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx) now uses it after the tile and expanded details. [DeviceDetails](/app/src/components/views/settings/devices/DeviceDetails.tsx) accepts `DeviceWithVerification` and shows the card immediately below its heading.
+
+The affected Jest suites pass (7 tests, 6 snapshots), as do lint and `git diff --check`. The repository-wide type check still fails on unrelated existing `matrix-js-sdk` interface errors; it reported none in the changed files.

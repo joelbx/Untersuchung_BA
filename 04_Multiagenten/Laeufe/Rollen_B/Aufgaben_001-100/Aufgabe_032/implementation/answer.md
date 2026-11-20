@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) to use centralized JSON exits and atomic job-file writes. Job records now carry a consistent ID and lifecycle fields; timeout records include the child PID. Setup and fork failures return structured errors, and an existing file can no longer pass the async directory check.
+
+Added regression coverage in [test_async_wrapper.py](/app/test/units/modules/test_async_wrapper.py). All four tests pass; compilation and `git diff --check` pass.

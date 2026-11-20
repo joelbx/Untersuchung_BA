@@ -1,0 +1,3 @@
+Fixed ZIP timestamp handling in [unarchive.py](/app/lib/ansible/modules/unarchive.py). The new `_valid_time_stamp` method validates the timestamp format, calendar date, and ZIP year range of 1980–2107. Invalid values, including `19800000.000000`, fall back to the 1980 ZIP epoch instead of raising `ValueError`. `is_unarchived` now uses the validated timestamp.
+
+Added regression coverage in [test_unarchive.py](/app/test/units/modules/test_unarchive.py). All 14 relevant unit tests pass, and `git diff --check` passes.

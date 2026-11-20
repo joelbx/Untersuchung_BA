@@ -1,0 +1,3 @@
+Updated the database proxy to keep all matching services, shuffle their order, and try the next service when a tunnel has a connection problem. If every candidate is unreachable, it returns a specific connection error. `tsh db ls` now shows one entry per service name; server logs include `HostID`.
+
+The new tests cover successful fallback and the all offline error. The API types, reverse tunnel, database, and `tsh` package tests passed, as did the focused tests after the final edit. No delegation was used.

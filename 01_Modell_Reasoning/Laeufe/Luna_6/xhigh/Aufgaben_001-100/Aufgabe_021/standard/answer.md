@@ -1,0 +1,3 @@
+Implemented typed seed handling in [model.py](/app/openlibrary/core/lists/model.py) and [lists.py](/app/openlibrary/plugins/openlibrary/lists.py): shared `SeedDict` and subject normalization, consistent duplicate checks, loaded seed documents, and exports that always include all three type-filtered categories. Added the requested helper return annotations in [helpers.py](/app/openlibrary/core/helpers.py) and [models.py](/app/openlibrary/core/models.py).
+
+Verification: 11 existing list tests passed; Ruff, compilation, `git diff --check`, and scoped mypy passed. Full mypy traversal is limited by missing third-party stubs.

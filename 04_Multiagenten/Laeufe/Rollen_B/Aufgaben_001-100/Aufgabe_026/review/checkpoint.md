@@ -1,0 +1,2 @@
+VERDICT: ACCEPT
+Reviewed the applied patch in detector/util.go, reporter/util.go, models/cvecontents.go, and models/vulninfos.go against the requested multi-source behavior. No correctness or regression defect found. Tests executed locally: `GOPROXY=off GOSUMDB=off go test ./models ./detector ./reporter` passed (all three packages); `GOPROXY=off GOSUMDB=off go test ./gost` passed. `git diff --check` passed. No project files changed during review.

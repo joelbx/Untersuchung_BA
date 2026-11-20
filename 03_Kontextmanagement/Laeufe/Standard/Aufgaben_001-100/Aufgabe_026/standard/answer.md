@@ -1,0 +1,3 @@
+Updated Vuls to use every CVE content source mapped to an OS family. Ubuntu reports now include Ubuntu API source URLs and CVSS v3 scores; change detection checks that source too. The update also prioritizes all family sources across CPEs, references, CWE IDs, titles, and summaries, and maps `NEGLIGIBLE` to the low severity range.
+
+`go test ./models ./detector ./reporter` and `git diff --check` passed.

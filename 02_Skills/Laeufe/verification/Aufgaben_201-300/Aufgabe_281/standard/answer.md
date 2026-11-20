@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` for Mongo and Redis. It validates tuple input and safe integer increments, updates multiple fields atomically per key, creates missing objects and fields, and invalidates cache entries for keys whose writes succeed.
+
+Verification: 4 isolated tests passed, ESLint and syntax checks passed, and a temporary Redis instance confirmed that a failed key stays unchanged while another key updates. The existing database fixture was not run because it reads and logs `config.json`; live Mongo behavior remains unverified.

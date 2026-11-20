@@ -1,0 +1,3 @@
+Implemented HEIC/JXL support in the checked-out files. JXL now has a MIME and extension mapping; HEIC, HEIF, and JXL count as supported images on macOS/iOS Safari 17+. Both upload parsers now use the file MIME type when specific, then fall back to extension detection.
+
+The existing image upload tests passed (5 tests), and formatting passed. The upload worker test could not start because `packages/drive-store/config` is missing; the shared type check failed on an unrelated OpenPGP type error.

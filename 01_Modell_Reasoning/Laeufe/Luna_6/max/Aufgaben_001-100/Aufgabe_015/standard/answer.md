@@ -1,0 +1,5 @@
+Added the `feature_qr_signin_reciprocate_show` experimental setting, defaulting to disabled, with a description of the MSC3882 and MSC3886 homeserver requirements. Both settings tabs and `LoginWithQRSection` now check the flag and server support. Updated tests cover disabled and enabled visibility, the QR flow, and the default.
+
+**Validation:** 4 focused Jest suites passed (62 tests); ESLint, Prettier, and `git diff --check` passed. `yarn lint:types` found an unrelated existing error in `RoomView-test.tsx:178`: a missing `eventId`.
+
+Changed files: [Settings.tsx](/app/src/settings/Settings.tsx), [LoginWithQRSection.tsx](/app/src/components/views/settings/devices/LoginWithQRSection.tsx), [SecurityUserSettingsTab.tsx](/app/src/components/views/settings/tabs/user/SecurityUserSettingsTab.tsx), [SessionManagerTab.tsx](/app/src/components/views/settings/tabs/user/SessionManagerTab.tsx).

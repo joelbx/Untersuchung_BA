@@ -1,0 +1,5 @@
+The feature gap is in [iptables.py](/app/lib/ansible/modules/iptables.py:659): `main()` declares only the singular `destination_port` parameter, and [construct_rule()](/app/lib/ansible/modules/iptables.py:534) emits only `--destination-port`.
+
+The fix should add `destination_ports` as a list of strings with an empty-list default, then use the existing `append_match` and `append_csv` helpers to emit `-m multiport --dports 80,443,8081:8083` for a nonempty list. It should accept that list only with `tcp`, `udp`, `udplite`, `dccp`, or `sctp`. The existing rule check, add, insert, and remove paths all use `construct_rule()`, so they would share the new arguments.
+
+The [unit tests](/app/test/units/modules/test_iptables.py:260) cover singular ports but do not establish behavior for `match: multiport` or for supplying both port parameters. **No project source or tests were changed:** the assigned specialist role permits diagnosis only. I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

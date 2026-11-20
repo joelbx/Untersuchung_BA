@@ -1,0 +1,3 @@
+Updated [RPM parsing](/app/scanner/redhatbase.go:577) so an unparseable `SOURCERPM` adds a warning while preserving the binary package and skipping the source package. Epoch-prefixed filenames now produce a linked `src` package with the correct source version. Added regression cases in [redhatbase_test.go](/app/scanner/redhatbase_test.go:407).
+
+`go test ./scanner -count=1` passed with module downloads disabled; `git diff --check` passed. I delegated test additions and an independent review, then addressed the review’s zero-epoch and empty-version findings.

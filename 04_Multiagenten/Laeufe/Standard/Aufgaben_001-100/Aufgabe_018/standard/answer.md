@@ -1,0 +1,3 @@
+Updated configuration decoding so scalar strings destined for `[]string` fields split on whitespace. Repeated, leading, and trailing whitespace is ignored; an empty string produces an empty slice. Existing sequences and other value types remain unchanged.
+
+The CORS fixture now verifies `foo.com bar.com  baz.com` through both YAML and ENV loading. Empty-string decoding is also covered. `go test ./internal/config` and `git diff --check` passed.

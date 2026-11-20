@@ -1,0 +1,3 @@
+Fixed the password lookup in [password.py](/app/lib/ansible/plugins/lookup/password.py). Inline key=value values now take precedence over plugin options, so a fixed `seed` produces the same password across runs. `chars` accepts either a list or a comma-separated string, including `,,` for a literal comma.
+
+Updated the [unit tests](/app/test/units/plugins/lookup/test_password.py). All 34 password lookup unit tests and the existing integration play passed.

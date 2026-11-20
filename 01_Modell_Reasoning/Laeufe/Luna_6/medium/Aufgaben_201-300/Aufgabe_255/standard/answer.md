@@ -1,0 +1,3 @@
+Implemented the parser as `LookupModule._parse_parameters()` and updated `run()` to call `set_options()` before parsing. `chars` now accepts lists or comma-separated strings, including escaped literal commas.
+
+The focused test run is **not passing**: 18 passed and 11 failed. The existing tests still call the removed module-level parser, and direct plugin construction in the tests cannot resolve options through `get_option()`. I did not change the tests.

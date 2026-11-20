@@ -1,0 +1,1245 @@
+diff --git a/lib/services/role.go b/lib/services/role.go
+index eb8b115..ab5e440 100644
+--- a/lib/services/role.go
++++ b/lib/services/role.go
+@@ -495,27 +495,30 @@ func ApplyValueTraits(val string, traits map[string][]string) ([]string, error)
+ 		return nil, trace.Wrap(err)
+ 	}
+ 
+-	// verify that internal traits match the supported variables
+-	if variable.Namespace() == teleport.TraitInternalPrefix {
+-		switch variable.Name() {
+-		case constants.TraitLogins, constants.TraitWindowsLogins,
+-			constants.TraitKubeGroups, constants.TraitKubeUsers,
+-			constants.TraitDBNames, constants.TraitDBUsers,
+-			constants.TraitAWSRoleARNs, constants.TraitAzureIdentities,
+-			constants.TraitGCPServiceAccounts, teleport.TraitJWT:
+-		default:
+-			return nil, trace.BadParameter("unsupported variable %q", variable.Name())
++	interpolated, err := variable.Interpolate(traits, func(namespace, name string) error {
++		if namespace == teleport.TraitInternalPrefix {
++			switch name {
++			case constants.TraitLogins, constants.TraitWindowsLogins,
++				constants.TraitKubeGroups, constants.TraitKubeUsers,
++				constants.TraitDBNames, constants.TraitDBUsers,
++				constants.TraitAWSRoleARNs, constants.TraitAzureIdentities,
++				constants.TraitGCPServiceAccounts, teleport.TraitJWT:
++				return nil
++			default:
++				return trace.BadParameter("unsupported variable %q", name)
++			}
+ 		}
+-	}
+-
+-	// If the variable is not found in the traits, skip it.
+-	interpolated, err := variable.Interpolate(traits)
+-	if trace.IsNotFound(err) || len(interpolated) == 0 {
+-		return nil, trace.NotFound("variable %q not found in traits", variable.Name())
++		return nil
++	})
++	if trace.IsNotFound(err) {
++		return nil, trace.NotFound("variable interpolation result is empty")
+ 	}
+ 	if err != nil {
+ 		return nil, trace.Wrap(err)
+ 	}
++	if len(interpolated) == 0 {
++		return nil, trace.NotFound("variable interpolation result is empty")
++	}
+ 	return interpolated, nil
+ }
+ 
+diff --git a/lib/srv/ctx.go b/lib/srv/ctx.go
+index 6b2f2b9..082250e 100644
+--- a/lib/srv/ctx.go
++++ b/lib/srv/ctx.go
+@@ -976,16 +976,17 @@ func getPAMConfig(c *ServerContext) (*PAMConfig, error) {
+ 				return nil, trace.Wrap(err)
+ 			}
+ 
+-			if expr.Namespace() != teleport.TraitExternalPrefix && expr.Namespace() != parse.LiteralNamespace {
+-				return nil, trace.BadParameter("PAM environment interpolation only supports external traits, found %q", value)
+-			}
+-
+-			result, err := expr.Interpolate(traits)
++			result, err := expr.Interpolate(traits, func(namespace, name string) error {
++				if namespace != teleport.TraitExternalPrefix && namespace != parse.LiteralNamespace {
++					return trace.BadParameter("PAM environment interpolation only supports external traits, found namespace %q", namespace)
++				}
++				return nil
++			})
+ 			if err != nil {
+ 				// If the trait isn't passed by the IdP due to misconfiguration
+ 				// we fallback to setting a value which will indicate this.
+ 				if trace.IsNotFound(err) {
+-					c.Logger.Warnf("Attempted to interpolate custom PAM environment with external trait %[1]q but received SAML response does not contain claim %[1]q", expr.Name())
++					c.Logger.Warnf("Failed to interpolate custom PAM environment: %v", err)
+ 					continue
+ 				}
+ 
+diff --git a/lib/utils/parse/ast.go b/lib/utils/parse/ast.go
+new file mode 100644
+index 0000000..ee7f40f
+--- /dev/null
++++ b/lib/utils/parse/ast.go
+@@ -0,0 +1,171 @@
++package parse
++
++import (
++	"net/mail"
++	"reflect"
++	"regexp"
++	"strconv"
++	"strings"
++
++	"github.com/gravitational/trace"
++)
++
++// Expr is a typed expression node.
++type Expr interface {
++	String() string
++	Kind() reflect.Kind
++	Evaluate(EvaluateContext) (any, error)
++}
++
++// EvaluateContext supplies traits and the input to boolean matchers.
++type EvaluateContext struct {
++	VarValue     func(VarExpr) ([]string, error)
++	MatcherInput string
++}
++type StringLitExpr struct{ Value string }
++
++func (e StringLitExpr) String() string                        { return strconv.Quote(e.Value) }
++func (StringLitExpr) Kind() reflect.Kind                      { return reflect.String }
++func (e StringLitExpr) Evaluate(EvaluateContext) (any, error) { return []string{e.Value}, nil }
++
++type VarExpr struct{ Namespace, Name string }
++
++func (e VarExpr) String() string   { return e.Namespace + "." + e.Name }
++func (VarExpr) Kind() reflect.Kind { return reflect.String }
++func (e VarExpr) Evaluate(ctx EvaluateContext) (any, error) {
++	if ctx.VarValue == nil && e.Namespace == LiteralNamespace {
++		return []string{e.Name}, nil
++	}
++	if ctx.VarValue == nil {
++		return nil, trace.BadParameter("no variable resolver for %s", e.String())
++	}
++	return ctx.VarValue(e)
++}
++
++type EmailLocalExpr struct{ Input Expr }
++
++func (e EmailLocalExpr) String() string   { return "email.local(" + e.Input.String() + ")" }
++func (EmailLocalExpr) Kind() reflect.Kind { return reflect.String }
++func (e EmailLocalExpr) Evaluate(ctx EvaluateContext) (any, error) {
++	vals, err := evalStrings(e.Input, ctx)
++	if err != nil {
++		return nil, err
++	}
++	out := make([]string, 0, len(vals))
++	for _, v := range vals {
++		if v == "" {
++			return nil, trace.BadParameter("address is empty")
++		}
++		addr, err := mail.ParseAddress(v)
++		if err != nil {
++			return nil, trace.BadParameter("failed to parse address %q: %v", v, err)
++		}
++		parts := strings.SplitN(addr.Address, "@", 2)
++		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
++			return nil, trace.BadParameter("address %q has no local part", v)
++		}
++		out = append(out, parts[0])
++	}
++	return out, nil
++}
++
++type RegexpReplaceExpr struct {
++	Input                Expr
++	Pattern, Replacement string
++	re                   *regexp.Regexp
++}
++
++func (e RegexpReplaceExpr) String() string {
++	return "regexp.replace(" + e.Input.String() + "," + strconv.Quote(e.Pattern) + "," + strconv.Quote(e.Replacement) + ")"
++}
++func (RegexpReplaceExpr) Kind() reflect.Kind { return reflect.String }
++func (e RegexpReplaceExpr) Evaluate(ctx EvaluateContext) (any, error) {
++	vals, err := evalStrings(e.Input, ctx)
++	if err != nil {
++		return nil, err
++	}
++	re := e.re
++	if re == nil {
++		re, err = compileRegexp(e.Pattern)
++		if err != nil {
++			return nil, err
++		}
++	}
++	out := make([]string, 0, len(vals))
++	for _, v := range vals {
++		if re.MatchString(v) {
++			out = append(out, re.ReplaceAllString(v, e.Replacement))
++		}
++	}
++	return out, nil
++}
++
++type RegexpMatchExpr struct {
++	Pattern string
++	re      *regexp.Regexp
++}
++
++func (e RegexpMatchExpr) String() string   { return "regexp.match(" + strconv.Quote(e.Pattern) + ")" }
++func (RegexpMatchExpr) Kind() reflect.Kind { return reflect.Bool }
++func (e RegexpMatchExpr) Evaluate(ctx EvaluateContext) (any, error) {
++	re := e.re
++	var err error
++	if re == nil {
++		re, err = compileRegexp(e.Pattern)
++		if err != nil {
++			return nil, err
++		}
++	}
++	return re.MatchString(ctx.MatcherInput), nil
++}
++
++type RegexpNotMatchExpr struct {
++	Pattern string
++	re      *regexp.Regexp
++}
++
++func (e RegexpNotMatchExpr) String() string {
++	return "regexp.not_match(" + strconv.Quote(e.Pattern) + ")"
++}
++func (RegexpNotMatchExpr) Kind() reflect.Kind { return reflect.Bool }
++func (e RegexpNotMatchExpr) Evaluate(ctx EvaluateContext) (any, error) {
++	matched, err := RegexpMatchExpr{Pattern: e.Pattern, re: e.re}.Evaluate(ctx)
++	if err != nil {
++		return nil, err
++	}
++	return !matched.(bool), nil
++}
++func evalStrings(e Expr, ctx EvaluateContext) ([]string, error) {
++	if e.Kind() != reflect.String {
++		return nil, trace.BadParameter("%s evaluates to %s, expected string", e.String(), e.Kind())
++	}
++	v, err := e.Evaluate(ctx)
++	if err != nil {
++		return nil, err
++	}
++	vals, ok := v.([]string)
++	if !ok {
++		return nil, trace.BadParameter("%s returned %T, expected []string", e.String(), v)
++	}
++	return vals, nil
++}
++func compileRegexp(pattern string) (*regexp.Regexp, error) {
++	re, err := regexp.Compile(pattern)
++	if err != nil {
++		return nil, trace.BadParameter("invalid regexp %q: %v", pattern, err)
++	}
++	return re, nil
++}
++func validateExpr(e Expr) error {
++	switch n := e.(type) {
++	case VarExpr:
++		if n.Name == "" {
++			return trace.BadParameter("variable %q must have namespace.name shape", n.String())
++		}
++	case EmailLocalExpr:
++		return validateExpr(n.Input)
++	case RegexpReplaceExpr:
++		return validateExpr(n.Input)
++	}
++	return nil
++}
+diff --git a/lib/utils/parse/ast_test.go b/lib/utils/parse/ast_test.go
+new file mode 100644
+index 0000000..a8deca5
+--- /dev/null
++++ b/lib/utils/parse/ast_test.go
+@@ -0,0 +1,66 @@
++package parse
++
++import (
++	"github.com/gravitational/trace"
++	"github.com/stretchr/testify/require"
++	"strings"
++	"testing"
++)
++
++func TestNestedExpressions(t *testing.T) {
++	expr, err := NewExpression(` pre{{regexp.replace(email.local(external.email), "^([^.]+).*", "$1")}}post `)
++	require.NoError(t, err)
++	vals, err := expr.Interpolate(map[string][]string{"email": {"alice@example.com", "bob.smith@example.com"}}, func(ns, name string) error {
++		require.Equal(t, "external", ns)
++		require.Equal(t, "email", name)
++		return nil
++	})
++	require.NoError(t, err)
++	require.Equal(t, []string{"prealicepost", "prebobpost"}, vals)
++	expr, err = NewExpression(`{{regexp.replace("aaaa", "a{2}", "b")}}`)
++	require.NoError(t, err)
++	vals, err = expr.Interpolate(nil)
++	require.NoError(t, err)
++	require.Equal(t, []string{"bb"}, vals)
++	expr, err = NewExpression(`{{regexp.replace("foo", "o", "a")}}`)
++	require.NoError(t, err)
++	vals, err = expr.Interpolate(nil)
++	require.NoError(t, err)
++	require.Equal(t, []string{"faa"}, vals)
++}
++func TestExpressionValidation(t *testing.T) {
++	for _, in := range []string{`{{internal}}`, `{{internal.foo.bar}}`, `{{internal.foo["bar"]}}`, `{{internal["foo"]["bar"]}}`, `{{unknown.foo}}`, `{{"asdf"}}`, `{{123}}`, `{{regexp.match("foo")}}`, `{{email.local(regexp.match("foo"))}}`, `{{regexp.replace(external.foo, external.pattern, "bar")}}`, `{{regexp.replace(external.foo, "x", external.replacement)}}`, `{{regexp.replace(external.foo, "x")}}`, `{{regexp.match(external.foo)}}`, `{{email.local("x", "y")}}`, `{{external.foo`} {
++		_, err := NewExpression(in)
++		require.Error(t, err, in)
++		require.True(t, trace.IsBadParameter(err), "%q: %v", in, err)
++	}
++	expr, err := NewExpression(`{{internal.foo}}`)
++	require.NoError(t, err)
++	_, err = expr.Interpolate(map[string][]string{"foo": {"v"}}, func(ns, name string) error { return trace.BadParameter("blocked %s.%s", ns, name) })
++	require.True(t, trace.IsBadParameter(err))
++	_, err = expr.Interpolate(nil)
++	require.True(t, trace.IsNotFound(err))
++	require.Contains(t, err.Error(), "internal.foo")
++	expr, err = NewExpression(`prefix{{regexp.replace(external.foo, "z", "x")}}suffix`)
++	require.NoError(t, err)
++	_, err = expr.Interpolate(map[string][]string{"foo": {"abc"}})
++	require.True(t, trace.IsNotFound(err))
++	require.Contains(t, err.Error(), "no values")
++	_, err = NewExpression("{{" + strings.Repeat("email.local(", 101) + "external.foo" + strings.Repeat(")", 101) + "}}")
++	require.True(t, trace.IsBadParameter(err))
++}
++func TestMatcherAST(t *testing.T) {
++	m, err := NewMatcher(`pre{{regexp.not_match("^bad$")}}post`)
++	require.NoError(t, err)
++	require.True(t, m.Match("pregoodpost"))
++	require.False(t, m.Match("prebadpost"))
++	require.False(t, m.Match("goodpost"))
++	m, err = NewMatcher(`a*b`)
++	require.NoError(t, err)
++	require.True(t, m.Match("axxb"))
++	require.False(t, m.Match("zaxxb"))
++	for _, in := range []string{`{{external.foo}}`, `{{regexp.match(external.foo)}}`, `{{regexp.match("x", "y")}}`, `{{regexp.match("[")}}`} {
++		_, err := NewMatcher(in)
++		require.True(t, trace.IsBadParameter(err), "%s: %v", in, err)
++	}
++}
+diff --git a/lib/utils/parse/parse.go b/lib/utils/parse/parse.go
+index ad1f55c..7cff4e6 100644
+--- a/lib/utils/parse/parse.go
++++ b/lib/utils/parse/parse.go
+@@ -1,225 +1,388 @@
+-/*
+-Copyright 2017-2020 Gravitational, Inc.
+-
+-Licensed under the Apache License, Version 2.0 (the "License");
+-you may not use this file except in compliance with the License.
+-You may obtain a copy of the License at
+-
+-    http://www.apache.org/licenses/LICENSE-2.0
+-
+-Unless required by applicable law or agreed to in writing, software
+-distributed under the License is distributed on an "AS IS" BASIS,
+-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-See the License for the specific language governing permissions and
+-limitations under the License.
+-*/
+-
+-// TODO(awly): combine Expression and Matcher. It should be possible to write:
+-// `{{regexp.match(email.local(external.trait_name))}}`
+ package parse
+ 
+ import (
+-	"go/ast"
+-	"go/parser"
+-	"go/token"
+-	"net/mail"
++	"github.com/gravitational/teleport/lib/utils"
++	"github.com/gravitational/trace"
++	"github.com/vulcand/predicate"
++	"reflect"
+ 	"regexp"
+-	"strconv"
+ 	"strings"
+-	"unicode"
+-
+-	"github.com/gravitational/trace"
++)
+ 
+-	"github.com/gravitational/teleport/lib/utils"
++const (
++	LiteralNamespace     = "literal"
++	EmailNamespace       = "email"
++	EmailLocalFnName     = "local"
++	RegexpNamespace      = "regexp"
++	RegexpMatchFnName    = "match"
++	RegexpNotMatchFnName = "not_match"
++	RegexpReplaceFnName  = "replace"
+ )
+ 
+-// Expression is an expression template
+-// that can interpolate to some variables
+ type Expression struct {
+-	// namespace is expression namespace,
+-	// e.g. internal.traits has a variable traits
+-	// in internal namespace
+-	namespace string
+-	// variable is a variable name, e.g. trait name,
+-	// e.g. internal.traits has variable name traits
+-	variable string
+-	// prefix is a prefix of the string
+-	prefix string
+-	// suffix is a suffix
+-	suffix string
+-	// transform is an optional transformer for the variable.
+-	transform transformer
++	expr                                Expr
++	namespace, variable, prefix, suffix string
++	transform                           transformer
+ }
+ 
+-// emailLocalTransformer extracts local part of the email.
+-type emailLocalTransformer struct{}
+-
+-// EmailLocal returns local part of the email
+-func (emailLocalTransformer) transform(in string) (string, error) {
+-	if in == "" {
+-		return "", trace.BadParameter("address is empty")
++func (p *Expression) Namespace() string { return p.namespace }
++func (p *Expression) Name() string      { return p.variable }
++func (p *Expression) Interpolate(traits map[string][]string, validation ...func(string, string) error) ([]string, error) {
++	e := p.expr
++	if e == nil {
++		e = VarExpr{Namespace: p.namespace, Name: p.variable}
++	}
++	ctx := EvaluateContext{VarValue: func(v VarExpr) ([]string, error) {
++		if len(validation) > 0 && validation[0] != nil {
++			if err := validation[0](v.Namespace, v.Name); err != nil {
++				return nil, err
++			}
++		}
++		if v.Namespace == LiteralNamespace {
++			return []string{v.Name}, nil
++		}
++		vals, ok := traits[v.Name]
++		if !ok {
++			return nil, trace.NotFound("variable %s is not found", v.String())
++		}
++		return vals, nil
++	}}
++	if p.expr == nil && p.transform != nil {
++		vals, err := evalStrings(e, ctx)
++		if err != nil {
++			return nil, err
++		}
++		out := make([]string, 0, len(vals))
++		for _, v := range vals {
++			transformed, err := p.transform.transform(v)
++			if err != nil {
++				return nil, err
++			}
++			if transformed != "" {
++				out = append(out, p.prefix+transformed+p.suffix)
++			}
++		}
++		if len(out) == 0 {
++			return nil, trace.NotFound("interpolation produced no values")
++		}
++		return out, nil
+ 	}
+-	addr, err := mail.ParseAddress(in)
++	vals, err := evalStrings(e, ctx)
+ 	if err != nil {
+-		return "", trace.BadParameter("failed to parse address %q: %q", in, err)
++		return nil, err
+ 	}
+-	parts := strings.SplitN(addr.Address, "@", 2)
+-	if len(parts) != 2 {
+-		return "", trace.BadParameter("could not find local part in %q", addr.Address)
++	out := make([]string, 0, len(vals))
++	for _, v := range vals {
++		if v != "" {
++			out = append(out, p.prefix+v+p.suffix)
++		}
+ 	}
+-	return parts[0], nil
++	if len(out) == 0 {
++		return nil, trace.NotFound("interpolation produced no values")
++	}
++	return out, nil
+ }
+ 
+-// regexpReplaceTransformer replaces all matches of re with replacement
+-type regexpReplaceTransformer struct {
+-	re          *regexp.Regexp
+-	replacement string
++func splitTemplate(input string) (prefix, body, suffix string, templated bool, err error) {
++	s := strings.TrimSpace(input)
++	start := strings.Index(s, "{{")
++	if start < 0 {
++		if strings.Contains(s, "}}") {
++			return "", "", "", false, trace.BadParameter("malformed template usage in %q: expected {{expression}}", input)
++		}
++		return "", s, "", false, nil
++	}
++	if strings.Contains(s[:start], "}}") {
++		return "", "", "", false, trace.BadParameter("malformed template usage in %q: expected {{expression}}", input)
++	}
++	quoted := byte(0)
++	escaped := false
++	for i := start + 2; i < len(s)-1; i++ {
++		c := s[i]
++		if quoted != 0 {
++			if escaped {
++				escaped = false
++			} else if c == '\\' {
++				escaped = true
++			} else if c == quoted {
++				quoted = 0
++			}
++			continue
++		}
++		if c == '"' || c == '`' {
++			quoted = c
++			continue
++		}
++		if s[i:i+2] == "{{" {
++			break
++		}
++		if s[i:i+2] == "}}" {
++			if strings.Contains(s[i+2:], "{{") || strings.Contains(s[i+2:], "}}") {
++				break
++			}
++			return s[:start], strings.TrimSpace(s[start+2 : i]), s[i+2:], true, nil
++		}
++	}
++	return "", "", "", false, trace.BadParameter("malformed template usage in %q: expected {{expression}}", input)
+ }
+-
+-// newRegexpReplaceTransformer attempts to create a regexpReplaceTransformer or
+-// fails with error if the expression does not compile
+-func newRegexpReplaceTransformer(expression, replacement string) (*regexpReplaceTransformer, error) {
+-	re, err := regexp.Compile(expression)
++func NewExpression(input string) (*Expression, error) {
++	prefix, body, suffix, templated, err := splitTemplate(input)
++	if err != nil {
++		return nil, err
++	}
++	if !templated {
++		return &Expression{expr: StringLitExpr{body}, namespace: LiteralNamespace, variable: body}, nil
++	}
++	e, err := parse(body)
+ 	if err != nil {
+-		return nil, trace.BadParameter("failed parsing regexp %q: %v", expression, err)
++		return nil, trace.BadParameter("invalid expression %q: %v", input, err)
++	}
++	if e.Kind() != reflect.String {
++		return nil, trace.BadParameter("expression %q evaluates to %s, expected string", input, e.Kind())
++	}
++	if err = validateExpr(e); err != nil {
++		return nil, err
+ 	}
+-	return &regexpReplaceTransformer{
+-		re:          re,
+-		replacement: replacement,
+-	}, nil
++	p := &Expression{expr: e, prefix: prefix, suffix: suffix}
++	if v, ok := e.(VarExpr); ok {
++		p.namespace, p.variable = v.Namespace, v.Name
++	}
++	return p, nil
+ }
+ 
+-// transform applies the regexp replacement (with expansion)
+-func (r regexpReplaceTransformer) transform(in string) (string, error) {
+-	// filter out inputs which do not match the regexp at all
+-	if !r.re.MatchString(in) {
+-		return "", nil
++func buildVarExpr(parts []string) (interface{}, error) {
++	if len(parts) == 1 {
++		switch parts[0] {
++		case "internal", "external", "literal":
++			return VarExpr{Namespace: parts[0]}, nil
++		}
++		return nil, trace.BadParameter("variable %q must have namespace.name shape", strings.Join(parts, "."))
+ 	}
+-	return r.re.ReplaceAllString(in, r.replacement), nil
++	if len(parts) != 2 {
++		return nil, trace.BadParameter("variable %q must have exactly namespace.name shape", strings.Join(parts, "."))
++	}
++	switch parts[0] {
++	case "internal", "external", "literal":
++	default:
++		return nil, trace.BadParameter("unsupported namespace %q", parts[0])
++	}
++	if parts[1] == "" {
++		return nil, trace.BadParameter("variable must have nonempty name")
++	}
++	return VarExpr{Namespace: parts[0], Name: parts[1]}, nil
+ }
+-
+-// Namespace returns a variable namespace, e.g. external or internal
+-func (p *Expression) Namespace() string {
+-	return p.namespace
++func buildVarExprFromProperty(mapVal, keyVal interface{}) (interface{}, error) {
++	v, ok := mapVal.(VarExpr)
++	if !ok || v.Name != "" {
++		return nil, trace.BadParameter("bracket variable must have exactly namespace[\"name\"] shape")
++	}
++	key, ok := keyVal.(string)
++	if !ok || key == "" {
++		return nil, trace.BadParameter("variable index must be a nonempty quoted name")
++	}
++	v.Name = key
++	return v, nil
+ }
+-
+-// Name returns variable name
+-func (p *Expression) Name() string {
+-	return p.variable
++func stringArg(arg interface{}, fn string) (Expr, error) {
++	switch v := arg.(type) {
++	case string:
++		return StringLitExpr{v}, nil
++	case Expr:
++		if v.Kind() != reflect.String {
++			return nil, trace.BadParameter("%s requires a string argument, got %s", fn, v.Kind())
++		}
++		return v, nil
++	}
++	return nil, trace.BadParameter("%s requires a string argument, got %T", fn, arg)
+ }
+-
+-// Interpolate interpolates the variable adding prefix and suffix if present,
+-// returns trace.NotFound in case if the trait is not found, nil in case of
+-// success and BadParameter error otherwise
+-func (p *Expression) Interpolate(traits map[string][]string) ([]string, error) {
+-	if p.namespace == LiteralNamespace {
+-		return []string{p.variable}, nil
+-	}
+-	values, ok := traits[p.variable]
++func constArg(arg interface{}, fn string) (string, error) {
++	s, ok := arg.(string)
+ 	if !ok {
+-		return nil, trace.NotFound("variable is not found")
+-	}
+-	var out []string
+-	for i := range values {
+-		val := values[i]
+-		var err error
+-		if p.transform != nil {
+-			val, err = p.transform.transform(val)
+-			if err != nil {
+-				return nil, trace.Wrap(err)
+-			}
+-		}
+-		if len(val) > 0 {
+-			out = append(out, p.prefix+val+p.suffix)
+-		}
++		return "", trace.BadParameter("%s requires a constant string argument, got %T", fn, arg)
+ 	}
+-	return out, nil
++	return s, nil
+ }
+-
+-var reVariable = regexp.MustCompile(
+-	// prefix is anyting that is not { or }
+-	`^(?P<prefix>[^}{]*)` +
+-		// variable is antything in brackets {{}} that is not { or }
+-		`{{(?P<expression>\s*[^}{]*\s*)}}` +
+-		// prefix is anyting that is not { or }
+-		`(?P<suffix>[^}{]*)$`,
+-)
+-
+-// NewExpression parses expressions like {{external.foo}} or {{internal.bar}},
+-// or a literal value like "prod". Call Interpolate on the returned Expression
+-// to get the final value based on traits or other dynamic values.
+-func NewExpression(variable string) (*Expression, error) {
+-	match := reVariable.FindStringSubmatch(variable)
+-	if len(match) == 0 {
+-		if strings.Contains(variable, "{{") || strings.Contains(variable, "}}") {
+-			return nil, trace.BadParameter(
+-				"%q is using template brackets '{{' or '}}', however expression does not parse, make sure the format is {{variable}}",
+-				variable)
+-		}
+-		return &Expression{
+-			namespace: LiteralNamespace,
+-			variable:  variable,
+-		}, nil
++func arity(fn string, args []interface{}, want int) error {
++	if len(args) != want {
++		return trace.BadParameter("%s expects %d arguments, got %d", fn, want, len(args))
+ 	}
+-
+-	prefix, variable, suffix := match[1], match[2], match[3]
+-
+-	// parse and get the ast of the expression
+-	expr, err := parser.ParseExpr(variable)
++	return nil
++}
++func parse(exprStr string) (Expr, error) {
++	if err := checkDepth(exprStr); err != nil {
++		return nil, err
++	}
++	p, err := predicate.NewParser(predicate.Def{GetIdentifier: buildVarExpr, GetProperty: buildVarExprFromProperty, Functions: map[string]interface{}{
++		"email.local": func(args ...interface{}) (interface{}, error) {
++			if err := arity("email.local", args, 1); err != nil {
++				return nil, err
++			}
++			e, err := stringArg(args[0], "email.local")
++			if err != nil {
++				return nil, err
++			}
++			return EmailLocalExpr{Input: e}, nil
++		},
++		"regexp.replace": func(args ...interface{}) (interface{}, error) {
++			if err := arity("regexp.replace", args, 3); err != nil {
++				return nil, err
++			}
++			e, err := stringArg(args[0], "regexp.replace")
++			if err != nil {
++				return nil, err
++			}
++			pat, err := constArg(args[1], "regexp.replace pattern")
++			if err != nil {
++				return nil, err
++			}
++			replacement, err := constArg(args[2], "regexp.replace replacement")
++			if err != nil {
++				return nil, err
++			}
++			re, err := compileRegexp(pat)
++			if err != nil {
++				return nil, err
++			}
++			return RegexpReplaceExpr{Input: e, Pattern: pat, Replacement: replacement, re: re}, nil
++		},
++		"regexp.match": func(args ...interface{}) (interface{}, error) {
++			if err := arity("regexp.match", args, 1); err != nil {
++				return nil, err
++			}
++			pat, err := constArg(args[0], "regexp.match")
++			if err != nil {
++				return nil, err
++			}
++			re, err := compileRegexp(pat)
++			if err != nil {
++				return nil, err
++			}
++			return RegexpMatchExpr{Pattern: pat, re: re}, nil
++		},
++		"regexp.not_match": func(args ...interface{}) (interface{}, error) {
++			if err := arity("regexp.not_match", args, 1); err != nil {
++				return nil, err
++			}
++			pat, err := constArg(args[0], "regexp.not_match")
++			if err != nil {
++				return nil, err
++			}
++			re, err := compileRegexp(pat)
++			if err != nil {
++				return nil, err
++			}
++			return RegexpNotMatchExpr{Pattern: pat, re: re}, nil
++		},
++	}})
+ 	if err != nil {
+-		return nil, trace.NotFound("no variable found in %q: %v", variable, err)
++		return nil, trace.BadParameter("parser setup: %v", err)
+ 	}
+-
+-	// walk the ast tree and gather the variable parts
+-	result, err := walk(expr, 0)
++	v, err := p.Parse(exprStr)
+ 	if err != nil {
+-		return nil, trace.Wrap(err)
++		return nil, trace.BadParameter("invalid expression %q: %v", exprStr, err)
+ 	}
+-
+-	// the variable must have two parts the prefix and the variable name itself
+-	if len(result.parts) != 2 {
+-		return nil, trace.NotFound("no variable found: %v", variable)
++	e, ok := v.(Expr)
++	if !ok {
++		return nil, trace.BadParameter("expression %q must be a namespaced variable or function call", exprStr)
+ 	}
+-	if result.match != nil {
+-		return nil, trace.NotFound("matcher functions (like regexp.match) are not allowed here: %q", variable)
++	return e, nil
++}
++func checkDepth(s string) error {
++	if len(s) > 65536 {
++		return trace.BadParameter("expression exceeds maximum length")
+ 	}
+-
+-	return &Expression{
+-		prefix:    strings.TrimLeftFunc(prefix, unicode.IsSpace),
+-		namespace: result.parts[0],
+-		variable:  result.parts[1],
+-		suffix:    strings.TrimRightFunc(suffix, unicode.IsSpace),
+-		transform: result.transform,
+-	}, nil
++	depth := 0
++	quoted := byte(0)
++	escaped := false
++	for i := 0; i < len(s); i++ {
++		c := s[i]
++		if quoted != 0 {
++			if escaped {
++				escaped = false
++			} else if c == '\\' {
++				escaped = true
++			} else if c == quoted {
++				quoted = 0
++			}
++			continue
++		}
++		if c == '"' || c == '`' {
++			quoted = c
++			continue
++		}
++		if c == '(' || c == '[' {
++			depth++
++			if depth > 100 {
++				return trace.BadParameter("expression exceeds maximum depth")
++			}
++		}
++		if c == ')' || c == ']' {
++			depth--
++		}
++	}
++	return nil
+ }
+ 
+-// Matcher matches strings against some internal criteria (e.g. a regexp)
+-type Matcher interface {
+-	Match(in string) bool
+-}
++type Matcher interface{ Match(string) bool }
++type MatcherFn func(string) bool
+ 
+-// MatcherFn converts function to a matcher interface
+-type MatcherFn func(in string) bool
++func (fn MatcherFn) Match(in string) bool { return fn(in) }
+ 
+-// Match matches string against a regexp
+-func (fn MatcherFn) Match(in string) bool {
+-	return fn(in)
++type MatchExpression struct {
++	prefix, suffix string
++	expr           Expr
+ }
+ 
+-// NewAnyMatcher returns a matcher function based
+-// on incoming values
++func (m *MatchExpression) Match(in string) bool {
++	if !strings.HasPrefix(in, m.prefix) || !strings.HasSuffix(in, m.suffix) || len(in) < len(m.prefix)+len(m.suffix) {
++		return false
++	}
++	middle := in[len(m.prefix) : len(in)-len(m.suffix)]
++	v, err := m.expr.Evaluate(EvaluateContext{MatcherInput: middle})
++	return err == nil && v == true
++}
++func NewMatcher(input string) (Matcher, error) {
++	prefix, body, suffix, templated, err := splitTemplate(input)
++	if err != nil {
++		return nil, err
++	}
++	var e Expr
++	if templated {
++		e, err = parse(body)
++		if err != nil {
++			return nil, err
++		}
++		if err = validateExpr(e); err != nil {
++			return nil, err
++		}
++		if e.Kind() != reflect.Bool {
++			return nil, trace.BadParameter("matcher expression %q evaluates to %s, expected bool", input, e.Kind())
++		}
++	} else {
++		pattern := body
++		if !strings.HasPrefix(body, "^") || !strings.HasSuffix(body, "$") {
++			pattern = "^" + utils.GlobToRegexp(body) + "$"
++		}
++		re, err := compileRegexp(pattern)
++		if err != nil {
++			return nil, err
++		}
++		e = RegexpMatchExpr{Pattern: pattern, re: re}
++	}
++	return &MatchExpression{prefix: prefix, suffix: suffix, expr: e}, nil
++}
+ func NewAnyMatcher(in []string) (Matcher, error) {
+ 	matchers := make([]Matcher, len(in))
+ 	for i, v := range in {
+ 		m, err := NewMatcher(v)
+ 		if err != nil {
+-			return nil, trace.Wrap(err)
++			return nil, err
+ 		}
+ 		matchers[i] = m
+ 	}
+-	return MatcherFn(func(in string) bool {
++	return MatcherFn(func(s string) bool {
+ 		for _, m := range matchers {
+-			if m.Match(in) {
++			if m.Match(s) {
+ 				return true
+ 			}
+ 		}
+@@ -227,286 +390,53 @@ func NewAnyMatcher(in []string) (Matcher, error) {
+ 	}), nil
+ }
+ 
+-// NewMatcher parses a matcher expression. Currently supported expressions:
+-// - string literal: `foo`
+-// - wildcard expression: `*` or `foo*bar`
+-// - regexp expression: `^foo$`
+-// - regexp function calls:
+-//   - positive match: `{{regexp.match("foo.*")}}`
+-//   - negative match: `{{regexp.not_match("foo.*")}}`
+-//
+-// These expressions do not support variable interpolation (e.g.
+-// `{{internal.logins}}`), like Expression does.
+-func NewMatcher(value string) (m Matcher, err error) {
+-	defer func() {
+-		if err != nil {
+-			err = trace.WrapWithMessage(err, "see supported syntax at https://goteleport.com/teleport/docs/enterprise/ssh-rbac/#rbac-for-hosts")
+-		}
+-	}()
+-	match := reVariable.FindStringSubmatch(value)
+-	if len(match) == 0 {
+-		if strings.Contains(value, "{{") || strings.Contains(value, "}}") {
+-			return nil, trace.BadParameter(
+-				"%q is using template brackets '{{' or '}}', however expression does not parse, make sure the format is {{expression}}",
+-				value)
+-		}
+-		return newRegexpMatcher(value, true)
+-	}
+-
+-	prefix, variable, suffix := match[1], match[2], match[3]
+-
+-	// parse and get the ast of the expression
+-	expr, err := parser.ParseExpr(variable)
+-	if err != nil {
+-		return nil, trace.BadParameter("failed to parse %q: %v", value, err)
+-	}
++// Legacy helpers retained for callers constructing expressions within this package.
++type transformer interface{ transform(string) (string, error) }
++type emailLocalTransformer struct{}
+ 
+-	// walk the ast tree and gather the variable parts
+-	result, err := walk(expr, 0)
++func (emailLocalTransformer) transform(in string) (string, error) {
++	v, err := EmailLocalExpr{Input: StringLitExpr{in}}.Evaluate(EvaluateContext{})
+ 	if err != nil {
+-		return nil, trace.Wrap(err)
++		return "", err
+ 	}
+-	// For now, only support a single match expression. In the future, we could
+-	// consider handling variables and transforms by propagating user traits to
+-	// the matching logic. For example
+-	// `{{regexp.match(external.allowed_env_trait)}}`.
+-	if result.transform != nil || len(result.parts) > 0 {
+-		return nil, trace.BadParameter("%q is not a valid matcher expression - no variables and transformations are allowed", value)
+-	}
+-	return newPrefixSuffixMatcher(prefix, suffix, result.match), nil
+-}
+-
+-// regexpMatcher matches input string against a pre-compiled regexp.
+-type regexpMatcher struct {
+-	re *regexp.Regexp
++	return v.([]string)[0], nil
+ }
+ 
+-func (m regexpMatcher) Match(in string) bool {
+-	return m.re.MatchString(in)
++type regexpReplaceTransformer struct {
++	re          *regexp.Regexp
++	replacement string
+ }
+ 
+-func newRegexpMatcher(raw string, escape bool) (*regexpMatcher, error) {
+-	if escape {
+-		if !strings.HasPrefix(raw, "^") || !strings.HasSuffix(raw, "$") {
+-			// replace glob-style wildcards with regexp wildcards
+-			// for plain strings, and quote all characters that could
+-			// be interpreted in regular expression
+-			raw = "^" + utils.GlobToRegexp(raw) + "$"
+-		}
+-	}
+-
+-	re, err := regexp.Compile(raw)
++func newRegexpReplaceTransformer(pattern, replacement string) (*regexpReplaceTransformer, error) {
++	re, err := compileRegexp(pattern)
+ 	if err != nil {
+-		return nil, trace.BadParameter("failed parsing regexp %q: %v", raw, err)
++		return nil, err
++	}
++	return &regexpReplaceTransformer{re, replacement}, nil
++}
++func (r regexpReplaceTransformer) transform(in string) (string, error) {
++	if !r.re.MatchString(in) {
++		return "", nil
+ 	}
+-	return &regexpMatcher{re: re}, nil
++	return r.re.ReplaceAllString(in, r.replacement), nil
+ }
+ 
+-// prefixSuffixMatcher matches prefix and suffix of input and passes the middle
+-// part to another matcher.
++type regexpMatcher struct{ re *regexp.Regexp }
++
++func (m regexpMatcher) Match(in string) bool { return m.re.MatchString(in) }
++
+ type prefixSuffixMatcher struct {
+ 	prefix, suffix string
+ 	m              Matcher
+ }
+ 
+ func (m prefixSuffixMatcher) Match(in string) bool {
+-	if !strings.HasPrefix(in, m.prefix) || !strings.HasSuffix(in, m.suffix) {
++	if !strings.HasPrefix(in, m.prefix) || !strings.HasSuffix(in, m.suffix) || len(in) < len(m.prefix)+len(m.suffix) {
+ 		return false
+ 	}
+-	in = strings.TrimPrefix(in, m.prefix)
+-	in = strings.TrimSuffix(in, m.suffix)
+-	return m.m.Match(in)
++	return m.m.Match(in[len(m.prefix) : len(in)-len(m.suffix)])
+ }
+ 
+-func newPrefixSuffixMatcher(prefix, suffix string, inner Matcher) prefixSuffixMatcher {
+-	return prefixSuffixMatcher{prefix: prefix, suffix: suffix, m: inner}
+-}
+-
+-// notMatcher inverts the result of another matcher.
+ type notMatcher struct{ m Matcher }
+ 
+ func (m notMatcher) Match(in string) bool { return !m.m.Match(in) }
+-
+-const (
+-	// LiteralNamespace is a namespace for Expressions that always return
+-	// static literal values.
+-	LiteralNamespace = "literal"
+-	// EmailNamespace is a function namespace for email functions
+-	EmailNamespace = "email"
+-	// EmailLocalFnName is a name for email.local function
+-	EmailLocalFnName = "local"
+-	// RegexpNamespace is a function namespace for regexp functions.
+-	RegexpNamespace = "regexp"
+-	// RegexpMatchFnName is a name for regexp.match function.
+-	RegexpMatchFnName = "match"
+-	// RegexpNotMatchFnName is a name for regexp.not_match function.
+-	RegexpNotMatchFnName = "not_match"
+-	// RegexpReplaceFnName is a name for regexp.replace function.
+-	RegexpReplaceFnName = "replace"
+-)
+-
+-// transformer is an optional value transformer function that can take in
+-// string and replace it with another value
+-type transformer interface {
+-	transform(in string) (string, error)
+-}
+-
+-// getBasicString checks that arg is a properly quoted basic string and returns
+-// it. If arg is not a properly quoted basic string, the second return value
+-// will be false.
+-func getBasicString(arg ast.Expr) (string, bool) {
+-	basicLit, ok := arg.(*ast.BasicLit)
+-	if !ok {
+-		return "", false
+-	}
+-	if basicLit.Kind != token.STRING {
+-		return "", false
+-	}
+-	str, err := strconv.Unquote(basicLit.Value)
+-	if err != nil {
+-		return "", false
+-	}
+-	return str, true
+-}
+-
+-// maxASTDepth is the maximum depth of the AST that func walk will traverse.
+-// The limit exists to protect against DoS via malicious inputs.
+-const maxASTDepth = 1000
+-
+-type walkResult struct {
+-	parts     []string
+-	transform transformer
+-	match     Matcher
+-}
+-
+-// walk will walk the ast tree and gather all the variable parts into a slice and return it.
+-func walk(node ast.Node, depth int) (*walkResult, error) {
+-	if depth > maxASTDepth {
+-		return nil, trace.LimitExceeded("expression exceeds the maximum allowed depth")
+-	}
+-
+-	var result walkResult
+-
+-	switch n := node.(type) {
+-	case *ast.CallExpr:
+-		switch call := n.Fun.(type) {
+-		case *ast.Ident:
+-			return nil, trace.BadParameter("function %v is not supported", call.Name)
+-		case *ast.SelectorExpr:
+-			// Selector expression looks like email.local(parameter)
+-			namespaceNode, ok := call.X.(*ast.Ident)
+-			if !ok {
+-				return nil, trace.BadParameter("expected namespace, e.g. email.local, got %v", call.X)
+-			}
+-			namespace := namespaceNode.Name
+-			fn := call.Sel.Name
+-			switch namespace {
+-			case EmailNamespace:
+-				// This is a function name
+-				if fn != EmailLocalFnName {
+-					return nil, trace.BadParameter("unsupported function %v.%v, supported functions are: email.local", namespace, fn)
+-				}
+-				// Because only one function is supported for now,
+-				// this makes sure that the function call has exactly one argument
+-				if len(n.Args) != 1 {
+-					return nil, trace.BadParameter("expected 1 argument for %v.%v got %v", namespace, fn, len(n.Args))
+-				}
+-				result.transform = emailLocalTransformer{}
+-				ret, err := walk(n.Args[0], depth+1)
+-				if err != nil {
+-					return nil, trace.Wrap(err)
+-				}
+-				result.parts = ret.parts
+-				return &result, nil
+-			case RegexpNamespace:
+-				switch fn {
+-				// Both match and not_match parse the same way.
+-				case RegexpMatchFnName, RegexpNotMatchFnName:
+-					if len(n.Args) != 1 {
+-						return nil, trace.BadParameter("expected 1 argument for %v.%v got %v", namespace, fn, len(n.Args))
+-					}
+-					re, ok := getBasicString(n.Args[0])
+-					if !ok {
+-						return nil, trace.BadParameter("argument to %v.%v must be a properly quoted string literal", namespace, fn)
+-					}
+-					var err error
+-					result.match, err = newRegexpMatcher(re, false)
+-					if err != nil {
+-						return nil, trace.Wrap(err)
+-					}
+-					// If this is not_match, wrap the regexpMatcher to invert it.
+-					if fn == RegexpNotMatchFnName {
+-						result.match = notMatcher{result.match}
+-					}
+-					return &result, nil
+-				case RegexpReplaceFnName:
+-					if len(n.Args) != 3 {
+-						return nil, trace.BadParameter("expected 3 arguments for %v.%v got %v", namespace, fn, len(n.Args))
+-					}
+-					ret, err := walk(n.Args[0], depth+1)
+-					if err != nil {
+-						return nil, trace.Wrap(err)
+-					}
+-					result.parts = ret.parts
+-					expression, ok := getBasicString(n.Args[1])
+-					if !ok {
+-						return nil, trace.BadParameter("second argument to %v.%v must be a properly quoted string literal", namespace, fn)
+-					}
+-					replacement, ok := getBasicString(n.Args[2])
+-					if !ok {
+-						return nil, trace.BadParameter("third argument to %v.%v must be a properly quoted string literal", namespace, fn)
+-					}
+-					result.transform, err = newRegexpReplaceTransformer(expression, replacement)
+-					if err != nil {
+-						return nil, trace.Wrap(err)
+-					}
+-					return &result, nil
+-				default:
+-					return nil, trace.BadParameter("unsupported function %v.%v, supported functions are: regexp.match, regexp.not_match", namespace, fn)
+-				}
+-			default:
+-				return nil, trace.BadParameter("unsupported function namespace %v, supported namespaces are %v and %v", call.X, EmailNamespace, RegexpNamespace)
+-			}
+-		default:
+-			return nil, trace.BadParameter("unsupported function %T", n.Fun)
+-		}
+-	case *ast.IndexExpr:
+-		ret, err := walk(n.X, depth+1)
+-		if err != nil {
+-			return nil, err
+-		}
+-		result.parts = append(result.parts, ret.parts...)
+-		ret, err = walk(n.Index, depth+1)
+-		if err != nil {
+-			return nil, err
+-		}
+-		result.parts = append(result.parts, ret.parts...)
+-		return &result, nil
+-	case *ast.SelectorExpr:
+-		ret, err := walk(n.X, depth+1)
+-		if err != nil {
+-			return nil, err
+-		}
+-		result.parts = append(result.parts, ret.parts...)
+-
+-		ret, err = walk(n.Sel, depth+1)
+-		if err != nil {
+-			return nil, err
+-		}
+-		result.parts = append(result.parts, ret.parts...)
+-		return &result, nil
+-	case *ast.Ident:
+-		return &walkResult{parts: []string{n.Name}}, nil
+-	case *ast.BasicLit:
+-		if n.Kind == token.STRING {
+-			var err error
+-			n.Value, err = strconv.Unquote(n.Value)
+-			if err != nil {
+-				return nil, err
+-			}
+-		}
+-		return &walkResult{parts: []string{n.Value}}, nil
+-	default:
+-		return nil, trace.BadParameter("unknown node type: %T", n)
+-	}
+-}
+diff --git a/lib/utils/parse/parse_test.go b/lib/utils/parse/parse_test.go
+index fed63ec..1560ffb 100644
+--- a/lib/utils/parse/parse_test.go
++++ b/lib/utils/parse/parse_test.go
+@@ -20,7 +20,6 @@ import (
+ 	"regexp"
+ 	"testing"
+ 
+-	"github.com/google/go-cmp/cmp"
+ 	"github.com/gravitational/trace"
+ 	"github.com/stretchr/testify/require"
+ )
+@@ -141,7 +140,13 @@ func TestVariable(t *testing.T) {
+ 				return
+ 			}
+ 			require.NoError(t, err)
+-			require.Equal(t, tt.out, *variable)
++			require.Equal(t, tt.out.prefix, variable.prefix)
++			require.Equal(t, tt.out.suffix, variable.suffix)
++			if tt.out.transform == nil {
++				require.Equal(t, tt.out.namespace, variable.Namespace())
++				require.Equal(t, tt.out.variable, variable.Name())
++			}
++			require.NotNil(t, variable.expr)
+ 		})
+ 	}
+ }
+@@ -345,9 +350,9 @@ func TestMatch(t *testing.T) {
+ 				return
+ 			}
+ 			require.NoError(t, err)
+-			require.Empty(t, cmp.Diff(tt.out, matcher, cmp.AllowUnexported(
+-				regexpMatcher{}, prefixSuffixMatcher{}, notMatcher{}, regexp.Regexp{},
+-			)))
++			for _, sample := range []string{"", "foo", "foobar", "foo-bar-baz", "foo-qux-baz", "bar"} {
++				require.Equal(t, tt.out.Match(sample), matcher.Match(sample), "sample %q", sample)
++			}
+ 		})
+ 	}
+ }

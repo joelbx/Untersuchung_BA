@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) to provide the localized verified and unverified status copy. [CurrentDeviceSection](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx) now uses it, and [DeviceDetails](/app/src/components/views/settings/devices/DeviceDetails.tsx) shows it immediately after the device heading. Tests and snapshots cover both views and the undefined verification state.
+
+The device and Session Manager suites passed; the focused rerun passed all 11 tests. ESLint and `git diff --check` passed. The repository wide TypeScript check still reports errors in unrelated Matrix SDK and widget code, with none reported in the changed files.

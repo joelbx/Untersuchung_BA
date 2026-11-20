@@ -1,0 +1,3 @@
+Updated [configuration loading](/app/internal/config/config.go) to return `*Result` with separate `Config` and `Warnings` fields. Deprecation warnings are now generated only for deprecated keys explicitly present in the configuration file, before defaults are applied. This includes `ui.enabled`, even when its value is `false`.
+
+The CLI logs warnings from `Result`, and the configuration tests cover the new behavior. `go test ./internal/config ./cmd/flipt` and `git diff --check` passed.

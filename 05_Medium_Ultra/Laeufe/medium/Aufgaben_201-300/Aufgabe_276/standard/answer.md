@@ -1,0 +1,3 @@
+GitHub and enabled OIDC authentication configurations now fail during startup validation when `client_id`, `client_secret`, or `redirect_address` is empty. GitHub also reports the required `read:org` scope error when organizations are configured. Errors use the requested field format and provider key; OIDC preserves the key’s spelling from YAML.
+
+Verified with `go test ./internal/config` and `go test ./internal/server/auth/...`.

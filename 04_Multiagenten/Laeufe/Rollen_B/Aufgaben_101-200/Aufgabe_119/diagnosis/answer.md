@@ -1,0 +1,5 @@
+The refactor is centered on [Pill.tsx](/app/src/components/views/elements/Pill.tsx:65). Its class combines permalink parsing, profile lookup, and rendering. In message context, it reads `parsePermalink(url).primaryEntityId` without handling a null result. The user branch also clears `href` and can render an empty label when no display name is available.
+
+The public API change also affects [pillify.tsx](/app/src/utils/pillify.tsx:24), which calls the class’s static `@room` helpers, plus [ReplyChain.tsx](/app/src/components/views/elements/ReplyChain.tsx:33) and [BridgeTile.tsx](/app/src/components/views/settings/BridgeTile.tsx:23), which use default imports. The fix should move resolution into `usePermalink`, export the named helpers and component, preserve the supplied URL as the link `href`, and return no pill when the target cannot be resolved.
+
+Existing tests cover `@room` conversion and message DOM for user and room pills, but I found no dedicated hook or Pill tests. I wrote the diagnosis to `.codex-role-output/checkpoint.md`. My assigned fault-localization role prohibited source and test edits, so **the issue remains unresolved in the checked-out files**.

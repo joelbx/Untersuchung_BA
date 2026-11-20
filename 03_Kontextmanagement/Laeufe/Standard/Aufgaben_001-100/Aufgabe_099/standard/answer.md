@@ -1,0 +1,3 @@
+Fixed `BatchEvaluate` so disabled flags produce a response entry and the batch continues in input order. Disabled entries have `match: false`, an empty value, a timestamp, and their own duration; the outer response has the total duration. Added `ErrDisabled` and `ErrDisabledf`, migrated protobuf types to `timestamppb` and `emptypb`, and added regression tests.
+
+Verification: `GOPROXY=off go test -mod=mod ./...` passed.

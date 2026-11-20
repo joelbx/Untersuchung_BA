@@ -1,0 +1,3 @@
+Resolved the default configuration validation issue. `internal/config` now exports `DefaultConfig()` and `DecodeHooks`, and `Load` composes the exported hooks. Storage’s optional Local and Git settings use pointers. I also aligned the CUE schema with the decoded defaults and added a regression test for decoding and CUE validation.
+
+Verification passed: `go test ./internal/config ./internal/cue ./internal/cmd -count=1` and `git diff --check`.

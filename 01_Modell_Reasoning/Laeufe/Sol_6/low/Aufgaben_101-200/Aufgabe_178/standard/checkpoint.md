@@ -1,0 +1,1 @@
+Completed bcrypt ident support in filter, hashing utility backends, and password lookup. Lookup stores ident with salt and defaults bcrypt to 2a. Added focused tests. Relevant unit suites: 48 passed with PYTHONPATH=lib. Host crypt provider rejects legacy $2$ ident; passlib supports it.

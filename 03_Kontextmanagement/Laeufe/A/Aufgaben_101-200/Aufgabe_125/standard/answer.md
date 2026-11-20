@@ -1,0 +1,3 @@
+Implemented configurable topic backlinks in the checked-out repository. `Topics.syncBacklinks(postData)` tracks references per post, adds events for new references, removes events when references disappear, and runs on topic creation and post edit. The admin setting controls whether backlink events appear in the timeline; the event text is localized.
+
+Verification: 295 topic and post tests pass. ESLint, JSON parsing, and `git diff --check` pass.

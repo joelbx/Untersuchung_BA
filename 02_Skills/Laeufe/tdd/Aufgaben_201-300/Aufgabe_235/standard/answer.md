@@ -1,0 +1,3 @@
+Updated [parse.py](/app/openlibrary/catalog/marc/parse.py) to import linked 880 names into `alternate_names` for personal authors from 100, 700, and 720. It also normalizes names and dates while retaining the primary author fields. Organization and event parsing is unchanged.
+
+The `openlibrary` suite passed: **1,344 tests**. Bare `pytest` could not collect tests because the `infogami` symlink registers a duplicate plugin; the command and error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

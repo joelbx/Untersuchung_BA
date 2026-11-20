@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) to provide the localized verified and unverified copy. `CurrentDeviceSection` now delegates to it, and `DeviceDetails` renders it immediately after the heading. Updated tests and snapshots.
+
+The 12 focused tests and changed-file ESLint checks pass. The full Jest run has 7 failures outside device settings: SmartMarker, LocationViewDialog, ZoomButtons, MLocationBody, BeaconMarker, BeaconStatus, and RoomView. Type checking also fails on SDK and widget type errors outside the changed files. These results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

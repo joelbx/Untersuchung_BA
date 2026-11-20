@@ -1,0 +1,3 @@
+Updated tsh so `Run` and its command handlers return errors to callers, and runtime options can be applied after argument parsing. Added `SSOLoginFunc` and propagated the mock SSO handler into the client. Auth and proxy startup now pass the addresses assigned by their listeners to dependent configuration and logs.
+
+The selected existing tests and new focused tsh tests pass in `tool/tsh`, `lib/client`, and `lib/service`.

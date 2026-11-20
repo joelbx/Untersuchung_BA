@@ -1,0 +1,3 @@
+Evaluation now lives in [EvaluatorStorage](/app/storage/evaluator.go), and [Server.Evaluate](/app/server/evaluator.go) delegates through the new `Evaluator` interface. `RuleStore` no longer includes evaluation. The evaluator preserves rule rank, applies typed constraints, selects distributions with CRC32 buckets, and returns request metadata. Focused tests cover rank and bucket boundaries.
+
+`GOPROXY=off go test ./... -count=1` and `git diff --check` passed.

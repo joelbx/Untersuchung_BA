@@ -1,0 +1,3 @@
+Implemented local image cleanup for group covers, user covers and avatars, and account deletion. User image removal is centralized in [src/user/picture.js](/app/src/user/picture.js); socket handlers keep firing their removal hooks, and deletion paths are restricted to the configured upload directories.
+
+ESLint and `git diff --check` passed. `npx mocha test/user.js` could not run because Redis at `127.0.0.1:6379` refused the connection during setup, before any tests executed. The checkpoint is at [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

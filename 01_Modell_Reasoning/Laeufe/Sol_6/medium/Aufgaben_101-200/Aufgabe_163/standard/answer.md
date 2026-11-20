@@ -1,0 +1,3 @@
+The repository now accepts either `db.url` or separate protocol, host, port, user, password, and name settings. The URL takes precedence; field-based settings use engine-specific port defaults and are validated with qualified key names. Normal connections and migrations use the same configuration path and pool settings, and connection errors avoid exposing passwords.
+
+Updated the sample configuration and added tests for loading, precedence, validation, redaction, and SQLite migration. `go test ./storage/db ./config ./cmd/flipt` and `git diff --check` pass.

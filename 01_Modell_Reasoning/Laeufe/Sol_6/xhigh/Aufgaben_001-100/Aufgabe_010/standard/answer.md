@@ -1,0 +1,3 @@
+The composer now shows a tombstoned room’s status in a paragraph, with the replacement link in a separate paragraph. The reply preview names the sender and uses a new [reusable cancel button](/app/src/components/views/buttons/Cancel.tsx); search and link previews use that button too.
+
+All 7 focused tests pass, and ESLint and Stylelint pass. The full TypeScript check still fails on existing SDK and room settings errors outside the changed files.

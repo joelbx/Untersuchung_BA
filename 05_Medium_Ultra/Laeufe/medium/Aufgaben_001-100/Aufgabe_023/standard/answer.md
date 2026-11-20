@@ -1,0 +1,3 @@
+Authentication now connects to a database only when flag storage uses one or an enabled authentication method requires one. JWT is explicitly marked as database-free; static token, OIDC, GitHub, and Kubernetes are marked as database-backed. Cleanup runs only for enabled database-backed methods with a schedule.
+
+Added tests for method selection and JWT startup with Local, Git, and OCI storage. `go test ./internal/config ./internal/cmd ./internal/cleanup` passed.

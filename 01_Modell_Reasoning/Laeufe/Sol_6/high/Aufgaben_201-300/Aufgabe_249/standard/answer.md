@@ -1,0 +1,3 @@
+Implemented structured external profiles in [WikidataEntity](/app/openlibrary/core/wikidata.py). Wikipedia links use the requested language with English fallback; statement parsing skips malformed entries; and each Google Scholar identifier produces its own profile.
+
+The [author infobox](/app/openlibrary/templates/authors/infobox.html) now displays those links with the requested icons. All 14 focused Wikidata tests pass; Ruff and `git diff --check` pass.

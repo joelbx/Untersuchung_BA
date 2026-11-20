@@ -1,0 +1,3 @@
+Updated Amazon Linux detection and version normalization so 2023, 2025, 2027, and 2029 route to their matching OVAL and ALAS advisories. Added EOL dates and coverage for support boundaries; unrecognized releases no longer fall back to Amazon Linux 1. The changes are in [config/os.go](/app/config/os.go), [scanner/redhatbase.go](/app/scanner/redhatbase.go), and [oval/util.go](/app/oval/util.go).
+
+`go test ./config ./scanner ./oval` passed with module downloads disabled. No live Amazon Linux host scan was run.

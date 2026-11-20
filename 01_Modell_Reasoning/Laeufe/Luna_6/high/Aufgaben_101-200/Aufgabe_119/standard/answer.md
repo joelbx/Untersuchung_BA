@@ -1,0 +1,3 @@
+Refactored `Pill` into a functional component and added the reusable [`usePermalink.tsx`](/app/src/hooks/usePermalink.tsx) hook. `Pill`, `PillType`, `pillRoomNotifPos`, and `pillRoomNotifLen` are named exports; `ReplyChain`, `BridgeTile`, and pillification now use named imports. The rendered pill preserves the required wrapper, link behavior, classes, avatar, tooltip, and user action.
+
+**Verification:** The existing pillify suite passed (3 tests); ESLint, Prettier, and `git diff --check` passed. `yarn lint:types` reported SDK API mismatches in unrelated files and no errors in the changed files.

@@ -1,0 +1,3 @@
+Fixed `QtColor` so HSV and HSVA hue percentages scale to 359, while other percentage components scale to 255. `to_py` now validates color function names and component counts before constructing the corresponding `QColor`. The regression tests cover 10% and 100% hue.
+
+The focused QtColor suite passes: **26 tests**. The full suite could not be verified: Qt setup aborted, and a broader config test run had unrelated Hypothesis, font, and timestamp failures. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

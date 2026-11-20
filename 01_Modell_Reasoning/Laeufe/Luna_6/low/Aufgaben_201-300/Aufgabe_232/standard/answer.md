@@ -1,0 +1,3 @@
+Implemented centralized EOL data and lookup in [config/os.go](/app/config/os.go), added `util.Major`, and wired per-target EOL warnings into scan results and text summaries. Amazon Linux v1/v2 releases are distinguished, and pseudo and Raspbian targets skip EOL evaluation.
+
+The existing tests passed for `config`, `util`, `scan`, `models`, `report`, `gost`, and `oval`; `git diff --check` passed. The build emitted a C compiler warning from the existing SQLite dependency.

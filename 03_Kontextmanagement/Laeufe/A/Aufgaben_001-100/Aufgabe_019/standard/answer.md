@@ -1,0 +1,3 @@
+Updated [roles.go](/app/roles.go) so `Check` rejects unknown and duplicate roles, and `Equals` compares distinct role sets regardless of order or duplicates. Nil and empty lists compare equal. Added regression coverage in [roles_test.go](/app/lib/utils/roles_test.go).
+
+The role suite and root package checks passed. The full `lib/utils` suite has one unrelated failure because a certificate fixture expired in 2021.

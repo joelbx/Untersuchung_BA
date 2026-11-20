@@ -1,0 +1,3 @@
+Replaced the ad hoc expression parser with a validated AST in [lib/utils/parse](/app/lib/utils/parse/ast.go). It now evaluates nested string expressions, validates variable shapes and namespaces, enforces function arguments and expression depth, and uses the same regex compilation path for interpolation and matching. [Trait interpolation](/app/lib/services/role.go) and [PAM environment interpolation](/app/lib/srv/ctx.go) now validate variables through the new callback.
+
+The parser tests and service trait tests pass. The server package test could not compile in this environment: the CGO build lacks `linux/hidraw.h`, and the CGO-disabled build lacks PKCS#11 definitions.

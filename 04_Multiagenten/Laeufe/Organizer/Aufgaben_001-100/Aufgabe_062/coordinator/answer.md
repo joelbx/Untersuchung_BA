@@ -1,0 +1,3 @@
+Fixed terminal restoration after canceled password reads and on `tsh` exit. `ContextReader` now restores the saved terminal state on cancellation or close, then allows subsequent reads to proceed. The new `NotifyExit` function closes the global stdin reader, and `tsh` calls it on its exit paths.
+
+Regression tests cover cancellation, deadline expiry, later reads, close, restore errors, and exit notification. The prompt tests passed, the `tsh` package compiled, and `git diff --check` passed. No delegation was used.

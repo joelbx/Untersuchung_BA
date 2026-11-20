@@ -1,0 +1,384 @@
+"""Environment adapter for an OpenSandbox lifecycle service."""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+import shlex
+import time
+import traceback
+from dataclasses import dataclass
+from datetime import timedelta
+from pathlib import Path, PurePosixPath
+from typing import Any, ClassVar
+
+import aiofiles
+
+from agentcompass.environments.utils.exec import with_exec_workdir
+from agentcompass.environments.utils.files import download_directory, raise_file_failure
+from agentcompass.environments.utils.shared_storage import (SharedStorageConfig, upload_directory_from_shared_storage,
+                                                            upload_file_from_shared_storage,
+                                                            validate_environment_shared_storage)
+from agentcompass.errors import EnvironmentInteractionError, EnvironmentSetupError
+from agentcompass.runtime import (ENVIRONMENTS, BaseEnvironment, EnvironmentSession, ExecResult, ExecutionPlan,
+                                  RunRequest)
+from agentcompass.runtime.base import EnvRecord, close_environment_resource
+from agentcompass.runtime.config import (RuntimeEnvironmentConfig, config_field, env_config_field, parse_list,
+                                         parse_positive_int)
+from agentcompass.runtime.resources import ResourceField, ResourceRequirements, resource_mib_quantity
+from agentcompass.utils.env import parse_env_variables, resolve_env_ref
+
+logger = logging.getLogger(__name__)
+
+_OPENSANDBOX_SIGNAL_EXIT_CODE = -1
+_OPENSANDBOX_COMMAND_ERROR = "CommandExecError"
+
+
+def _optional_str(value: Any) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _opensandbox_resource_limits(resources: ResourceRequirements) -> dict[str, str]:
+    """Convert unified resources to OpenSandbox resourceLimits quantities."""
+
+    payload: dict[str, str] = {}
+    if resources.cpu is not None:
+        payload["cpu"] = format(resources.cpu, "g")
+    if resources.memory_mb is not None:
+        payload["memory"] = resource_mib_quantity(resources.memory_mb)
+    if resources.gpu:
+        payload["gpu"] = str(resources.gpu)
+    return payload
+
+
+def _is_command_timeout(*, execution: Any, returncode: int, timeout: float | None, elapsed: float) -> bool:
+    if timeout is None or timeout <= 0 or elapsed < timeout:
+        return False
+    error = getattr(execution, "error", None)
+    # Execd reports a process killed by its command timeout as CommandExecError(-1),
+    # which is also how the SDK represents other signal exits. The elapsed-time
+    # check keeps those early signal exits from being misclassified as timeouts.
+    return (returncode == _OPENSANDBOX_SIGNAL_EXIT_CODE and getattr(error, "name", None) == _OPENSANDBOX_COMMAND_ERROR
+            and getattr(error, "value", None) == str(_OPENSANDBOX_SIGNAL_EXIT_CODE))
+
+
+def _append_timeout_message(stderr: str, timeout: float | None) -> str:
+    if timeout is None:
+        return stderr
+    message = f"Command timed out after {timeout:g} seconds."
+    existing = stderr.rstrip()
+    return f"{existing}\n{message}" if existing else message
+
+
+class OpenSandboxSession(EnvironmentSession):
+    """Environment session backed by an OpenSandbox SDK connection."""
+
+    id: ClassVar[str] = "opensandbox"
+
+    def __init__(
+        self,
+        *,
+        sandbox: Any,
+        env_variables: dict[str, str] | None = None,
+        shared_storage: list[SharedStorageConfig] | None = None,
+    ) -> None:
+        self.sandbox = sandbox
+        self.env_variables = dict(env_variables or {})
+        self.shared_storage = list(shared_storage or [])
+
+    @with_exec_workdir
+    async def exec(
+        self,
+        command: list[str] | str,
+        *,
+        shell: bool = False,
+        cwd: str | None = None,
+        env: dict[str, str] | None = None,
+        required_env: dict[str, str] | None = None,
+        timeout: float | None = None,
+        detach: bool = False,
+        flags: dict[str, Any] | None = None,
+    ) -> ExecResult:
+        _ = flags
+        command = self._validate_exec_command(command, shell=shell)
+        command_text = str(command) if shell else shlex.join(command)
+        merged_env = self._merge_exec_env(env, required_env=required_env)
+
+        try:
+            from opensandbox.models.execd import RunCommandOpts
+
+            timeout_seconds = float(timeout) if timeout is not None else None
+            started_at = time.monotonic()
+            execution = await self.sandbox.commands.run(
+                command_text,
+                opts=RunCommandOpts(
+                    background=detach,
+                    working_directory=cwd,
+                    timeout=timedelta(seconds=timeout_seconds) if timeout_seconds is not None else None,
+                    envs=merged_env or None,
+                ),
+            )
+            elapsed_seconds = time.monotonic() - started_at
+            stdout = "".join(message.text for message in execution.logs.stdout)
+            stderr = "".join(message.text for message in execution.logs.stderr)
+            returncode = 0 if detach else execution.exit_code
+            if returncode is None:
+                raise EnvironmentInteractionError(f"{self.id} command completed without an exit code")
+            returncode = int(returncode)
+            timed_out = _is_command_timeout(execution=execution,
+                                            returncode=returncode,
+                                            timeout=timeout_seconds,
+                                            elapsed=elapsed_seconds)
+            if timed_out:
+                stderr = _append_timeout_message(stderr, timeout_seconds)
+            return ExecResult(
+                returncode=returncode,
+                stdout=stdout,
+                stderr=stderr,
+                timed_out=timed_out,
+            )
+        except EnvironmentInteractionError:
+            raise
+        except Exception as exc:
+            err_msg = "\n".join(traceback.format_exception(exc))
+            raise EnvironmentInteractionError(f"{self.id} exec error: {err_msg}") from exc
+
+    async def _ensure_remote_parent(self, path: str) -> None:
+        parent = PurePosixPath(path).parent
+        if parent == PurePosixPath("."):
+            return
+        result = await self.exec(["mkdir", "-p", "--", str(parent)], timeout=30)
+        if result.returncode != 0:
+            raise EnvironmentInteractionError(f"Failed to create remote parent {parent}: {result.stderr}")
+
+    async def upload(self, src: str, dst: str) -> None:
+        dst = await self.resolve_path(dst)
+        source = Path(src).resolve()
+        if source.is_dir():
+            await self.upload_dir(source, dst)
+            return
+        if not source.exists():
+            raise FileNotFoundError(f"Source file does not exist: {source}")
+        if await upload_file_from_shared_storage(self, self.shared_storage, source, dst):
+            return
+        await self._ensure_remote_parent(dst)
+        try:
+            async with aiofiles.open(source, "rb") as file:
+                content = await file.read()
+            await self.sandbox.files.write_file(dst, content, mode=644)
+        except Exception as exc:
+            err_msg = "\n".join(traceback.format_exception(exc))
+            raise EnvironmentInteractionError(f"{self.id} upload error: {err_msg}") from exc
+
+    async def download(self, src: str, dst: str) -> None:
+        src = await self.resolve_path(src)
+        destination = Path(dst).resolve()
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            content = await self.sandbox.files.read_bytes(src)
+            async with aiofiles.open(destination, "wb") as file:
+                await file.write(content)
+        except Exception as exc:
+            raise_file_failure(exc, src)
+
+    async def write_text(self, path: str, content: str) -> None:
+        path = await self.resolve_path(path)
+        await self._ensure_remote_parent(path)
+        try:
+            await self.sandbox.files.write_file(path, content, mode=644)
+        except Exception as exc:
+            err_msg = "\n".join(traceback.format_exception(exc))
+            raise EnvironmentInteractionError(f"{self.id} write_text error: {err_msg}") from exc
+
+    async def read_text(self, path: str) -> str:
+        path = await self.resolve_path(path)
+        try:
+            return await self.sandbox.files.read_file(path)
+        except Exception as exc:
+            raise_file_failure(exc, path)
+
+    async def upload_dir(self, src: Path | str, dst: str) -> None:
+        dst = await self.resolve_path(dst)
+        source_dir = Path(src).resolve()
+        if not source_dir.exists():
+            raise FileNotFoundError(f"Source directory does not exist: {source_dir}")
+        if not source_dir.is_dir():
+            raise NotADirectoryError(f"Source path is not a directory: {source_dir}")
+        if await upload_directory_from_shared_storage(self, self.shared_storage, source_dir, dst):
+            return
+        result = await self.exec(["mkdir", "-p", "--", dst], timeout=30)
+        if result.returncode != 0:
+            raise EnvironmentInteractionError(f"Failed to create remote directory {dst}: {result.stderr}")
+        for file_path in source_dir.rglob("*"):
+            if file_path.is_file():
+                relative_path = file_path.relative_to(source_dir).as_posix()
+                await self.upload(str(file_path), f"{dst.rstrip('/')}/{relative_path}")
+
+    async def download_dir(self, src: str, dst: Path | str) -> None:
+        await download_directory(self, src, dst)
+
+    async def endpoint(self) -> str | None:
+        return None
+
+
+@dataclass(slots=True)
+class OpenSandboxEnvironmentConfig(RuntimeEnvironmentConfig):
+    """User-facing parameters for the OpenSandbox lifecycle-service adapter."""
+
+    id: ClassVar[str] = "opensandbox"
+    api_key_env_var: ClassVar[str] = "OPEN_SANDBOX_API_KEY"
+    domain_env_var: ClassVar[str] = "OPEN_SANDBOX_DOMAIN"
+    api_key: str | None = env_config_field("OPEN_SANDBOX_API_KEY", "OpenSandbox lifecycle-service API key.")
+    domain: str | None = env_config_field(
+        "OPEN_SANDBOX_DOMAIN",
+        "OpenSandbox lifecycle-service root address; a URL scheme is optional, and the SDK appends /v1.",
+    )
+    lifecycle_seconds: int = config_field(
+        default=43200,
+        description="Server-side sandbox expiration time in seconds.",
+    )
+    request_timeout_seconds: int = config_field(
+        default=120,
+        description="OpenSandbox SDK HTTP request timeout in seconds.",
+    )
+    entrypoint: list[str] = config_field(
+        default_factory=list,
+        description="Sandbox container entrypoint; an empty list uses the OpenSandbox SDK default.",
+    )
+    shared_storage: list[SharedStorageConfig] = config_field(
+        default_factory=list,
+        description="Ordered mappings for pre-existing shared storage used to optimize uploads.",
+    )
+
+    image: str | None = config_field(
+        default=None,
+        description="Registry image requested from the server-side runtime.",
+    )
+    ready_timeout_seconds: int = config_field(
+        default=120,
+        description="Maximum wait for the sandbox to pass the SDK health check, in seconds.",
+    )
+    resources: dict[str, Any] = config_field(
+        default_factory=dict,
+        description="Unified AgentCompass resource requirements.",
+    )
+    env_variables: dict[str, str] = config_field(
+        default_factory=dict,
+        description="Environment variables passed to sandbox creation and command execution.",
+    )
+
+    def __post_init__(self) -> None:
+        self.api_key = _optional_str(resolve_env_ref(self.api_key, self.api_key_env_var))
+        self.domain = _optional_str(resolve_env_ref(self.domain, self.domain_env_var))
+        self.image = _optional_str(self.image)
+        self.lifecycle_seconds = parse_positive_int(self.lifecycle_seconds, "lifecycle_seconds")
+        self.request_timeout_seconds = parse_positive_int(self.request_timeout_seconds, "request_timeout_seconds")
+        self.ready_timeout_seconds = parse_positive_int(self.ready_timeout_seconds, "ready_timeout_seconds")
+        self.entrypoint = [str(item) for item in parse_list(self.entrypoint, "entrypoint")]
+        self.resources = ResourceRequirements.from_value(self.resources)
+        self.env_variables = parse_env_variables(self.env_variables, "env_variables")
+        self.shared_storage = SharedStorageConfig.from_values(self.shared_storage)
+
+
+@ENVIRONMENTS.register()
+class OpenSandboxEnvironment(BaseEnvironment):
+    """Create one sandbox per task through an OpenSandbox lifecycle service."""
+
+    setup_image_parameter = "image"
+    setup_timeout_parameter = "ready_timeout_seconds"
+
+    supports_task_env = True
+    supports_startup_env = True
+    env_variables_param = "env_variables"
+
+    id = "opensandbox"
+    supported_operating_systems = frozenset({"linux"})
+    config_class = OpenSandboxEnvironmentConfig
+    session_class = OpenSandboxSession
+    protocol = "http"
+    supported_resource_fields = frozenset({ResourceField.CPU, ResourceField.MEMORY_MB, ResourceField.GPU})
+
+    def validate_open_config(self, config: OpenSandboxEnvironmentConfig) -> None:
+        if not config.image:
+            raise ValueError(f"{self.id} environment requires image")
+
+    def _load_sdk(self, config: OpenSandboxEnvironmentConfig) -> tuple[Any, Any]:
+        try:
+            from opensandbox import Sandbox
+            from opensandbox.config import ConnectionConfig
+        except ModuleNotFoundError as exc:
+            raise EnvironmentSetupError(f"{self.id} requires opensandbox>=0.1.15,<0.2.0") from exc
+
+        connection_config = ConnectionConfig(
+            api_key=config.api_key,
+            domain=config.domain,
+            protocol=self.protocol,
+            use_server_proxy=True,
+            request_timeout=timedelta(seconds=config.request_timeout_seconds),
+        )
+        return Sandbox, connection_config
+
+    async def open(self, req: RunRequest, plan: ExecutionPlan) -> OpenSandboxSession:
+        config = self.build_config(req, plan)
+        assert isinstance(config, OpenSandboxEnvironmentConfig)
+        self.validate_open_config(config)
+        Sandbox, connection_config = self._load_sdk(config)
+
+        sandbox = None
+        close_params: dict[str, Any] | None = None
+        env_record: EnvRecord | None = None
+        try:
+            sandbox = await Sandbox.create(
+                config.image,
+                timeout=timedelta(seconds=config.lifecycle_seconds),
+                ready_timeout=timedelta(seconds=config.ready_timeout_seconds),
+                env=config.env_variables or None,
+                resource=_opensandbox_resource_limits(config.resources) or None,
+                entrypoint=config.entrypoint or None,
+                connection_config=connection_config,
+            )
+            sandbox_id = str(getattr(sandbox, "id", "") or "").strip()
+            if not sandbox_id:
+                raise EnvironmentSetupError(f"{self.id} create response did not include a sandbox id")
+            close_params = {"sandbox_id": sandbox_id}
+            self._sandbox = sandbox
+            env_record = EnvRecord.create(self, close_params)
+            session = self.session_class(
+                sandbox=sandbox,
+                env_variables=config.env_variables,
+                shared_storage=config.shared_storage,
+            )
+            session.env_record = env_record
+            await validate_environment_shared_storage(session, config.shared_storage)
+            logger.debug("Created %s env id=%s", self.id, sandbox.id)
+            return session
+        except BaseException as exc:
+            if env_record is not None:
+                await env_record.close()
+            elif close_params is not None:
+                await close_environment_resource(self, close_params)
+            if isinstance(exc, (asyncio.CancelledError, KeyboardInterrupt, SystemExit)):
+                raise
+            err_msg = "\n".join(traceback.format_exception(exc))
+            raise EnvironmentSetupError(f"{self.id} environment setup error: {err_msg}") from exc
+
+    async def close(self, *, sandbox_id: str) -> None:
+        sandbox = getattr(self, "_sandbox", None)
+        try:
+            if sandbox is not None and str(getattr(sandbox, "id", "")) == sandbox_id:
+                await sandbox.destroy()
+            else:
+                config = self.config
+                if not isinstance(config, OpenSandboxEnvironmentConfig):
+                    raise RuntimeError(f"{self.id} environment is not configured")
+                _, connection_config = self._load_sdk(config)
+                from opensandbox.manager import SandboxManager
+                async with await SandboxManager.create(connection_config=connection_config) as manager:
+                    await manager.kill_sandbox(sandbox_id)
+        except Exception as exc:
+            if getattr(exc, "status_code", None) != 404:
+                raise
+        finally:
+            self._sandbox = None
+        logger.debug("Closed %s env %s", self.id, sandbox_id)

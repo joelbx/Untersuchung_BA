@@ -1,0 +1,3 @@
+`AnsibleDumper` now treats `AnsibleUndefined` as an undefined variable, so a missing value raises an error naming the variable instead of a YAML `RepresenterError`. Both YAML filters report failures as `AnsibleFilterError` with the filter name and preserve the original exception as the cause.
+
+Regression tests cover direct dumping, both filters, and template rendering. The relevant test run passed: **89 tests**. No delegation was used.

@@ -1,0 +1,5 @@
+I located the likely faults but did not change project source or tests; this run is restricted to fault localization.
+
+In [module_common.py](/app/lib/ansible/executor/module_common.py:657), collection lookup does not read `plugin_routing.module_utils`, so redirects and their targets are omitted. In [recursive_finder](/app/lib/ansible/executor/module_common.py:720), collection package initializers are packaged under the wrong name while ancestor initializers are replaced with empty files. That also prevents their relative imports from being discovered. The same resolver tries only the last one or two import components and reports leaf names rather than all attempted paths.
+
+The fix should use queued dependency work and separate legacy and collection locators, preserve real package `__init__.py` source, synthesize missing package levels, and process redirect shims and metadata with full candidate paths in errors. The existing `recursive_finder` unit suite passes (8 tests), but it does not cover these collection cases. Detailed findings and remaining uncertainty are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

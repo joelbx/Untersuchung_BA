@@ -1,0 +1,3 @@
+Implemented Redis TLS configuration and client construction in [client.go](/app/internal/cache/redis/client.go), wired it into startup, and added CA loading, TLS 1.2 minimum, system CA fallback, and optional verification bypass. Added config validation, YAML fixtures, schema updates, and the `api/cachetls` integration case in the GitHub Actions matrix.
+
+**Verification:** Config tests, client TLS tests, short Redis tests, package compile checks, and `git diff --check` passed. The full Redis package tests could not start their existing container tests because Docker is unavailable in this environment.

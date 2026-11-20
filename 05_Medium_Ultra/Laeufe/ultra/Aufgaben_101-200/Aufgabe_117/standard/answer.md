@@ -1,0 +1,3 @@
+Implemented `qt.workarounds.locale` as a default-off, QtWebEngine-only setting. On Linux with QtWebEngine 5.15.3, it checks for the locale `.pak` file and adds `--lang` with a Chromium-compatible fallback only when that file is missing. The [startup code](/app/qutebrowser/config/qtargs.py), [setting](/app/qutebrowser/config/configdata.yml), and [settings reference](/app/doc/help/settings.asciidoc) are updated.
+
+Two agents reviewed the repository patterns and added [locale tests](/app/tests/unit/config/test_qtargs.py); I integrated and verified their work. **189 relevant tests passed**, and `git diff --check` is clean. The affected QtWebEngine 5.15.3 startup was simulated in tests; it was not available for a live browser launch.

@@ -1,0 +1,3 @@
+Updated [galaxy.py](/app/lib/ansible/cli/galaxy.py) so an implicit `ansible-galaxy install -r` installs roles and collections from the same file using their default paths. Explicit subcommands and custom roles paths install only the appropriate type and report skipped items. Empty requirements files now produce the requested skip message.
+
+Added regression coverage in [test_galaxy.py](/app/test/units/cli/test_galaxy.py). **Verification:** 139 Galaxy CLI tests passed with `ANSIBLE_DEVEL_WARNING=False PYTHONPATH=lib:test`; `git diff --check` passed.

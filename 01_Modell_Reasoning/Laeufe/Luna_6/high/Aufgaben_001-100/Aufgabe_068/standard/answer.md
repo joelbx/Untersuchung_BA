@@ -1,0 +1,3 @@
+Implemented owner-encrypted session key propagation through the entity loaders and cache. Mail details, reply-to, indexing, and inbox-rule loading now pass the parent mail’s key when available. Keyed loads bypass cached instances so decryption receives the key; calls without keys retain their existing argument shape.
+
+Validation passed: TypeScript check, Prettier, diff check, and the existing EntityRestClient (38), entity cache (106), MailIndexer (29), and InboxRuleHandler (6) tests, with zero failures.

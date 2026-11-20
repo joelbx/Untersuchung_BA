@@ -1,0 +1,3 @@
+Implemented opportunistic TTL eviction in [SimpleCache](/app/utils/cache/simple_cache.go). An atomic deadline triggers removal when an item can expire; `Keys()` and the new `Values()` method expose only active entries, and loader inserts sweep expired items first. [playTracker](/app/core/scrobbler/play_tracker.go) now reads active values directly.
+
+Subagents added [cache tests](/app/utils/cache/simple_cache_test.go) and updated playTracker; I reviewed and integrated both changes. `go test -race -count=1 ./utils/cache`, `go test -count=1 ./core/scrobbler ./scanner`, and `git diff --check` passed.

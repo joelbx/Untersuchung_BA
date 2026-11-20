@@ -1,0 +1,3 @@
+Updated [useLink.ts](/app/applications/drive/src/app/store/_links/useLink.ts) to reuse `NOT_FOUND`, `NOT_ALLOWED`, and `INVALID_ID` API errors for the same share and link for five seconds. Other links and successful fetches continue normally. Added focused tests in [useLink.fetch.test.ts](/app/applications/drive/src/app/store/_links/useLink.fetch.test.ts).
+
+Verification: 17 targeted tests passed. TypeScript, ESLint, Prettier, and `git diff --check` passed.

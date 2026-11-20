@@ -1,0 +1,3 @@
+Added `proxy_service.kube_listen_addr` as a shorthand that enables the Kubernetes proxy. Configuration now rejects it alongside an enabled legacy Kubernetes block, while allowing it to override an explicitly disabled block. Clients resolve wildcard Kubernetes hosts through the web proxy and continue to prefer configured public addresses.
+
+Added a warning for an enabled Kubernetes service with no proxy Kubernetes listen address. `go test ./lib/client ./lib/config` and `git diff --check` passed.

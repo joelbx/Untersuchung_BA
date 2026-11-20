@@ -1,0 +1,3 @@
+Added HTTPS support for the REST API, UI, and gRPC. Configuration now accepts `server.protocol`, separate HTTP and HTTPS ports, and certificate and key paths; HTTPS validation returns the required errors. HTTP remains the default.
+
+Updated the configuration examples and documentation, and added tests for loading, overrides, validation, and response handlers. `GOPROXY=off go test ./...` passes. A local smoke check confirmed HTTPS responses, a gRPC TLS handshake, and a REST request through the TLS gRPC gateway.

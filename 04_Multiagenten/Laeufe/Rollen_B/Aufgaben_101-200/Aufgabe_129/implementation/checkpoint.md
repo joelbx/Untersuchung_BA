@@ -1,0 +1,1 @@
+Progress: implemented current-session kebab menu, conditional destructive actions, accessibility and close/focus behavior, CSS and translations. Focused Jest suites pass (49 tests, 9 snapshots); ESLint and stylelint pass. Repository-wide TypeScript remains blocked by pre-existing SDK/application errors, with none in edited files.

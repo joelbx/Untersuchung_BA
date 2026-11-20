@@ -1,0 +1,3 @@
+Updated `atomic_move()` to give newly created files a `0600` default, adjusted for the current umask. Modules that accept `mode` now warn for each created path when it is omitted; a later `set_mode_if_different()` call removes that path from warning tracking. Existing destination modes remain preserved.
+
+The 47 targeted tests pass, and `git diff --check` is clean. The broader `module_utils/basic` run has unrelated failures from accumulated global warning state; a deprecation warning failure reproduced without the new atomic move tests.

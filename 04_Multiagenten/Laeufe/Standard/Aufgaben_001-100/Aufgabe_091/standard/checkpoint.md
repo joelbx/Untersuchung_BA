@@ -1,0 +1,2 @@
+Task: Add isoneof and isnotoneof list operators for string and numeric constraints.
+Status: Implemented list operators in legacy evaluation and constraint validation. Added focused tests for string/number membership, malformed and mixed-type JSON, null, and the 100-item limit. `go test ./rpc/flipt ./internal/server/evaluation` passes; `git diff --check` passes. Restored incidental go.work.sum changes from test execution.

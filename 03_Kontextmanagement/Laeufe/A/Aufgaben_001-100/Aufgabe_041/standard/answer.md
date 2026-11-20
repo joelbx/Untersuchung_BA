@@ -1,0 +1,3 @@
+Removed `ListMixin` and moved its methods into [List](/app/openlibrary/core/models.py). `get_owner()` now parses `/people/{username}/lists/{list_id}` and returns `None` for malformed keys or missing users. Added [register_models()](/app/openlibrary/core/lists/model.py) to register `List` as `/type/list` and `ListChangeset` as `lists`.
+
+Verification: 26 relevant tests passed; lint and diff checks passed. One existing test was excluded because it lacks request context, and the legacy list API test cannot collect because it imports `cookielib`.

@@ -1,0 +1,3 @@
+Implemented the plugin resolution changes in `/app`. `get_with_context()` now returns the plugin and its resolution metadata; tombstones raise contextual removal errors, and deprecation and removal messages use one formatter. The connection, action, and Jinja filter paths now use the updated behavior.
+
+The focused suite passed: **75 tests passed**. One existing JSON conversion test was excluded after it failed on an unrelated assertion (`bar` versus `"bar"`).

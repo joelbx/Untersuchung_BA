@@ -1,0 +1,3 @@
+Implemented optional `fields` support for `getObject` and `getObjects` in [Redis](/app/src/database/redis/hash.js), [MongoDB](/app/src/database/mongo/hash.js), and [Postgres](/app/src/database/postgres/hash.js). An empty list returns the full object through all four read methods. Selected reads include absent fields as `null`, return `null` for missing objects, and preserve input key order. The field helpers retain their existing null-filled result for missing objects when fields are requested.
+
+The [regression tests](/app/test/database/hash.js) pass: 784 related tests and 59 focused hash tests. ESLint and `git diff --check` pass. Runtime tests used Redis; MongoDB and Postgres were reviewed statically because their services were unavailable.

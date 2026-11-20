@@ -1,0 +1,3 @@
+Added [`GetInstance[T]`](/app/utils/singleton/singleton.go) with an exact-type cache and per-type `sync.Once`. It returns the concrete type, constructs it once under concurrency, and keeps `T` and `*T` instances separate. Existing `Get` callers remain compatible.
+
+A delegated reviewer checked compatibility, and a delegated agent added [tests](/app/utils/singleton/get_instance_test.go), including 20,000 simultaneous calls. I reviewed the patch and verified that the package tests and full package race test pass.

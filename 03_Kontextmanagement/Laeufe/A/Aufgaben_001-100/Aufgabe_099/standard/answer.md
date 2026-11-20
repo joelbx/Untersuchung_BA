@@ -1,0 +1,3 @@
+Fixed `BatchEvaluate` so disabled flags produce a `"disabled"` response entry in input order while evaluation continues. Each entry has a timestamp and its own duration; the outer response retains the total duration. Added `ErrDisabled` and `ErrDisabledf`, and migrated the protobuf message and gRPC types to `timestamppb` and `emptypb`.
+
+`GOPROXY=off go test -mod=mod ./...` passes. The generated grpc-gateway v1 adapter still uses legacy protobuf imports required by its runtime.

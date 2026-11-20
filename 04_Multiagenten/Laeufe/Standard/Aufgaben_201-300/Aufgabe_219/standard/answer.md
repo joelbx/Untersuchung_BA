@@ -1,0 +1,3 @@
+Token creation and deletion are now recognized audit events, including when the configured resource type is `*`. gRPC initialization uses the audit checker to decide whether `token:deleted` is enabled and passes that boolean to the authentication server, so deletion logging follows the configured event list.
+
+Tests for explicit and wildcard token events, and for enabled and disabled deletion logging, pass. The affected Go package tests and `git diff --check` also pass.

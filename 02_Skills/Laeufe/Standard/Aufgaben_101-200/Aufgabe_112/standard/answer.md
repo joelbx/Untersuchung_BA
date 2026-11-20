@@ -1,0 +1,3 @@
+Updated the repository to include Fortinet only CVEs in CPE detection, add advisory IDs and confidence signals, enrich results with Fortinet metadata, and show Fortinet content in reports. The scan and HTTP server paths both call the new enrichment function.
+
+Formatting and `git diff --check` passed. **Runtime tests remain unverified:** offline `go test` and `go mod tidy` stopped because `github.com/pelletier/go-toml/v2@v2.0.8` is absent from the local cache. The exact commands and errors are in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

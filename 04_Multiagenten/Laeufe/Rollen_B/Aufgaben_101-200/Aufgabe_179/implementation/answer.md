@@ -1,0 +1,3 @@
+RemoteCluster status and last heartbeat now persist in backend storage. With no tunnels, the cluster reports Offline while retaining its last heartbeat. Removing the newest tunnel no longer moves the heartbeat backward; removing the final tunnel changes only the status to Offline.
+
+I added `Presence.UpdateRemoteCluster` and wired it through the local service, auth API, client, and role wrapper. Focused local and auth tests pass, including the TLS client path and the tunnel removal regression.

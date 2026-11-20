@@ -1,0 +1,3 @@
+Fixed `/lists/add` so a nonempty POST body is parsed independently of URL query parameters. Body values take precedence over defaults, nested seed fields no longer conflict with the `seeds` default, invalid or empty seeds are ignored, and later assignments win during unflattening.
+
+The 17 focused tests pass; lint and diff checks pass. The broader `test_listapi.py` file could not collect because its existing `cookielib` dependency is unavailable.

@@ -1,0 +1,3 @@
+Resolved the double calculation of `loop` and `delegate_to`. `TaskExecutor` now resolves delegation before loop processing, and `VariableManager` provides the delegated hostname and variables. I also added `Task.get_play()`, disabled delegation resolution during ordinary variable retrieval, and removed the loop cache workaround.
+
+Verification: the relevant unit suites passed (**107 passed, 1 skipped**), and `git diff --check` passed.

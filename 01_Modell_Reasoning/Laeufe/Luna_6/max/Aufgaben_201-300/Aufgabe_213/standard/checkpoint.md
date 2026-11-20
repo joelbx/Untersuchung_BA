@@ -1,0 +1,1 @@
+Checkpoint: implemented and exposed isShareAvailable(signal, shareId) in useDefaultShare; it awaits getShare and returns false for locked or soft-deleted shares. Focused existing test suite passed: 1 suite, 6 tests, including unchanged default share creation behavior. git diff --check is clean.

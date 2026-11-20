@@ -1,0 +1,3 @@
+Syslog configuration now has a public [`syslog.Conf`](/app/config/syslog/types.go) type with validation in its own package. The Unix validation behavior is preserved, and Windows returns the specified error when syslog is enabled. Config and reporter use the new type; `config.SyslogConf` remains as a compatibility alias.
+
+The syslog, config, reporter, and subcmds checks passed. The Windows syslog package also cross-compiled.

@@ -1,0 +1,3 @@
+Implemented `timeOffset` support through the streaming and FFmpeg transcoding call chain. Public and Subsonic stream handlers default missing or invalid values to 0; transcoding cache entries are distinct by offset, and OpenSubsonic advertises support.
+
+The relevant Go tests passed, and `git diff --check` is clean. **Raw file streams still use the direct file path, so an offset does not change their start position.**

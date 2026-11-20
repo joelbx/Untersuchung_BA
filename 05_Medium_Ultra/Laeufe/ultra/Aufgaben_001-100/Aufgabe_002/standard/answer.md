@@ -1,0 +1,3 @@
+Implemented the Kubernetes address fix. [`ProxyConfig.KubeAddr()`](/app/lib/service/cfg.go:354) now returns `https://<host>:3026` and errors when Kubernetes proxy support is disabled or its public address is invalid. [`tctl auth sign`](/app/tool/tctl/common/auth_command.go:389) uses it for an enabled local Kubernetes proxy; otherwise it searches registered proxies, skips invalid addresses, and preserves an explicit `--proxy` override.
+
+I delegated the config method, regression tests, and address parsing review to subagents, then integrated and verified the patch. Both affected packages passed offline: `go test ./lib/service -count=1` and `go test ./tool/tctl/common -count=1`. `git diff --check` passed.

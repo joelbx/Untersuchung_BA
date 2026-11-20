@@ -1,0 +1,3 @@
+Implemented purge cleanup. Purging a post now deletes uploads used only by that post, including resized copies; files referenced by other posts remain. The ACP has a default-off **Keep uploaded files** option. [`Posts.uploads.deleteFromDisk`](/app/src/posts/uploads.js) accepts a path or list, rejects unsupported inputs, and ignores paths that escape the uploads directory. Topic thumbnail purge follows the same retention rules.
+
+Verification: 59 focused tests, 114 post tests, and 231 topic tests passed separately; lint passed. A combined run hit an order-sensitive existing test that assumes topic ID 4 is unused.

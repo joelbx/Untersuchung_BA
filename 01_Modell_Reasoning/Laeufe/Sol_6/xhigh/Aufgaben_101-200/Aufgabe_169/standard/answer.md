@@ -1,0 +1,3 @@
+Room search now merges adjacent results whose context timelines share a boundary event. The merged tile shows that event once, highlights every direct match, and links each match to its own event ID. The change is in [RoomSearchView.tsx](/app/src/components/structures/RoomSearchView.tsx) and [SearchResultTile.tsx](/app/src/components/views/rooms/SearchResultTile.tsx).
+
+Added coverage for multi-result chains, separate results, and a call event at the overlap boundary. All 10 relevant tests pass; TypeScript, ESLint, Prettier, and `git diff --check` pass.

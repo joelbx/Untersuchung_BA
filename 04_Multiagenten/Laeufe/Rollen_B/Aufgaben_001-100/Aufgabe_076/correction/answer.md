@@ -1,0 +1,3 @@
+The checked-out patch handles the requested address parsing cases. Review found no code defect, so I left the source patch unchanged. Both new parsing tests pass; shared type checking, lint, formatting, and `git diff --check` also pass.
+
+**TEST_ENVIRONMENT_PROBLEM:** The exact shared test command cannot start Karma because its configured Playwright Chromium binary is missing. Using installed Chromium runs all 837 tests: 835 pass and two unrelated tests fail. The cookie test uses a date now in the past, and the file test expects a data URL format that Chromium 119 does not produce. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

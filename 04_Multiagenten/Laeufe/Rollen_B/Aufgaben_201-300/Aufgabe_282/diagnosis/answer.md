@@ -1,0 +1,5 @@
+**Diagnosis:** [shared.py](/app/qutebrowser/browser/shared.py:162) is the change point. `javascript_log_message` checks only source and level against the current `content.javascript.log_message` setting, sends matches to the UI, and sends everything else to the standard logger. It has no message-text filter or `_js_log_to_ui` helper.
+
+[configdata.yml](/app/qutebrowser/config/configdata.yml:943) defines the current setting; it needs the requested `.levels` and `.excludes` definitions. [test_shared.py](/app/tests/unit/browser/test_shared.py) has no JavaScript log coverage. A fix should verify source and level inclusion, then source and message glob exclusion, the exact UI text and level, and logger fallback when the helper returns `False`.
+
+One interface detail needs care: the requested level list includes `debug`, while [JsLogLevel](/app/qutebrowser/utils/usertypes.py:319) has `unknown`, `info`, `warning`, and `error`, with no `debug` UI mapping. I did not run tests or edit source or tests because this specialist role is restricted to diagnosis. Findings are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

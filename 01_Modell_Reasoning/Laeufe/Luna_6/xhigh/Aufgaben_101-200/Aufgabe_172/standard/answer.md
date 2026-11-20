@@ -1,0 +1,3 @@
+Implemented backward compatibility for legacy `listenPorts` string arrays and support for older structured port objects. Structured scan data now uses `ListenPortStats` and `PortStat`; scanning, reachability matching, and report rendering use the new fields, with legacy strings still displayed.
+
+`go test ./models ./scan ./report` passed, and `git diff --check` passed. The existing scan tests were updated for the new structured field.

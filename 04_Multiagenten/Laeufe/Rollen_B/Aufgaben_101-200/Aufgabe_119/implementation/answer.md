@@ -1,0 +1,3 @@
+Refactored [Pill](/app/src/components/views/elements/Pill.tsx) into a functional component and moved permalink resolution into the public [usePermalink hook](/app/src/hooks/usePermalink.tsx). Pill now exposes named exports, preserves the supplied URL as its link `href`, and renders nothing for unresolved targets. I updated the consumers and message snapshots to match.
+
+The focused tests pass: 18 tests and 5 snapshots. ESLint and `git diff --check` pass. The full TypeScript check still reports errors in unrelated, untouched files; it reports none in the changed files.

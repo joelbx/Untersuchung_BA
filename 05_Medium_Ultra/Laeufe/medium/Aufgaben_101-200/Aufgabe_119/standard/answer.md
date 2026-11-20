@@ -1,0 +1,3 @@
+Refactored `Pill` into a functional component with named exports and extracted permalink resolution into the public [usePermalink hook](/app/src/hooks/usePermalink.tsx). Updated `pillify`, `ReplyChain`, and `BridgeTile` to use the named Pill API.
+
+The existing pillify tests pass, ESLint passes for the touched files, and `git diff --check` is clean. The full TypeScript check still fails on SDK API errors in unrelated, untouched files.

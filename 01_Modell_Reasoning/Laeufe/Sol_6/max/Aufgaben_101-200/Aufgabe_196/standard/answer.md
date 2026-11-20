@@ -1,0 +1,3 @@
+Updated [assistantUpsellConfig.ts](/app/packages/components/hooks/assistant/assistantUpsellConfig.ts) to use the shared Scribe addon resolver in every upsell flow and to build `planIDs` with an addon only when one applies. The public [payments/core entrypoint](/app/packages/components/payments/core/index.ts) now exports both `SelectedPlan` and `getScribeAddonNameByPlan`; call sites use that entrypoint. Added tests for paid plans with no Scribe addon mapping.
+
+**Verification:** 50 relevant tests passed, as did targeted ESLint and Prettier checks. The component typecheck failed on an unrelated OpenPGP type mismatch in [api.ts](/app/packages/crypto/lib/worker/api.ts:577).

@@ -1,0 +1,3 @@
+Refactored Pill into a functional component and extracted permalink resolution into the public `usePermalink` hook. Pill and the `@room` helpers now use named exports, and all callers use named imports. Added focused tests and updated message snapshots for the required URL and current-user class behavior.
+
+The pillification, message rendering, and new Pill tests pass; ESLint and `git diff --check` pass. Full TypeScript checking remains blocked by SDK type errors in files outside this change. The exact errors are recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

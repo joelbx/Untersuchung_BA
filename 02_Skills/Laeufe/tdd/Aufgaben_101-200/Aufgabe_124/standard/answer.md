@@ -1,0 +1,3 @@
+Implemented DynamoDB `billing_mode` with `pay_per_request` as the default. New on-demand tables omit provisioned throughput; provisioned tables use the configured capacity units. Initialization disables auto scaling for on-demand tables and logs why it was ignored. I updated the tests and documentation.
+
+The DynamoDB package tests pass. The repository-wide suite did not complete: the environment lacks required C headers, and the command timed out. The exact failures are recorded in `.codex-role-output/checkpoint.md`.

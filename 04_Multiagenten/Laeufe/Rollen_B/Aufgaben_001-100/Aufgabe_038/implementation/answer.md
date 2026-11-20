@@ -1,0 +1,3 @@
+Implemented gzip response handling in the shared URL utilities and exposed `decompress` in `uri` and `get_url`, including checksum downloads. Responses are decoded by default; setting `decompress: false` preserves the compressed bytes. Requests also send `Accept-Encoding` unless the caller supplies it.
+
+Added coverage for decoded reads, disabled decompression, header handling, and missing gzip support. **Verification:** all 87 URL utility tests pass, and `git diff --check` is clean.

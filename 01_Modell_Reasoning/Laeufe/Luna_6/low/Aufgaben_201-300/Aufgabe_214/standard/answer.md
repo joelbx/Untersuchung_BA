@@ -1,0 +1,3 @@
+Implemented optional per server `nmap` scanning with native scanning as the fallback. Added scan technique mapping, configuration validation, external scan execution, and a commented `portscan` example in the discovery config template.
+
+The focused tests passed: `go test ./config ./scanner ./models ./subcmds`. The requested `NewPortStat` entry point already exists. `findPortScanSuccessOn` does not exist in this repository; existing result correlation uses `findPortTestSuccessOn`.

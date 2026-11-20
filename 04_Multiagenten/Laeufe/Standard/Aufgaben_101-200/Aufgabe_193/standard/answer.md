@@ -1,0 +1,3 @@
+Updated [ansible-galaxy’s install CLI](/app/lib/ansible/cli/galaxy.py) so a bare `install -r` processes roles and collections in one run at their configured default paths. Explicit `role` and `collection` installs handle only their own requirements and report skipped items; a bare install with a custom roles path warns that collections were skipped. Empty requirements now produce “Skipping install, no requirements found.”
+
+Added [CLI coverage](/app/test/units/cli/test_galaxy.py) for the mixed and empty requirements cases. All 113 Galaxy CLI unit tests pass.

@@ -1,0 +1,3 @@
+Resolved the stale bypass-filter issue. The mark-as action now carries its status, and the reducer removes bypass IDs when the updated status matches the active Read or Unread filter. It still adds IDs when bypassing is needed, using conversation IDs in conversation mode.
+
+Added [reducer regression tests](/app/applications/mail/src/app/logic/elements/elementsReducers.test.ts). All 8 focused tests passed; TypeScript, ESLint, Prettier, and `git diff --check` passed.

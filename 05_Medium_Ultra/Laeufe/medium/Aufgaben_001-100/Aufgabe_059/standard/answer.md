@@ -1,0 +1,3 @@
+Added a public [Dialog](/app/packages/components/components/dialog/Dialog.tsx) wrapper and switched [ModalTwo](/app/packages/components/components/modalTwo/Modal.tsx) to use it. It forwards attributes and refs to a native dialog when supported, and uses an accessible host in limited DOM environments so open modal children remain discoverable by role.
+
+Verified with 10 targeted tests, the component TypeScript check, ESLint, and `git diff --check`.

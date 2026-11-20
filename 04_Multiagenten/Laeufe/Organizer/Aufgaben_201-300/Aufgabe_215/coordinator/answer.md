@@ -1,0 +1,3 @@
+Added HTTPS configuration and serving for the REST API, UI, and gRPC endpoint. Configuration now loads from the supplied path, applies `FLIPT` environment overrides, preserves HTTP defaults, and checks required certificate and key files before startup. I updated the configuration docs and added focused tests and a test certificate pair.
+
+`go test ./...` and `git diff --check` passed. No delegation was used.

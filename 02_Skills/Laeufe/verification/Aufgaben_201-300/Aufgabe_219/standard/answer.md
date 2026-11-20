@@ -1,0 +1,3 @@
+Added `token:created` and `token:deleted` to the audit event checker, including wildcard matching. gRPC initialization now checks whether `token:deleted` is enabled and passes that boolean to the authentication server, which uses it to gate deletion audit events. Added coverage for the checker and the enabled and disabled server behavior.
+
+Verification passed: `GOPROXY=off GOSUMDB=off go test ./internal/server/audit ./internal/server/auth ./internal/cmd` and `git diff --check`.

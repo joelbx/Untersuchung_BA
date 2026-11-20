@@ -1,0 +1,3 @@
+Implemented both rule `segment` formats: a string or a strict keys/operator object. Single-key rules now use OR throughout import, snapshots, and SQL persistence, and exports always use the object form. I updated the generator and requested fixtures, and added regression tests.
+
+`go test ./internal/ext ./internal/storage/fs ./internal/storage/sql` passed. The readonly integration package compiled; its full suite requires a running Flipt instance.

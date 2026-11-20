@@ -1,0 +1,5 @@
+The migration is concentrated in [get_ia.py](/app/openlibrary/catalog/get_ia.py:29). `urlopen_keep_trying` uses urllib and returns a file handle; its callers use `.read()` or pass that handle to XML parsing. The range request at [line 157](/app/openlibrary/catalog/get_ia.py:157) also builds a urllib `Request`. A fix should use `requests.get` with `headers` and `**kwargs`, validate status, check `HTTPError.response.status_code` for 403, 404, and 416, and use `.content` for binary data and `.text` for decoded text with a UTF-8 fallback when no charset is supplied.
+
+Two compatibility points need attention: [test_get_ia.py](/app/openlibrary/tests/catalog/test_get_ia.py:9) mocks the helper with file handles, and the deprecated [marc_subject.py](/app/openlibrary/catalog/marc/marc_subject.py:56) still consumes its return value as a file handle. Existing tests do not cover retry status handling, range headers, or encoding, so behavior there remains unverified.
+
+I recorded the findings in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). Under this run’s fault localization constraint, I did not change project source or tests.

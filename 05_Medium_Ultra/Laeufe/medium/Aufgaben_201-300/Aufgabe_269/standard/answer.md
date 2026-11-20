@@ -1,0 +1,3 @@
+Trivy CVE data is now stored under source keys such as `trivy:debian` and `trivy:nvd`. The converter and library detector preserve each source’s severity, CVSS values, references, and publication dates, including when a CVE appears in multiple targets. Model metadata aggregation and TUI references now include those entries.
+
+Added regression tests and updated the parser fixture comparison for the new content shape. Tests passed for `contrib/trivy/pkg`, `contrib/trivy/parser/v2`, `models`, `detector`, and `tui`; `git diff --check` passed.

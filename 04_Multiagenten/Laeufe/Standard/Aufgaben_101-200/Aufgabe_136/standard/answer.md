@@ -1,0 +1,3 @@
+Updated the certificate error wrappers. WebKit now accepts `reply` and `errors`, including the existing positional errors call, without using the reply during construction. Single errors render as escaped paragraphs; multiple errors render as escaped lists. I also added the shared decision methods and Qt5/Qt6 WebEngine wrappers and factory.
+
+**Verification:** 11 focused tests passed. The WebEngine tab suite could not initialize a display in this environment; Qt6 behavior was tested with a mock because Qt6 is not installed.

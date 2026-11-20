@@ -1,0 +1,3 @@
+Updated [DataLoader](/app/lib/ansible/parsing/dataloader.py) so `cache='none'` bypasses the file cache and `cache='vaulted'` caches parsed vaulted files for reuse. Play `vars_files` now uses vaulted caching in [VariableManager](/app/lib/ansible/vars/manager.py).
+
+Added regression tests in [test_dataloader.py](/app/test/units/parsing/test_dataloader.py). All 33 DataLoader tests and 8 variable manager tests pass.

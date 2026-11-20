@@ -1,0 +1,3 @@
+Popper now reports a placement that matches RTL visuals: top and bottom `start`/`end` values are inverted when the floating element is RTL. Left and right placements, and all LTR placements, stay unchanged. The change is in [utils.ts](/app/packages/components/components/popper/utils.ts) and wired into [usePopper.ts](/app/packages/components/components/popper/usePopper.ts).
+
+Verification passed: all 7 Popper utility tests, the components TypeScript check, and `git diff --check`.

@@ -1,0 +1,3 @@
+Updated the scan and reporting code so each lockfile is analyzed separately. Vulnerability findings now carry the lockfile path, reports resolve versions using both path and library name, and duplicate CVEs retain fixed-version entries from each file. The scanner also returns an error for unknown file types.
+
+The affected package tests passed: `GOPROXY=off go test ./models ./scan ./report ./libmanager`.

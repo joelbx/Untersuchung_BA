@@ -1,0 +1,3 @@
+Fixed RPM parsing in [redhatbase.go](/app/scanner/redhatbase.go). Empty release fields now stay in position for `rpm -qa` and repoquery output, including tab-delimited lines. Source RPM filename parsing accepts the requested `-src.rpm` forms and rejects malformed filenames. Update candidates use the shared epoch formatting logic.
+
+Added regression cases in [redhatbase_test.go](/app/scanner/redhatbase_test.go). `go test ./scanner -count=1` and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Added `@proton/metrics` to the mail app manifest and lockfile. The new [mailMetricsHelper.ts](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts) returns `custom` for user-defined labels and folders, preserves built-in mailbox IDs, and converts page sizes to `50`, `100`, or `200`, defaulting to `50`.
+
+Verification passed: 30 focused tests, the mail TypeScript check, Prettier, and `git diff --check`.

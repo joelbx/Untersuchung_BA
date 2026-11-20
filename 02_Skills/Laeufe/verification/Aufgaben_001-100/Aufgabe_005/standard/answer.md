@@ -1,0 +1,3 @@
+Qt wrapper initialization now runs in `early_init`, and the availability checker receives the resulting `SelectionInfo`. When neither wrapper imports, `NoWrapperAvailableError` reports both import failures. I also updated selection formatting, debug logging, and Qt checker message spacing.
+
+**Verification:** 61 focused tests passed; compilation and `git diff --check` passed. The broader version test run exited during QtWebEngine application tests without a pytest failure summary, so those tests remain unverified.

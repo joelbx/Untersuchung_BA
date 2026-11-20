@@ -1,0 +1,3 @@
+Resolved namespace listing for users without access to `default`. Both authorization engines now evaluate viewable namespaces; middleware passes the result to the list endpoint, which filters the response and reports an accessible namespace count. The UI also redirects saved namespace routes to an accessible namespace.
+
+The role mapping and error handling tests pass, as do `go test ./internal/server/authz/... ./internal/server -count=1` and `git diff --check`. The UI build was not run because its dependencies are not installed.

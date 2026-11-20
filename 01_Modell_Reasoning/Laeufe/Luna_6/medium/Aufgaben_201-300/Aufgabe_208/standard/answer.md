@@ -1,0 +1,3 @@
+Updated [src/user/email.js](/app/src/user/email.js) to keep confirmation state consistent, expose live TTL through `getValidationExpiry`, calculate resend eligibility with `canSendValidation`, and clear both confirmation keys when expiring a validation. New confirmation records now use the configured expiry.
+
+`node --check`, ESLint, and `git diff --check` passed. The existing email tests could not run because Redis was unavailable at `127.0.0.1:6379`; the test setup failed before any tests ran.

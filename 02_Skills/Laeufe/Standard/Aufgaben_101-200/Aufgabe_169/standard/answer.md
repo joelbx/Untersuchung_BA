@@ -1,0 +1,3 @@
+Implemented search result merging in [RoomSearchView.tsx](/app/src/components/structures/RoomSearchView.tsx). Consecutive results with an overlapping event ID now render as one timeline without duplicating the pivot event. [SearchResultTile.tsx](/app/src/components/views/rooms/SearchResultTile.tsx) highlights each direct match and links it to its own event ID.
+
+Verification passed: 9 targeted tests, TypeScript, ESLint, Prettier, and `git diff --check`.

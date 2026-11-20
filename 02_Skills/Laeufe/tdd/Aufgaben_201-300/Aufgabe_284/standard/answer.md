@@ -1,0 +1,3 @@
+Updated `reversetunnel.Server` to keep one `localSite`, reuse the proxy’s existing access point, and route connection registration, reconnect advisories, site lookup, and proxy updates through that instance. Cluster validation now returns a `BadParameter` error for empty or mismatched names, including the tunnel type for mismatches.
+
+The new regression tests failed as expected before the fix. `go test ./lib/reversetunnel/... -count=1` passes. The repository-wide `go test ./...` run was interrupted during compilation, so its result remains unverified; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

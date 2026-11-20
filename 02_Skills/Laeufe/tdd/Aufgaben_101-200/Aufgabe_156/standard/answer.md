@@ -1,0 +1,3 @@
+Implemented separate no_log sanitizers: `remove_values` masks sensitive substrings in string values without changing keys or scalar types, and `sanitize_keys` masks mapping keys with the requested ignore rules. Both traverse deeply nested containers iteratively. The `uri` module now sanitizes response keys when `no_log_values` is populated, using `NO_MODIFY_KEYS`.
+
+The focused tests pass: **32 passed**. The broader unit suite remains red: CLI tests failed, and the broader basic test run had 22 failures caused by shared warning and deprecation state across tests. The commands and failure details are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

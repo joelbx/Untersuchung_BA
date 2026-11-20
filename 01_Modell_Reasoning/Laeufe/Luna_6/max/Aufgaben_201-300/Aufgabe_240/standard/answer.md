@@ -1,0 +1,3 @@
+Implemented [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py:175) with firmware upload, compatibility and drive health checks, upgrade initiation, optional completion polling, check mode, and the requested result fields.
+
+Verification: 25 existing E-Series unit tests passed; Python compilation and `ansible-doc` parsing passed. `ansible-test` skipped execution because this environment has Python 3.11, while this checkout supports test interpreters only through 3.8.

@@ -1,0 +1,5 @@
+The 404 comes from two missing registrations: [src/routes/index.js](/app/src/routes/index.js) has no `.well-known` mount, and [src/controllers/index.js](/app/src/controllers/index.js) has no WebFinger controller.
+
+The fix belongs in the requested `src/routes/well-known.js` and `src/controllers/well-known.js`. The handler should validate `resource` against `acct:` and `nconf.get('url_parsed').hostname`, resolve its slug with `user.getUidByUserslug`, and build aliases from the configured URL, UID, and canonical `userslug`. Use `privileges.global.can('view:users', req.uid || 0)` for authorization: UID `0` maps to the Guest role’s `groups:view:users` permission. Return 400, 403, or 404 for the specified failures.
+
+I inspected code and existing tests only. **No project source or tests were changed**; the diagnosis is recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). The exact behavior for unusual `acct:` strings remains to be specified by implementation tests.

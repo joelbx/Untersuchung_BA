@@ -1,0 +1,7 @@
+I located the cause but did not edit project source or tests: the assigned fault-localization scope prohibits those changes.
+
+[AuthServer.updateRemoteClusterStatus](/app/lib/auth/trustedcluster.go:357) recomputes status on each read, but never persists it. It also replaces the recorded heartbeat with the newest *remaining* tunnel heartbeat, so deleting the newest tunnel can move the timestamp backward. When no tunnels remain, it sets Offline without updating storage; the stored heartbeat is typically still zero.
+
+The likely fix points are [Presence](/app/lib/services/presence.go:148), which lacks `UpdateRemoteCluster`, and [PresenceService](/app/lib/services/local/presence.go:591), which can create a RemoteCluster but cannot update one. An update should write the serialized resource under `remoteClusters/<name>` with its expiry. The auth status path should persist transitions, retain the heartbeat when the final tunnel disappears, and only advance it when a newer tunnel heartbeat arrives.
+
+Existing [CRUD tests](/app/lib/services/suite/suite.go:833) do not cover these transitions. One uncertainty is how “active” tunnels should interact with the existing heartbeat freshness threshold in [TunnelConnectionStatus](/app/lib/services/tunnelconn.go:76).

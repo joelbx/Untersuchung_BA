@@ -1,0 +1,3 @@
+Added digest support across image configuration, scanning, scan results, logging, and report identifiers. Image validation now requires a name and exactly one of tag or digest; `GetFullName()` produces the corresponding full reference. Per-image server names now use `<index>@<originalServerName>`.
+
+Config, scan, and report tests passed with vet disabled, and the targeted models tests passed. The full models suite still fails in the existing `TestScan` (“no vuln found”); default vet also reports existing errors in `models/library.go`.

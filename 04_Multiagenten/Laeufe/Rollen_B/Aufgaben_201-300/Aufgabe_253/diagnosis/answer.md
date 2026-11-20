@@ -1,0 +1,5 @@
+The likely fault is in [guiprocess.py](/app/qutebrowser/misc/guiprocess.py:183). `GUIProcess` selects stdout for its live read handler; it reads stderr only when the process finishes. The live handler also sends a stdout notification even if it read no text. The finish handler already sends nonempty stdout before stderr at info and error severity, respectively, though the messages contain only the stream content.
+
+The [existing tests](/app/tests/unit/misc/test_guiprocess.py:152) expect stderr only at completion and do not check live stderr or empty live updates. The 9 relevant tests pass. A fix should read and report each stream while running, retain a final message for each nonempty stream in stdout-then-stderr order, and suppress messages for empty streams. The requested format for distinguishing final summaries remains unspecified.
+
+I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). This run was limited to fault localization, so I did not edit project source or tests.

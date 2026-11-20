@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) so finish messages use the process’s own PID, name the signal on crashes, and report SIGTERM as a `terminated` state. SIGTERM produces no error message by default; verbose mode shows the outcome and PID.
+
+Updated the [focused tests](/app/tests/unit/misc/test_guiprocess.py). **All 45 passed** with PyQt6 and Xvfb; `git diff --check` passed. No delegation was used.

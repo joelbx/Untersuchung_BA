@@ -1,0 +1,3 @@
+Added `isShareAvailable(signal, shareId)` to [useDefaultShare.ts](/app/applications/drive/src/app/store/_shares/useDefaultShare.ts). It forwards the signal to `getShare` and returns `false` for locked or soft-deleted shares. The default-share loading path remains unchanged.
+
+Added coverage in [useDefaultShare.test.tsx](/app/applications/drive/src/app/store/_shares/useDefaultShare.test.tsx). All six focused tests passed, including the existing single-volume-creation checks.

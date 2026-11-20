@@ -1,0 +1,3 @@
+Qt wrapper initialization now runs during early startup and passes its `SelectionInfo` to the availability checker. Implicit initialization probes wrappers and raises `NoWrapperAvailableError` with the import reasons when none load. The diagnostics, debug log, and `SelectionInfo` formatting now show the selection state more clearly; successful `machinery.init()` calls return `INFO`.
+
+The startup, machinery, and early initialization tests pass: **58 passed**. The broader version test run had failures tied to this environment’s Qt 5.15.2 API and Chromium version expectations; the changed wrapper string format is covered by the passing machinery tests.

@@ -1,0 +1,3 @@
+Fixed the cancellation expiry date. [subscriptionExpires](/app/packages/components/containers/payments/subscription/helpers/payment.ts) now uses the active term when cancellation is in progress or current auto-renew is disabled. Cancellation screens use that result, while free-plan and normal renewal behavior remain unchanged.
+
+Verification passed: 76 relevant tests, the components TypeScript check, ESLint, Prettier, and `git diff --check`. The [checkpoint](/app/.codex-role-output/checkpoint.md) is updated.

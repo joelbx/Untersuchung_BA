@@ -1,0 +1,505 @@
+diff --git a/lib/ansible/modules/async_wrapper.py b/lib/ansible/modules/async_wrapper.py
+index 7ba8271..22e8a41 100644
+--- a/lib/ansible/modules/async_wrapper.py
++++ b/lib/ansible/modules/async_wrapper.py
+@@ -31,21 +31,49 @@ syslog.syslog(syslog.LOG_NOTICE, 'Invoked with %s' % " ".join(sys.argv[1:]))
+ # pipe for communication between forked process and parent
+ ipc_watcher, ipc_notifier = multiprocessing.Pipe()
+ 
++# Set by main() before any worker processes are forked.  Keeping these values
++# global lets every process update the same result file with the same job ID.
++job_path = None
++jid = None
++
+ 
+ def notice(msg):
+     syslog.syslog(syslog.LOG_NOTICE, msg)
+ 
+ 
++def end(res, exit_msg):
++    """Exit after optionally writing one JSON response to stdout."""
++    if res is not None:
++        sys.stdout.write(json.dumps(res) + '\n')
++        sys.stdout.flush()
++    sys.exit(exit_msg)
++
++
++def jwrite(info):
++    """Atomically replace the async job result file with *info*."""
++    if job_path is None:
++        raise RuntimeError('async job result path is not set')
++
++    tmp_job_path = job_path + '.tmp'
++    try:
++        data = json.dumps(info)
++        with open(tmp_job_path, 'w') as jobfile:
++            jobfile.write(data)
++        os.rename(tmp_job_path, job_path)
++    except (OSError, IOError) as e:
++        notice('Unable to write async job result %s: %s' % (job_path, to_text(e)))
++        raise
++
++
+ def daemonize_self():
+     # daemonizing code: http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/66012
+     try:
+         pid = os.fork()
+         if pid > 0:
+             # exit first parent
+-            sys.exit(0)
+-    except OSError:
+-        e = sys.exc_info()[1]
+-        sys.exit("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
++            end(None, 0)
++    except OSError as e:
++        raise OSError(e.errno, 'fork #1 failed: %s' % e.strerror)
+ 
+     # decouple from parent environment (does not chdir / to keep the directory context the same as for non async tasks)
+     os.setsid()
+@@ -56,12 +84,15 @@ def daemonize_self():
+         pid = os.fork()
+         if pid > 0:
+             # print "Daemon PID %d" % pid
+-            sys.exit(0)
+-    except OSError:
+-        e = sys.exc_info()[1]
+-        sys.exit("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
++            end(None, 0)
++    except OSError as e:
++        raise OSError(e.errno, 'fork #2 failed: %s' % e.strerror)
+ 
+-    dev_null = open('/dev/null', 'w')
++    _redirect_stdio_to_devnull()
++
++
++def _redirect_stdio_to_devnull():
++    dev_null = open('/dev/null', 'r+')
+     os.dup2(dev_null.fileno(), sys.stdin.fileno())
+     os.dup2(dev_null.fileno(), sys.stdout.fileno())
+     os.dup2(dev_null.fileno(), sys.stderr.fileno())
+@@ -122,29 +153,26 @@ def _make_temp_dir(path):
+     try:
+         os.makedirs(path)
+     except OSError as e:
+-        if e.errno != errno.EEXIST:
++        if e.errno != errno.EEXIST or not os.path.isdir(path):
+             raise
+ 
+ 
+ def _run_module(wrapped_cmd, jid, job_path):
++    # jwrite() uses the same destination in the worker and supervisor.
++    globals()['job_path'] = job_path
+ 
+-    tmp_job_path = job_path + ".tmp"
+-    jobfile = open(tmp_job_path, "w")
+-    jobfile.write(json.dumps({"started": 1, "finished": 0, "ansible_job_id": jid}))
+-    jobfile.close()
+-    os.rename(tmp_job_path, job_path)
+-    jobfile = open(tmp_job_path, "w")
++    jwrite({'started': 1, 'finished': 0, 'failed': False, 'ansible_job_id': jid})
+     result = {}
+ 
+-    # signal grandchild process started and isolated from being terminated
+-    # by the connection being closed sending a signal to the job group
+-    ipc_notifier.send(True)
+-    ipc_notifier.close()
+-
+     outdata = ''
+     filtered_outdata = ''
+     stderr = ''
+     try:
++        # Signal that the job file is ready and the worker is isolated from
++        # the connection closing and sending a signal to the job group.
++        ipc_notifier.send(True)
++        ipc_notifier.close()
++
+         cmd = [to_bytes(c, errors='surrogate_or_strict') for c in shlex.split(wrapped_cmd)]
+         # call the module interpreter directly (for non-binary modules)
+         # this permits use of a script for an interpreter on non-Linux platforms
+@@ -173,46 +201,93 @@ def _run_module(wrapped_cmd, jid, job_path):
+ 
+         if stderr:
+             result['stderr'] = stderr
+-        jobfile.write(json.dumps(result))
+-
+     except (OSError, IOError):
+         e = sys.exc_info()[1]
+         result = {
+-            "failed": 1,
++            "failed": True,
+             "cmd": wrapped_cmd,
+             "msg": to_text(e),
+             "outdata": outdata,  # temporary notice only
+-            "stderr": stderr
++            "stderr": stderr,
++            "exception": traceback.format_exc(),
+         }
+-        result['ansible_job_id'] = jid
+-        jobfile.write(json.dumps(result))
+ 
+     except (ValueError, Exception):
+         result = {
+-            "failed": 1,
++            "failed": True,
+             "cmd": wrapped_cmd,
+             "data": outdata,  # temporary notice only
+             "stderr": stderr,
+             "msg": traceback.format_exc()
+         }
+-        result['ansible_job_id'] = jid
+-        jobfile.write(json.dumps(result))
+ 
+-    jobfile.close()
+-    os.rename(tmp_job_path, job_path)
++    result['started'] = 1
++    result['finished'] = 1
++    result.setdefault('failed', False)
++    result['ansible_job_id'] = jid
++    jwrite(result)
++
++
++def _job_result(info, job_id, started, finished):
++    result = dict(info)
++    result['started'] = started
++    result['finished'] = finished
++    result.setdefault('failed', False)
++    if job_id is not None:
++        result['ansible_job_id'] = job_id
++    return result
++
++
++def _cleanup_tmpdir(wrapped_module, preserve_tmp):
++    if not preserve_tmp:
++        shutil.rmtree(os.path.dirname(wrapped_module), True)
++
++
++def _write_error_result(info):
++    try:
++        jwrite(info)
++    except Exception as e:
++        # The original error is more useful to the caller, but keep the
++        # secondary result-file failure visible in the system log.
++        notice('Unable to record async job failure: %s' % to_text(e))
++
++
++def _read_job_result():
++    try:
++        with open(job_path, 'r') as jobfile:
++            result = json.load(jobfile)
++    except (OSError, IOError, ValueError):
++        return None
++    if isinstance(result, dict) and result.get('finished'):
++        return result
++    return None
+ 
+ 
+ def main():
++    global job_path
++    global jid
++
+     if len(sys.argv) < 5:
+-        print(json.dumps({
+-            "failed": True,
+-            "msg": "usage: async_wrapper <jid> <time_limit> <modulescript> <argsfile> [-preserve_tmp]  "
+-                   "Humans, do not call directly!"
+-        }))
+-        sys.exit(1)
++        if len(sys.argv) > 1:
++            jid = '%s.%d' % (sys.argv[1], os.getpid())
++        end(_job_result({
++            'failed': True,
++            'msg': 'usage: async_wrapper <jid> <time_limit> <modulescript> <argsfile> [-preserve_tmp]  '
++                   'Humans, do not call directly!',
++            '_ansible_suppress_tmpdir_delete': False,
++        }, jid, 0, 1), 1)
+ 
+     jid = "%s.%d" % (sys.argv[1], os.getpid())
+-    time_limit = sys.argv[2]
++    try:
++        time_limit = int(sys.argv[2])
++    except (TypeError, ValueError) as e:
++        end(_job_result({
++            'failed': True,
++            'msg': 'invalid async time limit: %s' % to_text(e),
++            'exception': traceback.format_exc(),
++            '_ansible_suppress_tmpdir_delete': False,
++        }, jid, 0, 1), 1)
++
+     wrapped_module = sys.argv[3]
+     argsfile = sys.argv[4]
+     if '-tmp-' not in os.path.dirname(wrapped_module):
+@@ -228,116 +303,182 @@ def main():
+         cmd = wrapped_module
+     step = 5
+ 
+-    async_dir = os.environ.get('ANSIBLE_ASYNC_DIR', '~/.ansible_async')
+-
+-    # setup job output directory
+-    jobdir = os.path.expanduser(async_dir)
+-    job_path = os.path.join(jobdir, jid)
+-
++    async_dir = '~/.ansible_async'
++    jobdir = async_dir
++    job_path = None
+     try:
++        async_dir = os.environ.get('ANSIBLE_ASYNC_DIR', async_dir)
++
++        # Set the result path before creating the directory so any setup
++        # failure can still report the intended location.
++        jobdir = os.path.expanduser(async_dir)
++        job_path = os.path.join(jobdir, jid)
+         _make_temp_dir(jobdir)
+     except Exception as e:
+-        print(json.dumps({
+-            "failed": 1,
+-            "msg": "could not create: %s - %s" % (jobdir, to_text(e)),
+-            "exception": to_text(traceback.format_exc()),
+-        }))
+-        sys.exit(1)
++        error_result = {
++            'failed': True,
++            'msg': 'could not create: %s - %s' % (jobdir, to_text(e)),
++            'exception': traceback.format_exc(),
++            '_ansible_suppress_tmpdir_delete': False,
++        }
++        if job_path is not None:
++            error_result['results_file'] = job_path
++        end(_job_result(error_result, jid, 0, 1), 1)
+ 
+     # immediately exit this process, leaving an orphaned process
+     # running which immediately forks a supervisory timing process
+-
+     try:
+         pid = os.fork()
+-        if pid:
+-            # Notify the overlord that the async process started
+-
+-            # we need to not return immediately such that the launched command has an attempt
+-            # to initialize PRIOR to ansible trying to clean up the launch directory (and argsfile)
+-            # this probably could be done with some IPC later.  Modules should always read
+-            # the argsfile at the very first start of their execution anyway
+-
+-            # close off notifier handle in grandparent, probably unnecessary as
+-            # this process doesn't hang around long enough
++    except Exception as e:
++        response = _job_result({
++            'failed': True,
++            'msg': 'fork failed: %s' % to_text(e),
++            'exception': traceback.format_exc(),
++            'results_file': job_path,
++            '_ansible_suppress_tmpdir_delete': False,
++        }, jid, 0, 1)
++        _write_error_result(response)
++        end(response, 1)
++
++    if pid:
++        # Wait briefly until the worker has written its initial job status, so
++        # the caller cannot race the creation of the result file.
++        try:
+             ipc_notifier.close()
+-
+-            # allow waiting up to 2.5 seconds in total should be long enough for worst
+-            # loaded environment in practice.
+-            retries = 25
+-            while retries > 0:
++        except Exception as e:
++            notice('Unable to close async startup notifier: %s' % to_text(e))
++        retries = 25
++        startup_failed = False
++        while retries > 0:
++            try:
+                 if ipc_watcher.poll(0.1):
++                    try:
++                        started = ipc_watcher.recv()
++                    except (EOFError, IOError, OSError):
++                        startup_failed = True
++                    else:
++                        if started:
++                            break
++                        startup_failed = True
+                     break
+-                else:
+-                    retries = retries - 1
+-                    continue
+-
+-            notice("Return async_wrapper task started.")
+-            print(json.dumps({"started": 1, "finished": 0, "ansible_job_id": jid, "results_file": job_path,
+-                              "_ansible_suppress_tmpdir_delete": not preserve_tmp}))
+-            sys.stdout.flush()
+-            sys.exit(0)
+-        else:
+-            # The actual wrapper process
++            except Exception as e:
++                notice('Unable to wait for async worker startup: %s' % to_text(e))
++                break
++            retries -= 1
++
++        if startup_failed:
++            response = _read_job_result()
++            if response is None:
++                response = _job_result({
++                    'failed': True,
++                    'msg': 'async worker exited before the module started',
++                    'results_file': job_path,
++                    '_ansible_suppress_tmpdir_delete': not preserve_tmp,
++                    'ansible_async_pid': pid,
++                }, jid, 0, 1)
++                _write_error_result(response)
++            else:
++                response['results_file'] = job_path
++                response['_ansible_suppress_tmpdir_delete'] = not preserve_tmp
++            end(response, 1 if response.get('failed') else 0)
++
++        notice('Return async_wrapper task started.')
++        end(_job_result({
++            'results_file': job_path,
++            '_ansible_suppress_tmpdir_delete': not preserve_tmp,
++        }, jid, 1, 0), 0)
++
++    # The child owns the background job. Redirect it before any further forks
++    # so daemonization errors cannot append a second response to the launcher's
++    # stdout stream.
++    execution_started = False
++    try:
++        ipc_watcher.close()
++        _redirect_stdio_to_devnull()
++        daemonize_self()
+ 
+-            # close off the receiving end of the pipe from child process
++        notice('Starting module and watcher')
++        sub_pid = os.fork()
++        if sub_pid:
+             ipc_watcher.close()
++            ipc_notifier.close()
++            execution_started = True
++
++            # Set the child process group so a timeout also kills its module
++            # subprocesses.
++            os.setpgid(sub_pid, sub_pid)
++
++            remaining = time_limit
++            notice('Start watching %s (%s)' % (sub_pid, remaining))
++            timed_out = False
++            while True:
++                waited_pid, wait_status = os.waitpid(sub_pid, os.WNOHANG)
++                if waited_pid == sub_pid:
++                    if _read_job_result() is None:
++                        jwrite(_job_result({
++                            'failed': True,
++                            'msg': 'async worker exited without writing a completed result',
++                            'ansible_async_pid': sub_pid,
++                            'ansible_async_exit_status': wait_status,
++                        }, jid, 1, 1))
++                    break
++                if remaining <= 0:
++                    notice('Now killing %s' % sub_pid)
++                    try:
++                        os.killpg(sub_pid, signal.SIGKILL)
++                        timed_out = True
++                        notice('Sent kill to group %s' % sub_pid)
++                    except OSError as e:
++                        if e.errno != errno.ESRCH:
++                            raise
++                    os.waitpid(sub_pid, 0)
++                    if timed_out:
++                        timeout_result = _job_result({
++                            'failed': True,
++                            'msg': 'async task did not complete within %s seconds; child process %s was terminated' %
++                                   (time_limit, sub_pid),
++                            'ansible_async_pid': sub_pid,
++                        }, jid, 1, 1)
++                        jwrite(timeout_result)
++                    elif _read_job_result() is None:
++                        jwrite(_job_result({
++                            'failed': True,
++                            'msg': 'async worker exited without writing a completed result',
++                            'ansible_async_pid': sub_pid,
++                        }, jid, 1, 1))
++                    break
+ 
+-            # Daemonize, so we keep on running
+-            daemonize_self()
+-
+-            # we are now daemonized, create a supervisory process
+-            notice("Starting module and watcher")
+-
+-            sub_pid = os.fork()
+-            if sub_pid:
+-                # close off inherited pipe handles
+-                ipc_watcher.close()
+-                ipc_notifier.close()
+-
+-                # the parent stops the process after the time limit
+-                remaining = int(time_limit)
+-
+-                # set the child process group id to kill all children
+-                os.setpgid(sub_pid, sub_pid)
++                notice('%s still running (%s)' % (sub_pid, remaining))
++                delay = min(step, remaining)
++                time.sleep(delay)
++                remaining -= delay
+ 
+-                notice("Start watching %s (%s)" % (sub_pid, remaining))
+-                time.sleep(step)
+-                while os.waitpid(sub_pid, os.WNOHANG) == (0, 0):
+-                    notice("%s still running (%s)" % (sub_pid, remaining))
+-                    time.sleep(step)
+-                    remaining = remaining - step
+-                    if remaining <= 0:
+-                        notice("Now killing %s" % (sub_pid))
+-                        os.killpg(sub_pid, signal.SIGKILL)
+-                        notice("Sent kill to group %s " % sub_pid)
+-                        time.sleep(1)
+-                        if not preserve_tmp:
+-                            shutil.rmtree(os.path.dirname(wrapped_module), True)
+-                        sys.exit(0)
+-                notice("Done in kid B.")
+-                if not preserve_tmp:
+-                    shutil.rmtree(os.path.dirname(wrapped_module), True)
+-                sys.exit(0)
+-            else:
+-                # the child process runs the actual module
+-                notice("Start module (%s)" % os.getpid())
+-                _run_module(cmd, jid, job_path)
+-                notice("Module complete (%s)" % os.getpid())
+-                sys.exit(0)
++            notice('Done in kid B.')
++            _cleanup_tmpdir(wrapped_module, preserve_tmp)
++            end(None, 0)
++        else:
++            # The child process runs the actual module.
++            execution_started = True
++            notice('Start module (%s)' % os.getpid())
++            _run_module(cmd, jid, job_path)
++            notice('Module complete (%s)' % os.getpid())
++            end(None, 0)
+ 
+     except SystemExit:
+-        # On python2.4, SystemExit is a subclass of Exception.
+-        # This block makes python2.4 behave the same as python2.5+
++        # Preserve explicit end() exits.  SystemExit was also an Exception on
++        # Python 2.4, which this module historically supported.
+         raise
+-
+-    except Exception:
+-        e = sys.exc_info()[1]
+-        notice("error: %s" % e)
+-        print(json.dumps({
+-            "failed": True,
+-            "msg": "FATAL ERROR: %s" % e
+-        }))
+-        sys.exit(1)
++    except Exception as e:
++        notice('error: %s' % to_text(e))
++        error_result = _job_result({
++            'failed': True,
++            'msg': 'FATAL ERROR: %s' % to_text(e),
++            'exception': traceback.format_exc(),
++            'ansible_async_pid': os.getpid(),
++        }, jid, 1 if execution_started else 0, 1)
++        _write_error_result(error_result)
++        _cleanup_tmpdir(wrapped_module, preserve_tmp)
++        end(None, 1)
+ 
+ 
+ if __name__ == '__main__':

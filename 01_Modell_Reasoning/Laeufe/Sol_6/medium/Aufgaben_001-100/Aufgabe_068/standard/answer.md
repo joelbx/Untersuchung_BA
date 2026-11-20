@@ -1,0 +1,3 @@
+Fixed mail detail decryption by passing each mail’s owner-encrypted session key through the call sites, entity loaders, and cache. The REST client attaches the supplied key before resolving the session key and decrypting the entity. Cached entities with decryption errors are retried when a key becomes available.
+
+Verification passed: TypeScript type check, formatting and diff checks, 40 filtered REST client tests, and 108 filtered cache tests.

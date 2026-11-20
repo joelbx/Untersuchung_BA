@@ -1,0 +1,3 @@
+DynamoDB audit events now store metadata in a native `FieldsMap`. Reads remain compatible with legacy `Fields` rows while a background migration converts them in batches, validates their content, records progress, and uses distributed locks to prevent concurrent migrations.
+
+The local tests pass: `go test ./lib/events/dynamoevents ./lib/backend`. The AWS-dependent integration suite remains gated by its existing environment setting.

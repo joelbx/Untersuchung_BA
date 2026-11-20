@@ -1,0 +1,3 @@
+Implemented album image tracking. The scanner now records every image filename, and album refreshes use sorted, unique media directories to persist full image paths in the new `image_files` column. The [migration](/app/db/migration/20261020000000_add_album_image_files.go) triggers a full rescan. Changed and deleted folder refreshes use the complete directory map.
+
+The affected model, scanner, persistence, and database tests pass. The full Go suite fails only two existing TagLib permission tests: this container runs as root, which can read their deliberately unreadable fixture.

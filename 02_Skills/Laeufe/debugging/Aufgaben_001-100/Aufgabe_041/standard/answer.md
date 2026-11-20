@@ -1,0 +1,3 @@
+Removed `ListMixin` and moved its methods into the single `List` class. Owner lookup now parses complete `/people/{username}/lists/{list_id}` keys and returns `None` when the owner cannot be resolved. Added [register_models](/app/openlibrary/core/lists/model.py), which registers `List` under `/type/list` and `ListChangeset` under `lists`.
+
+The relevant test run passed: **26 passed, 1 deselected**. A broader run remains incomplete because `cookielib` is unavailable and a `ListRecord` test lacks `web.ctx.env`; neither error came from the changed paths.

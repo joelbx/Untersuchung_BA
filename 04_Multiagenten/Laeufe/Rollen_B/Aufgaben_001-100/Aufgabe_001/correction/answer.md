@@ -1,0 +1,3 @@
+Updated [config/config_test.go](/app/config/config_test.go:63) so enabled syslog cases expect the required single error on Windows while retaining field-error counts on other platforms.
+
+The reviewer’s three-package test command passed, and both syslog and config tests cross compiled for Windows. **TEST_ENVIRONMENT_PROBLEM:** Windows tests could not be executed on this Linux host because Wine is unavailable.

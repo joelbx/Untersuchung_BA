@@ -1,0 +1,3 @@
+Updated the proxy to collect all matching database services, shuffle them, and try the next candidate when a reverse tunnel reports a connection problem. If none can be reached, it returns a specific connection error. The change also adds deterministic shuffle injection for tests, offline tunnel simulation, stable server sorting with `HostID`, and deduplication in `tsh db ls`.
+
+`go test ./types` passed in the `api` module, and `git diff --check` passed. The tests for `lib/reversetunnel`, `lib/srv/db`, and `tool/tsh` were still running when this turn ended, so their results remain unverified.

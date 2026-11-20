@@ -1,0 +1,5 @@
+Implemented the `module_utils` resolution changes in [module_common.py](/app/lib/ansible/executor/module_common.py), with regression coverage and updated payload expectations in [test_recursive_finder.py](/app/test/units/executor/module_common/test_recursive_finder.py).
+
+The finder now uses a queue and specialized legacy/collection locators, handles collection redirects and routing metadata, resolves package initializer relative imports, synthesizes missing package initializers, normalizes `six` imports, and reports attempted paths for unresolved dependencies. It also always includes the base `ansible` package files.
+
+Verification passed: `python -m pytest -q test/units/executor/module_common` (48 tests), `py_compile`, and `git diff --check`. The requested checkpoint is at `.codex-role-output/checkpoint.md`.

@@ -1,0 +1,3 @@
+Added `timeOffset` support through the public and Subsonic stream handlers, streaming interfaces, transcoding cache, and FFmpeg command generation. Missing, invalid, or negative HTTP values default to 0; custom FFmpeg commands without `%t` gain `-ss` only for a nonzero offset. Updated the OpenSubsonic extension response, mocks, and tests.
+
+The affected Go package tests pass, and `git diff --check` is clean.

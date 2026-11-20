@@ -1,0 +1,3 @@
+Implemented OS EOL checks for scans. The canonical lookup and strict date-boundary evaluators are in [config/os.go](/app/config/os.go). Scans now add warnings for ended support, support ending within three months, and missing mappings; the [scan summary](/app/report/util.go) prints each warning with the required `Warning: ` prefix. Major-version parsing is shared through [util.Major](/app/util/util.go).
+
+Two subagents handled the EOL model and version-parser refactor; I integrated and verified their changes. Offline tests passed for `config`, `util`, `oval`, `gost`, `scan`, and `report`. `git diff --check` also passed.

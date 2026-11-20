@@ -1,0 +1,3 @@
+Fixed the room load flow. `RoomView` now dispatches `{ action: Action.RoomLoaded }` after loading a room, and `RoomViewStore` computes widget buttons in response to that action. The initial event ID now falls back to component state when the store returns `null` or `undefined`.
+
+The focused suites pass (65 tests), and ESLint is clean. The full TypeScript check still reports unrelated SDK and OIDC type errors; none point to the changed files.

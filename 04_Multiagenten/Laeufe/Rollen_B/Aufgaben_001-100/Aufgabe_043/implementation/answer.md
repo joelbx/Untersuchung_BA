@@ -1,0 +1,3 @@
+Moved tracing resource, provider, and exporter setup into [internal/tracing/tracing.go](/app/internal/tracing/tracing.go). The gRPC server now uses those functions and registers provider and exporter shutdown in its lifecycle. Exporters are created per call, so one configuration cannot be reused for a later call.
+
+Added isolated tests for environment attributes, always-on sampling, exporter endpoints and errors, repeated calls, shutdown, and OTLP HTTP headers and path. The targeted tests passed with `GOPROXY=off`, and `git diff --check` passed.

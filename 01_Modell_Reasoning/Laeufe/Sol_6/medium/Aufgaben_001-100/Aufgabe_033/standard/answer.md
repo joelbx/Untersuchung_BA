@@ -1,0 +1,3 @@
+Implemented multi-device U2F authentication. The server now issues a challenge for every registered U2F key while retaining the legacy single-challenge JSON fields. The CLI can use any offered key, and the web sign-request flow returns the expanded payload. The `tsh mfa` management command is hidden from help.
+
+Focused tests passed for legacy payload decoding and web login with a key outside the legacy field. Client and `tsh` compile checks and `git diff --check` also passed.

@@ -1,0 +1,3 @@
+Updated the MIME suffix workaround to use `version_check(..., compiled=False)` at both 6.2.3 and 6.7.0, so its gate depends on runtime Qt. It returns an empty set outside that range and only dot-prefixed inferred suffixes inside it. I also clarified the `compiled` documentation and made `compiled=True, exact=True` raise `RuntimeError`. Two subagents handled the utility and workaround changes; I reviewed and verified the combined patch.
+
+The affected tests passed: **14 version-check tests and 29 webview tests**. A broader run had two unrelated failures under the installed Qt 6.9.1, involving a new `QDataStream` status and a `QSaveFile` warning.

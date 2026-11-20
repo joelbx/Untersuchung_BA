@@ -1,0 +1,1 @@
+Correction complete: compare extracted date years only when both author records provide them; resolve original-name matches before trying a flipped name. Added two regression tests. Reviewer suites: 56 passed and 85 passed. No test environment problem.

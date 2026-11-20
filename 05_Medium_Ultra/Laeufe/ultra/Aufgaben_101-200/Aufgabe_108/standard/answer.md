@@ -1,0 +1,3 @@
+Added [SimpleCache[V]](/app/utils/cache/simple_cache.go) with typed values, fixed TTL expiry, loader support, and active key listing. Migrated the HTTP client, scanner, and scrobbler callers, then removed the unused `ttlcache` dependency.
+
+Three agents handled the caller migrations; I integrated and verified their changes. The relevant package tests, focused race test, `go vet`, formatting check, and `git diff --check` passed.

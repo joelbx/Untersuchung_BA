@@ -1,0 +1,3 @@
+Added `token` to the audit checker’s resource mapping and wildcard expansion. During gRPC startup, the checker now determines whether `token:deleted` is enabled and passes that boolean to the authentication server’s deletion audit option.
+
+Added tests for explicit token events, matching wildcards, and configurations that select other events. The audit, authentication, and command package tests passed, as did the existing token creation audit test.

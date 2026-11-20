@@ -1,0 +1,3 @@
+Added `isShareAvailable(abortSignal, shareId)` to [useDefaultShare.ts](/app/applications/drive/src/app/store/_shares/useDefaultShare.ts). It forwards both arguments to `getShare` and returns `false` when the share is locked or soft-deleted. The default share loading path is unchanged.
+
+The [tests](/app/applications/drive/src/app/store/_shares/useDefaultShare.test.tsx) cover all four flag combinations, signal forwarding, and the existing single-volume creation behavior. All 7 tests passed; Prettier and `git diff --check` passed.

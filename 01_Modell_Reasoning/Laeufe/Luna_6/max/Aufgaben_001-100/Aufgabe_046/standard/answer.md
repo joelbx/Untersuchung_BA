@@ -1,0 +1,3 @@
+Implemented the `module_utils` resolver changes in [module_common.py](/app/lib/ansible/executor/module_common.py:755): queue-based dependency discovery, specialized locators, redirect shims, relative initializer scanning, implicit package synthesis, six normalization, and clearer resolution errors.
+
+Validation passed: 47 `module_common` tests, 56 collection loader tests, `py_compile`, and `git diff --check`.

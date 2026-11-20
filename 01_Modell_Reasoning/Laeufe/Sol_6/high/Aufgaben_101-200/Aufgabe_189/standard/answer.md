@@ -1,0 +1,3 @@
+Moved MIME suffix resolution into the module-level [extra_suffixes_workaround](/app/qutebrowser/browser/webengine/webview.py). It applies only to the affected Qt versions, expands wildcard MIME types, and returns only new extensions. `WebEnginePage.chooseFiles` now deduplicates the merged suffixes and passes them as the third argument in one superclass fallback call, without using instance state.
+
+Updated the [webview tests](/app/tests/unit/browser/webengine/test_webview.py). All 24 focused tests pass; syntax compilation and `git diff --check` also pass.

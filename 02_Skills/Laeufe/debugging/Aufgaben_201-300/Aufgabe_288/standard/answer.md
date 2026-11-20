@@ -1,0 +1,3 @@
+Updated `useShouldMoveOut` to call `onBack` only after mailbox elements finish loading and the active ID is missing from the valid ID list. Both views now receive that list and loading state from `MailboxContainer`. Conversation view uses the message ID for message-level labels and the current route’s conversation ID otherwise, avoiding a premature move-out during route changes.
+
+The relevant tests pass (18/18), as do TypeScript, ESLint, and `git diff --check`. Prettier still flags preexisting formatting in two view files outside the changed sections.

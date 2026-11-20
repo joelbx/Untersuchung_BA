@@ -1,0 +1,3 @@
+Updated the mail assistant pipeline to carry the composer’s messageID through content preparation, rendering, and editor insertion. URL restoration now accepts only links and images stored for that message, while preserving visible text from rejected links. The conversion path retains `class` and `style` on links and images, repairs nested lists with the new [fixNestedLists](/app/applications/mail/src/app/helpers/assistant/markdown.ts), and preserves list indentation and markers.
+
+Verification: 15 tests across four relevant suites passed; targeted ESLint and `git diff --check` passed. The full type check remains blocked by an `openpgp` type mismatch in `packages/crypto/lib/worker/api.ts`; details are in the [checkpoint](/app/.codex-role-output/checkpoint.md).

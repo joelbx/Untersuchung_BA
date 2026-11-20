@@ -1,0 +1,3 @@
+Implemented the referential validation fix. `Validate` now returns a single error that unwraps into individual errors with messages and file, line, and column locations. Snapshot construction rejects missing rule references, and import checks them before creating resources, so repeated imports report the same error without partial writes. I corrected the “valid” fixtures to declare their referenced variants.
+
+Verified with `go test ./internal/cue ./internal/storage/fs ./internal/ext ./cmd/flipt` and `git diff --check`.

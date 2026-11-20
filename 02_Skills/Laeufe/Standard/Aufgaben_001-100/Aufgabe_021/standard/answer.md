@@ -1,0 +1,3 @@
+Updated the list model to use typed seed values, normalize subject keys, compare normalized keys for duplicate detection and removal, and return all three export categories with type-filtered records. Added return annotations for the URL helpers and tests for mixed seed formats.
+
+**Checks:** 15 list tests passed; mypy, Ruff, and `git diff --check` passed. The legacy `test_listapi.py` could not be collected because `cookielib` is unavailable in this Python environment; the limitation is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

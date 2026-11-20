@@ -1,0 +1,3 @@
+Implemented the three string modes for `qt.workarounds.disable_accelerated_2d_canvas` in [configdata.yml](/app/qutebrowser/config/configdata.yml), with `auto` as the default. In [qtargs.py](/app/qutebrowser/config/qtargs.py), `auto` adds the flag only on Qt 6 when the detected Chromium major version is known and below 111. Added boundary coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+Verification: 111 qtargs tests and 31 configuration data tests passed with `QT_QPA_PLATFORM=offscreen`. No delegation was used.

@@ -1,0 +1,3 @@
+Added `/.well-known/webfinger` and mounted it at startup. The handler validates the `acct:` resource and configured hostname, checks `view:users` using the Guest role for anonymous requests, resolves the user slug, and returns a WebFinger JSON document with UID and profile aliases. It returns 400, 403, or 404 for the specified failures.
+
+Added focused tests: **4 passing**. ESLint and `git diff --check` also pass.

@@ -1,0 +1,3 @@
+Implemented the shared `DeviceVerificationStatusCard` and used it in both current session and device details. `DeviceDetails` now accepts `DeviceWithVerification` and shows the status card directly below the device heading. Updated the affected snapshots and test fixture.
+
+Targeted tests passed: **7 tests, 6 snapshots**. ESLint and `git diff --check` passed. TypeScript checking remains blocked by existing SDK and repository errors, including the old `DeviceDetails` test fixture type mismatch, which is now fixed.

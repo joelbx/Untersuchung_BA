@@ -1,0 +1,3 @@
+Added `singleton.GetInstance[T](constructor func() T) T` in [singleton.go](/app/utils/singleton/singleton.go). It caches by exact Go type, so `T` and `*T` have separate instances, and uses `sync.Once` to run each constructor once under concurrent calls.
+
+Added tests in [singleton_test.go](/app/utils/singleton/singleton_test.go), including 20,000 concurrent calls. Both `go test ./utils/singleton` and `go test -race ./utils/singleton` passed. No delegation was used.

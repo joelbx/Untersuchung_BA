@@ -1,0 +1,3 @@
+Added `/.well-known/webfinger` through a dedicated [controller](/app/src/controllers/well-known.js) and [route](/app/src/routes/well-known.js), mounted at startup. It validates `resource`, checks `view:users` access under the Guest role for anonymous requests, resolves the user slug, and returns a WebFinger JSON response with the subject, profile aliases, and an HTML profile link.
+
+Added regression tests. ESLint, `git diff --check`, and isolated handler checks passed. The integration tests could not start because local Redis refused connections at `127.0.0.1:6379`.

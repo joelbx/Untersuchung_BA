@@ -1,0 +1,7 @@
+The failure originates in `getCache` in [grpc.go](/app/internal/cmd/grpc.go:515): it creates the Redis client with TLS 1.2 but provides no way to trust a custom CA or skip certificate verification. [RedisCacheConfig](/app/internal/config/cache.go:93) has none of the three requested fields.
+
+The fix should add those fields and the public `redis.NewClient(config.RedisCacheConfig)` constructor, then have `getCache` use it and propagate construction errors. Certificate bytes should be trusted directly; a certificate path should be read and trusted; with neither set, normal system trust should apply. Validation must reject both CA options with the **exact** requested message. Because `config.Load` registers only top level validators, that check needs to be reached through `CacheConfig` validation.
+
+The integration case registry in [integration.go](/app/build/testing/integration.go:50) and the [GitHub Actions matrix](/app/.github/workflows/integration-test.yml:45) both lack `api/cachetls`. Existing Redis cache tests use plaintext Redis, so TLS behavior remains unverified. The existing `TestLoad` config test passed.
+
+I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). This specialist pass made no project source or test edits.

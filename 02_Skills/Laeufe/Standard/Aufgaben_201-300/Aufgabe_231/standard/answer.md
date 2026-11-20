@@ -1,0 +1,3 @@
+Updated Vuls2 database handling to check the stored schema version before honoring `SkipUpdate`. A mismatch now forces a download when updates are enabled and returns an error when they are disabled. `newDBConnection` also validates metadata and includes the database path in connection and metadata errors.
+
+Added regression tests. `GOPROXY=off GOSUMDB=off go test ./detector/vuls2` and `git diff --check` passed.

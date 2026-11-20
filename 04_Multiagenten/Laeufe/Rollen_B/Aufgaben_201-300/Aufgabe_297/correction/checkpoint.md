@@ -1,0 +1,3 @@
+Correction round: inspected review and current patch. Fixing proxy username lookup so SQL LIKE wildcards cannot select another account, and preserving map key types during log redaction. Will rerun reviewer-listed tests.
+Changed FindByUsername to SQL case-insensitive equality and added a guard before proxy token issuance. Redaction now builds maps with their original key type. Added regression coverage for wildcard usernames, mismatched lookup results, and mixed-type map keys.
+Reviewer test commands passed: Go app/log/conf/server; Go persistence/subsonic; UI 10 suites and 34 tests. No missing prepared dependencies.

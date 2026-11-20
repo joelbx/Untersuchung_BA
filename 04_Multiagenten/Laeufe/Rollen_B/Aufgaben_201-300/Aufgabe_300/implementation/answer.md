@@ -1,0 +1,3 @@
+Implemented `override-validation=true` for the import API. The flag passes through `load()` to `validate_record()` and skips the publication year, independent publisher, and missing ISBN checks. Required fields remain mandatory. Added the case-insensitive `is_promise_item()` utility.
+
+All 117 tests in the affected test files pass. Ruff passes with one pre-existing, unrelated rule violation excluded.

@@ -1,0 +1,3 @@
+Added a public [Dialog component](/app/packages/components/components/dialog/Dialog.tsx) that forwards attributes, children, and its host ref. It uses a native `<dialog>` when dialog methods are available and an accessible fallback in JSDOM. [ModalTwo](/app/packages/components/components/modalTwo/Modal.tsx) now uses it, so open modal buttons are discoverable and operable by role.
+
+Verification passed: 11 relevant tests, TypeScript, ESLint, Prettier, and `git diff --check`.

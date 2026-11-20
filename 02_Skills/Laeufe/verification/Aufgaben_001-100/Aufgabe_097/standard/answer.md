@@ -1,0 +1,3 @@
+Updated the controller minimum to Python 3.12 in the CLI, ansible-test, and package metadata. Both entry points now show the same version error. Collection extraction passes `dirname` unchanged to `TarFile.getmember`, raises the specified error for a missing member, and no longer uses the private tar cache. I also removed controller-only compatibility branches and added a [changelog fragment](/app/changelogs/fragments/controller-python-312.yml).
+
+Verification: 73 focused tests passed, 1 skipped; compilation and `git diff --check` passed. Python 3.12 runtime tests remain unverified because `python3.12` is unavailable locally; the exact failed command is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

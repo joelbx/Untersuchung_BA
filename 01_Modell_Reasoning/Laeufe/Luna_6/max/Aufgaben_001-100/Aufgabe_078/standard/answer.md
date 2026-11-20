@@ -1,0 +1,3 @@
+Implemented unified liveness feedback: the header shows a red badge for live, a grey badge for paused or buffering, and no badge when not live. Playback now updates and emits liveness as playback and broadcast info states change; the hook exposes it, and chunk events can identify the final event.
+
+**Verification:** all 24 voice broadcast test suites passed (209 tests, 15 snapshots). ESLint, Stylelint, and `git diff --check` passed. `yarn lint:types` reports a TS2554 error in the unmodified [notifications.ts](/app/src/utils/notifications.ts:79).

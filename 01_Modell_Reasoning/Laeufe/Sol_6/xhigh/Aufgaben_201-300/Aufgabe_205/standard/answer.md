@@ -1,0 +1,3 @@
+Added `utils.tokens` in [src/api/utils.js](/app/src/api/utils.js) for token creation, lookup, listing, updates, deletion, usage logging, and last-seen lookup. It stores token metadata and maintains the creation, ownership, and last-seen indexes. Bearer authentication now accepts these tokens while continuing to accept existing settings tokens.
+
+Verification passed: ESLint, `git diff --check`, the full authentication suite (42 tests), and the focused API token tests (5 tests).

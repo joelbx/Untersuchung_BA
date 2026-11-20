@@ -1,0 +1,5 @@
+The fault is in [internal/config/config.go](/app/internal/config/config.go:33). `Load` uses Viper’s `AutomaticEnv` for YAML-derived `FLIPT_...` keys, but `DecodeHooks` has no hook that resolves a YAML value such as `${GITHUB_CLIENT_ID}`.
+
+The likely fix is to put an environment substitution hook first in `DecodeHooks`. It should act only on string values that fully match `${[A-Za-z_][A-Za-z0-9_]*}`, use `os.LookupEnv`, and return the original value when the variable is unset. Running before the existing hooks lets substituted strings reach type conversion for fields such as `server.http_port`. The per-value decode path should also cover multiple placeholders in one file.
+
+[Existing `TestLoad` coverage](/app/internal/config/config_test.go:219) checks derived-key environment overrides, including an integer port, but does not check direct placeholders or their edge cases. The specialist instruction limited this run to diagnosis, so I did not edit project source or tests or run tests. I recorded the findings in `.codex-role-output/checkpoint.md`.

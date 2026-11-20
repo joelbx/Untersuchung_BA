@@ -1,0 +1,3 @@
+Updated SQLite access to use the existing single `*sql.DB` path. The connection now includes all requested SQLite options, and persistence transactions stay on the connection passed to `New()`. I also added tests for the options and transaction behavior.
+
+Fresh focused tests passed: `go test -count=1 ./db ./persistence ./cmd ./scanner`. The full suite still fails in two unrelated AAC gain-tag tests in `scanner/metadata/taglib`, which receive duplicate values.

@@ -1,0 +1,3 @@
+Updated hosts-based blocking so a blocked domain covers its subdomains. The blocker checks each parent hostname against both block sets, while the blocking toggle and URL whitelist take precedence. Loaded hosts and request hosts with trailing dots are matched equivalently.
+
+Added `widened_hostnames` and regression tests. Verification: 368 tests passed in the combined run; after the final test addition, the focused blocker run passed with 49 tests.

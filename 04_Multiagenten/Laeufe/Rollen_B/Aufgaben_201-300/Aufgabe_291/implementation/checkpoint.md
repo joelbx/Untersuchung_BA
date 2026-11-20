@@ -1,0 +1,1 @@
+Progress: Implemented NVD CVSS v4 conversion by metric Source, copying score/vector/severity into CveContent. Cvss40Scores now aggregates MITRE then NVD. Updated go-cve-dictionary to the locally cached version that provides Nvd.Cvss40. Added tests for mixed v3/v4 and v4-only NVD sources and source ordering. Offline focused and full models tests pass; git diff --check passes.

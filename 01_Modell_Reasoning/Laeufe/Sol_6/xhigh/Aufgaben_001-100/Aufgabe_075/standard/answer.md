@@ -1,0 +1,3 @@
+Added a `user_props` table and a context-scoped `UserPropsRepository`. The migration moves existing Last.fm session keys for current users, and Last.fm now uses the `sessionKeyProperty` constant without constructing user-prefixed keys. Property operation errors include the request ID when available.
+
+Added tests for user isolation and migration. **Validation passed:** `GOPROXY=off go test ./...` and `git diff --check`.

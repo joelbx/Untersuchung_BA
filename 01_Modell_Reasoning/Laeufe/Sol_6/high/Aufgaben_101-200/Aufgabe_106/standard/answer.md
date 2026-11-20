@@ -1,0 +1,3 @@
+Updated the WordPress cache lookup to use the map directly and treat a nil entry as a miss. The scan now reads the target server’s ignore inactive setting and excludes plugins and themes whose `Status` is `"inactive"` while keeping active packages.
+
+Added regression coverage in [wordpress_test.go](/app/wordpress/wordpress_test.go). The relevant tests passed offline: `go test ./wordpress ./report ./models`.

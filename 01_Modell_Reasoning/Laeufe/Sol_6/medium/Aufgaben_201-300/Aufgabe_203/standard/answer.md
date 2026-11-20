@@ -1,0 +1,3 @@
+Added a reusable [ExternalLink](/app/src/components/views/elements/ExternalLink.tsx) with a decorative icon, a translated screen reader cue, and secure new tab defaults. External links across settings now use it, including the hosting signup link, which is a single descriptive link. Share dialog links now have titles that match what they link to.
+
+The settings tests and new ExternalLink test pass, as do lint and style checks. Full type checking remains blocked by six existing `ThreadEvent` errors in unrelated thread files.

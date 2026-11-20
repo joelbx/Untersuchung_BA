@@ -1,0 +1,3 @@
+Updated author import to match by Open Library key first, then external identifiers, then name and dates. It now preserves identifiers on new authors, saves identifiers merged into matched authors, raises `AuthorRemoteIdConflictError` for conflicts, and uses deterministic tie breaking. Added `SUSPECT_DATE_EXEMPT_SOURCES` with `["wikisource"]`.
+
+Verification: 149 relevant tests passed; Ruff and `git diff --check` passed.

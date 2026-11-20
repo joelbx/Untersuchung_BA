@@ -1,0 +1,3 @@
+Added optional encoding validation to [FormatString](/app/qutebrowser/config/configtypes.py:1541). It now raises a validation error during `to_py` when a value contains characters outside the specified encoding; existing behavior remains when encoding is omitted. The [user agent setting](/app/qutebrowser/config/configdata.yml:639) now requires ASCII.
+
+Two native subagents handled the type change and focused tests; I integrated and verified their edits. Configuration tests passed: **1,269 passed, 10 expected failures**. User agent migration and web settings checks also passed: **6 passed, 1 skipped**.

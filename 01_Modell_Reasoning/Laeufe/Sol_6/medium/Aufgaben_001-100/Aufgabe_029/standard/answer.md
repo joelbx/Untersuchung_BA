@@ -1,0 +1,3 @@
+Added [nios_fixed_address.py](/app/lib/ansible/modules/net_tools/nios/nios_fixed_address.py) to create, update, and delete IPv4 and IPv6 DHCP fixed addresses, with check mode, DHCP options, comments, and extensible attributes. Updated [api.py](/app/lib/ansible/module_utils/net_tools/nios/api.py) with the WAPI object types and lookup by address, MAC, network, and view.
+
+Verification: all 67 NIOS unit tests passed, including the new fixed address tests.

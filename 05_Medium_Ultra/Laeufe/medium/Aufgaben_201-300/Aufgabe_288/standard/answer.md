@@ -1,0 +1,3 @@
+Updated `useShouldMoveOut` to call `onBack` only after mailbox elements finish loading and the active ID is missing from the valid ID list. `MailboxContainer` now passes that list and loading flag to both views. Conversation view selects the message ID for message-level labels and the conversation ID otherwise.
+
+Verification passed: 16 focused tests, the mail app TypeScript check, and `git diff --check`.

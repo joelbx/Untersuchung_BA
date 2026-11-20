@@ -1,0 +1,3 @@
+Implemented unified voice broadcast liveness across playback, hooks, and header call sites. Buffering and paused playback use the grey badge; stopped playback or a stopped broadcast is not live. Added last-chunk detection and updated the related UI snapshots.
+
+Verification: 5 focused suites passed (56 tests, 7 snapshots); ESLint, Stylelint, and `git diff --check` passed. TypeScript checking still reports an unrelated existing error at `src/utils/notifications.ts:79`.

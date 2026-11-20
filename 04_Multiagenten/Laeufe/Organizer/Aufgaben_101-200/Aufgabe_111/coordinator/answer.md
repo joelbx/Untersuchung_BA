@@ -1,0 +1,3 @@
+Amazon Linux 2023 detection and advisory lookup are fixed. The scanner now parses 2023 release strings, OVAL lookup uses the normalized release instead of falling back to Amazon Linux 1, and ALAS2023 advisories get the correct links. Version and EOL handling also cover 2025, 2027, and 2029 while retaining legacy release support.
+
+Tests passed: `go test ./config ./scanner ./models ./oval` with network access disabled. No delegation was used.

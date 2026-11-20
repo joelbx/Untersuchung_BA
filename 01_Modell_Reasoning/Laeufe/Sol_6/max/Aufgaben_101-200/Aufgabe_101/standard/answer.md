@@ -1,0 +1,3 @@
+Updated list removal in the Redis, MongoDB, and PostgreSQL implementations to accept multiple values in one call while preserving the order of the remaining elements. Added a shared regression test that reads the list immediately after removal.
+
+Verification: 20 list tests pass, ESLint passes, and `git diff --check` passes. MongoDB and PostgreSQL runtime tests could not run because those services are unavailable locally.

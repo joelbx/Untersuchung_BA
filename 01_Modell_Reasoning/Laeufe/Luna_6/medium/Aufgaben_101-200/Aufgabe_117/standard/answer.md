@@ -1,0 +1,3 @@
+Implemented the locale workaround in [qtargs.py](/app/qutebrowser/config/qtargs.py) and added `qt.workarounds.locale` to [configdata.yml](/app/qutebrowser/config/configdata.yml). The setting defaults to `false` and is QtWebEngine-only. When enabled, the code checks locale packs and adds `--lang` only on Linux with QtWebEngine 5.15.3 when the system locale pack is missing.
+
+Verification: all 117 existing `test_qtargs.py` tests passed with `QT_QPA_PLATFORM=offscreen`; `git diff --check` passed. Without offscreen mode, pytest aborted while creating Qt’s application in this environment.

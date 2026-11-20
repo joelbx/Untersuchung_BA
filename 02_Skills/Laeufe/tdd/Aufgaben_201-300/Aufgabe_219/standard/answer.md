@@ -1,0 +1,3 @@
+Added token creation and deletion to the audit checker, including wildcard event selections. gRPC initialization now checks whether `token:deleted` is enabled and passes that boolean to the authentication server, which uses it to control deletion audit logging.
+
+The focused checker, authentication, and command tests passed. The full test run failed only in the Redis tests (`TestSet`, `TestGet`, `TestDelete`) because the Docker daemon is unavailable; that integration behavior remains unverified.

@@ -1,0 +1,3 @@
+# Checkpoint
+
+Implemented exported token counters and changed Chat.Complete / Agent.PlanAndExecute to return aggregate counts. Agent planning requests now add prompt counters and streaming deltas contribute to a finalized asynchronous completion counter. The legacy chat tests compile with the new return arity, but `go test ./lib/ai/...` still fails in `TestChat_PromptTokens`: its old expected values do not account for the new per-request completion overhead and it expects zero for the initial predefined reply, which now reports its prompt and completion usage as required. Further review should tighten streamed tokenization to count actual cl100k tokens rather than one token per emitted delta.

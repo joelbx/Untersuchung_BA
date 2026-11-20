@@ -1,0 +1,3 @@
+Resolved the PassAliases drawer issue. It now shows the full alias list when aliases exist, an explicit **“No aliases”** state when they do not, and opens the creation modal from **“Get an alias.”** The provider creates a default vault when the creation flow needs one and refreshes cached alias data after creation.
+
+Verification passed: 6 focused Jest tests, Components and Pass type checks, targeted ESLint, and `git diff --check`. No delegation was used.

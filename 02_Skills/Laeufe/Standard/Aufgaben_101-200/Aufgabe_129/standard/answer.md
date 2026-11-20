@@ -1,0 +1,3 @@
+Added the kebab menu to the Current session header. It provides accessible, destructive “Sign out” and, when other sessions exist, “Sign out all other sessions” actions. Menu interactions close it and return focus to the trigger; bulk sign-out passes only non-current device IDs.
+
+All 58 targeted tests and 9 snapshots pass. ESLint and Stylelint pass. The full type check remains blocked by existing errors outside the edited files, recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

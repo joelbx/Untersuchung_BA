@@ -1,0 +1,1 @@
+Implemented corrected AIX CPU facts: processor_count=1; available devices become processor_cores; CPU type remains a list; SMT defaults to 1; vcpus is cores times threads. Added focused tests for reported SMT, missing SMT, and no available processors. Verification: 18 hardware tests and 9 AIX-focused/wiring tests passed; git diff --check passed.

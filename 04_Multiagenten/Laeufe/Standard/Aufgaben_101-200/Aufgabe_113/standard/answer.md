@@ -1,0 +1,3 @@
+Added `route_targets` to [nxos_vrf_af.py](/app/lib/ansible/modules/network/nxos/nxos_vrf_af.py). Each entry can add or remove an import or export value, with `both` as the default direction. Changes are scoped to the selected VRF and address family and are idempotent.
+
+Added unit coverage in [test_nxos_vrf_af.py](/app/test/units/modules/network/nxos/test_nxos_vrf_af.py). All 9 focused tests pass, and `git diff --check` is clean.

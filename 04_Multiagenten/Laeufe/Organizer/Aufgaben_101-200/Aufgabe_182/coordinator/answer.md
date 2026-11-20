@@ -1,0 +1,3 @@
+Forked workers now send `display`, `warning`, and `deprecated` calls through the final queue with the method name and exactly the arguments the caller supplied. The results thread invokes that method on the main process’s `Display` instance, so its warning and deprecation deduplication applies across workers.
+
+The relevant tests passed: **21 passed, 7 skipped**. `git diff --check` passed. I made the changes directly; no delegation was used.

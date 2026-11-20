@@ -1,0 +1,3 @@
+Resolved the Trivy source separation issue. The [converter](/app/contrib/trivy/pkg/converter.go) and [library detector](/app/detector/library.go) now create `trivy:<source>` CVE contents with each source’s severity and CVSS, preserve references and dates, and merge repeated CVEs. The [model aggregation](/app/models/cvecontents.go) and [TUI](/app/tui/tui.go) now recognize and display those entries.
+
+I delegated the converter, detector, and models/TUI edits, then reviewed the combined patch. The relevant tests passed offline with `go test -count=1 ./models ./tui ./detector ./contrib/trivy/pkg ./contrib/trivy/parser/v2`; formatting and `git diff --check` also passed.

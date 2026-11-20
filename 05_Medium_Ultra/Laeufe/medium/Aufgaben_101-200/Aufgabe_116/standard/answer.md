@@ -1,0 +1,3 @@
+Implemented `chat:privileged` across the chat permission checks. Initiating a chat with an administrator or moderator now requires that privilege, and denied requests return `[[error:no-privileges]]`. The profile API now returns a boolean `canChat`; the privilege label and OpenAPI schema are updated.
+
+Verification: the messaging suite passed (79 tests), ESLint passed, and `git diff --check` found no issues.

@@ -1,0 +1,3 @@
+Updated the message composer so replaced rooms show a clear notice in paragraph markup. The reply preview now names the sender and has a labeled cancel button. I added a reusable, size configurable [CancelButton](/app/src/components/views/buttons/Cancel.tsx), used it for the search close control, and let profiles render with a suitable root element.
+
+The focused tests pass (8 tests), as do ESLint and Stylelint. The full type check still reports five pre-existing errors in the Matrix SDK and unrelated settings files; it reports none in the changed files.

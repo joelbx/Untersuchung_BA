@@ -1,0 +1,1 @@
+Room search results now merge greedily when adjacent timelines share an event ID. The merged tile highlights each direct match and links it to its own event. The focused tests (10), TypeScript check, and ESLint all pass. This work item is complete.

@@ -1,0 +1,3 @@
+Updated [galaxy.py](/app/lib/ansible/cli/galaxy.py) so bare `ansible-galaxy install -r` installs both roles and collections from a mixed requirements file. Custom role paths and explicit subcommands install only the relevant type and report skipped items at the requested warning or verbosity level. Empty requirements files now skip installation with a clear message.
+
+Verification: all 107 Galaxy CLI unit tests passed, and a mixed requirements dispatch check passed.

@@ -1,0 +1,3 @@
+Updated [assistantUpsellConfig.ts](/app/packages/components/hooks/assistant/assistantUpsellConfig.ts) to use the shared Scribe resolver. Both paid flows now build a `planIDs` object and add a Scribe addon only when the resolver returns one. [payments/core](/app/packages/components/payments/core/index.ts) now exports the resolver and `SelectedPlan`; external imports use that entrypoint.
+
+I delegated the core exports and test updates, then reviewed the combined patch and reran the upsell suite. The assistant upsell tests passed (11/11), as did the selected-plan tests (39/39). The components type check still fails in unchanged `packages/crypto/lib/worker/api.ts` because two OpenPGP installations provide incompatible types.

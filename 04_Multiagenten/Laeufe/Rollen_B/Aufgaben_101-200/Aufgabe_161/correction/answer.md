@@ -1,0 +1,3 @@
+The Worksearch patch now supplies entries for every requested facet field, so the search template can render when a JSON response omits one. I extended the existing JSON test and removed obsolete commented XML test code.
+
+The Worksearch suite passed: **27 tests**. `git diff --check` passed. **TEST_ENVIRONMENT_PROBLEM:** the browser integration suite could not collect tests because `splinter` is missing, so the browser search path remains unverified.

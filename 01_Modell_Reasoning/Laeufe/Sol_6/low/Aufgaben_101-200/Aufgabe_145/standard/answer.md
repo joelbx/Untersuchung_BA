@@ -1,0 +1,3 @@
+Photo recovery now loads regular and trashed items, waits for both sources to finish decrypting, and adds trashed photo entries to the recovery set. It checks both sources before marking recovery successful and counts pending items when a core action fails. The changes are in both [recovery hook copies](/app/packages/drive-store/store/_photos/usePhotosRecovery.ts).
+
+Both focused Jest suites pass: 8 tests each, including a new mixed-source test. The repository type check was still running when I finished.

@@ -1,0 +1,3 @@
+Added `removeTechnicalFields` in [EntityUtils.ts](/app/src/api/common/utils/EntityUtils.ts). It mutates an entity to remove `_finalEncrypted`, `_defaultEncrypted`, and `_errors` prefixed fields from the root and nested objects, including objects in arrays, while preserving other attributes. Added regression tests in [EntityUtilsTest.ts](/app/test/tests/api/common/utils/EntityUtilsTest.ts).
+
+TypeScript and formatting checks passed. The test suite passed with 8,682 assertions.

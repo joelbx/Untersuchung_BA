@@ -1,0 +1,3 @@
+Updated [ansible-galaxy’s install flow](/app/lib/ansible/cli/galaxy.py) so implicit `install -r` installs both roles and collections. A custom roles path limits it to roles and warns that collections were skipped; explicit `role` and `collection` commands report skipped items at their intended verbosity. Empty requirements files now skip installation.
+
+Added CLI coverage in [test_galaxy.py](/app/test/units/cli/test_galaxy.py). The checkout’s galaxy CLI suite passed: **112 tests**.

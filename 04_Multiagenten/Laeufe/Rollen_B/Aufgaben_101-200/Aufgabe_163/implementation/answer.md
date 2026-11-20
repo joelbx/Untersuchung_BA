@@ -1,0 +1,3 @@
+Implemented separate database configuration fields for protocol, host, port, user, password, and name. An explicit `db.url` takes precedence; otherwise, the application validates the fields and builds a connection target with engine specific default ports. `Open` and the by-value `NewMigrator` now use the same selection path. Configuration and TLS errors name their settings, and connection errors omit credentials.
+
+Added tests for loading, validation, precedence, defaults, redaction, and connections. `go test ./config ./storage/db ./cmd/flipt -count=1` and `git diff --check` pass.

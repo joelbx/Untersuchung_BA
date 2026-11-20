@@ -1,0 +1,3 @@
+Updated the certificate wrappers. WebKit now accepts a named `reply` alongside `errors`, makes no network call during construction, and retains escaped paragraph or list HTML for single or multiple errors. Certificate decisions now use explicit methods, with separate Qt5 and Qt6 WebEngine wrappers and a version-based factory.
+
+The focused tests passed: **8 passed**, with `git diff --check` clean. The WebEngine tab suite reported 25 passing tests, but its process exited with an X11 teardown error, so that run is not a clean pass. PyQt6 was unavailable locally; its wrapper was tested with a fake Qt6 error object.

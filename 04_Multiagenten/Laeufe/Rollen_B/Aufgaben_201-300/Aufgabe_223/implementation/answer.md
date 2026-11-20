@@ -1,0 +1,3 @@
+Updated [module_common.py](/app/lib/ansible/executor/module_common.py) so new-style Python wrappers use the module’s declared interpreter and arguments. A default Python interpreter is used when no shebang is present; explicit inventory and config overrides still take precedence. Shebang replacement now occurs only when the resolved interpreter differs, with the encoding line immediately after the shebang.
+
+Added focused coverage for source shebangs, quoted arguments, overrides, and the no-shebang fallback. **All 48 focused tests pass**, and `git diff --check` is clean.

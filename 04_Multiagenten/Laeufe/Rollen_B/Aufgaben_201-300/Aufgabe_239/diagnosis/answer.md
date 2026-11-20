@@ -1,0 +1,8 @@
+I localized the issue but did not edit project source or tests; this pass was restricted to fault diagnosis. Findings are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+- [UserPropsRepository](/app/model/user_props.go:4) omits `userId` from all four methods. The [SQL implementation](/app/persistence/user_props_repository.go:24) instead reads it from context. `Put` also returns success when its update fails.
+- [MockedUserPropsRepo](/app/tests/mock_user_props_repo.go:5) selects data through a mutable `UserID` field. Its `DefaultGet` prefixes the key twice and hides read errors.
+- [sessionKeys](/app/core/agents/lastfm/session_keys.go:18) carries no user ID. [NowPlaying, Scrobble, and IsAuthorized](/app/core/agents/lastfm/agent.go:161) receive `userId` but ignore it when loading the session key.
+- [LastFM auth routes](/app/core/agents/lastfm/auth_router.go:66) need to pass the authenticated user’s ID for link status and unlink. The callback is unauthenticated and trusts a `uid` URL parameter when saving a key; [the UI builds that parameter from local storage](/app/ui/src/personal/LastfmScrobbleToggle.js:22). Explicit repository scoping alone would not establish that callback UID as the authenticated user.
+
+The fix should cover two users with distinct keys, mismatched context and method IDs, missing properties, and link, unlink, now playing, and scrobble isolation. Existing LastFM tests use matching IDs, so they do not establish that isolation. I did not run tests because no project code changed.

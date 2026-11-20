@@ -1,0 +1,7 @@
+I located three connected failure paths:
+
+- [tsh.go](/app/tool/tsh/tsh.go:248): `Run`, its command handlers, and `refuseArgs` call `utils.FatalError` or return no error. The database handlers in [db.go](/app/tool/tsh/db.go:35) do the same, including a fatal call inside `databaseLogin`.
+- [api.go](/app/lib/client/api.go:2285): `ssoLogin` always calls the default SSO flow. `client.Config` has no `SSOLoginFunc` field, and [makeClient](/app/tool/tsh/tsh.go:1407) has no callback to pass through.
+- [service.go](/app/lib/service/service.go:1215): auth and proxy listeners bind successfully, but downstream configuration and logs continue to use configured `:0` addresses. Auth also copies its configured address into `AuthServers` before binding. Proxy SSH binds separately at [line 2559](/app/lib/service/service.go:2559) and is absent from `proxyListeners`.
+
+The fix should return handler errors through `Run`, apply runtime options after parsing, invoke an injected SSO callback when set, and propagate each listener’s assigned address to dependent components. Existing tests cover a random auth port for diagnostic readiness, but I found no test here that establishes the full tsh SSO and proxy path. I did not edit project source or tests because my assigned role in this run is fault localization only.

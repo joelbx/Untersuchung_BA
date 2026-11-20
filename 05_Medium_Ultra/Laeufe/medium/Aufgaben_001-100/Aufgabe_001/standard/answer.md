@@ -1,0 +1,3 @@
+Syslog configuration now has a public [syslog.Conf](/app/config/syslog/types.go) type with platform-specific `Validate()` methods. Configuration and reporting use the new type, while `config.SyslogConf` remains an alias for existing callers.
+
+Validation preserves the existing accepted values and error counts. On Windows, enabled syslog returns the specified single error. The relevant package tests pass, and the Windows syslog and config tests compile.

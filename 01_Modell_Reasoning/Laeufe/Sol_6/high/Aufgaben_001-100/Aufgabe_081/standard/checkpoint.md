@@ -1,0 +1,2 @@
+Task: Fix OIDC session domain normalization, localhost cookie handling, and callback URL slash handling.
+Status: Implemented hostname normalization in authentication validation, omitted localhost Domain on OIDC state and token cookies, and removed one trailing host slash when building callback URLs. Added regression tests for each behavior. `go test ./internal/config ./internal/server/auth/method/oidc` passes with network access disabled; `git diff --check` passes.

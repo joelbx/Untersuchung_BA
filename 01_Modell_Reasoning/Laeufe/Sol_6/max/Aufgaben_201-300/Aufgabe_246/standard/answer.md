@@ -1,0 +1,3 @@
+Resolved the multi-lockfile reporting issue. Scans now analyze each lockfile separately, retain its path with each library finding, merge duplicate CVEs, and use path plus name to show the correct version in reports. Added regression tests for two `Pipfile.lock` files.
+
+The full existing suite passed offline: `go test -mod=readonly ./...`. Saved scans created before this change need a rescan to include source paths.

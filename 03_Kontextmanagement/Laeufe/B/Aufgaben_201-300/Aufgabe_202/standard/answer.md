@@ -1,0 +1,3 @@
+The admin file upload handler now checks that the requested folder exists under the configured upload path and is a directory before saving. Invalid folders return `[[error:invalid-path]]` with HTTP 500. I added a regression test in [test/uploads.js](/app/test/uploads.js).
+
+Syntax, lint, and isolated handler checks passed. The existing upload suite could not run because its Redis test service was unavailable.

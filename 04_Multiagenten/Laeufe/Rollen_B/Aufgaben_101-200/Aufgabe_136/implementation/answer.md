@@ -1,0 +1,3 @@
+Updated the WebKit certificate wrapper to accept named `reply` and `errors` arguments. Construction retains the reply without using it; accepting a certificate invokes `ignoreSslErrors()`. Existing paragraph and list rendering remains in place, with tests covering HTML escaping and reply behavior.
+
+Added shared certificate decision methods and Qt5/Qt6 WebEngine wrappers, then updated their callers to use them. The relevant local tests pass: **10 passed**. `git diff --check` also passes.

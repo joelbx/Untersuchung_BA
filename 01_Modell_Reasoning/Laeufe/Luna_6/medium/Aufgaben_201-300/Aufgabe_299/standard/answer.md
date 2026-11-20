@@ -1,0 +1,3 @@
+Implemented filesystem completion for `:open` in [filepathcategory.py](/app/qutebrowser/completion/models/filepathcategory.py), wired it into the configured category order, and added `completion.open_categories` and `completion.favorite_paths` to the schema and help.
+
+`tests/unit/config/test_configdata.py` passes: 31 passed. The completion model tests had 2 failures because existing tests expect the old default category set; filesystem is now enabled by default as required.

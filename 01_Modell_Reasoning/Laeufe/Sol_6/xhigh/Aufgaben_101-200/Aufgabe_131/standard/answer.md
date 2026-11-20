@@ -1,0 +1,3 @@
+Implemented bounded event polling in [usePollEvents.ts](/app/packages/components/payments/client-extensions/usePollEvents.ts). It exports the 5000 ms interval and five-attempt limit, can stop on a matching property and action, and unsubscribes when polling completes. New Chargebee card and PayPal flows now watch for `PaymentMethods` creation events.
+
+Verification: six focused polling tests passed, the component type check passed, and two existing payment test suites passed. One existing suite was skipped by its test setup.

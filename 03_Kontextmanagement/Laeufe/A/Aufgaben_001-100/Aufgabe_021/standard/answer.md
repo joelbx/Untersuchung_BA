@@ -1,0 +1,3 @@
+Updated the [List and Seed model](/app/openlibrary/core/lists/model.py) with explicit type annotations, `SeedDict`, normalized seed keys, resolved seed references, and a three-key export result. Added subject key parsing and a subject string type guard in [lists.py](/app/openlibrary/plugins/openlibrary/lists.py), plus the requested helper annotations.
+
+Verification: 17 list tests passed; Ruff and `git diff --check` passed.

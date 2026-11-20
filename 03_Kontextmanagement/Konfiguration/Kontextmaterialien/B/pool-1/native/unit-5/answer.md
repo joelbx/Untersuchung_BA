@@ -1,0 +1,1 @@
+Batch 5 is complete. The file has **1,069 complete records**, no column-count anomalies, and no incomplete source fragment. I created and independently validated [catalogue-5-summary.json](/app/catalogue-5-summary.json).

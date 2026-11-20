@@ -1,0 +1,3 @@
+Fixed the [pip module](/app/lib/ansible/modules/pip.py) to use the current interpreter’s `-m pip` launcher when pip is importable, even if no pip binary is on `PATH`. Launchers are now argv lists; package listing tries `list` then `freeze` and returns the final command as a string. The virtualenv path prefix uses `os.path.join`.
+
+Validation: **9 pip unit tests passed**, and `git diff --check` passed.

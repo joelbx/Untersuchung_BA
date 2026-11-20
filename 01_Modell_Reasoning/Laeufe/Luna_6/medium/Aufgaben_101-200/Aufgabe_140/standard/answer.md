@@ -1,0 +1,3 @@
+Implemented parent domain blocking, whitelist precedence, and trailing dot normalization. Added tests for hostname widening semantics and parent domain matching, including full HTTPS URLs.
+
+The relevant test run produced **355 passed, 1 skipped, and 1 failed**. The failure is the existing `test_disabled_blocking_per_url`, which expects a request to be blocked when global blocking is disabled and no first party URL is supplied. The issue requires disabled blocking to allow the request.

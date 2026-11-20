@@ -1,0 +1,3 @@
+Replaced Worksearch’s XML response parsing with Solr JSON handling for facets, documents, and spellcheck in [code.py](/app/openlibrary/plugins/worksearch/code.py). Queries now default to `wt=json`, and the page displays JSON error text. Updated [tests](/app/openlibrary/plugins/worksearch/tests/test_worksearch.py) cover the new response shapes.
+
+Two subagents audited call sites and updated the tests; I reviewed the integrated patch. The focused suite passed **32 tests**, and `git diff --check` passed.

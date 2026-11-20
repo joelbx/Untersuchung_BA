@@ -1,0 +1,3 @@
+Updated [FnToCLI](/app/scripts/solr_builder/solr_builder/fn_to_cli.py) to convert `Path` and typed list arguments, accept required lists positionally and optional lists through `--<parameter_name>`, parse a supplied argument sequence, and return wrapped function results, including async results. Existing dashed option names remain accepted.
+
+Added [focused tests](/app/scripts/solr_builder/tests/test_fn_to_cli.py). All 8 tests pass; Ruff and `git diff --check` pass.

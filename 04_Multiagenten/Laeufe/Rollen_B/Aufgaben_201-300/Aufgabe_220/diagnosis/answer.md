@@ -1,0 +1,5 @@
+The likely fix belongs in [qtutils.py](/app/qutebrowser/utils/qtutils.py): add `qcolor_to_qsscolor(c: QColor) -> str` using `c.getRgb()` to format all four integer channels as `rgba(r, g, b, a)`. That covers named colors, explicit RGB or RGBA values, and the default alpha of 255. [test_qtutils.py](/app/tests/unit/utils/test_qtutils.py) has no coverage for this conversion.
+
+The issue also names `WebView.STYLESHEET` and `TabBar.STYLESHEET`, but neither exists in this checkout. [WebView._set_bg_color](/app/qutebrowser/browser/webkit/webview.py:101) and [TabBar._set_colors](/app/qutebrowser/mainwindow/tabwidget.py:511) currently apply colors through `QPalette`, so the intended stylesheet integration is uncertain.
+
+I left source and tests unchanged because the assigned fault-localization role explicitly prohibits modifying them. I recorded the findings in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

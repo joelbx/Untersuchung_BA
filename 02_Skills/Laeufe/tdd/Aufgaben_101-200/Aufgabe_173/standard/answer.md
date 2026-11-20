@@ -1,0 +1,3 @@
+Implemented HA database service selection. The proxy keeps all matching servers, shuffles them using the configured clock by default, and tries the next server when a tunnel connection fails. Tests can supply a deterministic `Shuffle` hook and simulate per-server outages. `tsh db ls` now deduplicates names; database server logs include `HostID`, and sorting uses name then host ID.
+
+The API types, reverse tunnel, database proxy, and `tsh` suites passed. The full repository suite did **not** pass: unrelated integration, timing, cgroup permission, event, and tunnel announce tests failed or timed out. Details and exact commands are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented `preview=true` for the `/import` and `/ia_import` endpoints. Preview returns the proposed Edition, Work, and Author edits with temporary UUID keys, reports whether the cover URL is accepted, and skips persistence, cover uploads, and Archive.org metadata updates. I also added case-insensitive cover host validation and the requested author and edition conversion interfaces.
+
+Verification: 165 import-related tests passed, including new preview tests; `git diff --check` passed.

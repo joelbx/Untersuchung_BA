@@ -1,0 +1,3 @@
+Incomplete promise-item imports now look up staged metadata by ISBN-10 first, then by a B-prefixed ASIN. Enrichment runs before API validation, fills only empty fields, and removes placeholder values so they do not block backfilling. Validation accepts either a complete descriptive record or a titled record with a strong identifier. The batch script stages only incomplete items, continues after lookup failures, and records total and incomplete gauges.
+
+Verification: 109 relevant tests passed, and Ruff passed.

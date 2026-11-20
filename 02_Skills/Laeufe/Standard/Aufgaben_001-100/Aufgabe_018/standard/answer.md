@@ -1,0 +1,3 @@
+Updated configuration decoding so scalar strings become `[]string` values split on whitespace, including repeated spaces, tabs, and newlines. Empty strings produce an empty slice. The hook leaves sequences and other source or target types unchanged, and empty ENV values now reach the decoder.
+
+Updated the advanced CORS fixture and added YAML, ENV, and hook tests. `GOPROXY=off go test ./internal/config` and `git diff --check` passed.

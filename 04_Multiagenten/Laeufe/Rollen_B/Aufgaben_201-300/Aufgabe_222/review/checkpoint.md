@@ -1,0 +1,4 @@
+VERDICT: FIX
+Reviewed the existing patch in lib/ansible/cli/doc.py and test/units/cli/test_doc.py. The extracted builder meets the requested tuple, naming, filtering, and key/value preservation behavior, but preserving a None entry point exposes a consumer regression: get_role_man_text at lib/ansible/cli/doc.py:1022 calls .get() on the value. Direct local reproduction with {'main': None} raises AttributeError. Correct the renderer to treat a missing specification as an empty mapping while preserving the full source value in _build_doc.
+Tests: `pytest -q test/units/cli/test_doc.py` failed (6 failed, 15 passed) because it imported /usr/local/lib/python3.9/dist-packages/ansible/cli/doc.py, a test environment path issue. `PYTHONPATH=lib pytest -q test/units/cli/test_doc.py` passed (21 passed). `git diff --check` passed.
+No project code or tests were changed during review.

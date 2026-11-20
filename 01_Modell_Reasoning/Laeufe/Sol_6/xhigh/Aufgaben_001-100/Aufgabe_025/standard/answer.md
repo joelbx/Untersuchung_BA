@@ -1,0 +1,3 @@
+Added `${VARIABLE_NAME}` substitution as the first [configuration decode hook](/app/internal/config/config.go), so environment values reach the existing type conversion hooks. Values that do not match exactly, are not strings, or reference an unset variable remain unchanged. Existing `FLIPT_*` configuration overrides retain precedence.
+
+Added [tests](/app/internal/config/config_env_test.go) for matching rules, multiple substitutions, port and duration conversion, and override precedence. `GOPROXY=off go test ./internal/config ./config` passed.

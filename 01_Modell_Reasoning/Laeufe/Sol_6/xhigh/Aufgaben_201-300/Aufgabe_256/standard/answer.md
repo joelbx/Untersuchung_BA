@@ -1,0 +1,3 @@
+Fixed play hosts handling in [play.py](/app/lib/ansible/playbook/play.py). `Play.load` no longer derives or changes `name`; `get_name` derives it from hosts when needed, and malformed hosts now raise the specified `AnsibleParserError` messages.
+
+Updated the [regression tests](/app/test/units/playbook/test_play.py) and the [integration error assertion](/app/test/integration/targets/playbook/runme.sh). All 247 playbook unit tests pass. CLI syntax checks produced the expected errors for empty hosts and the reported mapping value, with source locations.

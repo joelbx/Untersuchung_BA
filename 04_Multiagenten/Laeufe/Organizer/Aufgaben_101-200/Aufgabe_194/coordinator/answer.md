@@ -1,0 +1,3 @@
+`BlocklistDownloads` now inherits from `QObject` and emits `single_download_finished(object)` for each successful download and `all_downloads_finished(int)` when the batch completes, including for an empty URL list. Both adblock consumers connect their handlers before starting downloads. The tests also cover QObject parenting and multiple listeners.
+
+The relevant test suites passed: **38 passed, 13 skipped**. The skipped tests require the optional Brave adblock dependency. `git diff --check` passed. I completed the changes without delegation.

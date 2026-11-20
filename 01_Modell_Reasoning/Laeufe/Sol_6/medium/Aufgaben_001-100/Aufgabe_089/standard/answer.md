@@ -1,0 +1,3 @@
+Updated `flipt validate` to report missing variant and segment references as individual errors with file, line, and column details. `flipt import` now validates before creating resources, so repeated attempts with the same invalid file fail consistently. The exported filesystem snapshot constructors also validate files before loading them.
+
+Updated the valid fixtures and schema to match accepted snapshot input. Regression tests cover reference errors, snapshot validation, and repeated imports. `go test ./cmd/flipt ./internal/cue ./internal/storage/fs/...` and `git diff --check` pass.

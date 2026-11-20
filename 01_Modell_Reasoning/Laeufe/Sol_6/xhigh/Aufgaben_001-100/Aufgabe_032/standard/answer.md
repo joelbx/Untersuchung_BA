@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) to use consistent JSON responses and atomically replace job records. Failure and timeout records now include the job ID, lifecycle fields, and diagnostic details; cleanup policy is reflected in immediate responses. Added regression coverage in [test_async_wrapper.py](/app/test/units/modules/test_async_wrapper.py).
+
+Verification: 9 tests passed; compilation and `git diff --check` passed.

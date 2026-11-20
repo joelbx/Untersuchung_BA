@@ -1,0 +1,3 @@
+Updated book import to remove the `cover` key and upload its URL only when the HTTP or HTTPS hostname matches `ALLOWED_COVER_HOSTS`, regardless of case. The new `process_cover_url` interface is used for both new and matched editions in [add_book/__init__.py](/app/openlibrary/catalog/add_book/__init__.py:356).
+
+Regression tests cover supported and unsupported URLs in both paths. The relevant suites passed: **215 passed, 1 expected failure**. The repository does not contain the production proxy allow-list, so the constant’s hosts were chosen from local cover-producing code; that match remains unverified. Findings and tool limits are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Resolved in `/app`. User property reads and writes now require an explicit user ID, and the mock stores values by user and key. LastFM uses the identified user’s session key for link status, unlink, now playing, and scrobbling. Its callback now requires a short-lived signed state issued after authentication; the UI uses the updated flow.
+
+The full Go test suite, UI lint and formatting checks, and `git diff --check` passed. Clients using the old `uid` callback URL must use the signed-state flow.

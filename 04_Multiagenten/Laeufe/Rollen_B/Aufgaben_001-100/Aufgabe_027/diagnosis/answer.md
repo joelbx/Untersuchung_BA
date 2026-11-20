@@ -1,0 +1,7 @@
+The fault is in [getLastPersistedLocalID](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts:26). It is already synchronous, but returns `0` for empty storage and errors, accepts nonnumeric `ps-` suffixes through `Number(...)`, and lets one malformed JSON value abort the scan.
+
+[useBookmarksPublicView](/app/applications/drive/src/app/store/_views/useBookmarksPublicView.ts:41) passes that result directly to `resumeSession`. The helper requires a numeric ID and throws when its stored session is missing, so bookmark loading and key password restoration can stop there. The existing [unit tests](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.test.ts:59) still expect `0` for empty and nonnumeric cases.
+
+A fix should return `null` when no valid ID exists, preserve a valid ID of `0`, ignore unrelated and nonnumeric keys, and handle storage errors without changing stored values. The caller must handle `null` before calling `resumeSession`; that helper’s current contract accepts only a number. I did not verify an end-to-end handshake failure: the observed resume call occurs in the bookmark view after the public session handshake.
+
+I updated the excluded checkpoint note. Project source and tests were left untouched under the fault-localization instruction.

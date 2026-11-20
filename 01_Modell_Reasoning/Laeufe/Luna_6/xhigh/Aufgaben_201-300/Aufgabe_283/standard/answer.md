@@ -1,0 +1,3 @@
+Implemented `isFromProton` as a strict `IsProton === 1` check and added the property to message, conversation, and encrypted-search types. The message list now uses the helper for its verification indicator, rendered by the new tooltip-enabled [VerifiedBadge.tsx](/app/applications/mail/src/app/components/list/VerifiedBadge.tsx).
+
+Verification passed: the existing helper suite (19 tests), the mail type check, and `git diff --check`.

@@ -1,0 +1,3 @@
+Implemented delegation resolution before loop execution. `TaskExecutor` now receives `VariableManager`, resolves the target and delegated variables once, and no longer uses the loop cache. Added [Task.get_play()](/app/lib/ansible/playbook/task.py:375) and [VariableManager.get_delegated_vars_and_hostname()](/app/lib/ansible/vars/manager.py:517); the former delegation resolver is deprecated.
+
+Verification: 33 relevant unit tests passed on Python 3.9, and `git diff --check` passed. The unpinned test run also tried Python 3.11, where pytest is unavailable.

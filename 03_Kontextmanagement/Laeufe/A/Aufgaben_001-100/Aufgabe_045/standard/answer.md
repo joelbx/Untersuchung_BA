@@ -1,0 +1,3 @@
+Updated collection name validation to return a boolean and reject Python keywords or invalid identifiers in either segment. Dependency resolution now uses the same validator, and the legacy helpers and their Python 2/3 compatibility code were removed from [dataclasses.py](/app/lib/ansible/galaxy/dependency_resolution/dataclasses.py).
+
+Verification: 81 collection loader tests and 43 Galaxy tests passed when run separately. A direct dependency resolution check and `git diff --check` also passed.

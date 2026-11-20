@@ -1,0 +1,3 @@
+Added the public `DiagResult` and `Diag` interfaces with macOS Touch ID checks. Fixed login’s allowed-credential selection so it uses the matching credential when multiple credentials exist for an RPID. The registration and passwordless login round trip continues to pass, and the tests now cover that multiple-credential case.
+
+`go test ./lib/auth/webauthn ./lib/auth/touchid -count=1` and `git diff --check` pass. Native macOS diagnostics could not be run on this Linux host.

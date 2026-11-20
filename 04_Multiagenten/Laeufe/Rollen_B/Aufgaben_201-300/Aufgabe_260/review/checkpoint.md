@@ -1,0 +1,5 @@
+VERDICT: FIX
+
+Review complete. Code defect: `ui/src/eventStream.js:17-22` opens EventSource without the tab's UUID; `server/middlewares.go:63-73` resolves headerless SSE requests from a browser-wide cookie overwritten by every tab's API request; `server/events/sse.go:176` records that possibly wrong UUID. If tab A's keepalive sets A's cookie, tab B makes a request setting B's cookie, then A opens EventSource, A's subscription is labeled B. A's actions can echo to A and B's actions can be suppressed for A. Correction: bind SSE identity to the initiating tab (for example, pass its UUID in the SSE URL and resolve it for the subscription) rather than relying on the shared cookie.
+
+Tests: `GOPROXY=off GOSUMDB=off go test ./server/events ./server ./server/subsonic ./scanner ./model/request` passed (model/request has no test files); `CI=true npm test -- --watch=false --runInBand` passed (11 suites, 41 tests); `git diff --check` passed. No TEST_ENVIRONMENT_PROBLEM. No project code changed in this review.

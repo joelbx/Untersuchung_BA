@@ -1,0 +1,3 @@
+Added `luqum_replace_child` to [query_utils.py](/app/openlibrary/solr/query_utils.py). It replaces equal children while preserving tuple order, leaves children unchanged when there’s no match, and raises the required `ValueError` for unsupported parents.
+
+Verification: the existing query utility tests passed (6 passed); direct checks covered replacement behavior and the unsupported-parent error. `git diff --check` passed.

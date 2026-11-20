@@ -1,0 +1,3 @@
+Implemented the expression AST in [ast.go](/app/lib/utils/parse/ast.go) and replaced the parsing and matcher logic in [parse.go](/app/lib/utils/parse/parse.go). Nested functions, constant inputs, strict variable shapes and namespaces, boolean matcher validation, and a parsing depth limit are covered. Trait and PAM interpolation now validate variables through callbacks.
+
+`go test ./lib/utils/parse ./lib/services -count=1` passes. The server package could not build in this environment because required local C headers are missing; disabling CGO also failed on dependency build errors.

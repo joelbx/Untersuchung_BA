@@ -1,0 +1,3 @@
+Implemented token-only invitation registration. The form copies the URL token into its hidden field; registration now uses token-keyed invitation metadata to join groups, confirm an entered email when it matches the invitation, and clean up invitation records.
+
+All 31 invitation tests pass; ESLint and the diff check pass. The broader user suite has 179 passing tests and one failure in the separate email confirmation suite.

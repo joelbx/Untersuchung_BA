@@ -1,0 +1,3 @@
+Migrated [get_ia.py](/app/openlibrary/catalog/get_ia.py) to `requests`: GETs now validate status, accept headers and kwargs, and return responses. Callers use `.content` for binary data and XML, `.text` for text, and range downloads truncate content to `MAX_MARC_LENGTH`.
+
+Updated the existing test fixtures to return `requests.Response` objects. The target suite passes: **42 passed**. `git diff --check` is clean.

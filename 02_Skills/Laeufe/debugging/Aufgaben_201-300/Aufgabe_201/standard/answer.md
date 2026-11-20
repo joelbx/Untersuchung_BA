@@ -1,0 +1,3 @@
+Implemented support for string and keys/operator object forms in rule `segment`. Import, canonical object export, filesystem snapshots, and SQL rule and rollout persistence now use the unified representation. Single-key segments resolve to `OR_SEGMENT_OPERATOR`. I updated the requested fixtures and added focused tests.
+
+Verification passed: `go test ./internal/ext ./internal/storage/fs ./internal/storage/sql -count=1` and `git diff --check`.

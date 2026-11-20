@@ -1,0 +1,1 @@
+Implemented DatabaseProtocol and separate db fields with URL precedence, validation, default ports, and shared resolution in Open/NewMigrator. Updated TLS setting errors and focused resolver tests. Verified: go test ./config ./storage/db ./cmd/flipt (pass).

@@ -1,0 +1,3 @@
+Centralized storage units in [size.ts](/app/packages/shared/lib/helpers/size.ts). Updated the requested member, CSV, organization, calendar, contacts, and bonus storage paths to use `sizeUnits` or `BASE_SIZE` from that helper. Also replaced inline GB calculations in offer and referral displays.
+
+The existing CSV suite passed: 64 tests. `git diff --check` passed. The package type check reported an unrelated OpenPGP type mismatch and one unused import, which I fixed; I did not rerun the full type check after that fix.

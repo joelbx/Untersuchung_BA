@@ -1,0 +1,3 @@
+Fixed terminal restoration for `tsh login`. A canceled password read now restores the terminal and moves the reader to clean mode; `Close` restores it before marking the reader closed. Added `NotifyExit` and called it from `tsh` after `Run` returns.
+
+Two delegated agents handled the exit path and focused tests; I integrated and verified their changes. The prompt package tests, race tests, and `git diff --check` pass. A compile-only `tsh` check was stopped after more than two minutes under this container’s process limits.

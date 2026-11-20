@@ -1,0 +1,3 @@
+Updated the repository to accept rule `segment` values as either a string or a keys/operator object. Exports now use the object form, and single key segments use `OR_SEGMENT_OPERATOR` throughout import, snapshots, and SQL persistence. I also updated the requested fixtures and added parsing coverage.
+
+Verification passed: `go test ./internal/ext ./internal/storage/fs ./internal/storage/sql` and `git diff --check`.

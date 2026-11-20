@@ -1,0 +1,3 @@
+`Booknotes.update_work_id` now preserves every record when the target work ID already exists. It returns `{"rows_changed": 0, "rows_deleted": 0, "failed_deletes": 1}` for that conflict, and the admin response passes through the dictionary.
+
+The focused tests pass: **4 passed**, including checks that a conflict leaves the full table unchanged and that a successful update and dry run behave as expected.

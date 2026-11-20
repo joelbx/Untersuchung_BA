@@ -1,0 +1,3 @@
+Fixed the device-limit enrollment path. `RunAdmin` now returns the registered device when enrollment fails, and `printEnrollOutcome` handles nil device information without panicking. The fake service exposes a device-limit toggle, and the new test verifies that registration succeeds while enrollment returns an AccessDenied error.
+
+The enrollment package tests passed. The `tsh/common` test and full suite could not run in this container because the build requires missing C headers or CGO-dependent `lib/system` files. Those limits and the exact commands are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

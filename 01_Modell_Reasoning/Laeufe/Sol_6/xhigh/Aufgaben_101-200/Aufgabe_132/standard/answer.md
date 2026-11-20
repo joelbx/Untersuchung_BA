@@ -1,0 +1,3 @@
+Added `meta.config.systemTags` as a configurable list. Unprivileged users now receive **“You can not use this system tag.”** when assigning a reserved tag during topic creation, editing, queueing, or through the direct tagging API. The socket tag check also applies the restriction, while privileged users can assign those tags. Tag names are normalized before comparison.
+
+Verification: 15 relevant tests passed; ESLint and `git diff --check` passed.

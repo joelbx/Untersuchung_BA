@@ -1,0 +1,3 @@
+Implemented chat allow and deny lists, a disable incoming messages setting, server-side checks for chat creation and invitations, and an idempotent migration from the legacy follow-based restriction. Users can manage the settings from their account page.
+
+Verification: ESLint and the chat/user suites passed (358 tests). A final focused test confirmed that an explicit block also takes precedence for an administrator.

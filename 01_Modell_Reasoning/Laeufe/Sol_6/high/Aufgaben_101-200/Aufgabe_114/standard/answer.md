@@ -1,0 +1,3 @@
+Artist artwork now checks for `artist.*` in the folder derived from its albums’ media directories before trying external files, URLs, or a placeholder. Albums persist their unique media directories, and every artwork source attempt records its duration in trace logs. The migration triggers a full rescan to populate directories for existing albums.
+
+Tests passed: `go test ./core/artwork ./model ./scanner ./persistence ./db`.

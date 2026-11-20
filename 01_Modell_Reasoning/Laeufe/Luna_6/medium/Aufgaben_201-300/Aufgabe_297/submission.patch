@@ -1,0 +1,269 @@
+diff --git a/conf/configuration.go b/conf/configuration.go
+index 5e3f55c..93f2e20 100644
+--- a/conf/configuration.go
++++ b/conf/configuration.go
+@@ -50,6 +50,8 @@ type configOptions struct {
+ 	EnableLogRedacting     bool
+ 	AuthRequestLimit       int
+ 	AuthWindowLength       time.Duration
++	ReverseProxyWhitelist  string
++	ReverseProxyUserHeader string
+ 
+ 	Scanner scannerOptions
+ 
+@@ -181,6 +183,7 @@ func init() {
+ 	viper.SetDefault("imagecachesize", "100MB")
+ 	viper.SetDefault("autoimportplaylists", true)
+ 	viper.SetDefault("enabledownloads", true)
++	viper.SetDefault("reverseproxyuserheader", "Remote-User")
+ 
+ 	// Config options only valid for file/env configuration
+ 	viper.SetDefault("searchfullstring", false)
+diff --git a/log/redactrus.go b/log/redactrus.go
+index 8c0d2ac..903de22 100755
+--- a/log/redactrus.go
++++ b/log/redactrus.go
+@@ -4,6 +4,7 @@ package log
+ // Copyright (c) 2018 William Huang
+ 
+ import (
++	"fmt"
+ 	"reflect"
+ 	"regexp"
+ 
+@@ -43,10 +44,14 @@ func (h *Hook) Fire(e *logrus.Entry) error {
+ 			}
+ 
+ 			// Redact based on value matching in Data fields
++			if v == nil {
++				continue
++			}
+ 			switch reflect.TypeOf(v).Kind() {
+ 			case reflect.String:
+ 				e.Data[k] = re.ReplaceAllString(v.(string), "$1[REDACTED]$2")
+-				continue
++			default:
++				e.Data[k] = redactNested(v, re)
+ 			}
+ 		}
+ 
+@@ -57,6 +62,53 @@ func (h *Hook) Fire(e *logrus.Entry) error {
+ 	return nil
+ }
+ 
++func redactNested(value interface{}, re *regexp.Regexp) interface{} {
++	switch v := value.(type) {
++	case map[string]interface{}:
++		out := make(map[string]interface{}, len(v))
++		for key, item := range v {
++			if re.MatchString(key) {
++				out[key] = "[REDACTED]"
++			} else {
++				out[key] = redactNested(item, re)
++			}
++		}
++		return out
++	case string:
++		return re.ReplaceAllString(v, "$1[REDACTED]$2")
++	}
++	rv := reflect.ValueOf(value)
++	if rv.IsValid() && rv.Kind() == reflect.Map {
++		if rv.Type().Key().Kind() == reflect.String {
++			out := make(map[string]interface{}, rv.Len())
++			iter := rv.MapRange()
++			for iter.Next() {
++				key, item := iter.Key(), iter.Value()
++				if re.MatchString(key.String()) {
++					out[key.String()] = "[REDACTED]"
++				} else {
++					out[key.String()] = redactNested(item.Interface(), re)
++				}
++			}
++			return out
++		}
++		out := make(map[interface{}]interface{}, rv.Len())
++		iter := rv.MapRange()
++		for iter.Next() {
++			key, item := iter.Key(), iter.Value()
++			var redacted interface{}
++			if re.MatchString(fmt.Sprint(key.Interface())) {
++				redacted = "[REDACTED]"
++			} else {
++				redacted = redactNested(item.Interface(), re)
++			}
++			out[key.Interface()] = redacted
++		}
++		return out
++	}
++	return re.ReplaceAllString(fmt.Sprint(value), "$1[REDACTED]$2")
++}
++
+ func (h *Hook) initRedaction() error {
+ 	if len(h.redactionKeys) == 0 {
+ 		for _, redactionKey := range h.RedactionList {
+diff --git a/server/app/auth.go b/server/app/auth.go
+index 10943a1..e904e49 100644
+--- a/server/app/auth.go
++++ b/server/app/auth.go
+@@ -2,8 +2,13 @@ package app
+ 
+ import (
+ 	"context"
++	"crypto/md5"
++	"crypto/rand"
++	"encoding/hex"
+ 	"encoding/json"
+ 	"errors"
++	"fmt"
++	"net"
+ 	"net/http"
+ 	"strings"
+ 	"time"
+@@ -21,6 +26,97 @@ import (
+ 	"github.com/navidrome/navidrome/utils/gravatar"
+ )
+ 
++// validateIPAgainstList checks remote addresses against configured CIDRs or IPs.
++func validateIPAgainstList(remoteAddr, whitelist string) bool {
++	if whitelist == "" {
++		return false
++	}
++	if remoteAddr == "@" {
++		remoteAddr = "@"
++	} else {
++		host, _, err := net.SplitHostPort(remoteAddr)
++		if err == nil {
++			remoteAddr = host
++		}
++	}
++	if remoteAddr == "@" {
++		for _, item := range strings.Split(whitelist, ",") {
++			if strings.TrimSpace(item) == "@" {
++				return true
++			}
++		}
++		return false
++	}
++	ip := net.ParseIP(remoteAddr)
++	if ip == nil {
++		return false
++	}
++	for _, item := range strings.Split(whitelist, ",") {
++		item = strings.TrimSpace(item)
++		if item == "" {
++			continue
++		}
++		if strings.Contains(item, "/") {
++			_, network, err := net.ParseCIDR(item)
++			if err == nil && network.Contains(ip) {
++				return true
++			}
++		} else {
++			host, _, err := net.SplitHostPort(item)
++			if err == nil {
++				item = host
++			}
++			if parsed := net.ParseIP(item); parsed != nil && parsed.Equal(ip) {
++				return true
++			}
++		}
++	}
++	return false
++}
++
++func handleLoginFromHeaders(ds model.DataStore, r *http.Request) map[string]interface{} {
++	if !validateIPAgainstList(r.RemoteAddr, conf.Server.ReverseProxyWhitelist) {
++		return nil
++	}
++	header := conf.Server.ReverseProxyUserHeader
++	if header == "" {
++		header = "Remote-User"
++	}
++	username := strings.TrimSpace(r.Header.Get(header))
++	if username == "" {
++		return nil
++	}
++	repo := ds.User(r.Context())
++	user, err := repo.FindByUsername(username)
++	if err == model.ErrNotFound {
++		count, countErr := repo.CountAll()
++		if countErr != nil {
++			return nil
++		}
++		now := time.Now()
++		user = &model.User{ID: uuid.NewString(), UserName: username, Name: strings.Title(username), IsAdmin: count == 0, LastLoginAt: &now}
++		if repo.Put(user) != nil {
++			return nil
++		}
++	} else if err != nil {
++		return nil
++	}
++	if repo.UpdateLastLoginAt(user.ID) != nil {
++		log.Error(r, "Could not update LastLoginAt", "user", username)
++	}
++	token, err := auth.CreateToken(user)
++	if err != nil {
++		return nil
++	}
++	saltBytes := make([]byte, 16)
++	if _, err = rand.Read(saltBytes); err != nil {
++		return nil
++	}
++	salt := hex.EncodeToString(saltBytes[:3])
++	subsonic := md5.Sum([]byte(user.Password + salt))
++	return map[string]interface{}{"id": user.ID, "isAdmin": user.IsAdmin, "name": user.Name, "username": user.UserName, "token": token, "subsonicSalt": salt, "subsonicToken": fmt.Sprintf("%x", subsonic)}
++}
++
+ var (
+ 	ErrFirstTime = errors.New("no users created")
+ )
+diff --git a/server/app/serve_index.go b/server/app/serve_index.go
+index 8d35af2..31dc59d 100644
+--- a/server/app/serve_index.go
++++ b/server/app/serve_index.go
+@@ -51,6 +51,9 @@ func serveIndex(ds model.DataStore, fs fs.FS) http.HandlerFunc {
+ 			"enableUserEditing":       conf.Server.EnableUserEditing,
+ 			"devEnableShare":          conf.Server.DevEnableShare,
+ 		}
++		if auth := handleLoginFromHeaders(ds, r); auth != nil {
++			appConfig["auth"] = auth
++		}
+ 		j, err := json.Marshal(appConfig)
+ 		if err != nil {
+ 			log.Error(r, "Error converting config to JSON", "config", appConfig, err)
+diff --git a/ui/src/App.js b/ui/src/App.js
+index 1389a24..c705b9d 100644
+--- a/ui/src/App.js
++++ b/ui/src/App.js
+@@ -34,6 +34,8 @@ import useChangeThemeColor from './useChangeThemeColor'
+ 
+ const history = createHashHistory()
+ 
++authProvider.initializeProxyAuth()
++
+ if (config.gaTrackingId) {
+   ReactGA.initialize(config.gaTrackingId)
+   history.listen((location) => {
+diff --git a/ui/src/authProvider.js b/ui/src/authProvider.js
+index a22cbcf..1e301e6 100644
+--- a/ui/src/authProvider.js
++++ b/ui/src/authProvider.js
+@@ -6,6 +6,18 @@ import config from './config'
+ import { startEventStream, stopEventStream } from './eventStream'
+ 
+ const authProvider = {
++  initializeProxyAuth: () => {
++    const response = config.auth
++    if (!response) return
++    jwtDecode(response.token)
++    localStorage.setItem('token', response.token)
++    localStorage.setItem('userId', response.id)
++    localStorage.setItem('name', response.name)
++    localStorage.setItem('username', response.username)
++    localStorage.setItem('role', response.isAdmin ? 'admin' : 'regular')
++    localStorage.setItem('subsonic-salt', response.subsonicSalt)
++    localStorage.setItem('subsonic-token', response.subsonicToken)
++  },
+   login: ({ username, password }) => {
+     let url = baseUrl('/app/login')
+     if (config.firstTime) {

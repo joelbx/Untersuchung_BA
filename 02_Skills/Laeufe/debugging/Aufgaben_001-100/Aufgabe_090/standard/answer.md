@@ -1,0 +1,3 @@
+Fixed `/lists/add` input handling. When a request has body data, the list is built from the URL-encoded body without merging query parameters. Indexed seeds are reconstructed without a conflicting default, invalid seed entries are ignored, and later assignments to a simple flattened key take precedence.
+
+The relevant list and utility tests pass: **19 passed**. Ruff and `git diff --check` also pass. Black could not be run because it is not installed; that limit is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

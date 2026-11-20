@@ -1,0 +1,3 @@
+Implemented date-based module deprecations in Python and C#. `AnsibleModule` now records and returns date entries, preserves the order of deprecations merged through `exit_json`, and rejects calls that set both a version and a date. Deprecated aliases and parameters also support removal dates; the validator checks their format and removal status. The C# `DateTime` overload logs dates as `yyyy-MM-dd`.
+
+The focused Python suite passed **115 tests**. Syntax checks and `git diff --check` passed. The validate-modules tests could not collect because `voluptuous` is not installed locally, and no C# compiler is available, so those paths remain unverified by execution.

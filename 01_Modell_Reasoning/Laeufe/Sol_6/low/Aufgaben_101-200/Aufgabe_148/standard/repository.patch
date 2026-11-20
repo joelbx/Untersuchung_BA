@@ -1,0 +1,190 @@
+diff --git a/lib/multiplexer/multiplexer.go b/lib/multiplexer/multiplexer.go
+index 6202460..7a9192f 100644
+--- a/lib/multiplexer/multiplexer.go
++++ b/lib/multiplexer/multiplexer.go
+@@ -20,19 +20,20 @@ limitations under the License.
+ // mux, _ := multiplexer.New(Config{Listener: listener})
+ // mux.SSH() // returns listener getting SSH connections
+ // mux.TLS() // returns listener getting TLS connections
+-//
+ package multiplexer
+ 
+ import (
+ 	"bufio"
+ 	"bytes"
+ 	"context"
++	"encoding/json"
+ 	"io"
+ 	"net"
+ 	"sync"
+ 	"time"
+ 
+ 	"github.com/gravitational/teleport"
++	apisshutils "github.com/gravitational/teleport/api/utils/sshutils"
+ 	"github.com/gravitational/teleport/lib/defaults"
+ 	"github.com/gravitational/teleport/lib/utils"
+ 
+@@ -286,11 +287,54 @@ func detect(conn net.Conn, enableProxyProtocol bool) (*Conn, error) {
+ 			}
+ 			// repeat the cycle to detect the protocol
+ 		case ProtoTLS, ProtoSSH, ProtoHTTP:
++			var clientAddr net.Addr
++			first, _ := reader.Peek(8)
++			if proto == ProtoSSH && bytes.Equal(sshProxyPrefix[:8], first) {
++				prefix, err := reader.Peek(len(apisshutils.ProxyHelloSignature))
++				if err != nil {
++					return nil, trace.Wrap(err)
++				}
++				if bytes.Equal(prefix, []byte(apisshutils.ProxyHelloSignature)) {
++					// Keep the preamble in the stream: the SSH server also reads it
++					// to recover tracing information.
++					preamble := make([]byte, 0, 256)
++					for len(preamble) < 64*1024 {
++						b, err := reader.ReadByte()
++						if err != nil {
++							return nil, trace.Wrap(err, "reading SSH proxy preamble")
++						}
++						preamble = append(preamble, b)
++						if b == 0 {
++							break
++						}
++					}
++					if preamble[len(preamble)-1] != 0 {
++						return nil, trace.BadParameter("SSH proxy preamble exceeds maximum length")
++					}
++					var payload apisshutils.HandshakePayload
++					if err := json.Unmarshal(preamble[len(prefix):len(preamble)-1], &payload); err != nil {
++						return nil, trace.Wrap(err, "parsing SSH proxy preamble")
++					}
++					if payload.ClientAddr != "" {
++						addr, err := utils.ParseAddr(payload.ClientAddr)
++						if err != nil {
++							return nil, trace.Wrap(err, "parsing SSH client address")
++						}
++						if addr.AddrNetwork == "tcp" {
++							clientAddr = &net.TCPAddr{IP: net.ParseIP(addr.Host()), Port: addr.Port(0)}
++						} else {
++							clientAddr = addr
++						}
++					}
++					reader = bufio.NewReader(io.MultiReader(bytes.NewReader(preamble), reader))
++				}
++			}
+ 			return &Conn{
+-				protocol:  proto,
+-				Conn:      conn,
+-				reader:    reader,
+-				proxyLine: proxyLine,
++				protocol:   proto,
++				Conn:       conn,
++				reader:     reader,
++				proxyLine:  proxyLine,
++				clientAddr: clientAddr,
+ 			}, nil
+ 		case ProtoPostgres:
+ 			return &Conn{
+@@ -342,10 +386,11 @@ func (p Protocol) String() string {
+ }
+ 
+ var (
+-	proxyPrefix   = []byte{'P', 'R', 'O', 'X', 'Y'}
+-	proxyV2Prefix = []byte{0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A}
+-	sshPrefix     = []byte{'S', 'S', 'H'}
+-	tlsPrefix     = []byte{0x16}
++	proxyPrefix    = []byte{'P', 'R', 'O', 'X', 'Y'}
++	proxyV2Prefix  = []byte{0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A}
++	sshPrefix      = []byte{'S', 'S', 'H'}
++	sshProxyPrefix = []byte(apisshutils.ProxyHelloSignature)
++	tlsPrefix      = []byte{0x16}
+ )
+ 
+ // This section defines Postgres wire protocol messages detected by Teleport:
+@@ -410,7 +455,7 @@ func detectProto(r *bufio.Reader) (Protocol, error) {
+ 		if bytes.HasPrefix(in, proxyV2Prefix) {
+ 			return ProtoProxyV2, nil
+ 		}
+-	case bytes.HasPrefix(in, sshPrefix):
++	case bytes.HasPrefix(in, sshPrefix), bytes.Equal(in, sshProxyPrefix[:8]):
+ 		return ProtoSSH, nil
+ 	case bytes.HasPrefix(in, tlsPrefix):
+ 		return ProtoTLS, nil
+diff --git a/lib/multiplexer/multiplexer_test.go b/lib/multiplexer/multiplexer_test.go
+index 843b37b..d63d03d 100644
+--- a/lib/multiplexer/multiplexer_test.go
++++ b/lib/multiplexer/multiplexer_test.go
+@@ -17,6 +17,7 @@ limitations under the License.
+ package multiplexer
+ 
+ import (
++	"bytes"
+ 	"context"
+ 	"crypto/rand"
+ 	"crypto/rsa"
+@@ -37,6 +38,7 @@ import (
+ 	"golang.org/x/crypto/ssh"
+ 
+ 	"github.com/gravitational/teleport/api/constants"
++	apisshutils "github.com/gravitational/teleport/api/utils/sshutils"
+ 	"github.com/gravitational/teleport/lib/fixtures"
+ 	"github.com/gravitational/teleport/lib/httplib"
+ 	"github.com/gravitational/teleport/lib/multiplexer/test"
+@@ -51,6 +53,31 @@ import (
+ 	"github.com/stretchr/testify/require"
+ )
+ 
++func TestTeleportProxySSH(t *testing.T) {
++	for _, tc := range []struct {
++		name, preamble, wantAddr string
++	}{
++		{"client address", `{"clientAddr":"192.0.2.10:1234"}`, "192.0.2.10:1234"},
++		{"tracing only", `{"tracingContext":{"trace":"value"}}`, "pipe"},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			server, client := net.Pipe()
++			defer server.Close()
++			defer client.Close()
++			message := []byte(apisshutils.ProxyHelloSignature + tc.preamble + "\x00SSH-2.0-test\r\n")
++			go func() { _, _ = client.Write(message) }()
++			conn, err := detect(server, false)
++			require.NoError(t, err)
++			require.Equal(t, ProtoSSH, conn.Protocol())
++			require.Equal(t, tc.wantAddr, conn.RemoteAddr().String())
++			got := make([]byte, len(message))
++			_, err = io.ReadFull(conn, got)
++			require.NoError(t, err)
++			require.True(t, bytes.Equal(message, got))
++		})
++	}
++}
++
+ func TestMain(m *testing.M) {
+ 	utils.InitLoggerForTests()
+ 	os.Exit(m.Run())
+diff --git a/lib/multiplexer/wrappers.go b/lib/multiplexer/wrappers.go
+index 1b7ea51..d4b0f84 100644
+--- a/lib/multiplexer/wrappers.go
++++ b/lib/multiplexer/wrappers.go
+@@ -30,9 +30,10 @@ import (
+ // protocol detection
+ type Conn struct {
+ 	net.Conn
+-	protocol  Protocol
+-	proxyLine *ProxyLine
+-	reader    *bufio.Reader
++	protocol   Protocol
++	proxyLine  *ProxyLine
++	clientAddr net.Addr
++	reader     *bufio.Reader
+ }
+ 
+ // NewConn returns a net.Conn wrapper that supports peeking into the connection.
+@@ -58,6 +59,9 @@ func (c *Conn) LocalAddr() net.Addr {
+ 
+ // RemoteAddr returns remote address of the connection
+ func (c *Conn) RemoteAddr() net.Addr {
++	if c.clientAddr != nil {
++		return c.clientAddr
++	}
+ 	if c.proxyLine != nil {
+ 		return &c.proxyLine.Source
+ 	}

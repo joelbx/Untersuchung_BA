@@ -1,0 +1,1 @@
+Correction complete: populated supplied db_name values survive expand_record for authors and contributors; absent/empty values are generated. Added same-role and cross-role regression at threshold 875 with differing display names. Reviewer commands rerun: 14 passed/1 xfailed; 63 passed; 57 passed; git diff --check passed. TEST_ENVIRONMENT_PROBLEM: none.

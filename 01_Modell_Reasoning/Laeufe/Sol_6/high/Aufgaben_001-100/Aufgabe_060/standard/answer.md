@@ -1,0 +1,3 @@
+Implemented author matching in [load_book.py](/app/openlibrary/catalog/add_book/load_book.py) with Open Library keys first, then external IDs, then name and dates. Matches use deterministic tie-breaking; conflicting IDs raise `AuthorRemoteIdConflictError`. The import now saves compatible IDs on matched authors and preserves IDs on new authors. I also added the Wikisource date exemption.
+
+Verification: 184 relevant tests passed, plus a redirect-specific test. Ruff and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Fixed Direct Dial heartbeat addresses. Upstream inventory streams now expose `PeerAddr()`, and `InventoryControlStreamPipe` accepts `ICSPipePeerAddr(...)` in [inventory.go](/app/api/client/inventory.go:54). The controller uses the peer host when a node advertises a wildcard or loopback address, preserving the SSH port before `UpsertNode` in [controller.go](/app/lib/inventory/controller.go:261).
+
+Focused API client tests and the full inventory package tests passed. The full API client suite was stopped after more than 90 seconds without output; the focused API client tests passed.

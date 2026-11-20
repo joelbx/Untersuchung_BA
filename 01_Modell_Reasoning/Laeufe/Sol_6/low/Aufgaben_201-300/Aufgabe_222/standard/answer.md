@@ -1,0 +1,3 @@
+Extracted the role entry point logic into `RoleMixin._build_doc`. It returns `(fqcn, doc)`, preserves the full entry point specifications, and returns `(fqcn, None)` when no entry points match. `_create_role_doc` now uses that result.
+
+Added direct tests for collection names, filtering, empty results, and specification preservation. **All 16 tests pass** with `PYTHONPATH=lib python -m pytest -q test/units/cli/test_doc.py`; `git diff --check` also passes.

@@ -1,0 +1,3 @@
+Updated the IA import mapping so editions use `isbn_10`, `isbn_13`, `publishers`, and `publish_places` instead of raw `isbn` and `publisher` fields. The new public utilities handle strings, lists, whitespace, mixed entries, and empty inputs. The remaining field mappings are unchanged.
+
+All 30 relevant tests pass, and `git diff --check` passes. Black and Ruff could not run because neither is installed locally; the commands and errors are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated author imports to match by Open Library key, then external IDs, then name and dates. External ID matches use overlap count and a stable key tie break; compatible IDs are saved to matched authors, conflicts raise `AuthorRemoteIdConflictError`, and new authors retain their IDs. Added the `wikisource` suspect-date exemption.
+
+Subagents reviewed the import path and added the model method and focused tests; I integrated and verified the patch. The relevant test suite passed (**158 tests**), and Ruff and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented opportunistic expiration eviction in [SimpleCache](/app/utils/cache/simple_cache.go). `Keys()` and the new `Values()` method return only active entries; loader and capacity-limited inserts clear expired entries before insertion. Added regression tests for short TTLs, loaded values, and capacity behavior.
+
+The cache tests pass. The full Go suite fails in two unrelated m4a AAC gain-tag tests in `scanner/metadata/taglib`, where duplicate values are returned. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

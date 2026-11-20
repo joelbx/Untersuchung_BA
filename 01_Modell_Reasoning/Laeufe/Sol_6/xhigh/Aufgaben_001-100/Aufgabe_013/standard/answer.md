@@ -1,0 +1,3 @@
+Updated [DocCLI.tty_ify](/app/lib/ansible/cli/doc.py:75) to render the requested macros, including links, references, and horizontal rules, while preserving ordinary text such as `IBM(International Business Machines)`. Added [focused tests](/app/test/units/cli/test_doc.py:10) for individual and mixed macros.
+
+Verification: 31 unit tests passed, the existing `ansible-doc` integration target passed, and a direct CLI check showed formatted links.

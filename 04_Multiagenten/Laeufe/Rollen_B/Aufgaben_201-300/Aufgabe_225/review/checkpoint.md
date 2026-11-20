@@ -1,0 +1,3 @@
+VERDICT: FIX
+Code defect: detector/kevuln.go:82,98 now sets KEVs but no longer populates AlertDict.CISA. Existing consumers still read AlertDict.CISA: models/scanresults.go:271 (alert summary used by report headers), reporter/util.go:568 (CISA links), and tui/tui.go:815 (CISA detail). FormatKEVCveSummary is only called by models/kev_test.go and does not replace those output paths. Newly fetched KEVs therefore disappear from these existing displays. Action: update report and TUI consumers to read the new KEV field while retaining AlertDict.CISA handling for old JSON.
+Tests: GOPROXY=off GOSUMDB=off go test ./models ./detector — PASS (models 0.095s; detector 0.544s). No TEST_ENVIRONMENT_PROBLEM.

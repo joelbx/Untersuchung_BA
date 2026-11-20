@@ -1,0 +1,5 @@
+The auth server now issues a challenge for every registered U2F key. [U2FAuthenticateChallenge](/app/lib/auth/auth.go:828) carries the full list while preserving the legacy single-challenge JSON fields. The [CLI login flow](/app/lib/client/weblogin.go:492) accepts either format and can use any registered key. The Go web endpoint exposes the list, and `tsh mfa` is hidden from help.
+
+Three agents handled the server, CLI, and web changes; I reviewed and integrated their patches. Focused auth, web, client, and `tsh` tests passed offline, including a web login using the key outside the legacy challenge. The full auth suite failed an unrelated password timing threshold test, which also failed when rerun alone.
+
+The checked-out prebuilt browser UI still uses the legacy single challenge; its source is outside this repository.

@@ -1,0 +1,3 @@
+Collection-name validation now rejects Python keywords and invalid identifiers in either FQCN segment and returns a boolean result. Requirement parsing uses the same validator; the legacy helpers and their Python 2/3 fallback are removed from [dataclasses.py](/app/lib/ansible/galaxy/dependency_resolution/dataclasses.py). The new identifier helper and validation live in [_collection_finder.py](/app/lib/ansible/utils/collection_loader/_collection_finder.py).
+
+The collection loader tests passed (87), the collection install tests passed (34), and `git diff --check` passed. The suites were run separately because a combined run exposed an existing global collection-finder state interaction.

@@ -1,0 +1,3 @@
+Fixed both review findings. Username lookup now treats `%` and `_` literally while remaining case insensitive, and proxy login checks the returned username before issuing a token. Map redaction now preserves original key types and redacts nested values. Added regression tests for both.
+
+All three reviewer-listed test commands passed: the Go package groups and the UI suite (10 suites, 34 tests). No test environment problems remain.

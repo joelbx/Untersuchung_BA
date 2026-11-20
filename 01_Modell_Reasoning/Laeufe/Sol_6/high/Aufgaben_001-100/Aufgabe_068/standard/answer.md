@@ -1,0 +1,3 @@
+Updated the loaders and cache to pass owner-encrypted session keys to the REST client before decryption. Mail detail loads in the viewer, inbox rules, mail facade, and indexer now supply the parent mail’s key when available. Batch loads also accept an optional fourth argument, including `undefined`.
+
+Added focused tests for key application and cache forwarding without relying on crypto session-key cache state. TypeScript, lint, formatting, and all five relevant test groups passed (202 tests).

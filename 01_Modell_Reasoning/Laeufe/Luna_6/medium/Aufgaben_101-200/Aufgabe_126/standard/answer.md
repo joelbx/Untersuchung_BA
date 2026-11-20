@@ -1,0 +1,3 @@
+Implemented the assistant Markdown and HTML fixes. URL placeholders are scoped by `messageID`, link and image class/style attributes are retained, and the identity now flows through content preparation, result rendering, and editor insertion. Markdown list parsing is enabled, disabled rules are configurable, and `fixNestedLists` repairs invalid list nesting.
+
+The existing URL helper test passes, and `git diff --check` is clean. The package type check is blocked by an OpenPGP type incompatibility in `packages/crypto/lib/worker/api.ts:579`; it reported no errors in the changed files.

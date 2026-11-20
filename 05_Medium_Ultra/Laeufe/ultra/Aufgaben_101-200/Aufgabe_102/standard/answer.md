@@ -1,0 +1,5 @@
+Added `ansible_facts.locally_reachable_ips` to the [Linux network collector](/app/lib/ansible/module_utils/facts/network/linux.py). It provides normalized, de-duplicated, consistently ordered `ipv4` and `ipv6` lists from local routes. Failed queries leave the affected list empty and emit a warning. The fact is also available as a targeted gather subset.
+
+Added [documentation](/app/docs/docsite/rst/playbook_guide/playbooks_vars_facts.rst), a changelog entry, and [focused tests](/app/test/units/module_utils/facts/network/test_linux.py). Tests passed: **195 passed, 7 skipped** in the fact collector run; **12 passed** in the network suite. Live `ip` command validation was unavailable because the executable is absent here.
+
+One delegated agent added the focused tests; another reviewed the collector integration and final patch.

@@ -1,0 +1,3 @@
+Adjacent search results now render as one chronological timeline when their boundary event IDs overlap. The shared event appears once, each direct match is highlighted, and each matched event links to its own ID. A regression test covers a three-result chain.
+
+The focused search tests, type check, and edited-file lint and formatting checks pass. The full Jest run passed both search suites but failed in five unrelated suites: `MLocationBody`, `StopGapWidget`, `SmartMarker`, `LocationViewDialog`, and `ZoomButtons`. Their failures involve location snapshots and missing widget iframe setup; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

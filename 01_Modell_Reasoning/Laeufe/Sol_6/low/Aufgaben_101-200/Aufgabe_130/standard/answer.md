@@ -1,0 +1,3 @@
+Fixed the device limit error path. The fake service can now simulate the limit, `RunAdmin` returns the registered device and `DeviceRegistered` outcome when enrollment fails, and `printEnrollOutcome` handles a nil device without panicking.
+
+The enrollment and test environment tests pass. The `tsh/common` test build was blocked by missing system C headers (`linux/hidraw.h` and `gnu/libc-version.h`).

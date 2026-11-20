@@ -1,0 +1,3 @@
+Updated [FnToCLI](/app/scripts/solr_builder/solr_builder/fn_to_cli.py) to parse `Path` and typed lists, accept explicit argument sequences, map `--<parameter_name>` options to their parameters, and return results from synchronous and asynchronous functions. Existing dashed option spellings still work.
+
+Added regression coverage in [test_fn_to_cli.py](/app/scripts/solr_builder/tests/test_fn_to_cli.py). All 10 focused tests pass; Ruff and `git diff --check` pass.

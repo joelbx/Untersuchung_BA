@@ -1,0 +1,3 @@
+Added the `icx_logging` module with aggregate settings, IPv4 and IPv6 syslog hosts, facilities, buffered levels, and present/absent state handling. It compares requested settings with the running configuration to generate only needed commands and supports check mode.
+
+Added focused tests for IPv6 syntax, removals, buffered levels, and aggregate settings. The ICX suite passed: 92 existing tests and 2 new tests.

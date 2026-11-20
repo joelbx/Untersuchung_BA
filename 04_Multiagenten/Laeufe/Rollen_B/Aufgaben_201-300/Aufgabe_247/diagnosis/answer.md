@@ -1,0 +1,7 @@
+I located the leak in [SocketPosts.getUpvoters](/app/src/socket.io/posts/votes.js:38): it fetches upvoter UIDs without checking the caller’s read privilege.
+
+The fix belongs there. Resolve every supplied post’s category with [posts.getCidsByPids](/app/src/posts/category.js:16), then, for non-administrators, require **every** result from `privileges.categories.isUserAllowedTo('topics:read', cids, socket.uid)` to be true. Reject the whole request with `[[error:no-privileges]]` before returning any upvoter data if one fails. Administrators should bypass that check. Deduplicate truncated UIDs across posts for one username lookup, then map names back in each post’s UID order. With cutoff 6, lists of six or more should show five names and put the remainder in `otherCount`; return the cutoff in the response.
+
+[The tooltip code](/app/public/src/client/topic/votes.js:48) hardcodes 6 and omits `html: true`. [The existing test](/app/test/posts.js:210) covers only an authorized single post; mixed readable and restricted categories, guest denial, administrator access, cutoff, and ordering remain unverified. Invalid post IDs may need separate handling because `getCidsByPids` dereferences post data without a null guard.
+
+No project source or tests were changed or run. This controlled run was limited to fault localization; I recorded the findings in `.codex-role-output/checkpoint.md`.

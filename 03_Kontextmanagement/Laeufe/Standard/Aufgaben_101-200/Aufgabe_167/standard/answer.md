@@ -1,0 +1,3 @@
+Added OCI-backed feature flag storage in [source.go](/app/internal/storage/fs/oci/source.go) and connected it to the gRPC storage configuration. Local OCI layouts are reopened on each fetch so external tag changes are visible; digest checks reuse unchanged snapshots, and subscriptions publish only changed snapshots. I also made `SnapshotSource.Get` context-aware and carried OCI layer namespace annotations into snapshot parsing.
+
+Verified with the OCI, filesystem, command, and config tests, plus `git diff --check`.

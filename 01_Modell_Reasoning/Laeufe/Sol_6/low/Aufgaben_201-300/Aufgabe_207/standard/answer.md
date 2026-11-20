@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) so QtWebEngine combines CLI, configured, and required features into one `--enable-features=` argument. Other backends keep their original arguments. Added coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+The 14 focused tests pass, and `git diff --check` passes. The full test module exits early in this environment after 69 tests, so it did not complete.

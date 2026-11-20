@@ -1,0 +1,3 @@
+Updated the OS EOL data and appended the requested Windows KB mappings in revision order using named struct literals. The kernel detection tests now cover builds below the new revisions and a high build that classifies them as applied.
+
+Verification: `GOPROXY=off GOSUMDB=off go test ./config ./scanner` passed; formatting and `git diff --check` passed. Results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

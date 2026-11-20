@@ -1,0 +1,3 @@
+Implemented `CalendarEventValidity` and `checkEventValidity` in [CalendarUtils.ts](/app/src/calendar/date/CalendarUtils.ts). It checks invalid dates first, then starts before 1970-01-01 UTC, then start/end ordering. Added coverage in [CalendarUtilsTest.ts](/app/test/tests/calendar/CalendarUtilsTest.ts).
+
+Verification: `npm run types` passed; `npm run test:app` passed all 7,989 assertions. `npm run fasttest` could not run because its configured entry point is missing. `git diff --check` passed.

@@ -1,0 +1,2 @@
+Task: Fix atomic_move default file permissions and warning tracking in module_utils.
+Status: Complete. Changed default permissions to 0600, added creation tracking and formatted warnings, and updated atomic_move tests. Focused suite: 67 passed. Full basic test directory: 277 passed, 14 skipped, 22 failed from pre-existing shared warning/deprecation state across tests (first failure precedes atomic_move tests). git diff --check passed.

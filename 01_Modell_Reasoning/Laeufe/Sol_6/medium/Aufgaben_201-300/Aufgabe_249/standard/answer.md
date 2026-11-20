@@ -1,0 +1,3 @@
+Implemented structured Wikidata profiles on author infoboxes. Wikipedia links use the requested language with an English fallback; Google Scholar links include one entry per P1960 identifier; and Wikidata links always appear. I also removed the early return that prevented authors from loading their Wikidata entity.
+
+The focused Wikidata tests pass (12), along with Ruff, infobox template compilation, and the diff whitespace check.

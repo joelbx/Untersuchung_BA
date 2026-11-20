@@ -1,0 +1,3 @@
+Implemented the `no_log` change in [basic.py](/app/lib/ansible/module_utils/basic.py:382): `remove_values` masks string values without changing keys, and the new `sanitize_keys` masks mapping keys with ignore list and `_ansible` exemptions. Both traverse deeply nested containers iteratively. The [uri module](/app/lib/ansible/modules/uri.py:740) now sanitizes response keys when `no_log_values` is populated.
+
+**Validation:** 34 focused tests pass, including new `uri` coverage, and `git diff --check` passes. The full `basic` directory run has 22 failures from warning and deprecation state leaking between test files; a smaller test selection reproduces that leak.

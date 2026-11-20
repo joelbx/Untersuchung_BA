@@ -1,0 +1,3 @@
+Fixed collection name validation. The shared validator now returns a boolean and rejects Python keywords or invalid identifiers in either segment. Galaxy requirements and collection references use that check; the legacy helpers in `dataclasses.py` are removed. I also updated a CLI test fixture that treated `abc.def` as valid.
+
+**Verification:** 289 relevant unit tests passed, and `git diff --check` passed. The Galaxy CLI suite used `ANSIBLE_DEVEL_WARNING=False` so its warning-count assertions matched their expected output.

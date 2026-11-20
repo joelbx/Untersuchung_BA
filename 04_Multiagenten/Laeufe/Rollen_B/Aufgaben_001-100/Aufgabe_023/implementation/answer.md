@@ -1,0 +1,3 @@
+Implemented the authentication database check. JWT is marked as database-free; static token, OIDC, GitHub, and Kubernetes require a database. Startup now connects for database flag storage or an enabled database-backed authentication method, while JWT middleware still initializes with an in-memory store. Cleanup runs only for enabled methods that require a database and have a schedule.
+
+Verified with `go test ./internal/config ./internal/cmd ./internal/cleanup` and a targeted JWT startup test.

@@ -1,0 +1,3 @@
+Updated Drive public pages to select the persisted session with the highest `persistedAt` and use its UID and local ID together for metrics, session resume, SRP, user state, and telemetry. The new [session helper](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts) returns the full session or reports an error and returns `null` when storage is unavailable or data is invalid. I also updated the duplicated drive-store code and removed `LAST_ACTIVE_PING` references from session selection.
+
+All 34 relevant tests pass, and formatting checks pass. Both type checks still fail on the same OpenPGP type mismatch in [packages/crypto/lib/worker/api.ts](/app/packages/crypto/lib/worker/api.ts:579); neither reports an error in an edited file.

@@ -1,0 +1,3 @@
+Added `drive_download_mechanism_success_rate_total` to the metrics infrastructure and wired it into terminal download reporting. Its labels record success or failure, retry status, and the selected `memory`, `sw`, or `memory_fallback` mechanism. The file saver and metric use the same selector; stateful downloads use `meta.size`, and previews pass their size through reporting.
+
+Verification passed: 21 focused Drive tests, 16 metrics integration tests, both package type checks, and `git diff --check`.

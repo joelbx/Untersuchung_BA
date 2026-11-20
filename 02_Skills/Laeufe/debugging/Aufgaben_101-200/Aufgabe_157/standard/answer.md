@@ -1,0 +1,3 @@
+Added [mailMetricsHelper.ts](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts) to normalize custom mailbox IDs to `custom`, preserve built-in IDs, and return `50`, `100`, or `200` for page size, defaulting to `50`. Added `@proton/metrics` to the [mail package manifest](/app/applications/mail/package.json) and [lockfile](/app/yarn.lock).
+
+Verification passed: 43 targeted tests, TypeScript, ESLint, and `git diff --check`.

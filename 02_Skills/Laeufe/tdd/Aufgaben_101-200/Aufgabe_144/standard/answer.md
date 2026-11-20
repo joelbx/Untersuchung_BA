@@ -1,0 +1,3 @@
+Moved record expansion to [catalog.utils](/app/openlibrary/catalog/utils/__init__.py) as `expand_record`, moved its title helper there, updated matching callers and tests, and removed `build_marc`.
+
+The catalog suite passed: **205 passed, 8 skipped, 2 expected failures**. Ruff and `git diff --check` passed. Bare `pytest -q` could not collect tests because pytest registered `/app/infogami/conftest.py` twice; the full repository suite remains unverified.

@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts) to validate configuration, enforce DNT and enum based anonymity, guard and await event capture, hash user and room IDs, redact URLs according to the current mode, and reset PostHog on logout. Expanded the existing analytics tests.
+
+Verification: all 17 focused tests pass, as do focused ESLint and `git diff --check`. The full TypeScript check still reports errors elsewhere in the repository and dependency typings.

@@ -1,0 +1,3 @@
+Moved `interpolate_color` and `_get_color_percentage` to [qtutils.py](/app/qutebrowser/utils/qtutils.py:178) and updated the [download](/app/qutebrowser/browser/downloads.py:563) and [tab](/app/qutebrowser/mainwindow/tabbedbrowser.py:866) progress indicators to use them. The helper now rejects out-of-range percentages even with gradients disabled and preserves the start color’s spec.
+
+Two subagents audited references and added regression tests; I reviewed their changes. **All 344 relevant unit tests passed.**

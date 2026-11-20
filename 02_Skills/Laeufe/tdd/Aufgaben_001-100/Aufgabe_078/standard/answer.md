@@ -1,0 +1,3 @@
+Updated voice broadcast playback to derive and emit liveness as `live`, `grey`, or `not-live`, and wired that state through the hook and header. The badge now has a grey style for buffering and paused playback. I also added final-chunk detection and regression tests.
+
+The voice broadcast suite passes: **24 suites, 220 tests, 15 snapshots**. The full repository suite still has 8 failing suites outside the changed files, and TypeScript checking is blocked by an error in `src/utils/notifications.ts:79`. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

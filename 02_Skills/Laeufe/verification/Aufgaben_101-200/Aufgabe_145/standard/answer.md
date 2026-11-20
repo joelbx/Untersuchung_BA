@@ -1,0 +1,3 @@
+Updated both copies of the photos recovery hook to load regular and trashed items, wait for both to finish decrypting, and recover photo entries from trash. Recovery now checks both sources before reporting success and updates failure counts when work remains. Persisted in-progress recovery still resumes on initialization.
+
+Both mirrored test suites passed (11 tests each); formatting, lint, and `git diff --check` passed. The type check remains blocked by an unrelated OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts`. Details are recorded in `.codex-role-output/checkpoint.md`.

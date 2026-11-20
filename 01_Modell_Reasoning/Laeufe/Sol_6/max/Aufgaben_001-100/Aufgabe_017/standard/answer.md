@@ -1,0 +1,3 @@
+SQL Server connection diagnostics are implemented. The diagnostic flow now selects [SQLServerPinger](/app/lib/client/conntest/database/sqlserver.go), which validates connection parameters, respects context deadlines and cancellation, tests the connection, and categorizes refused connections, invalid users, and invalid database names. [Protocol selection](/app/lib/client/conntest/database.go) still returns an error for unsupported protocols.
+
+The relevant tests passed: `GOPROXY=off GOSUMDB=off go test ./lib/client/conntest/database ./lib/client/conntest`. Connection tests used the repository’s fake SQL Server; no live SQL Server was tested.

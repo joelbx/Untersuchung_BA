@@ -1,0 +1,3 @@
+Implemented diff reporting with `+` for newly detected CVEs and `-` for resolved CVEs. The diff accepts `plus` and `minus` switches, includes only requested changes, and selects package details from the corresponding scan. Added `DiffStatus`, `CveIDDiffFormat`, and `CountDiff`.
+
+The report caller currently requests newly detected vulnerabilities only. Both `go test ./models ./report` and `git diff --check` passed.

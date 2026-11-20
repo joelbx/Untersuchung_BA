@@ -1,0 +1,3 @@
+Migrated [get_ia.py](/app/openlibrary/catalog/get_ia.py) from `urllib` to `requests`, including status handling, headers, UTF-8 fallback, and binary versus text response access. Updated its [marc_subject.py](/app/openlibrary/catalog/marc/marc_subject.py) callers and added focused coverage in [test_get_ia.py](/app/openlibrary/tests/catalog/test_get_ia.py).
+
+Verification: the catalog test suite passed (62 tests), compilation passed, and `git diff --check` was clean.

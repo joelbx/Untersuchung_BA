@@ -1,0 +1,3 @@
+Added `lockPosting` in [topics.js](/app/src/controllers/write/topics.js) so overlapping create and reply requests from the same user or guest session receive HTTP 400. The lock is released after success or failure. Added a regression test that sends eight concurrent requests with the minimal valid payload; it confirms one `ok` response, seven `bad-request` responses, and exactly one increment in the global and category topic counters.
+
+Verification: 231 topic tests passed, ESLint passed, and `git diff --check` passed. The lock is held in process memory, so it does not coordinate requests across separate workers or servers.

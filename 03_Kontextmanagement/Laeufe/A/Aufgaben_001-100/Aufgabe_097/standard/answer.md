@@ -1,0 +1,3 @@
+Raised the controller minimum to Python 3.12 across the CLI gates, ansible-test, and package metadata. Collection extraction now passes directory names unchanged to `tar.getmember()` and no longer uses the private tar cache. Added a breaking-change changelog fragment.
+
+The selected tests passed: **152 passed, 1 skipped**. Both entry points give the same rejection message on the available Python 3.11 interpreter. No Python 3.12 interpreter is installed here, so the passing tests used a version shim; they do not verify execution on Python 3.12 itself.

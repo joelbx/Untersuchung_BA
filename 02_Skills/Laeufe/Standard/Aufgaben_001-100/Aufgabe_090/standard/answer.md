@@ -1,0 +1,3 @@
+Fixed `/lists/add` so a nonempty POST body is parsed as URL-encoded form data without merging query parameters. Body values take precedence over defaults, nested seed fields avoid parent-default collisions, and invalid seed entries are ignored. `unflatten` now lets the last assignment to a simple key win.
+
+The focused tests pass, as do Ruff and `git diff --check`. The broader list API test could not be collected because this environment lacks `cookielib`; that limit is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

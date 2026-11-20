@@ -1,0 +1,3 @@
+Implemented the API token lifecycle utilities in [src/api/utils.js](/app/src/api/utils.js). `utils.tokens` now supports listing, generating, retrieving, updating, and deleting tokens, plus logging and retrieving last-seen times. Existing direct logging callers remain compatible.
+
+Lint and syntax checks pass. The API test suite reached 215 passing tests, then failed on a plugin marketplace request because external access was blocked.

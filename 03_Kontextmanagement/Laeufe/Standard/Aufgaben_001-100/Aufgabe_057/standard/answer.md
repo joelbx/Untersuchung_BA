@@ -1,0 +1,3 @@
+Implemented YAML import and export in [internal/ext](/app/internal/ext). Variant attachments export as native YAML maps, lists, and values; YAML attachments are converted to JSON strings when variants are created. The workflows also cover flags, segments, constraints, rules, and distributions.
+
+The requested `internal/ext/testdata` fixtures were absent from this checkout, so fixture matching could not be verified directly. A new round trip test covers nested attachments, mixed values, nulls, missing attachments, and distribution references. `go test ./internal/ext ./storage/sql ./storage/cache` passes.

@@ -1,0 +1,5 @@
+I localized the issue but did not edit project source or tests: this run’s repository instructions restrict me to fault localization. I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+In [report/util.go](/app/report/util.go:523), `diff` rebuilds `Packages` only from the current scan. `getDiffCves` iterates only current CVEs, so it cannot return resolved CVEs; it also includes CVEs whose metadata changed even when they appear in both scans. [models/vulninfos.go](/app/models/vulninfos.go:11) has no diff status field, constants, or requested formatting and counting methods. The existing [diff test](/app/report/util_test.go:177) covers unchanged and newly detected CVEs, but does not assert status or removals.
+
+The fix should classify CVEs by membership in the two scans, apply the plus/minus selections, attach status to each returned entry, and source each affected package from the scan that supplied that entry. One behavior remains unspecified: how a server with no previous scan should be reported.

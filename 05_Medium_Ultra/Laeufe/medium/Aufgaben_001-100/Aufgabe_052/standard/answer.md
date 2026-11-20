@@ -1,0 +1,3 @@
+Implemented token accounting for `Chat.Complete` and `Agent.PlanAndExecute`. Both now return a non-nil `*model.TokenCount`; the agent accumulates prompt and completion usage across steps, including streamed responses. The Assist and web callers now use those totals, and tests cover counter behavior and multi-step usage.
+
+The chat and model tests pass, as does the chat race test. The broader package run remains blocked by missing system C headers and optional hardware dependencies in this environment.

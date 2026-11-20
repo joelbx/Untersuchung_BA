@@ -1,0 +1,3 @@
+Implemented the Accept-Language fallback behavior: XHR requests now omit the global header, while domain-specific overrides remain available. Other request types and calls without a URL retain the global header.
+
+Added focused tests in [test_shared.py](/app/tests/unit/browser/test_shared.py). Syntax compilation and `git diff --check` pass. The focused pytest run aborted during Qt application setup, before tests executed.

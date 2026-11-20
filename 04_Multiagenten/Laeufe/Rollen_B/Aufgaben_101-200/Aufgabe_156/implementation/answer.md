@@ -1,0 +1,3 @@
+Implemented predictable no_log sanitization. `remove_values` now masks sensitive substrings in values while preserving keys and scalar types. The new `sanitize_keys` masks mapping keys throughout nested containers, respects ignored and `_ansible` keys, and preserves container types. The `uri` module applies it when no_log values are present.
+
+All 34 focused tests pass. The broader basic suite has 22 failures from warning and deprecation state leaking between tests; the affected focused tests pass in isolation.

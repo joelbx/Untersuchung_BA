@@ -1,0 +1,3 @@
+Implemented `storage.readOnly` in backend metadata and frontend types. Explicit settings on non-database storage now return the required validation error, including `readOnly: false`. The UI uses the config flag with the requested defaults and shows a backend-specific icon in the “Read-Only” badge. Authentication bootstrap also avoids a database connection for non-database storage when authentication is disabled.
+
+The config and command package tests pass. UI compilation remains unverified: `npm run build` could not run because `npm` is unavailable.

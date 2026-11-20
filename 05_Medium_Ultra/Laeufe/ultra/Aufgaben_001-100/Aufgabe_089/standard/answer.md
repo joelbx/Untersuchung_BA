@@ -1,0 +1,5 @@
+Implemented the validation fix. [Validate](/app/internal/cue/validate.go) now returns a single error that unwraps into individual errors with messages and file, line, and column locations. It detects unknown variants and segments, including references in boolean flags. The CLI displays those errors, [import](/app/internal/ext/importer.go) checks references before making changes so repeated invalid imports fail consistently, and the exported [snapshot constructors](/app/internal/storage/fs/snapshot.go) validate files during construction.
+
+I delegated the CUE, import, and filesystem changes plus a read-only review, then integrated and verified the patch. The offline `go test -count=1` run passed for `./cmd/flipt`, `./internal/cue`, `./internal/ext`, and `./internal/storage/fs/...`; `git diff --check` passed.
+
+Snapshot validation checks each file independently, so a segment reference defined only in another state file is rejected.

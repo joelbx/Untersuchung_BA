@@ -1,0 +1,3 @@
+Polling now has a clean shutdown path. The [Poller](/app/internal/storage/fs/poll.go) owns its context and update callback, and `Close()` cancels polling and waits for the worker to exit. Git, local, Azure Blob, S3, and OCI snapshot stores retain their poller and expose `Close()`; calling it when no polling is active is safe.
+
+The new lifecycle test and the full filesystem storage test suite pass. Focused race tests pass. Tests requiring external Git, S3, or Azure services retained their existing skips.

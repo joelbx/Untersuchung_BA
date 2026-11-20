@@ -1,0 +1,305 @@
+diff --git a/lib/auth/auth_with_roles.go b/lib/auth/auth_with_roles.go
+index 0fef23f..5062498 100644
+--- a/lib/auth/auth_with_roles.go
++++ b/lib/auth/auth_with_roles.go
+@@ -1872,9 +1872,8 @@ func (a *ServerWithRoles) DeleteRole(ctx context.Context, name string) error {
+ 	}
+ 	// DELETE IN (7.0)
+ 	// It's OK to delete this code alongside migrateOSS code in auth.
+-	// It prevents 6.0 from migrating resources multiple times
+-	// and the role is used for `tctl users add` code too.
+-	if modules.GetModules().BuildType() == modules.BuildOSS && name == teleport.OSSUserRoleName {
++	// The role marks completed migration and is used by `tctl users add`.
++	if modules.GetModules().BuildType() == modules.BuildOSS && name == teleport.AdminRoleName {
+ 		return trace.AccessDenied("can not delete system role %q", name)
+ 	}
+ 	return a.authServer.DeleteRole(ctx, name)
+diff --git a/lib/auth/init.go b/lib/auth/init.go
+index efc53dd..e0e474d 100644
+--- a/lib/auth/init.go
++++ b/lib/auth/init.go
+@@ -503,34 +503,28 @@ func migrateLegacyResources(ctx context.Context, cfg InitConfig, asrv *Server) e
+ const migrationAbortedMessage = "migration to RBAC has aborted because of the backend error, restart teleport to try again"
+ 
+ // migrateOSS performs migration to enable role-based access controls
+-// to open source users. It creates a less privileged role 'ossuser'
+-// and migrates all users and trusted cluster mappings to it
++// to open source users. It downgrades the admin role and migrates all users
++// and trusted cluster mappings to it.
+ // this function can be called multiple times
+ // DELETE IN(7.0)
+ func migrateOSS(ctx context.Context, asrv *Server) error {
+ 	if modules.GetModules().BuildType() != modules.BuildOSS {
+ 		return nil
+ 	}
+-	role := services.NewOSSUserRole()
+-	err := asrv.CreateRole(role)
+-	createdRoles := 0
++	admin, err := asrv.GetRole(teleport.AdminRoleName)
+ 	if err != nil {
+-		if !trace.IsAlreadyExists(err) {
+-			return trace.Wrap(err, migrationAbortedMessage)
+-		}
+-		// Role is created, assume that migration has been completed.
+-		// To re-run the migration, users can delete the role.
+-		return nil
++		return trace.Wrap(err, migrationAbortedMessage)
+ 	}
+-	if err == nil {
+-		createdRoles++
+-		log.Infof("Enabling RBAC in OSS Teleport. Migrating users, roles and trusted clusters.")
++	if _, ok := admin.GetMetadata().Labels[teleport.OSSMigratedV6]; ok {
++		log.Debug("OSS admin role was already migrated; skipping RBAC migration.")
++		return nil
+ 	}
++	role := services.NewDowngradedOSSAdminRole()
++	log.Infof("Enabling RBAC in OSS Teleport. Migrating users, roles and trusted clusters.")
+ 	migratedUsers, err := migrateOSSUsers(ctx, role, asrv)
+ 	if err != nil {
+ 		return trace.Wrap(err, migrationAbortedMessage)
+ 	}
+-
+ 	migratedTcs, err := migrateOSSTrustedClusters(ctx, role, asrv)
+ 	if err != nil {
+ 		return trace.Wrap(err, migrationAbortedMessage)
+@@ -540,12 +534,15 @@ func migrateOSS(ctx context.Context, asrv *Server) error {
+ 	if err != nil {
+ 		return trace.Wrap(err, migrationAbortedMessage)
+ 	}
+-
+-	if createdRoles > 0 || migratedUsers > 0 || migratedTcs > 0 || migratedConns > 0 {
+-		log.Infof("Migration completed. Created %v roles, updated %v users, %v trusted clusters and %v Github connectors.",
+-			createdRoles, migratedUsers, migratedTcs, migratedConns)
++	// The admin label marks the whole migration complete. Write it only after
++	// every other resource has been updated so a failed run can be retried.
++	if err := asrv.UpsertRole(ctx, role); err != nil {
++		return trace.Wrap(err, migrationAbortedMessage)
+ 	}
+ 
++	log.Infof("Migration completed. Updated admin role, %v users, %v trusted clusters and %v Github connectors.",
++		migratedUsers, migratedTcs, migratedConns)
++
+ 	return nil
+ }
+ 
+@@ -553,7 +550,7 @@ const remoteWildcardPattern = "^.+$"
+ 
+ // migrateOSSTrustedClusters updates role mappings in trusted clusters
+ // OSS Trusted clusters had no explicit mapping from remote roles, to local roles.
+-// Map all remote roles to local OSS user role.
++// Map all remote roles to the local admin role.
+ func migrateOSSTrustedClusters(ctx context.Context, role types.Role, asrv *Server) (int, error) {
+ 	migratedTcs := 0
+ 	tcs, err := asrv.GetTrustedClusters()
+@@ -564,16 +561,9 @@ func migrateOSSTrustedClusters(ctx context.Context, role types.Role, asrv *Serve
+ 	for _, tc := range tcs {
+ 		meta := tc.GetMetadata()
+ 		_, ok := meta.Labels[teleport.OSSMigratedV6]
+-		if ok {
+-			continue
+-		}
+-		setLabels(&meta.Labels, teleport.OSSMigratedV6, types.True)
+ 		roleMap := []types.RoleMapping{{Remote: remoteWildcardPattern, Local: []string{role.GetName()}}}
+-		tc.SetRoleMap(roleMap)
+-		tc.SetMetadata(meta)
+-		if _, err := asrv.Presence.UpsertTrustedCluster(ctx, tc); err != nil {
+-			return migratedTcs, trace.Wrap(err, migrationAbortedMessage)
+-		}
++		// A previous attempt may have marked the trusted cluster before all
++		// its CAs were updated. Check the CAs even when the cluster is labeled.
+ 		for _, catype := range []services.CertAuthType{services.UserCA, services.HostCA} {
+ 			ca, err := asrv.GetCertAuthority(services.CertAuthID{Type: catype, DomainName: tc.GetName()}, true)
+ 			if err != nil {
+@@ -592,7 +582,15 @@ func migrateOSSTrustedClusters(ctx context.Context, role types.Role, asrv *Serve
+ 				return migratedTcs, trace.Wrap(err, migrationAbortedMessage)
+ 			}
+ 		}
+-		migratedTcs++
++		if !ok {
++			setLabels(&meta.Labels, teleport.OSSMigratedV6, types.True)
++			tc.SetRoleMap(roleMap)
++			tc.SetMetadata(meta)
++			if _, err := asrv.Presence.UpsertTrustedCluster(ctx, tc); err != nil {
++				return migratedTcs, trace.Wrap(err, migrationAbortedMessage)
++			}
++			migratedTcs++
++		}
+ 	}
+ 	return migratedTcs, nil
+ }
+diff --git a/lib/auth/init_test.go b/lib/auth/init_test.go
+index 1e9d838..8ffe685 100644
+--- a/lib/auth/init_test.go
++++ b/lib/auth/init_test.go
+@@ -485,9 +485,14 @@ func TestMigrateMFADevices(t *testing.T) {
+ // and trusted clusters
+ func TestMigrateOSS(t *testing.T) {
+ 	ctx := context.Background()
++	newOSSAuthServer := func(t *testing.T, name ...string) *Server {
++		as := newTestAuthServer(t, name...)
++		require.NoError(t, as.UpsertRole(ctx, services.NewAdminRole()))
++		return as
++	}
+ 
+ 	t.Run("EmptyCluster", func(t *testing.T) {
+-		as := newTestAuthServer(t)
++		as := newOSSAuthServer(t)
+ 		clock := clockwork.NewFakeClock()
+ 		as.SetClock(clock)
+ 
+@@ -498,13 +503,20 @@ func TestMigrateOSS(t *testing.T) {
+ 		err = migrateOSS(ctx, as)
+ 		require.NoError(t, err)
+ 
+-		// OSS user role was created
+-		_, err = as.GetRole(teleport.OSSUserRoleName)
++		// The existing admin role was downgraded in place.
++		role, err := as.GetRole(teleport.AdminRoleName)
+ 		require.NoError(t, err)
++		require.Equal(t, types.True, role.GetMetadata().Labels[teleport.OSSMigratedV6])
++		require.Equal(t, []types.Rule{
++			services.NewRule(services.KindEvent, services.RO()),
++			services.NewRule(services.KindSession, services.RO()),
++		}, role.GetRules(types.Allow))
++		_, err = as.GetRole(teleport.OSSUserRoleName)
++		require.True(t, trace.IsNotFound(err))
+ 	})
+ 
+ 	t.Run("User", func(t *testing.T) {
+-		as := newTestAuthServer(t)
++		as := newOSSAuthServer(t)
+ 		clock := clockwork.NewFakeClock()
+ 		as.SetClock(clock)
+ 
+@@ -516,7 +528,7 @@ func TestMigrateOSS(t *testing.T) {
+ 
+ 		out, err := as.GetUser(user.GetName(), false)
+ 		require.NoError(t, err)
+-		require.Equal(t, []string{teleport.OSSUserRoleName}, out.GetRoles())
++		require.Equal(t, []string{teleport.AdminRoleName}, out.GetRoles())
+ 		require.Equal(t, types.True, out.GetMetadata().Labels[teleport.OSSMigratedV6])
+ 
+ 		err = migrateOSS(ctx, as)
+@@ -525,7 +537,7 @@ func TestMigrateOSS(t *testing.T) {
+ 
+ 	t.Run("TrustedCluster", func(t *testing.T) {
+ 		clusterName := "test.localhost"
+-		as := newTestAuthServer(t, clusterName)
++		as := newOSSAuthServer(t, clusterName)
+ 		clock := clockwork.NewFakeClock()
+ 		as.SetClock(clock)
+ 
+@@ -559,7 +571,7 @@ func TestMigrateOSS(t *testing.T) {
+ 
+ 		out, err := as.GetTrustedCluster(foo.GetName())
+ 		require.NoError(t, err)
+-		mapping := types.RoleMap{{Remote: remoteWildcardPattern, Local: []string{teleport.OSSUserRoleName}}}
++		mapping := types.RoleMap{{Remote: remoteWildcardPattern, Local: []string{teleport.AdminRoleName}}}
+ 		require.Equal(t, mapping, out.GetRoleMap())
+ 
+ 		for _, catype := range []services.CertAuthType{services.UserCA, services.HostCA} {
+@@ -581,8 +593,60 @@ func TestMigrateOSS(t *testing.T) {
+ 		require.NoError(t, err)
+ 	})
+ 
++	for _, previouslyLabeled := range []bool{false, true} {
++		t.Run(fmt.Sprintf("InterruptedTrustedCluster/labeled=%v", previouslyLabeled), func(t *testing.T) {
++			as := newOSSAuthServer(t, "root")
++			tc, err := services.NewTrustedCluster("leaf", services.TrustedClusterSpecV2{
++				Enabled: false, Token: "token", ProxyAddress: "proxy", ReverseTunnelAddress: "tunnel",
++			})
++			require.NoError(t, err)
++			value, err := services.MarshalTrustedCluster(tc)
++			require.NoError(t, err)
++			_, err = as.bk.Put(ctx, backend.Item{Key: []byte("/trustedclusters/leaf"), Value: value})
++			require.NoError(t, err)
++			require.NoError(t, as.UpsertCertAuthority(suite.NewTestCA(services.UserCA, "leaf")))
++
++			// The missing host CA interrupts migration after the user CA update.
++			require.Error(t, migrateOSS(ctx, as))
++			admin, err := as.GetRole(teleport.AdminRoleName)
++			require.NoError(t, err)
++			_, migrated := admin.GetMetadata().Labels[teleport.OSSMigratedV6]
++			require.False(t, migrated)
++			tc, err = as.GetTrustedCluster("leaf")
++			require.NoError(t, err)
++			_, migrated = tc.GetMetadata().Labels[teleport.OSSMigratedV6]
++			require.False(t, migrated)
++
++			if previouslyLabeled {
++				// Model an interrupted run of the old ordering, which wrote the
++				// trusted cluster label before updating both CAs.
++				meta := tc.GetMetadata()
++				setLabels(&meta.Labels, teleport.OSSMigratedV6, types.True)
++				tc.SetMetadata(meta)
++				tc.SetRoleMap(types.RoleMap{{Remote: remoteWildcardPattern, Local: []string{teleport.AdminRoleName}}})
++				_, err = as.Presence.UpsertTrustedCluster(ctx, tc)
++				require.NoError(t, err)
++			}
++			require.NoError(t, as.UpsertCertAuthority(suite.NewTestCA(services.HostCA, "leaf")))
++			require.NoError(t, migrateOSS(ctx, as))
++
++			admin, err = as.GetRole(teleport.AdminRoleName)
++			require.NoError(t, err)
++			require.Equal(t, types.True, admin.GetMetadata().Labels[teleport.OSSMigratedV6])
++			tc, err = as.GetTrustedCluster("leaf")
++			require.NoError(t, err)
++			require.Equal(t, types.True, tc.GetMetadata().Labels[teleport.OSSMigratedV6])
++			for _, caType := range []services.CertAuthType{services.UserCA, services.HostCA} {
++				ca, err := as.GetCertAuthority(services.CertAuthID{Type: caType, DomainName: "leaf"}, true)
++				require.NoError(t, err)
++				require.Equal(t, types.True, ca.GetMetadata().Labels[teleport.OSSMigratedV6])
++				require.Equal(t, tc.GetRoleMap(), ca.GetRoleMap())
++			}
++		})
++	}
++
+ 	t.Run("GithubConnector", func(t *testing.T) {
+-		as := newTestAuthServer(t)
++		as := newOSSAuthServer(t)
+ 		clock := clockwork.NewFakeClock()
+ 		as.SetClock(clock)
+ 
+diff --git a/lib/services/role.go b/lib/services/role.go
+index bdb6508..cd6eed9 100644
+--- a/lib/services/role.go
++++ b/lib/services/role.go
+@@ -230,6 +230,16 @@ func NewOSSUserRole(name ...string) Role {
+ 	return role
+ }
+ 
++// NewDowngradedOSSAdminRole creates the restricted admin role used when
++// migrating existing OSS clusters to RBAC. Keeping the admin name preserves
++// role mappings with older trusted clusters.
++func NewDowngradedOSSAdminRole() Role {
++	role := NewOSSUserRole().(*RoleV3)
++	role.SetName(teleport.AdminRoleName)
++	role.Metadata.Labels = map[string]string{teleport.OSSMigratedV6: types.True}
++	return role
++}
++
+ // NewOSSGithubRole creates a role for enabling RBAC for open source Github users
+ func NewOSSGithubRole(logins []string, kubeUsers []string, kubeGroups []string) Role {
+ 	role := &RoleV3{
+diff --git a/tool/tctl/common/user_command.go b/tool/tctl/common/user_command.go
+index 0ea9cdc..7c9250b 100644
+--- a/tool/tctl/common/user_command.go
++++ b/tool/tctl/common/user_command.go
+@@ -278,7 +278,7 @@ $ tctl users add "%v" --roles=[add your role here]
+ We will deprecate the old format in the next release of Teleport.
+ Meanwhile we are going to assign user %q to role %q created during migration.
+ 
+-`, u.login, u.login, teleport.OSSUserRoleName)
++`, u.login, u.login, teleport.AdminRoleName)
+ 
+ 	// If no local logins were specified, default to 'login' for SSH and k8s
+ 	// logins.
+@@ -301,7 +301,7 @@ Meanwhile we are going to assign user %q to role %q created during migration.
+ 	}
+ 
+ 	user.SetTraits(traits)
+-	user.AddRole(teleport.OSSUserRoleName)
++	user.AddRole(teleport.AdminRoleName)
+ 	err = client.CreateUser(context.TODO(), user)
+ 	if err != nil {
+ 		return trace.Wrap(err)

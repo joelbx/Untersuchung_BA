@@ -1,0 +1,3 @@
+Updated `atomic_move()` so newly created files receive `_DEFAULT_PERM = 0o0600` masked by the current umask. When a module accepts `mode` but leaves it unset, the destination is tracked and `_return_formatted()` emits the specified warning. An explicit `set_mode_if_different()` call clears that path.
+
+**Verification:** 68 relevant tests pass, including a real file check under umask `022`. `git diff --check` passes. The existing warning and deprecation tests pass separately; run together, they expose shared warning state leaking between those tests.

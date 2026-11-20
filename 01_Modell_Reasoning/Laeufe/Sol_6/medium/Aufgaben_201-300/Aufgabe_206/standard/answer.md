@@ -1,0 +1,3 @@
+Added a per user or guest session posting lock around topic creation and replies. Overlapping requests now receive HTTP 400 with `status.code: "bad-request"`; the accepted request keeps the API’s `status.code: "ok"` response. The lock is released even if posting fails.
+
+A new concurrent request test confirms one successful creation and a one topic increase in the global and category counters. ESLint and all 14 topic posting tests passed.

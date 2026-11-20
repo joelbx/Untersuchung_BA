@@ -1,0 +1,3 @@
+Fixed Direct Dial SSH heartbeats that advertise wildcard or loopback hosts. Upstream streams now expose `PeerAddr()`, and the in-memory pipe accepts `ICSPipePeerAddr`. Before `UpsertNode`, the controller uses the peer’s host for those addresses while preserving the node’s original port.
+
+The inventory tests pass, including the new address regression cases. The API module tests could not start because a dependency is unavailable locally and downloads are disabled.

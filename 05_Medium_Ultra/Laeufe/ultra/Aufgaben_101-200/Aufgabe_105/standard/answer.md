@@ -1,0 +1,3 @@
+Moved `getOpenSubsonicExtensions` outside the authentication middleware in [api.go](/app/server/subsonic/api.go). It now accepts requests without credentials, while `?f=json` still returns exactly `transcodeOffset`, `formPost`, and `songLyrics`.
+
+Added router tests in [api_test.go](/app/server/subsonic/api_test.go) for both endpoint paths and for continued protection of `/ping`. `go test ./server/subsonic` and `git diff --check` passed. A delegated read-only review found no missed requirement.

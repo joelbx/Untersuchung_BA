@@ -1,0 +1,3 @@
+Added a “Polls history” button to [RoomSummaryCard](/app/src/components/views/right_panel/RoomSummaryCard.tsx). It appears only when the new `feature_poll_history` labs setting is enabled and opens the named [PollHistoryDialog](/app/src/components/views/dialogs/polls/PollHistoryDialog.tsx) with the current `roomId`. I also added the button icon and regression tests.
+
+The focused tests, ESLint, and stylelint pass. The full Jest run finished with 7 failing suites outside this change: MessagePanel, MLocationBody, RoomCreate, StopGapWidget, SmartMarker, LocationViewDialog, and ZoomButtons. Type checking also fails in unchanged `RoomCreate.tsx` because `RoomState.findPredecessor` is missing. I recorded the results in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

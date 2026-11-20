@@ -1,0 +1,3 @@
+Token creation and deletion are now recognized audit events, including when configured through resource and action wildcards. gRPC initialization uses the audit checker to enable deletion logging only when `token:deleted` is configured. The auth server records the deletion event after the delete succeeds.
+
+Focused checker and auth tests were added. All relevant tests passed: `go test ./internal/server/audit ./internal/server/auth ./internal/server/middleware/grpc ./internal/cmd`.

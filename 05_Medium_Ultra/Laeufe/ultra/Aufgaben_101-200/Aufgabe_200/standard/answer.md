@@ -1,0 +1,3 @@
+Added `parse_duration` in [utils.py](/app/qutebrowser/utils/utils.py:188) for decimal hours, minutes, and seconds, with bare digits preserved as milliseconds. Updated [`:later`](/app/qutebrowser/misc/utilcmds.py:45) to use it and updated the command help.
+
+Verification: 187 unit tests and the new WebEngine end-to-end scenario passed; `git diff --check` passed. I delegated the command and documentation changes and the test coverage to two agents, then reviewed the combined patch.

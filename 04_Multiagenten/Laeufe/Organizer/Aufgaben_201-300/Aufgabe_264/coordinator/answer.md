@@ -1,0 +1,3 @@
+Updated [MerakiModule.request](/app/lib/ansible/module_utils/network/meraki/meraki.py) to retry HTTP 429, 500, and 502 up to three times. It now raises the new public `RateLimitException` or `InternalErrorException` when retries are exhausted, raises `HTTPError` immediately for other HTTP errors, records the latest status, and warns with the rate-limit retry count.
+
+The focused Meraki unit tests pass: **12 passed**. `git diff --check` also passed. No delegation was used.

@@ -1,0 +1,3 @@
+Added `feature_qr_signin_reciprocate_show` as an experimental setting that defaults to disabled and explains the MSC3882 and MSC3886 homeserver requirements. Both settings tabs and the shared QR section now check the flag. When enabled on a supported homeserver, the existing “Show QR code” action still opens the QR login view.
+
+The three relevant Jest suites passed: 59 tests. The TypeScript check reported an unrelated error in `RoomView-test.tsx:178` concerning a missing `eventId`.

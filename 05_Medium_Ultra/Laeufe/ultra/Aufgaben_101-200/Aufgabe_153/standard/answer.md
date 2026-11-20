@@ -1,0 +1,3 @@
+Fixed the Drive member view so it reads invitations and members for the current `shareId`. Both Drive store copies now keep each share’s data separate, and updates to one share leave other shares intact. Added `getExistingEmails` and share isolation tests.
+
+Three native agents worked on the stores and utility/tests; I integrated and verified their changes. Both Drive TypeScript checks passed, as did all 24 tests in the three share store suites.

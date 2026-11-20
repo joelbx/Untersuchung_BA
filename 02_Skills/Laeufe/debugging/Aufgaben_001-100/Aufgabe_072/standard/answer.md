@@ -1,0 +1,3 @@
+Implemented Punycode URL handling in [url.ts](/app/packages/components/helpers/url.ts). The new helpers extract the domain label and convert IDN hostnames to ASCII while preserving the other URL components and removing a trailing pathname slash. [useLinkHandler.tsx](/app/packages/components/hooks/useLinkHandler.tsx) now uses the converted destination for external links and shows an error notification when it cannot extract a URL.
+
+Verification passed: 15 targeted tests, TypeScript, ESLint, Prettier, and `git diff --check`.

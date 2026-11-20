@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) so finish messages use the process’s own PID, identify crash signals, and record SIGTERM as `terminated`. Nonverbose SIGTERM exits no longer show an error message; verbose exits include the outcome and `:process <pid>`.
+
+Added regression coverage in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py), including a case where `last_pid` belongs to another process. Syntax compilation and `git diff --check` passed. The tests could not run because `PyQt5` is missing; the exact command and error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

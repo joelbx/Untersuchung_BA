@@ -1,0 +1,3 @@
+Added `flipt.is_auth_method(input, "method")` to both authorization engines. It accepts the seven requested labels, maps them to the `auth.proto` enum values, and treats `k8s` and `kubernetes` as aliases. Tests cover matches, mismatches, errors, and a protobuf authentication input.
+
+Verification passed: `GOPROXY=off go test -count=1 ./internal/server/authz/engine/... ./internal/server/authz/middleware/grpc/... && git diff --check`.

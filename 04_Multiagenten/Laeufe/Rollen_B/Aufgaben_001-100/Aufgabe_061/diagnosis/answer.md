@@ -1,0 +1,5 @@
+The warning is likely caused by a mismatch between RPM ownership results and the stored package. [getPkgNameVerRels](/app/scan/redhatbase.go:642) accepts an owner when its *name* exists, but [yumPs](/app/scan/redhatbase.go:467) later requires an exact version and release match. Meanwhile, [parseInstalledPackages](/app/scan/redhatbase.go:275) retains only one package per name, so another installed version or architecture can be lost.
+
+The likely fix spans the shared process lookup in [base.go](/app/scan/base.go:838), both [Red Hat](/app/scan/redhatbase.go:174) and [Debian](/app/scan/debian.go:252) `postScan` paths, and RPM ownership parsing. Ownership diagnostics ending in the three specified phrases should be ignored; unexpected lines should return an error. `getOwnerPkgs` and `pkgPs` do not yet exist in this checkout.
+
+Uncertainty remains around representing *both* architectures correctly: [models.Packages](/app/models/packages.go:14) is keyed only by package name. I made no source or test edits because my assigned fault-localization role prohibits them. The targeted test run was interrupted before it produced a result.

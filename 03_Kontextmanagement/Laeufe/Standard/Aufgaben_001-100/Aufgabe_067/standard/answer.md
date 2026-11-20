@@ -1,0 +1,3 @@
+Added `scrolling.bar=overlay`. It enables Chromium’s `OverlayScrollbar` flag only on QtWebEngine with Qt 5.11 or newer outside macOS; elsewhere, the scrollbar uses existing behavior. Legacy `False` values now migrate to `overlay`. I also added the `@js_headers` skip rule for Qt versions where dynamic JavaScript headers do not work.
+
+**Verification:** 129 focused tests passed, the two marked header scenarios collected, and `git diff --check` passed. A broader run exited without a failure summary, so the full affected modules remain unverified.

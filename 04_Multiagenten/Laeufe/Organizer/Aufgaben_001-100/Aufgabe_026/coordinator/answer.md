@@ -1,0 +1,3 @@
+Updated Vuls to use all CVE content types mapped to an OS family. Ubuntu reports now include Ubuntu API links, details, and CVSS v3 information alongside Ubuntu content. Change detection checks both sources, and `NEGLIGIBLE` maps to the LOW score range.
+
+Added regression tests for the mapping, Ubuntu output, and change detection. `go test ./models ./detector ./reporter` and `git diff --check` passed. No delegation was used.

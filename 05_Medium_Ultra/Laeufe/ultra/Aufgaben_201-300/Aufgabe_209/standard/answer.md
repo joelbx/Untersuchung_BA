@@ -1,0 +1,5 @@
+Implemented the calendar URL limit in [MAX_LENGTHS_API](/app/packages/shared/lib/calendar/constants.ts:98). The [modal](/app/packages/components/containers/calendar/subscribeCalendarModal/SubscribeCalendarModal.tsx:34) now blocks empty, invalid, or over-limit URLs in both flows and on form submit. One helper returns warnings in the requested order; the counter and input `maxLength` are gone.
+
+ResizeObserver mocks now live in the application and components Jest setup files. A new [modal spec](/app/packages/components/containers/calendar/subscribeCalendarModal/SubscribeCalendarModal.spec.tsx:10) uses a default-export mock for `useGetCalendarSetup`.
+
+I delegated the observer cleanup and test review, then verified the combined patch. The modal tests (5), affected calendar tests (6), mail tests (12), components type check, and formatting checks passed.

@@ -1,0 +1,3 @@
+Fixed the Kubernetes exec session path. The Kubernetes service now initializes the session uploader at startup, and the forwarder caches short lived credentials instead of request scoped sessions. Audit events use the forwarder’s lifetime context, and exec records its audit event even when streaming fails. I also renamed the forwarder configuration fields and added `ServeHTTP` delegation to its router.
+
+The regression test failed on the original session reuse behavior and passes with the fix. `go test ./lib/kube/proxy ./lib/service` and the all-package compile check passed. The full `go test ./...` run was interrupted after several minutes without further output, so its result remains unverified.

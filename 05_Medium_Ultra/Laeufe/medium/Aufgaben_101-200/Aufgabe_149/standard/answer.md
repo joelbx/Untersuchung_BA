@@ -1,0 +1,3 @@
+QtWebEngine argument building now accepts `--enable-features=` and `--disable-features=` from the command line or configuration. It merges enabled features into one comma-separated flag, including injected features such as `OverlayScrollbar`, and passes each disable flag through unchanged. Both prefix constants are exposed in [qtargs.py](/app/qutebrowser/config/qtargs.py).
+
+Added source-combination coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py). The focused suite passed: **86 tests**.

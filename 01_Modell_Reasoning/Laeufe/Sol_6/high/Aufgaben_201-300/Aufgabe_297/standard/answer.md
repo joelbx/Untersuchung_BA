@@ -1,0 +1,3 @@
+Implemented trusted reverse proxy login in `/app`. Configure `ReverseProxyWhitelist` with the proxy’s IP or CIDR ranges and, if needed, `ReverseProxyUserHeader` (default: `Remote-User`). Only trusted requests with a username receive an authentication payload; new users are created on first proxy login. The frontend stores that session, and nested log fields now redact tokens and secrets.
+
+Verification passed: Go auth and log tests, 34 frontend tests, Prettier, ESLint, and `git diff --check`.

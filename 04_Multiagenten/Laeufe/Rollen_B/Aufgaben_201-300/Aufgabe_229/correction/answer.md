@@ -1,0 +1,1 @@
+The image cleanup patch is ready. I started the installed local Redis service, corrected the avatar test fixture to create files it can verify, and reran the reviewer’s exact command: **335 passing**. ESLint and `git diff --check` also pass. No failures remain.

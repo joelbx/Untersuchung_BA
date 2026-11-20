@@ -1,0 +1,3 @@
+SQLite access now uses one `*sql.DB`. I added the requested connection settings and removed persistence’s fallback to the global database, so `WithTx()` uses the connection passed to `New()`.
+
+`go test ./db ./persistence ./cmd ./scanner` and `git diff --check` pass. I followed the issue’s stated single-connection goal; its final requirement and interface section contradict that goal by requesting the read/write split.

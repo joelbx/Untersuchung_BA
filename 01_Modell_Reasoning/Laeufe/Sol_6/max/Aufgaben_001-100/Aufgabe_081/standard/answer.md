@@ -1,0 +1,3 @@
+Fixed the OIDC login flow. [Authentication validation](/app/internal/config/authentication.go:103) now stores only the session hostname. [OIDC cookies](/app/internal/server/auth/method/oidc/http.go:59) omit `Domain` for localhost, and [callback URL construction](/app/internal/server/auth/method/oidc/server.go:161) removes one trailing slash before adding the callback path.
+
+Added regression tests, including an OIDC flow with a trailing slash in the redirect address. `go test ./internal/config ./internal/server/auth/method/oidc` passed.

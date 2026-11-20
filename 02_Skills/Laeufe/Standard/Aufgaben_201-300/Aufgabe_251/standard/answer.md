@@ -1,0 +1,3 @@
+Updated `flipt validate` to report all CUE validation errors with the offending field path, a descriptive message, and file, line, and column coordinates from the original YAML. Unknown keys point to the key; invalid values point to the value. Text and JSON output aggregate the findings, and the CLI signals validation failure with a nonzero exit.
+
+Added coverage for misspelled keys, rollout limits, coordinates, output formats, and multiple files. `go test ./internal/cue ./cmd/flipt` and `git diff --check` passed.

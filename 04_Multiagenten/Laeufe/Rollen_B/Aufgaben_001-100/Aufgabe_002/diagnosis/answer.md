@@ -1,0 +1,5 @@
+The fault is in [`AuthCommand.checkProxyAddr`](/app/tool/tctl/common/auth_command.go:390): it copies either the local proxy’s public address or a registered proxy’s public address directly into the kubeconfig. [`identityfile.Write`](/app/lib/client/identityfile/identity.go:160) passes that value through unchanged, so a generic port such as 3080 can become the Kubernetes server port.
+
+The likely fix is to add `ProxyConfig.KubeAddr()` in [`cfg.go`](/app/lib/service/cfg.go:295), then use it when local Kubernetes proxy support is enabled. Otherwise, `checkProxyAddr` should scan registered proxies, skip malformed addresses, and build an `https` URL using port 3026. An explicit `--proxy` value must continue to take precedence. The existing [signing test](/app/tool/tctl/common/auth_command_test.go:18) covers only that explicit override.
+
+One requirement is ambiguous: the main requirements specify port 3026 for the local fallback, while the interface description also allows the `Kube.ListenAddr` port. I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). No project source or tests were changed in this fault-localization pass.

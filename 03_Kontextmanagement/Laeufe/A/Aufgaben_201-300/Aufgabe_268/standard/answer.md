@@ -1,0 +1,3 @@
+Updated [GUIProcess._on_error](/app/qutebrowser/misc/guiprocess.py:80) to show the capitalized process name, the command in single quotes, error-specific wording, and the process error detail. Failed starts caused by a missing file or permission error now include the required hint on non-Windows platforms.
+
+Updated the [tests](/app/tests/unit/misc/test_guiprocess.py:220). All 28 relevant tests passed.

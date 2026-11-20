@@ -1,0 +1,3 @@
+Added `qcolor_to_qsscolor` in [qtutils.py](/app/qutebrowser/utils/qtutils.py) to return `rgba(r, g, b, a)` with integer channel values. WebView and TabBar now use it for their background stylesheets. Added tests for named, RGB, and RGBA colors.
+
+All 123 `qtutils` tests pass, and the edited modules compile. The TabWidget tests stop during setup at an existing float-to-`QSize` error, before reaching the changed color code.

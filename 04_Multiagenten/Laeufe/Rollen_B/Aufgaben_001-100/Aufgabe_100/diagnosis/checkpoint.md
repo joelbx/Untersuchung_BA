@@ -1,0 +1,4 @@
+Status: fault localization complete; project source and tests unchanged.
+Diagnosis: config/config.go LogConfig (34-38) lacks GRPCLevel; Default (231-236) lacks ERROR default; logging keys (292-297) and Load logging block (363-374) never read log.grpc_level. Add a string field and JSON tag, set Default to ERROR, and conditionally load the key with viper.IsSet/GetString while preserving Level/File/Encoding.
+Tests: go test ./config passes on the current code. Existing TestLoad advanced case (config/config_test.go:242-246) replaces cfg.Log wholesale; it would need GRPCLevel in its expected value after implementing the new default. Add coverage for omitted and explicit grpc_level and independence from level/file/encoding.
+Scope uncertainty: cmd/flipt/main.go creates the gRPC logger from the global logger; the stated requirements only cover runtime configuration population, not applying GRPCLevel to logger behavior.

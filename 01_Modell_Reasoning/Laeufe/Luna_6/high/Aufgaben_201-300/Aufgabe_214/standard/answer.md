@@ -1,0 +1,3 @@
+Implemented per-server external nmap scanning with native scanning as the default. Added case-insensitive scan technique mapping, port scan validation, TOML loading, nmap execution and result parsing, and the commented configuration example.
+
+Validation and scanner wiring passed `go test ./config ./scanner ./subcmds`; `git diff --check` passed. The build emitted an existing sqlite3 C compiler warning.

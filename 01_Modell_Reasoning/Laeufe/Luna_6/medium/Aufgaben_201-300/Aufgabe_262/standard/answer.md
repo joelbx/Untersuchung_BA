@@ -1,0 +1,3 @@
+Implemented allow-listed cover URL handling in [openlibrary/catalog/add_book/__init__.py](/app/openlibrary/catalog/add_book/__init__.py). `process_cover_url` removes the `cover` key whether the URL is missing, invalid, or valid, and accepts HTTP/HTTPS URLs with case-insensitive host matching. Both new and matched edition imports use it before fetching covers.
+
+Verification: the focused tests passed (32 passed), and `git diff --check` passed. The broader initial run had one failure because its fixture uses `www.covers.org`; adding that host resolved it.

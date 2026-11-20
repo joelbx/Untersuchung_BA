@@ -1,0 +1,3 @@
+Updated the mailbox list so cache resets and requests wait for tracked backend actions to finish. Failed fetches retry after 2 seconds; responses marked stale are discarded and retried after 1 second. The loading selector now uses the current page and query parameters.
+
+Verification passed: 24 relevant tests, TypeScript, ESLint, Prettier, and `git diff --check`. The work is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

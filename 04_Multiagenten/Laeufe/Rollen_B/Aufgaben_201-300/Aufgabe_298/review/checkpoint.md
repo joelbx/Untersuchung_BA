@@ -1,0 +1,3 @@
+VERDICT: FIX
+Code defect: utils/cache/simple_cache.go:71 clears evictionDeadline before DeleteExpired at line 75. A concurrent AddWithTTL can see nil, skip eviction, and insert into a full cache while an expired entry still occupies capacity; an active entry may be evicted. Keep eviction synchronized with inserts or retain a due/in-progress deadline until deletion completes.
+Tests executed: GOPROXY=off GOSUMDB=off go test ./utils/cache -count=1 (pass); GOPROXY=off GOSUMDB=off go test -race ./utils/cache -count=1 (pass); GOPROXY=off GOSUMDB=off go test ./core/scrobbler -count=1 (pass). git diff --check (pass). No TEST_ENVIRONMENT_PROBLEM. No project code or tests changed during review.

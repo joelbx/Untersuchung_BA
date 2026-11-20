@@ -1,0 +1,3 @@
+Implemented anonymous telemetry in `/app`. It defaults to enabled, supports configuration and environment opt-out, stores a stable UUID in `telemetry.json`, and sends a `flipt.ping` every four hours while the server runs. The advanced configuration example disables it. I also added `internal/info.Flipt.ServeHTTP`.
+
+`GOPROXY=off go test ./...` and `git diff --check` passed. The event payload and state updates were tested against a local HTTP server. **Live delivery remains unverified:** the default telemetry endpoint is an implementation assumption that could not be checked offline.

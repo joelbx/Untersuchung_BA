@@ -1,0 +1,3 @@
+Implemented `guessDateFromText` and wired it into CSV and vCard contact date parsing. It accepts ISO and the requested common text formats, preserves existing valid `Date` objects, and leaves unparseable dates unset. Added tests covering parsing and vCard calendar-day serialization.
+
+TypeScript and formatting checks passed. The shared test suite ran with 871 passing tests, including the contact tests, and two unrelated failures in file and cookie tests.

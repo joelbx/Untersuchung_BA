@@ -1,0 +1,3 @@
+Implemented native SQLite backups in `/app`: `backup create`, `backup prune`, and `backup restore`, with confirmation for restore and for pruning when `backup.count` is zero. Added `conf.Server.Backup` settings, startup directory creation and schedule validation, periodic backup and pruning, and the `DB.Backup`, `DB.Restore`, and `DB.Prune` methods.
+
+The full `go test ./...` suite passed. After a small confirmation input fix, the affected `cmd`, `db`, and `conf` tests passed again.

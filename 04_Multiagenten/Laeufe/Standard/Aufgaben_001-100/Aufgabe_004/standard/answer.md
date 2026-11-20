@@ -1,0 +1,3 @@
+Resolved the PassAliases drawer issue. The drawer now shows all available aliases or an explicit “No aliases” state, and “Get an alias” opens the creation modal. The provider now handles users without a vault and creates one when the creation flow needs it; the bridge separates vault lookup from creation.
+
+Verification passed: the PassAliases tests, type checks for components and Pass, and formatting and diff checks.

@@ -1,0 +1,1 @@
+Implementer progress: added module-level normalized date formatter, patron update validation and owned-event POST route; fixed data update classmethod. Check-ins and event storage tests pass together (14 selected); test_db.py alone has an existing collection-order circular import. Diff check and compile pass.

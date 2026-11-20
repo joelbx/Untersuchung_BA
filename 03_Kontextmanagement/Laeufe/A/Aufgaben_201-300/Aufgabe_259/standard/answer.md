@@ -1,0 +1,3 @@
+Updated the [Solr work builder](/app/openlibrary/solr/update_work.py) to prefer a public IA edition and keep `lending_identifier_s` paired with the selected edition. It now treats lendinglibrary editions as borrowable. Added [multi-edition regression tests](/app/openlibrary/tests/solr/test_update_work.py) covering the availability flags, IA identifiers, collection union, and multiple print-disabled edition IDs.
+
+Verification: all 61 Solr tests passed.

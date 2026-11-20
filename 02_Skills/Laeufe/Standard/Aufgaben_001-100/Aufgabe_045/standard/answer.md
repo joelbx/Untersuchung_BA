@@ -1,0 +1,3 @@
+Collection-name validation now rejects Python keywords and invalid identifiers in either segment, returning `True` or `False`. The dependency resolver uses that validator; its legacy FQCN and Python 2/3 helper code has been removed.
+
+Regression tests pass: 82 collection-loader tests and 37 galaxy tests, run as separate suites. The combined run failed because the first suite reset shared loader state; that limitation is recorded in the checkpoint.

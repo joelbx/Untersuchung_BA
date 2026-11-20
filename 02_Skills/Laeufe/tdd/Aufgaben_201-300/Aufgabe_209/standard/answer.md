@@ -1,0 +1,3 @@
+Updated [SubscribeCalendarModal.tsx](/app/packages/components/containers/calendar/subscribeCalendarModal/SubscribeCalendarModal.tsx) to use the centralized 10,000 character URL limit, block overlength submissions, and show one warning in the requested priority order. Removed the counter and input `maxLength`. ResizeObserver test mocks now live in shared Jest setup files, with inline redefinitions removed.
+
+Verification passed: components (135 tests), calendar (126 tests), and mail (696 tests). The new modal regression tests pass.

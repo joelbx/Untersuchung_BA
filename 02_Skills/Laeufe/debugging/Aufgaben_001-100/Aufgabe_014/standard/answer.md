@@ -1,0 +1,3 @@
+Resolved the notification dropdown, category selector, quick search, hash field, email, route, and template issues in the checked-out files.
+
+Verification: the full existing hash suite passed (65 tests), the local regression reproduction passed, and ESLint and `git diff --check` passed. Browser dropdown interaction was not exercised locally. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

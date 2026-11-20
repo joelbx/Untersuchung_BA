@@ -1,0 +1,3 @@
+Fixed the two review findings in [src/user/email.js](/app/src/user/email.js): an explicitly supplied empty email now returns `false` from the pending check, and a request for a different address cannot bypass the resend interval. Regression assertions were added in [test/user.js](/app/test/user.js).
+
+Lint, syntax, the focused email confirmation suite (7 tests), and the full user test file (257 tests) pass. The reviewer’s exact grep command still fails because it selects a profile assertion without its setup test; that assertion passes in the full test file.

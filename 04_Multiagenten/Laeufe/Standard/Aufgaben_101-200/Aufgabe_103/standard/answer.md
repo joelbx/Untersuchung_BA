@@ -1,0 +1,3 @@
+Fixed RPM parsing in [redhatbase.go](/app/scanner/redhatbase.go). Installed package and repoquery output now preserve an empty release field, and source package versions omit the release suffix when it is empty. Source RPM filename parsing accepts the requested `-src.rpm` forms and rejects malformed filenames. Update candidate parsing also treats `(none)` as an absent epoch.
+
+Added regression cases in [redhatbase_test.go](/app/scanner/redhatbase_test.go). The focused scanner tests and `git diff --check` pass.

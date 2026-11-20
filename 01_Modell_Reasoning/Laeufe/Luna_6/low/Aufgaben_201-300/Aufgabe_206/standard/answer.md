@@ -1,0 +1,3 @@
+Added a per-user or guest-session posting lock around topic creation and replies in [topics.js](/app/src/controllers/write/topics.js). Overlapping attempts now fail through the route’s HTTP 400 handler, and the successful request proceeds as before.
+
+ESLint passed. `test/topics.js` could not run because Redis is unavailable (`ECONNREFUSED 127.0.0.1:6379`). The checkpoint is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Added [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py) with firmware upload, compatibility and version filtering, online or offline upgrades, check mode, and optional completion polling. Added [focused unit tests](/app/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py).
+
+The targeted run passed: **20 tests**. The broader NetApp test directory had unrelated legacy failures because its `mock` module lacks `patch`.

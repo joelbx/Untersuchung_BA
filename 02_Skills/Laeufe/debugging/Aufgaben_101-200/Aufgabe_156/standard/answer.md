@@ -1,0 +1,3 @@
+Implemented predictable `no_log` sanitization. `remove_values` now masks sensitive text in values without changing keys or scalar types. The new `sanitize_keys` masks matching mapping keys, preserves ignored and `_ansible` keys, and handles deep containers. `uri` applies it to responses only when `no_log_values` is populated. JSON serialization now handles dates left unchanged by `remove_values`.
+
+The focused tests passed: **35 passed**, and `git diff --check` passed. The broader basic suite did not pass; it showed failures involving shared warning state between tests. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

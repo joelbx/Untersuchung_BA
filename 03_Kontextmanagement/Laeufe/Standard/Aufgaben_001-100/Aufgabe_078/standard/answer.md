@@ -1,0 +1,3 @@
+Updated voice broadcast playback and UI to use `VoiceBroadcastLiveness`. The badge now shows red while live, grey while paused or buffering, and is hidden when the broadcast is not live. Playback emits liveness changes only when the value changes.
+
+All 216 voice broadcast tests pass; ESLint and stylelint pass. The full typecheck still fails on an existing error in [notifications.ts](/app/src/utils/notifications.ts:79), outside the changed files.

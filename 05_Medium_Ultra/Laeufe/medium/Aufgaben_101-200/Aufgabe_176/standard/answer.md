@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py) to skip percent-encoded triplets, preserve encoded URL segments and zero padding, leave ports unchanged, and reject invalid counts or decrements below zero. It now defaults to the path. For the issue’s conflicting match-order wording, I followed its final explicit rule: the first number in the first applicable segment.
+
+Added regression coverage in [test_urlutils.py](/app/tests/unit/utils/test_urlutils.py). Verification: **375 passed, 1 skipped** with Qt’s offscreen platform.

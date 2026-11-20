@@ -1,0 +1,3 @@
+Implemented automatic upload cleanup on post purge. Files are deleted only after their final post reference is removed; admins can enable `preserveOrphanedUploads` in ACP → Uploads to keep them. The deletion helper accepts a path or path list, rejects other input types, skips traversal paths, and removes resized variants.
+
+Verification: ESLint passed, `test/posts/uploads.js` passed (16 tests), and `git diff --check` passed. The required checkpoint is at `.codex-role-output/checkpoint.md`.

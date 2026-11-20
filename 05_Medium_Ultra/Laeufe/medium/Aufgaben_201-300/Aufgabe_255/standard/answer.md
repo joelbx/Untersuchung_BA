@@ -1,0 +1,3 @@
+Fixed the password lookup so inline `seed=myseed` is applied, while plugin options supply defaults when a term omits a value. `chars` now accepts either a list or a comma-separated string, including `,,` for a literal comma.
+
+Updated [password.py](/app/lib/ansible/plugins/lookup/password.py) and its [unit tests](/app/test/units/plugins/lookup/test_password.py). All 33 password lookup unit tests pass, and `git diff --check` is clean.

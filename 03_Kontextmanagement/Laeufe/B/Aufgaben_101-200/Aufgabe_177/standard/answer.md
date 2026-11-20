@@ -1,0 +1,1 @@
+Implemented chat allow and deny lists, the incoming chat setting, server-side checks, account controls, and an idempotent migration in [chat_allow_list.js](/app/src/upgrades/4.3.0/chat_allow_list.js). Validation passed: 356 messaging and user tests, the final 80 messaging tests, ESLint, and `git diff --check`. The work item is complete.

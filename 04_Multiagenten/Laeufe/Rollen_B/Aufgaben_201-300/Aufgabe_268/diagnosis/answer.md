@@ -1,0 +1,5 @@
+The failure is in [`GUIProcess._on_error`](/app/qutebrowser/misc/guiprocess.py:82). It uses one generic message for process errors and omits `self.cmd`, which [`_pre_start`](/app/qutebrowser/misc/guiprocess.py:152) already stores.
+
+The fix should give `FailedToStart`, `Crashed`, `Timedout`, `WriteError`, and `ReadError` distinct wording. For `FailedToStart`, it should produce `"<Capitalized process name> '<command>' failed to start: <error detail>"` and append the specified executable hint on non-Windows systems for “No such file or directory” or “Permission denied.” The existing [unit test](/app/tests/unit/misc/test_guiprocess.py:222) and [spawn scenario](/app/tests/end2end/features/spawn.feature:9) expect the old wording. One point to check during implementation is the current suppression of non-Windows `Crashed` errors, which avoids a duplicate message from `_on_finished`.
+
+I recorded the diagnosis in `.codex-role-output/checkpoint.md`. **No project source or tests were changed:** this run’s specialist instructions limited me to fault localization, so the issue remains unresolved in the checkout.

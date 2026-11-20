@@ -1,0 +1,3 @@
+Added the Linux `locally_reachable_ips` fact with `ipv4` and `ipv6` lists. It reads host-scope local routes, normalizes and de-duplicates addresses and prefixes, and orders them consistently. Failed queries return an empty list for that family with a warning.
+
+The network unit tests pass (9 tests), and `git diff --check` passes. The container has no `ip` command, so live route collection could not be checked; mocked route output covers the parser.

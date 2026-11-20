@@ -1,0 +1,1 @@
+Progress: Implemented getCachedChildrenCount using linksState.getChildren(shareId, parentLinkId). Added tests for empty cache, multi-page fetch count, share/parent isolation, and count when decryption fails. Drive's useLinksListing test suite passes (7 tests). git diff --check passes.

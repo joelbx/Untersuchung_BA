@@ -1,0 +1,3 @@
+Updated [SimpleCache](/app/utils/cache/simple_cache.go) to evict expired entries during normal use, return only active entries from `Keys()` and the new `Values()` method, and clear expired items before capacity forces an active item out. Added coverage for short TTLs, loaders, and size limits in [the cache tests](/app/utils/cache/simple_cache_test.go).
+
+The cache suite, its race run, and the scrobbler and scanner tests passed. One existing cache spec remains pending.

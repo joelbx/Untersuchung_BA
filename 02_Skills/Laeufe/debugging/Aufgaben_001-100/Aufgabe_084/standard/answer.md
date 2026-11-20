@@ -1,0 +1,3 @@
+Added [removeTechnicalFields](/app/src/api/common/utils/EntityUtils.ts:135). It mutates a cloned entity, recursively deleting properties whose names start with `_finalEncrypted`, `_defaultEncrypted`, or `_errors`, including in nested objects and arrays. Other properties remain unchanged.
+
+Added [regression tests](/app/test/tests/api/common/utils/EntityUtilsTest.ts:42). Type checking, formatting, lint, and the app test suite passed; the suite reported 8,681 passing assertions.

@@ -1,0 +1,3 @@
+Updated forked worker display calls so `display`, `warning`, and `deprecated` send their method names and exact caller arguments through the queue. The main process now replays each method, allowing its shared `Display` instance to deduplicate warnings and deprecations across workers.
+
+Updated the tests for argument preservation and parent-side deduplication. The focused suite passed: **18 passed, 1 skipped**. `git diff --check` also passed.

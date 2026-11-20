@@ -1,0 +1,3 @@
+Centralized storage units in [size.ts](/app/packages/shared/lib/helpers/size.ts) and updated the affected member, CSV, organization, display, and shared storage calculations to use them. Drive plans now initialize at `sizeUnits.TB`.
+
+The CSV suite passed all 64 tests. Formatting, lint, and `git diff --check` passed. Both workspace type checks stopped on an unrelated `openpgp` type mismatch in `packages/crypto/lib/worker/api.ts`, so a full type-check pass remains unverified.

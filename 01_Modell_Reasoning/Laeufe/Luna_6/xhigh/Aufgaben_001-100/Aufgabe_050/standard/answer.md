@@ -1,0 +1,3 @@
+Implemented `gg.P` and `gg.V` in [gg.go](/app/utils/gg/gg.go:4). Nullable timestamps and album `image_files` now use pointers, with safe reads and explicit optional writes in the affected model, scanner, artwork, and sharing code.
+
+The targeted tests passed. `go test ./...` had four unrelated failures in `scanner/metadata/taglib` involving metadata expectations and file permissions. `git diff --check` passed.

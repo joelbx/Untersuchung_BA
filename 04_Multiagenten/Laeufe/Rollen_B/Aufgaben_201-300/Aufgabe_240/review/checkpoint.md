@@ -1,0 +1,3 @@
+VERDICT: FIX
+Code defect: lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py:140-145 determines accessibility solely from status. Existing drive fixture in test/units/modules/storage/netapp/test_netapp_e_facts.py includes independent offline and available fields. A mocked drive with status=optimal, offline=True, available=False, firmwareVersion=OLD was returned by upgrade_list as a target. Check offline and available before selecting a drive; fail by default and skip when ignore_inaccessible_drives=True.
+Tests executed: python -m pytest -q test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py (7 passed); python -m pytest -q test/units/modules/storage/netapp/test_netapp_e_facts.py (3 passed, 2 deprecation warnings). No TEST_ENVIRONMENT_PROBLEM.

@@ -1,0 +1,3 @@
+Refactored [Pill](/app/src/components/views/elements/Pill.tsx) into a functional component and moved permalink, profile, avatar, and user click resolution into the public [usePermalink hook](/app/src/hooks/usePermalink.tsx). Updated callers to use named exports and added focused [Pill tests](/app/test/components/views/elements/Pill-test.tsx).
+
+The Pill, pillify, ReplyChain, and Reply tests pass. ESLint, Prettier, and `git diff --check` pass. The full TypeScript check still reports SDK API errors in untouched files; it reports none in the refactor.

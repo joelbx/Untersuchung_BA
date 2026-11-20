@@ -1,0 +1,3 @@
+Implemented shared process-to-package association in [base.go](/app/scan/base.go). Debian and Red Hat `postScan` now use it with their respective ownership lookups. Red Hat ownership parsing ignores the specified RPM diagnostics and returns errors for malformed output, avoiding the failing FQPN lookup.
+
+`go test ./scan` passed, and `git diff --check` passed. The checkpoint is in `.codex-role-output/checkpoint.md`.

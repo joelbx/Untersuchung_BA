@@ -1,0 +1,3 @@
+Post purge now deletes uploads that have no remaining post references, including resized copies. Shared uploads stay on disk, and administrators can enable **Keep uploaded files after their last post is purged** in ACP upload settings. `Posts.uploads.deleteFromDisk` accepts a path or list, rejects other input types, and ignores paths outside the upload directory.
+
+Verification: ESLint, `git diff --check`, and 71 relevant Mocha tests passed.

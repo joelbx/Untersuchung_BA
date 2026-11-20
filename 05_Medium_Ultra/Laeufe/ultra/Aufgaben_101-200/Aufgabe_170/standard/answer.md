@@ -1,0 +1,3 @@
+Edition matching now accepts raw import records. Record expansion supplies title and ISBN variants, enriches authors while preserving supplied `db_name` values, and handles missing fields. The add-book caller passes raw records and includes page counts from existing editions. I added regressions for author/contributor matches, no-ISBN matches, and the 515 and 875 thresholds.
+
+I delegated test additions and an independent scoring review; the review findings are incorporated. **Validation:** 136 passed, 1 existing xfail; Ruff and `git diff --check` passed.

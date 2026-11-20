@@ -1,0 +1,1 @@
+Completed: persisted unique album media directories with migration/full rescan; artist artwork checks computed local artist folder before album images/URL/placeholder; each source attempt logs duration. Added focused model/artwork tests. go test ./model ./core/artwork ./scanner ./persistence ./db/migration and git diff --check pass.

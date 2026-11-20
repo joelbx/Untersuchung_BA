@@ -1,0 +1,3 @@
+Added a dedicated `KEVs` field to the vulnerability model, with CISA and VulnCheck source details. KEV ingestion now populates that field, normalizes invalid due dates to `nil`, and supports KEV summaries and consistent JSON ordering. The `go-kev` dependency was updated to a locally cached version that supports both sources.
+
+The existing model and detector tests passed offline: `go test -mod=mod ./models ./detector`.

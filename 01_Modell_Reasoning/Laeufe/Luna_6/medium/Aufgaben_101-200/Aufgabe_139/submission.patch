@@ -1,0 +1,224 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index f3476c4..c4a8156 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -25,6 +25,7 @@ A record is loaded by calling the load function.
+ 
+ import itertools
+ import json
++import logging
+ import re
+ from typing import TYPE_CHECKING, Any, Final
+ 
+@@ -67,6 +68,7 @@ if TYPE_CHECKING:
+     from openlibrary.plugins.upstream.models import Edition
+ 
+ re_normalize = re.compile('[^[:alphanum:] ]', re.U)
++logger = logging.getLogger(__name__)
+ re_lang = re.compile('^/languages/([a-z]{3})$')
+ ISBD_UNIT_PUNCT = ' : '  # ISBD cataloging title-unit separator punctuation
+ SUSPECT_PUBLICATION_DATES: Final = ["1900", "January 1, 1900", "1900-01-01"]
+@@ -774,6 +776,9 @@ def normalize_import_record(rec: dict) -> None:
+         if not rec.get(field):
+             raise RequiredField(field)
+ 
++    if rec.get('publishers') == ['????']:
++        rec['publishers'] = []
++
+     # Ensure source_records is a list.
+     if not isinstance(rec['source_records'], list):
+         rec['source_records'] = [rec['source_records']]
+@@ -1000,10 +1005,13 @@ def supplement_rec_with_import_item_metadata(
+ 
+     import_fields = [
+         'authors',
++        'isbn_10',
++        'isbn_13',
+         'publish_date',
+         'publishers',
+         'number_of_pages',
+         'physical_format',
++        'title',
+     ]
+ 
+     if import_item := ImportItem.find_staged_or_pending([identifier]).first():
+@@ -1013,6 +1021,13 @@ def supplement_rec_with_import_item_metadata(
+                 rec[field] = staged_field
+ 
+ 
++def _promise_record_complete(rec: dict[str, Any]) -> bool:
++    return all(
++        bool(rec.get(field))
++        for field in ('title', 'authors', 'publish_date')
++    )
++
++
+ def load(rec: dict, account_key=None, from_marc_record: bool = False):
+     """Given a record, tries to add/match that edition in the system.
+ 
+@@ -1027,14 +1042,17 @@ def load(rec: dict, account_key=None, from_marc_record: bool = False):
+     :rtype: dict
+     :return: a dict to be converted into a JSON HTTP response, same as load_data()
+     """
+-    if not is_promise_item(rec):
+-        validate_record(rec)
+-
+     normalize_import_record(rec)
+ 
+-    # For recs with a non-ISBN ASIN, supplement the record with BookWorm metadata.
+-    if non_isbn_asin := get_non_isbn_asin(rec):
+-        supplement_rec_with_import_item_metadata(rec=rec, identifier=non_isbn_asin)
++    if is_promise_item(rec) and not _promise_record_complete(rec):
++        identifier = next(iter(rec.get('isbn_10', [])), None) or get_non_isbn_asin(rec)
++        if identifier:
++            try:
++                supplement_rec_with_import_item_metadata(rec=rec, identifier=identifier)
++            except Exception:
++                logger.exception("Failed to supplement promise item %s", identifier)
++    if not is_promise_item(rec):
++        validate_record(rec)
+ 
+     # Resolve an edition if possible, or create and return one if not.
+     edition_pool = build_pool(rec)
+diff --git a/openlibrary/core/stats.py b/openlibrary/core/stats.py
+index f49f8d3..0a8bcb0 100644
+--- a/openlibrary/core/stats.py
++++ b/openlibrary/core/stats.py
+@@ -56,4 +56,11 @@ def increment(key, n=1, rate=1.0):
+                 client.incr(key, rate=rate)
+ 
+ 
++def gauge(key: str, value: int, rate: float = 1.0) -> None:
++    """Submit a gauge metric when a StatsD client is configured."""
++    if client:
++        pystats_logger.debug("Gauge %s = %s", key, value)
++        client.gauge(key, value, rate=rate)
++
++
+ client = create_stats_client()
+diff --git a/openlibrary/plugins/importapi/code.py b/openlibrary/plugins/importapi/code.py
+index 878e06e..4d7be45 100644
+--- a/openlibrary/plugins/importapi/code.py
++++ b/openlibrary/plugins/importapi/code.py
+@@ -116,7 +116,22 @@ def parse_data(data: bytes) -> tuple[dict | None, str | None]:
+         raise DataError('unrecognised-import-format')
+ 
+     parse_meta_headers(edition_builder)
+-    return edition_builder.get_dict(), format
++    record = edition_builder.get_dict()
++    from openlibrary.catalog.utils import is_promise_item
++    if is_promise_item(record) and not all(
++        record.get(field) for field in ('title', 'authors', 'publish_date')
++    ):
++        from openlibrary.catalog.add_book import supplement_rec_with_import_item_metadata
++        from openlibrary.catalog.utils import get_non_isbn_asin
++        identifier = next(iter(record.get('isbn_10', [])), None) or get_non_isbn_asin(record)
++        if identifier:
++            try:
++                supplement_rec_with_import_item_metadata(record, identifier)
++            except Exception:
++                logger.exception("Failed to augment import record for %s", identifier)
++    from openlibrary.plugins.importapi.import_validator import import_validator
++    import_validator().validate(record)
++    return record, format
+ 
+ 
+ class importapi:
+diff --git a/openlibrary/plugins/importapi/import_validator.py b/openlibrary/plugins/importapi/import_validator.py
+index 41b23d4..ef5b78a 100644
+--- a/openlibrary/plugins/importapi/import_validator.py
++++ b/openlibrary/plugins/importapi/import_validator.py
+@@ -1,7 +1,7 @@
+ from typing import Annotated, Any, TypeVar
+ 
+ from annotated_types import MinLen
+-from pydantic import BaseModel, ValidationError
++from pydantic import BaseModel, ValidationError, model_validator
+ 
+ T = TypeVar("T")
+ 
+@@ -21,6 +21,20 @@ class Book(BaseModel):
+     publish_date: NonEmptyStr
+ 
+ 
++class StrongIdentifierBookPlus(BaseModel):
++    title: NonEmptyStr
++    source_records: NonEmptyList[NonEmptyStr]
++    isbn_10: NonEmptyList[NonEmptyStr] | None = None
++    isbn_13: NonEmptyList[NonEmptyStr] | None = None
++    lccn: NonEmptyList[NonEmptyStr] | None = None
++
++    @model_validator(mode="after")
++    def has_strong_identifier(self):
++        if not (self.isbn_10 or self.isbn_13 or self.lccn):
++            raise ValueError('At least one strong identifier is required')
++        return self
++
++
+ class import_validator:
+     def validate(self, data: dict[str, Any]):
+         """Validate the given import data.
+@@ -29,7 +43,10 @@ class import_validator:
+         """
+ 
+         try:
+-            Book.model_validate(data)
++            try:
++                Book.model_validate(data)
++            except ValidationError:
++                StrongIdentifierBookPlus.model_validate(data)
+         except ValidationError as e:
+             raise e
+ 
+diff --git a/scripts/promise_batch_imports.py b/scripts/promise_batch_imports.py
+index 345e709..d075f8c 100644
+--- a/scripts/promise_batch_imports.py
++++ b/scripts/promise_batch_imports.py
+@@ -27,6 +27,7 @@ from infogami import config
+ from openlibrary.config import load_config
+ from openlibrary.core.imports import Batch, ImportItem
+ from openlibrary.core.vendors import get_amazon_metadata
++from openlibrary.core import stats
+ from scripts.solr_builder.solr_builder.fn_to_cli import FnToCLI
+ 
+ 
+@@ -97,21 +98,25 @@ def stage_b_asins_for_import(olbooks: list[dict[str, Any]]) -> None:
+     will look for `staged` rows in `import_item` and supplement `????` or otherwise
+     empty values.
+     """
+-    for book in olbooks:
+-        if not (amazon := book.get('identifiers', {}).get('amazon', [])):
++    def incomplete(book):
++        return not all(book.get(field) for field in ('title', 'authors', 'publish_date'))
++
++    incomplete_books = [book for book in olbooks if incomplete(book)]
++    stats.gauge('promise_import.records.total', len(olbooks))
++    stats.gauge('promise_import.records.incomplete', len(incomplete_books))
++    for book in incomplete_books:
++        isbn_10 = next(iter(book.get('isbn_10', [])), None)
++        amazon = book.get('identifiers', {}).get('amazon', [])
++        asin = isbn_10 or next(iter(amazon), None)
++        if not asin:
+             continue
+-
+-        asin = amazon[0]
+-        if asin.upper().startswith("B"):
+-            try:
+-                get_amazon_metadata(
+-                    id_=asin,
+-                    id_type="asin",
+-                )
+-
+-            except requests.exceptions.ConnectionError:
+-                logger.exception("Affiliate Server unreachable")
+-                continue
++        try:
++            get_amazon_metadata(
++                id_=asin,
++                id_type="isbn" if isbn_10 else "asin",
++            )
++        except Exception:
++            logger.exception("Amazon metadata lookup failed for %s", asin)
+ 
+ 
+ def batch_import(promise_id, batch_size=1000, dry_run=False):

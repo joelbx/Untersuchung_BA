@@ -1,0 +1,3 @@
+Added `ciphers` support for `get_url`, `uri`, and `lookup('url')`. A shared TLS context applies the requested cipher string or ordered list through direct HTTPS requests, redirects, proxy tunnels, and Unix sockets. Invalid values produce clear errors without echoing the supplied value; requests without `ciphers` retain their default settings.
+
+All 147 relevant unit tests pass. The CentOS 7 Python 3.10/OpenSSL 1.1.1 runtime was unavailable, so verification ran on Python 3.11/OpenSSL 3.0.16.

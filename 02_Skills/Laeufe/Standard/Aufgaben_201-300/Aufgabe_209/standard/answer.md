@@ -1,0 +1,3 @@
+Updated Subscribe to Calendar to use the shared 10,000-character URL limit. Empty, malformed, and overlong URLs now block submission; one warning is shown at a time in the requested priority order. I also moved ResizeObserver mocks into the affected Jest setup files and added modal tests with a default-export hook mock.
+
+Verification passed: 23 relevant tests, the Components type check, Prettier, and `git diff --check`.

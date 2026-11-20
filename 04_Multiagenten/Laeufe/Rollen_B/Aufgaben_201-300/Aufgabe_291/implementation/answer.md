@@ -1,0 +1,3 @@
+NVD CVSS v4.0 metrics are now converted into `CveContent` by metric source, and `Cvss40Scores()` returns available MITRE entries followed by NVD entries. I updated the local dependency version because the previously pinned version lacks `Nvd.Cvss40`.
+
+Added tests for combined v3/v4 metrics, a v4-only source, and aggregation order. The focused tests, full `models` tests, and `git diff --check` pass offline.

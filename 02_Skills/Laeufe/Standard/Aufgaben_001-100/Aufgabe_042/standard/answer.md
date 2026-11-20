@@ -1,0 +1,3 @@
+Implemented `GET /.well-known/webfinger` with resource validation, Guest-aware `groups:view:users` authorization, user lookup, and a WebFinger JSON response containing the subject, profile aliases, and an HTML profile link. Added integration tests.
+
+The three WebFinger tests and ESLint pass. The broader controller suite reached 143 passing tests, then failed in a profile export test outside the changed files.

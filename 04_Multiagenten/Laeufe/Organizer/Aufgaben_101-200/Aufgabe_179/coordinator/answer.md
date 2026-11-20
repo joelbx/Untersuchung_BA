@@ -1,0 +1,3 @@
+RemoteCluster status and heartbeat are now persisted. A cluster with tunnels reports Online and records the latest heartbeat in UTC; removing tunnels never moves that heartbeat backward, and removing the final tunnel sets Offline while retaining it. The new `Presence.UpdateRemoteCluster` method preserves the resource’s expiry, with auth client support for the interface.
+
+The focused remote cluster and local persistence tests passed, and `git diff --check` passed. No delegation was used.

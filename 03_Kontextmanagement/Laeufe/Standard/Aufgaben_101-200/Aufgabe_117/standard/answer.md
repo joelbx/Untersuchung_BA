@@ -1,0 +1,3 @@
+Implemented `qt.workarounds.locale` as a QtWebEngine-only setting that defaults to `false`. When enabled on Linux with QtWebEngine 5.15.3, startup checks for the locale’s `.pak` file and passes `--lang` with a Chromium-compatible fallback when needed.
+
+Added tests for the locale mappings, missing files, and startup argument. **184 relevant tests passed** with `QT_QPA_PLATFORM=offscreen`; `git diff --check` passed. Flake8 was unavailable in the environment.

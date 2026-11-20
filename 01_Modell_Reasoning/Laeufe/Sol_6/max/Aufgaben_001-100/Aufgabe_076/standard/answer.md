@@ -1,0 +1,3 @@
+Implemented address parsing in [recipient.ts](/app/packages/shared/lib/mail/recipient.ts:7): `splitBySeparator` now removes angle brackets and empty tokens, and bare bracketed emails produce identical `Name` and `Address` values. Both [address autocomplete](/app/packages/components/components/addressesAutomplete/AddressesAutocomplete.tsx:147) and [v2 autocomplete](/app/packages/components/components/v2/addressesAutomplete/AddressesAutocomplete.tsx:186) now skip empty pasted segments while preserving named addresses.
+
+The [recipient tests](/app/packages/shared/test/mail/recipient.spec.ts:1) pass (4 tests). TypeScript, ESLint, and Prettier checks pass. The full Karma suite could not launch because its configured Playwright Chromium binary is missing.

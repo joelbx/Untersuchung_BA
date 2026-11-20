@@ -1,0 +1,3 @@
+Updated mailbox loading to wait for backend item operations to finish. In-flight list responses received during an operation are discarded, and the list reloads afterward. Failed fetches retry after 2 seconds; responses marked stale retry after 1 second without updating the list. The loading selector now uses the current page and query parameters.
+
+Validation: the mail TypeScript check, ESLint, and `git diff --check` passed. All 12 existing mailbox tests and 3 new lifecycle tests passed. The mailbox Jest process reported lingering open handles after its passing result and was stopped. No delegation was used.

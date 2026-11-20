@@ -1,0 +1,3 @@
+Fixed the terminal lockup in `tsh login`. [ContextReader](/app/lib/utils/prompt/context_reader.go:235) now restores terminal state when a password read is canceled or times out, returns to a clean read state, and attempts restoration on close. [NotifyExit](/app/lib/utils/prompt/stdin.go:61) closes the global stdin reader, and [tsh](/app/tool/tsh/tsh.go:396) calls it before exiting.
+
+The prompt tests and race check pass. The `tsh` test package compiles successfully; its tests were not run.

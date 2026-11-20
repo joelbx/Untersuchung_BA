@@ -1,0 +1,5 @@
+The fault is in [hasher.go](/app/utils/hasher/hasher.go:15): the hasher stores opaque, randomly generated `maphash.Seed` values per ID and exposes no `SetSeed` API. A caller therefore cannot supply a seed or restore one after reseeding. The existing [tests](/app/utils/hasher/hasher_test.go:16) pass, but do not cover either behavior.
+
+The fix should add the requested exported `Hasher` and package and method `SetSeed` interfaces, use the supplied seed string when hashing that ID, and retain automatic initialization for IDs without a seed. Tests should verify that setting, changing, and restoring a seed produces the expected hashes. A global `maphash` seed may make results reproducible within a process; stability across process restarts needs clarification.
+
+**No project source or tests were edited.** This run was constrained to fault localization. I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

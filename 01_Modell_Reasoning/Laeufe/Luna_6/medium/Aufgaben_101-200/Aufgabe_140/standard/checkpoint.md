@@ -1,0 +1,1 @@
+Task: Fix hosts-based blocking so host and parent domains are checked, whitelist rules override, URL inputs resolve to hosts, and trailing dots normalize for matching. Add/adjust focused tests and run existing relevant tests. No external research.

@@ -1,0 +1,3 @@
+Implemented selective event delivery. The UI now sends a per-window UUID on its requests; server middleware carries it through the header or cookie into request context. The SSE broker skips the originating client and other users’ sessions, while server-originated events still broadcast. I also updated event call sites, the diode API, cookie expiry, and request ID logging.
+
+Verification passed: the relevant Go tests, all 41 UI tests, formatting, and `git diff --check`.

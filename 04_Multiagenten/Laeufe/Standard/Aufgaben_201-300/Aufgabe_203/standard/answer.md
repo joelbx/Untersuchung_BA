@@ -1,0 +1,3 @@
+Added a reusable [ExternalLink](/app/src/components/views/elements/ExternalLink.tsx) with a decorative icon, a screen-reader new-tab cue, and secure navigation defaults. Settings links now use it, including the hosting-signup link. The Share dialog link has a descriptive accessible name, supported by new localization strings.
+
+The three existing settings test suites, focused ESLint and Stylelint checks, and `git diff --check` pass. The full TypeScript check still reports six errors in unrelated thread files.

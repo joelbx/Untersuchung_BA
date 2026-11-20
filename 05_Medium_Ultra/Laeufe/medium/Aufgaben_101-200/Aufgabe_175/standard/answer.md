@@ -1,0 +1,3 @@
+Implemented native SQLite backups in `/app`. The new `backup create`, `backup prune`, and `backup restore` commands use the `DB` backup, prune, and restore methods. Configuration now supports `backup.path`, `backup.schedule`, and `backup.count`; startup creates the backup directory and validates the schedule, and scheduled backups prune files to the configured count. Pruning all backups and restoring a database require confirmation unless `--force` is passed.
+
+Verification passed: `go test ./db ./conf ./cmd ./scheduler` and `git diff --check`.

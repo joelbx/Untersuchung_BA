@@ -1,0 +1,3 @@
+Fixed the upgrade scan errors. Nullable album and artist metadata timestamps, share timestamps, and `album.image_files` now use pointer fields. Callers use the new [gg.P and gg.V helpers](/app/utils/gg/gg.go) to write present values and safely read unset ones. Added database regression tests for [NULL image files](/app/persistence/album_repository_test.go) and [unset share timestamps](/app/persistence/share_repository_test.go).
+
+The timestamp and image file fixes were delegated to two agents; a third audited nullable fields. I reviewed the combined patch. The affected package tests passed, the full module compiled, and formatting and diff checks were clean.

@@ -1,0 +1,3 @@
+Implemented in [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py:44): exits now use `end()` for a single flushed JSON response, and `jwrite()` atomically replaces job records. Launch, failure, completion, and timeout records carry lifecycle fields and the same job ID; timeout and unexpected worker exits include process context. Detached processes keep output off the launcher’s stdout.
+
+Validation passed: `py_compile`, the focused unit test (1 passed), and `git diff --check`.

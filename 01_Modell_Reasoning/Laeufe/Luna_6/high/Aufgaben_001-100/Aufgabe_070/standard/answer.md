@@ -1,0 +1,3 @@
+Implemented normalization and first occurrence deduplication in [format_languages](/app/openlibrary/catalog/utils/__init__.py:448), using the repository’s MARC, ISO code, and translated name lookups. Added a regression test in [test_utils.py](/app/openlibrary/tests/catalog/test_utils.py:449).
+
+The regression test, Ruff, `compileall`, and `git diff --check` passed. The original focused tests were also attempted, but fail in this test process because `web.ctx.site` is not configured; the function already requires that context for nonempty input.

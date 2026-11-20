@@ -1,0 +1,3 @@
+Implemented bounded event polling for new payment methods. The hook exports `interval = 5000` and `maxPollingSteps = 5`, can stop early on a matching property and action event, and unsubscribes when polling finishes. Card creation and both PayPal creation flows now watch for `PaymentMethods` creation events.
+
+Verification passed: 5 tests across the polling and card modal suites, the component type check, and `git diff --check`. No delegation was used.

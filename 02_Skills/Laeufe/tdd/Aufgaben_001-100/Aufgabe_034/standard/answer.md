@@ -1,0 +1,3 @@
+Updated `get_ia_record` to emit separate `isbn_10`, `isbn_13`, `publishers`, and `publish_places` fields. The new public utilities in [utils.py](/app/openlibrary/plugins/upstream/utils.py) handle string and list inputs, whitespace, and empty values. Tests were added before the implementation and observed failing.
+
+Verification: `pytest -q openlibrary` passed (1338 passed). Root `pytest -q` stopped during collection because pytest registered `infogami/conftest.py` twice, so the full repository suite remains unverified. `ruff` was unavailable. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented Redis cache TLS trust configuration. `RedisCacheConfig` now accepts `ca_cert_path`, `ca_cert_bytes`, and `insecure_skip_tls`; the new [NewClient](/app/internal/cache/redis/client.go) applies TLS 1.2, loads a custom CA when supplied, and rejects conflicting CA options. Server startup uses it, and `api/cachetls` is in the integration matrix.
+
+The focused tests and affected packages pass. The full suite remains red: `TestSet`, `TestGet`, and `TestDelete` need an unavailable Docker daemon, and `Test_FS_Submodule` received `Forbidden` from its remote repository. The TLS integration case compiled but could not run locally without Docker. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

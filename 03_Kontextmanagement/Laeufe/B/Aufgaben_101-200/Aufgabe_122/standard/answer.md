@@ -1,0 +1,3 @@
+Implemented the storage read-only flag and validation, exposed it to the UI, and added storage-type visibility and a Read-Only badge in the header. Authentication bootstrap now skips database setup for non-database storage when authentication is disabled.
+
+`go test ./internal/config ./internal/cmd` and `git diff --check` passed. I could not run the UI build because Node and UI dependencies are unavailable locally.

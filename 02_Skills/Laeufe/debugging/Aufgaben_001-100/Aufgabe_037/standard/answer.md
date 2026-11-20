@@ -1,0 +1,3 @@
+Fixed the undefined-variable error path. `AnsibleDumper` now triggers Jinja’s undefined error; both YAML filters report their own context and preserve the underlying exception; templating surfaces `AnsibleUndefinedVariable`.
+
+The focused suite passed: 61 tests. A broader run passed 144 tests but could not set up one unrelated test because the `mocker` fixture is unavailable. That limit is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

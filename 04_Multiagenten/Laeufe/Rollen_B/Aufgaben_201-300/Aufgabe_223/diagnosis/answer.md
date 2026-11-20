@@ -1,0 +1,5 @@
+The regression is in [module_common.py](/app/lib/ansible/executor/module_common.py:1244). The new-style Python path builds its wrapper using `/usr/bin/python` without reading the module’s shebang, so a declared interpreter and its arguments are lost.
+
+The likely fix spans `_find_module_utils`, `_get_shebang`, and `modify_module` in that file: extract the source shebang with `shlex.split`, preserve its interpreter and arguments unless an explicit override applies, use the default only when no shebang is present, and replace a shebang only when the resolved interpreter differs. `_get_shebang` currently returns `None` for an unchanged interpreter, and `_extract_interpreter` does not yet exist.
+
+The seven focused existing tests pass, but they cover the current behavior and do not test new-style shebang preservation. One uncertainty is how automatic interpreter discovery should interact with a declared shebang; the issue clearly requires explicit overrides to take precedence. Source and tests were left untouched under the fault-localization scope.

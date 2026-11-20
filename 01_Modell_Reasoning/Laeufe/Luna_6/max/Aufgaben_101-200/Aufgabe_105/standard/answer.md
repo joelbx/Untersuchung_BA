@@ -1,0 +1,3 @@
+Moved `getOpenSubsonicExtensions` outside the protected middleware in [api.go](/app/server/subsonic/api.go:76). It now works without authentication or required Subsonic parameters, including with `?f=json`. Other endpoints retain their checks and authentication; the handler still returns exactly `transcodeOffset`, `formPost`, and `songLyrics`.
+
+`go test ./server/subsonic/...` passed. Formatting and diff checks are clean.

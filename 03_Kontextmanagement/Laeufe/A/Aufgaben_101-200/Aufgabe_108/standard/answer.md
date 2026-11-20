@@ -1,0 +1,3 @@
+Added `SimpleCache[V]` in `utils/cache` and migrated the play tracker, genre repository, and HTTP client to typed cache operations. Cache setup and TTL handling now live behind the internal abstraction, and callers no longer need type assertions. I also added tests for expiration, loader errors, and active keys.
+
+Verification passed: `go test ./utils/cache ./scanner ./core/scrobbler` and `git diff --check`.

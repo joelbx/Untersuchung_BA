@@ -1,0 +1,1 @@
+Fixed the Qt 6.4 dark mode mapping in [darkmode.py](/app/qutebrowser/browser/webengine/darkmode.py). A numeric `threshold.text` value now emits `ForegroundBrightnessThreshold` with its value as a string; the Qt 6.3 mapping remains version specific. Added coverage in [test_darkmode.py](/app/tests/unit/browser/webengine/test_darkmode.py). All 40 focused tests passed.

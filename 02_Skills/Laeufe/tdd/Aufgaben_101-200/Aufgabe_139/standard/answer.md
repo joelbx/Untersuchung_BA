@@ -1,0 +1,3 @@
+Updated the repository so incomplete promise-item records use ISBN-10 first, then a B* ASIN, to fill missing staged metadata before validation. Complete records skip augmentation. The batch script now stages only incomplete items, records total and incomplete gauges, and logs lookup failures while continuing.
+
+The full suite passed with the two network-dependent test modules excluded: **1907 passed**. The unfiltered suite could not collect those modules because their schema requests failed through the proxy. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

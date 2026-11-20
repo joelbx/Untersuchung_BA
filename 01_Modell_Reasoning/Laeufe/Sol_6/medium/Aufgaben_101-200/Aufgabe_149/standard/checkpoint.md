@@ -1,0 +1,2 @@
+Task: Add support for `--disable-features=` in QtWebEngine arguments while preserving enable-feature merging.
+Status: Implemented both feature prefixes in QtWebEngine argument handling. Enabled features are merged into one flag; disable flags are retained unchanged. Added source parity and comma-list tests. `pytest -q tests/unit/config/test_qtargs.py` passed (90 tests); `git diff --check` passed. Flake8 is unavailable in this environment.

@@ -1,0 +1,3 @@
+Fixed BSD uptime gathering in the checked-out repository. The FreeBSD, NetBSD, and OpenBSD collectors now calculate `uptime_seconds` from numeric `sysctl -n kern.boottime` output. Sysctl parsing also preserves multiline values and warns on malformed lines while continuing to collect valid facts.
+
+The focused tests passed (15/15), and `git diff --check` passed. The broader facts suite had one timing-sensitive timeout test fail; that test passed when rerun alone.

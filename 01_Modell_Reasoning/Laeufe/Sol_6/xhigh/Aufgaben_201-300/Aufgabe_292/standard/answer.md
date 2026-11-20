@@ -1,0 +1,3 @@
+Polling now has a managed lifecycle: `Poller.Close()` cancels its context and waits for the loop and any active update to finish. Git, local, S3, Azure Blob, and OCI snapshot stores expose `Close()`, and the declarative store wrapper forwards it.
+
+All affected package tests and the focused race-enabled lifecycle tests passed. Service-backed integration cases requiring configured endpoints were skipped.

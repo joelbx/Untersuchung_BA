@@ -1,0 +1,5 @@
+The fault is in [parse.go](/app/lib/utils/parse/parse.go:117): `Variable` parses template expressions, but the package has no `Matcher` interface, `Match` function, or matcher types. Its AST walker accepts only `email.local`, so `regexp.match` and `regexp.not_match` cannot be parsed. The checked-in [parse tests](/app/lib/utils/parse/parse_test.go:27) cover interpolation only; they pass.
+
+The fix belongs primarily in `parse.go`. It needs to parse one matcher expression, reject variable parts and transforms, validate function names and string arguments, and preserve static prefix and suffix text. [GlobToRegexp](/app/lib/utils/replace.go:19) provides the existing wildcard conversion; converted patterns need anchors. `Variable` also needs the specified matcher-function error.
+
+One behavior remains uncertain from the local code and tests: whether regex function arguments should match a substring or the whole input. The requirements explicitly call for anchors on converted globs only. I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were not changed.

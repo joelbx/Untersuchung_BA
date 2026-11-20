@@ -1,0 +1,3 @@
+Implemented gRPC handling for `x-flipt-accept-server-version`. The interceptor accepts versions with or without `v`, stores the parsed version in the request context, and uses `1.0.0` when the header is missing or invalid. It is registered in the server’s unary interceptor chain.
+
+Two subagents handled the tests and server wiring; I reviewed the combined patch. The full middleware package tests and the existing `TestNewGRPCServer` test passed offline.

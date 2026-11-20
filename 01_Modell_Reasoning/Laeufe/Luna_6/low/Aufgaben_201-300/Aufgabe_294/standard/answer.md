@@ -1,0 +1,3 @@
+Implemented symlink preservation and safe extraction in [collection.py](/app/lib/ansible/galaxy/collection.py). Internal symlinks are recorded as links and written to the tar with relative targets; external symlinks are stored as regular file entries. Install now recreates contained symlinks and rejects paths outside the collection. The tar helpers expose both `TarInfo` and the readable stream.
+
+Updated the focused tests in [test_collection.py](/app/test/units/galaxy/test_collection.py). **Verification:** all 59 tests passed, and `git diff --check` passed.

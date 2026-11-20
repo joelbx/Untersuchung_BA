@@ -1,0 +1,3 @@
+Updated the mailbox list so requests wait for tracked backend actions to finish, and responses that overlap those actions are discarded. Failed fetches retry after 2 seconds; responses marked stale retry after 1 second without being cached. Loading now reflects the requested page and query, and delayed retries are skipped if that context changes.
+
+Verification passed: 43 relevant tests, TypeScript, ESLint, and `git diff --check`.

@@ -1,0 +1,3 @@
+Fixed the Drive member view so it reads and updates members, internal invitations, and external invitations by share ID. Added `getExistingEmails` to combine addresses from all three lists. The changes are mirrored in the Drive application and `drive-store` package.
+
+Verification passed: the new isolation tests in both copies, the existing share store tests, TypeScript checks for both projects, and `git diff --check`.

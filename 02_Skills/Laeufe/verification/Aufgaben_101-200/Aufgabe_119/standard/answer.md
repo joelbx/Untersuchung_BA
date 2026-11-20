@@ -1,0 +1,3 @@
+Refactored [Pill](/app/src/components/views/elements/Pill.tsx) into a functional component and extracted permalink resolution into the public [usePermalink hook](/app/src/hooks/usePermalink.tsx). Updated callers to use named imports and added [Pill tests](/app/test/components/views/elements/Pill-test.tsx).
+
+The focused run passed **7 tests** across 2 suites. ESLint, Prettier, and `git diff --check` passed. The full TypeScript check still fails on SDK type errors in three unchanged files; it reported no errors in the edited files.

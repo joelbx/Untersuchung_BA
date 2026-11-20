@@ -1,0 +1,3 @@
+Updated the inventory stream to report its peer address and changed SSH heartbeat handling to replace wildcard or loopback hosts with the peer host while preserving port `3022`. The standalone in-memory stream now supplies an advertise or discovered host.
+
+`go test ./lib/inventory -count=1` passed. API tests were blocked by missing cached modules; service compilation was blocked by the missing `linux/hidraw.h` header.

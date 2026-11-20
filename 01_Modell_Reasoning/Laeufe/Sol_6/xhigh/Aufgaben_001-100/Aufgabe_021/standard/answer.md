@@ -1,0 +1,3 @@
+Updated the [List and Seed model](/app/openlibrary/core/lists/model.py:29) with explicit types, key based seed comparisons, and exports that always contain `authors`, `works`, and `editions` as loaded, type filtered dictionaries. The [list plugin](/app/openlibrary/plugins/openlibrary/lists.py:30) now normalizes subject keys through one helper and provides a subject string type guard. URL helpers also have string return annotations.
+
+Verification: 21 relevant tests passed; focused mypy, Ruff, and `git diff --check` passed. The separate legacy `test_listapi.py` could not collect because its `cookielib` import is unavailable on Python 3.

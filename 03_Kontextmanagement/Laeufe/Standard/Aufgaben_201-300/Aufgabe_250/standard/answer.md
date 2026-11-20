@@ -1,0 +1,3 @@
+Added `luqum_replace_child` in [query_utils.py](/app/openlibrary/solr/query_utils.py). It replaces every equal direct child for supported parent types, preserves the children sequence type and order, and raises the existing `ValueError` for unsupported parents.
+
+Added coverage in [test_query_utils.py](/app/openlibrary/tests/solr/test_query_utils.py). The Solr test suite passes: **80 tests passed**.

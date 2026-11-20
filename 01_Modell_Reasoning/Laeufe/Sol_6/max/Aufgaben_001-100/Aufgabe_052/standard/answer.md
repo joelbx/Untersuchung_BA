@@ -1,0 +1,3 @@
+Added the `model.TokenCount` API and updated `Chat.Complete` and `Agent.PlanAndExecute` to return non-nil token counts. Prompt and completion usage now accumulates across agent steps, including streamed responses. Assist and Web consume the returned count.
+
+`GOPROXY=off GOSUMDB=off go test -race ./lib/ai/model ./lib/ai` passes. Assist and Web tests could not build in this container because required native headers and bindings are missing.

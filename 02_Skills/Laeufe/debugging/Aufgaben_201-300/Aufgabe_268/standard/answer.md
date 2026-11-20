@@ -1,0 +1,3 @@
+Updated [GUIProcess error handling](/app/qutebrowser/misc/guiprocess.py) to show the capitalized process name, quoted command, error type, and process detail. Missing-file and permission-denied startup errors also get the requested hint on non-Windows platforms. Updated the unit tests and spawn feature expectation.
+
+The unit suite passed: **28 tests**. The end-to-end scenario could not reach its assertion because the browser fixture could not import QtWebKit; that limitation is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

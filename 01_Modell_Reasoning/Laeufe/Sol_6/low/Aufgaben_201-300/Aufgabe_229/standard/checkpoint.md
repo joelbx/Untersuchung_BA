@@ -1,0 +1,1 @@
+Implemented local group and user image cleanup, including legacy and timestamped profile filenames. ESLint and git diff --check pass. Existing Mocha user tests blocked by Redis ECONNREFUSED at 127.0.0.1:6379.

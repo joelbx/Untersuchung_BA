@@ -1,0 +1,3 @@
+Email confirmation expiry and resend behavior is fixed in [src/user/email.js](/app/src/user/email.js). Pending checks now return booleans, remaining TTL comes from the store in milliseconds, and resends follow the configured interval. Expiring a confirmation clears its marker and code; codes without an active marker are rejected. I also added a one-day expiry default and an admin setting.
+
+Verification passed: 256 user tests, 6 focused confirmation tests, 6 email API tests, ESLint, and `git diff --check`.

@@ -1,0 +1,3 @@
+Exported `DefaultConfig()` using the existing default values and `DecodeHooks` using the hooks already used by production. `Load` now composes those exported hooks. I also changed Storage’s Local and Git fields to pointers and made their validation nil safe.
+
+The existing config and command tests pass, and `git diff --check` is clean. The repository does not contain the referenced `config/schema_test.go`, so I could not run that specific CUE validation test.

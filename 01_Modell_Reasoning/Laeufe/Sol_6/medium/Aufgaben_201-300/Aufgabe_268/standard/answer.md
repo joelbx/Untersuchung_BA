@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) so process errors identify the capitalized process name, the command in single quotes, the error type, and QProcess’s detail. On non-Windows platforms, missing-file and permission errors also include the executable hint. The unit tests and spawn scenario expectation were updated.
+
+All 28 guiprocess unit tests pass. The targeted end-to-end scenario could not reach its assertion because the browser exited during startup when QtWebKit was unavailable.

@@ -1,0 +1,3 @@
+Updated [TaskExecutor](/app/lib/ansible/executor/task_executor.py) to resolve task-level delegation before loop processing and evaluate loop items once. Item-dependent targets such as `{{ item }}` are resolved once for each item. [VariableManager](/app/lib/ansible/vars/manager.py) now provides `get_delegated_vars_and_hostname()`; `get_vars()` no longer resolves delegation by default, and the loop cache workaround is removed. [Task](/app/lib/ansible/playbook/task.py) now exposes `get_play()`.
+
+Verification: 40 focused unit tests and four relevant delegation playbooks pass. One older loop-control playbook fails because it asserts on an internal result key stripped by the strategy layer.

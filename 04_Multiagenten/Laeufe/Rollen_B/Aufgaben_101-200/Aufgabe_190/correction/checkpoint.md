@@ -1,0 +1,1 @@
+Correction complete: matched-edition preview now records accepted cover placeholders on edition/work without upload; new-edition previews show the same. Author matching now collects modified existing authors (remote IDs and death date), includes them in edits, and saves them in normal imports. Added focused tests. Reviewer command: 197 passed, 5 warnings. git diff --check clean.

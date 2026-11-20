@@ -1,0 +1,3 @@
+Updated the certificate error wrappers. WebKit now accepts named `reply` and `errors` arguments, leaves the reply untouched during construction, and explicitly escapes messages in both paragraph and list HTML. The shared decision methods and Qt5/Qt6 WebEngine wrappers are wired into their callers.
+
+Verification: **12 focused tests passed**; compilation and `git diff --check` passed. The broader WebEngine run exited during cookie tests without a traceback, and flake8 was unavailable. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated the composer so replaced-room notices use paragraphs and clearly state that the room is no longer active. Added a reusable, labeled [CancelButton](/app/src/components/views/buttons/Cancel.tsx), used it in the reply preview and search bar, and made the reply preview identify the sender.
+
+The relevant tests and changed-file lint checks pass. Full TypeScript checking remains blocked by existing SDK and room-settings type errors unrelated to these changes. The repository work is complete.

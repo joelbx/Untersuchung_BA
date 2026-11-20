@@ -1,0 +1,3 @@
+Added [icx_logging.py](/app/lib/ansible/modules/network/icx/icx_logging.py) with aggregate configuration, IPv4 and IPv6 syslog hosts and UDP ports, facility management, buffered levels, console and global logging controls, persistence, RFC5424, and running-config comparison for idempotency. Added [unit tests](/app/test/units/modules/network/icx/test_icx_logging.py).
+
+Verification: all 102 ICX unit tests passed, and `git diff --check` passed.

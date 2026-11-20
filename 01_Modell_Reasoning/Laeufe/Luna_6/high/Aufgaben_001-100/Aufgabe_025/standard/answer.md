@@ -1,0 +1,3 @@
+Implemented exact `${VARIABLE_NAME}` substitution as the first decode hook in [config.go](/app/internal/config/config.go:33). Resolved values are available to later hooks for type conversion; missing variables and nonmatching values stay unchanged. Added coverage for multiple substitutions, integer and log encoding conversion, and `FLIPT_...` overrides in [config_test.go](/app/internal/config/config_test.go:34).
+
+`go test ./internal/config` and `git diff --check` pass.

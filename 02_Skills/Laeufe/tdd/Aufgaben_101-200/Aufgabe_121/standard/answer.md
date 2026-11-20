@@ -1,0 +1,3 @@
+Added `flipt.is_auth_method(input, method)` to both authorization engines. It accepts the seven supported labels, maps `k8s` and `kubernetes` to the same protocol code, returns a boolean for matches, and reports the specified errors for missing authentication and unsupported labels.
+
+The authorization tests pass. The full `go test ./...` run did not pass: Redis tests require an unavailable Docker daemon, and a gitfs test received a Forbidden response from GitHub. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

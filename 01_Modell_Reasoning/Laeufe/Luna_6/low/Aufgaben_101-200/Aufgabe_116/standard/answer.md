@@ -1,0 +1,3 @@
+Implemented privileged chat gating across middleware and chat operations. `privileges.global.can` now accepts a privilege string or array, and the profile response includes `canChat`, documented in OpenAPI. Added the admin privilege label.
+
+Checks: ESLint, locale JSON parsing, OpenAPI YAML parsing, and `git diff --check` passed. The messaging tests could not run because Redis was unavailable at `127.0.0.1:6379`.

@@ -1,0 +1,3 @@
+Moved `extra_suffixes_workaround` to module scope in [webview.py](/app/qutebrowser/browser/webengine/webview.py). It adds missing suffixes for exact and wildcard MIME types only on affected Qt versions. `chooseFiles` now passes a deduplicated union as the third argument in its single superclass fallback call; the existing external picker path remains intact.
+
+Updated the [webview tests](/app/tests/unit/browser/webengine/test_webview.py). All 25 pass, and `git diff --check` passes.

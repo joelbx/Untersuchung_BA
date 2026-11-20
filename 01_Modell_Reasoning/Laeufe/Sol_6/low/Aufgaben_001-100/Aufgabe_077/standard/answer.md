@@ -1,0 +1,3 @@
+Added date based deprecations across Python module utilities, Display, C#, and validate-modules. `AnsibleModule` now records date entries, rejects calls that supply both a version and a date, and preserves the requested order when merging deprecations in `exit_json`.
+
+Verification: 78 targeted tests passed, the remaining test passed in isolation, and Python compilation and `git diff --check` passed. The combined test run had one warning-state failure caused by an earlier test leaving a global warning.

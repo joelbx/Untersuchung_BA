@@ -1,0 +1,3 @@
+Added `token` to the audit checker’s resource map and wildcard expansion, with tests for `token:created`, `token:deleted`, and wildcard filters. Authentication gRPC setup now passes whether `token:deleted` is enabled, and the authentication server uses that boolean to gate token deletion events. Updated the audit filter documentation.
+
+Verification passed: `go test ./internal/server/audit ./internal/server/auth ./internal/cmd` and `git diff --check`.

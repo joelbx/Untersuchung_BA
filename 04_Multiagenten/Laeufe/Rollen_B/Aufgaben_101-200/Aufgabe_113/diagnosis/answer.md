@@ -1,0 +1,5 @@
+The missing functionality is in [nxos_vrf_af.py](/app/lib/ansible/modules/network/nxos/nxos_vrf_af.py:79). `main()` accepts only the EVPN auto route-target option; it has no `route_targets` argument or logic to compare manual import and export entries.
+
+The fix should validate each route-target dictionary, add the specified directions for `state=present`, remove them for `state=absent`, and apply mixed entries in one command batch. Comparisons should use complete lines from the selected VRF and AF block so existing entries remain idempotent and unrelated contexts are untouched. AF removal should continue to ignore route-target options. The requested top-level `match_current_rt` helper belongs in this file.
+
+[Unit tests](/app/test/units/modules/network/nxos/test_nxos_vrf_af.py:48) do not cover manual values or an existing AF. Uncertainty remains around device behavior for duplicate or contradictory entries in one request. I did not edit source or tests because the assigned specialist role permits diagnosis only.

@@ -1,0 +1,3 @@
+Implemented `Teleport-Proxy` SSH support. The [multiplexer](/app/lib/multiplexer/multiplexer.go) now routes valid prefixed connections to SSH and exposes `ClientAddr` through `RemoteAddr()`. The [SSH server parser](/app/lib/sshutils/server.go) handles fragmented headers up to 64 KiB while preserving tracing metadata. Tests cover ordinary SSH behavior.
+
+Two subagents worked on mux tests and server parsing tests. I reviewed the combined patch; `go test ./lib/multiplexer ./lib/sshutils -count=1` and `git diff --check` passed.

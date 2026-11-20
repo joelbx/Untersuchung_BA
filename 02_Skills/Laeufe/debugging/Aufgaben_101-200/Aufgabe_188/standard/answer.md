@@ -1,0 +1,3 @@
+Storage units now come from [helpers/size.ts](/app/packages/shared/lib/helpers/size.ts). I updated member allocation, CSV import, organization setup, bonus storage, and other component and shared storage calculations to use those values. Drive Pro and Drive Business initial allocations now use `sizeUnits.TB`.
+
+The relevant Jest tests passed: **65 tests and 5 snapshots**. Both package type checks remain blocked by the same type mismatch in untouched crypto dependencies; the details are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,2 @@
+Task: Fix BatchEvaluate handling of disabled flags, response ordering and timing, and migrate protobuf empty/timestamp types.
+Status: Complete. Implemented ErrDisabled, ordered batch entries with disabled value and per-entry timing, protobuf well-known type migration, and focused tests. Preserved single Evaluate gRPC InvalidArgument mapping and timestamp validation. Verified with GOPROXY=off GOSUMDB=off go test -mod=mod ./... and git diff --check.

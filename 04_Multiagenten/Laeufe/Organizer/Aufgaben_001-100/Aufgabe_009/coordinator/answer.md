@@ -1,0 +1,3 @@
+Added session renaming for both the current session and other devices. The new [DeviceDetailHeading](/app/src/components/views/settings/devices/DeviceDetailHeading.tsx) provides a 100-character editor with Save, Cancel, progress, visibility guidance, and the required failure message. Saves use the SDK through `useOwnDevices` and update the session heading and tile immediately.
+
+Verification: 52 tests passed across five relevant suites; ESLint, Stylelint, and `git diff --check` passed. Type checking remains blocked by three existing `IRequest.abort` errors in the installed Matrix SDK. No delegation was used.

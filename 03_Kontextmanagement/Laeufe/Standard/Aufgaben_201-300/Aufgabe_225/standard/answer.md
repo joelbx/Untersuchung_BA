@@ -1,0 +1,3 @@
+Added a dedicated `KEVs` field to the vulnerability model, with CISA and VulnCheck details, due date normalization, a KEV count summary, and consistent JSON sorting. The detector now populates that field from both sources while preserving the legacy CISA alert. It uses the newer `go-kev` version already in the local cache.
+
+Offline tests passed for `models`, `detector`, `reporter`, `server`, and `tui`.

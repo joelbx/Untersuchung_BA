@@ -1,0 +1,3 @@
+Session renaming is implemented for both the current session and other sessions. The new [DeviceDetailHeading](/app/src/components/views/settings/devices/DeviceDetailHeading.tsx) provides a 100-character input, Save and Cancel actions, a saving indicator, and the required error message. Successful saves update the session list immediately through [useOwnDevices](/app/src/components/views/settings/devices/useOwnDevices.ts).
+
+All 53 relevant tests pass; ESLint and stylelint pass. TypeScript reports only three errors in `node_modules/matrix-js-sdk/src/http-api.ts` concerning `IRequest.abort`.

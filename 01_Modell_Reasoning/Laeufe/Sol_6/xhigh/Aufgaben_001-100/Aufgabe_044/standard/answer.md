@@ -1,0 +1,3 @@
+Implemented the namespace access fix. Both authorization engines now evaluate `viewable_namespaces`; middleware passes the result to the [namespace listing service](/app/internal/server/namespace.go), which filters and paginates accessible namespaces and reports their count. The [UI layout](/app/ui/src/app/Layout.tsx) redirects a saved or bookmarked `default` route to an accessible namespace.
+
+`GOPROXY=off go test ./internal/server/authz/... ./internal/server -count=1` passed. The UI build was not run because its dependencies are absent locally. Policies must define the `viewable_namespaces` decision for namespace listing to succeed.

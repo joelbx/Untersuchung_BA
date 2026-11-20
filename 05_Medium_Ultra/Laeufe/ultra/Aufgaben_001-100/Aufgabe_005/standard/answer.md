@@ -1,0 +1,3 @@
+Moved Qt machinery initialization into early startup and passed its `SelectionInfo` to the availability checker. When neither wrapper imports, the checker now raises `NoWrapperAvailableError` with both import failures. Machinery also returns `INFO`, formats selection details consistently, and records exception types; debug logging prints the current selection info. Focused tests were updated for these paths.
+
+I delegated the machinery, early initialization, and test changes to three agents, then reviewed the combined patch. Verification passed: 48 focused tests, 19 startup tests, and `git diff --check`. A full version test run exited during an existing QtWebEngine runtime test without a failure summary; the affected version-info tests passed.

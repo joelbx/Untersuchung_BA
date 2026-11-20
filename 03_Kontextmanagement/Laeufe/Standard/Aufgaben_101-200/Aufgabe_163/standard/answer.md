@@ -1,0 +1,3 @@
+Database configuration now accepts either `db.url` or separate protocol, host or SQLite path, port, user, password, and name fields. A URL takes precedence; discrete settings get engine-specific default ports and field-qualified validation errors. Startup and migrations use the same connection resolver and runtime settings, and parsing and connection errors no longer expose credentials. I also added configuration examples.
+
+Verification: `GOPROXY=off go test ./...` and `git diff --check` passed.

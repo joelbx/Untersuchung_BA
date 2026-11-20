@@ -1,0 +1,3 @@
+Updated [`format_languages`](/app/openlibrary/catalog/utils/__init__.py:448) to resolve two letter ISO codes and English or native language names to canonical MARC keys. It now removes duplicates while preserving first occurrence order. The [tests](/app/openlibrary/tests/catalog/test_utils.py:428) cover the reported examples and an existing two letter alias edge case.
+
+Verification: 135 relevant tests passed; Ruff and `git diff --check` passed.

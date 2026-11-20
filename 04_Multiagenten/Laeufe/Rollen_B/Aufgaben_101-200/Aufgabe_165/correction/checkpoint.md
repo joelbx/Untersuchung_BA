@@ -1,0 +1,3 @@
+Correction round started: inspecting current patch and independent review findings.
+Review findings confirmed: rejected policy lookup unlocked the toggle and creation; new forced-off microcopy was absent from en_EN.json. Fixing both and adding regression coverage.
+Fixed rejection handling: policy remains unresolved, encryption toggle and Create button remain disabled, and submit handler blocks creation. Added missing en_EN string and regression test. Flagged Jest command passed (2 suites, 19 tests); git diff --check passed. Type check still fails only at unchanged src/Unread.ts:167 (TS2339 getLastUnthreadedReceiptFor on Thread | Room).

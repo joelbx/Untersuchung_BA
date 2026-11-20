@@ -1,0 +1,3 @@
+Refactored the Drive extended-attribute service to use `XAttrCreateParams` for file creation and encryption, added `DeepPartial` and explicit public types, and made parsing return a neutral structure for malformed or partial input. Creation now omits a zero remainder block and omits `Digests` when none are supplied. The upload caller and tests use the new parameter shape; the old service import path remains available through a re-export.
+
+Verification passed: 5 focused Jest tests, the Drive TypeScript check, ESLint, Prettier, and `git diff --check`.

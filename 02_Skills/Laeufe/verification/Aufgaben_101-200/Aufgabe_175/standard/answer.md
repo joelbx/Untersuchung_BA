@@ -1,0 +1,3 @@
+Implemented native SQLite backup and restore in [db/backup.go](/app/db/backup.go), the `backup create`, `backup prune`, and `backup restore` commands in [cmd/backup.go](/app/cmd/backup.go), and backup configuration and scheduling. Restore and zero-retention pruning require confirmation unless `--force` is passed.
+
+Verification: `GOTOOLCHAIN=local GOPROXY=off go test ./...` and `git diff --check` both passed.

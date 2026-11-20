@@ -1,0 +1,3 @@
+Implemented reverse proxy login with a configurable username header (`Remote-User` by default) and an IP whitelist that is empty by default. Navidrome checks the connection’s original peer address, creates users on first proxy login, and sends session data to the frontend only after a trusted request succeeds. The frontend stores the session fields, and log redaction now handles nested maps. Configuration guidance is in the [README](/app/README.md).
+
+Verification passed: relevant Go tests, all 36 UI tests, UI lint and formatting, and `git diff --check`.

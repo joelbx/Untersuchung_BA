@@ -1,0 +1,3 @@
+Implemented the mailbox loading and retry changes. The hook now passes page and query params to the loading selector and waits for `pendingActions` to reach zero before loading. Added backend action counters, separate retries for failed and stale responses, and `Stale` propagation from the API response.
+
+**Verification:** TypeScript passed, and `git diff --check` passed. The focused mailbox test was still running after 1:23, so I can’t report its result.

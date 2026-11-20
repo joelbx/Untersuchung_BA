@@ -1,0 +1,3 @@
+Implemented the iterator refactor. `BreakUp` and `RangeByChunks` are removed, `CollectChunks` now takes an `iter.Seq[T]` followed by the chunk size, and new `SeqFunc` maps slice values lazily. Chunk results use independent backing arrays so retained chunks cannot alias the reused buffer.
+
+Migrated existing callers and updated slice tests. `go test ./utils/slice ./scanner ./persistence ./core` passed.

@@ -1,0 +1,5 @@
+The validation gap is in [AnsibleCollectionRef.is_valid_collection_name](/app/lib/ansible/utils/collection_loader/_collection_finder.py:846). Its `\w+` regex accepts Python keywords and names starting with digits. A direct check confirmed that all four reported examples return `True`.
+
+[dataclasses.py](/app/lib/ansible/galaxy/dependency_resolution/dataclasses.py:128) has a separate `_is_fqcn` check that rejects keywords, but Galaxy requirement inference calls that legacy helper instead of the collection-name validator. The fix should make one boolean validator check that **both segments are Python identifiers and neither is a keyword**, then route requirement inference through it and remove `_is_fqcn`, `_is_py_id`, and their compatibility code.
+
+Existing [collection-loader tests](/app/test/units/utils/collection_loader/test_collection_loader.py:700) lack keyword and leading-digit cases. I could not execute the `dataclasses.py` path because its import hit a circular-import error; that part of the diagnosis is based on the source. No project source or tests were edited, as required by my specialist role.

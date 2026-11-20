@@ -1,0 +1,1 @@
+Implemented FilePathCategory for favorites and sorted local path matches, registered it in configured URL category order, and documented the new settings. Full completion model suite: 68 passed; configdata suite: 31 passed; final focused non-local URL test: 1 passed. git diff --check clean.

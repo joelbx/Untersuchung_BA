@@ -1,0 +1,3 @@
+Added `DefaultConfig()` and exported `DecodeHooks` in [config.go](/app/internal/config/config.go). `Load` now composes those hooks. I also added the version mapstructure tag and changed Storage’s Local and Git fields to pointers, with nil-safe validation.
+
+`go test ./internal/config`, `go test ./internal/cmd`, and `git diff --check` pass. This checkout has no `config/schema_test.go`, so I could not run that CUE validation test locally.

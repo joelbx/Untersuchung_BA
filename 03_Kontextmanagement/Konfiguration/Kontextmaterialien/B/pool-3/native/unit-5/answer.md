@@ -1,0 +1,1 @@
+Batch 5 is complete. The file has **1,173 complete records**. Line 1,175 has one column instead of six and contains the incomplete fragment `3-5-`. The [JSON summary](/app/catalogue-5-summary.json) passed a second local check.

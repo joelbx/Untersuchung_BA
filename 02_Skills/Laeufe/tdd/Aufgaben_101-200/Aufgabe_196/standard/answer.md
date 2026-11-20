@@ -1,0 +1,3 @@
+Updated the assistant upsell flows to use the shared Scribe addon resolver and build `planIDs` consistently. The payments/core public entrypoint now exports the resolver and `SelectedPlan`, and the affected imports use that entrypoint.
+
+The new regression tests failed on the old Mail Plus fallback and pass after the fix. The component suite passed: **1007 tests**. The type check remains blocked by an unrelated OpenPGP type conflict in `packages/crypto/lib/worker/api.ts`.

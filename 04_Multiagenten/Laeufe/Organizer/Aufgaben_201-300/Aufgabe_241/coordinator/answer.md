@@ -1,0 +1,3 @@
+Updated [VoiceBroadcastPreRecordingPip](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx) so “Go live” is a native button that disables immediately and ignores repeated activation until `start()` settles. Device selection now closes cleanly, updates the header label, and can be reopened after dismissal. Expanded the interaction tests and updated the snapshot.
+
+The targeted Jest suite passed (12 tests), as did ESLint and Prettier. Full TypeScript checking remains blocked by five unrelated existing `MatrixClient` type errors. I made the changes directly; no delegation was used.

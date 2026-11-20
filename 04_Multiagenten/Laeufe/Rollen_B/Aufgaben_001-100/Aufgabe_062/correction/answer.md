@@ -1,0 +1,3 @@
+Fixed the password prompt race. On Unix, the reader now enters password mode while holding the same lock used by cancellation and `Close`, so restoration cannot finish before echo is disabled. The patch also restores terminal state on canceled reads and exit, and adds a Linux terminal regression test.
+
+The two reviewer flagged tests pass. The prompt package also cross compiles for Darwin. No `TEST_ENVIRONMENT_PROBLEM` remains.

@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` for [Mongo](/app/src/database/mongo/hash.js) and [Redis](/app/src/database/redis/hash.js), with shared input and field validation. Each key’s fields update atomically; successful keys have their cache entries invalidated, while failed keys remain unchanged.
+
+Focused Mongo mock and isolated Redis server checks passed, along with ESLint and diff checks. The configured database suite was not run because its setup resets the database.

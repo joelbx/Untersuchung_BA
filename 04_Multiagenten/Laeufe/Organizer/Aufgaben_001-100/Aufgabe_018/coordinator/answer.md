@@ -1,0 +1,3 @@
+Updated configuration decoding so scalar strings for `[]string` fields split on whitespace. Leading, trailing, and repeated whitespace are ignored; empty strings produce an empty slice. Explicitly empty ENV values now reach the decoder.
+
+Updated the CORS fixture and added YAML, ENV, and decode-hook coverage. `go test ./internal/config -count=1` and `git diff --check` passed. No delegation was used.

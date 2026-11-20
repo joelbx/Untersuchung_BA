@@ -1,0 +1,227 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 7d2b27a..503e775 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -76,6 +76,7 @@ SUSPECT_PUBLICATION_DATES: Final = [
+ ]
+ SUSPECT_AUTHOR_NAMES: Final = ["unknown", "n/a"]
+ SOURCE_RECORDS_REQUIRING_DATE_SCRUTINY: Final = ["amazon", "bwb", "promise"]
++SUSPECT_DATE_EXEMPT_SOURCES: Final = ["wikisource"]
+ ALLOWED_COVER_HOSTS: Final = ("m.media-amazon.com", "books.google.com")
+ 
+ 
+@@ -228,6 +229,18 @@ def build_author_reply(authors_in, edits, source):
+             a['key'] = web.ctx.site.new_key('/type/author')
+             a['source_records'] = [source]
+             edits.append(a)
++        elif getattr(a, '_author_import_modified', False):
++            author_data = a.dict()
++            for field in (
++                'id',
++                'revision',
++                'latest_revision',
++                'last_modified',
++                'created',
++            ):
++                author_data.pop(field, None)
++            edits.append(author_data)
++            a._author_import_modified = False
+         authors.append({'key': a['key']})
+         author_reply.append(
+             {
+@@ -749,6 +762,7 @@ def normalize_import_record(rec: dict) -> None:
+     # Remove suspect publication dates from certain sources (e.g. 1900 from Amazon).
+     if any(
+         source_record.split(":")[0] in SOURCE_RECORDS_REQUIRING_DATE_SCRUTINY
++        and source_record.split(":")[0] not in SUSPECT_DATE_EXEMPT_SOURCES
+         and rec.get('publish_date') in SUSPECT_PUBLICATION_DATES
+         for source_record in rec['source_records']
+     ):
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index 7d463ac..6c03f40 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -133,7 +133,75 @@ def pick_from_matches(author: dict[str, Any], match: list["Author"]) -> "Author"
+         maybe = match
+     if len(maybe) == 1:
+         return maybe[0]
+-    return min(maybe, key=key_int)
++    return min(maybe, key=author_key_sort_key)
++
++
++def author_key_sort_key(author: "Author") -> tuple[int, int | str, str]:
++    """Return a stable sort key for author records, including nonstandard keys."""
++    key = author['key']
++    try:
++        return (0, key_int(author), key)
++    except (TypeError, ValueError):
++        return (1, key, key)
++
++
++def find_author_by_key(author: dict[str, Any]) -> "Author | None":
++    """Resolve an imported Open Library author key, following redirects."""
++    key = author.get('key')
++    if not isinstance(key, str) or not key:
++        return None
++    if not key.startswith('/'):
++        key = f"/authors/{key}"
++
++    existing = web.ctx.site.get(key)
++    seen = set()
++    while existing and existing.type.key == '/type/redirect':
++        if existing.key in seen:
++            return None
++        seen.add(existing.key)
++        location = existing.get('location')
++        if isinstance(location, dict):
++            location = location.get('key')
++        if not location:
++            return None
++        existing = web.ctx.site.get(location)
++
++    if existing and existing.type.key == '/type/author':
++        return existing
++    return None
++
++
++def find_author_by_remote_ids(author: dict[str, Any]) -> "Author | None":
++    """Find the strongest deterministic match from an import's remote IDs."""
++    remote_ids = author.get('remote_ids') or {}
++    if not remote_ids:
++        return None
++
++    matches = {}
++    for identifier_type, identifier in sorted(remote_ids.items()):
++        if not identifier:
++            continue
++        query = {
++            'type': '/type/author',
++            f'remote_ids.{identifier_type}': identifier,
++        }
++        for key in web.ctx.site.things(query):
++            matches[key] = web.ctx.site.get(key)
++
++    matches = [a for a in matches.values() if a and a.type.key == '/type/author']
++    if not matches:
++        return None
++
++    def match_rank(existing: "Author") -> tuple[int, int, int | str, str]:
++        existing_ids = existing.get('remote_ids', {}) or {}
++        matching_count = sum(
++            1
++            for identifier_type, identifier in remote_ids.items()
++            if identifier and existing_ids.get(identifier_type) == identifier
++        )
++        return (-matching_count, *author_key_sort_key(existing))
++
++    return min(matches, key=match_rank)
+ 
+ 
+ def find_author(author: dict[str, Any]) -> list["Author"]:
+@@ -182,9 +250,14 @@ def find_entity(author: dict[str, Any]) -> "Author | None":
+     :return: Existing Author record if found, or None.
+     """
+     assert isinstance(author, dict)
++    if existing := find_author_by_key(author):
++        return existing
++    if existing := find_author_by_remote_ids(author):
++        return existing
++
+     things = find_author(author)
+     if author.get('entity_type', 'person') != 'person':
+-        return things[0] if things else None
++        return pick_from_matches(author, things) if things else None
+     match = []
+     seen = set()
+     for a in things:
+@@ -245,15 +318,29 @@ def import_author(author: dict[str, Any], eastern=False) -> "Author | dict[str,
+         do_flip(author)
+     if existing := find_entity(author):
+         assert existing.type.key == '/type/author'
+-        for k in 'last_modified', 'id', 'revision', 'created':
+-            if existing.k:
+-                del existing.k
+         new = existing
++        incoming_ids = author.get('remote_ids') or {}
++        existing_ids = existing.get('remote_ids', {}) or {}
++        merged_ids = existing_ids
++        if incoming_ids:
++            merged_ids, _ = existing.merge_remote_ids(incoming_ids)
+         if 'death_date' in author and 'death_date' not in existing:
+             new['death_date'] = author['death_date']
++            new._author_import_modified = True
++        if merged_ids != existing_ids:
++            new['remote_ids'] = merged_ids
++            new._author_import_modified = True
+         return new
+     a = {'type': {'key': '/type/author'}}
+-    for f in 'name', 'title', 'personal_name', 'birth_date', 'death_date', 'date':
++    for f in (
++        'name',
++        'title',
++        'personal_name',
++        'birth_date',
++        'death_date',
++        'date',
++        'remote_ids',
++    ):
+         if f in author:
+             a[f] = author[f]
+     return a
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index 604b5e4..8bf754e 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -760,6 +760,10 @@ class Work(Thing):
+         logger.info(f"[update-redirects] Done, processed {total}, fixed {fixed}")
+ 
+ 
++class AuthorRemoteIdConflictError(ValueError):
++    """Raised when imported author remote IDs disagree with stored IDs."""
++
++
+ class Author(Thing):
+     """Class to represent /type/author objects in OL."""
+ 
+@@ -769,6 +773,41 @@ class Author(Thing):
+     def get_url_suffix(self):
+         return self.name or "unnamed"
+ 
++    def merge_remote_ids(
++        self, incoming_ids: dict[str, str]
++    ) -> tuple[dict[str, str], int]:
++        """Merge incoming identifiers and count identifiers already in common.
++
++        An identifier type can only have one value for an author. Empty incoming
++        values do not replace an existing value.
++        """
++        existing_ids = self.get("remote_ids", {}) or {}
++        merged_ids = dict(existing_ids)
++        matching_ids = 0
++        conflicts = []
++
++        for identifier_type, incoming_value in incoming_ids.items():
++            existing_value = existing_ids.get(identifier_type)
++            if existing_value and incoming_value and existing_value != incoming_value:
++                conflicts.append(
++                    f"{identifier_type} (existing {existing_value!r}, "
++                    f"incoming {incoming_value!r})"
++                )
++                continue
++
++            if incoming_value and existing_value == incoming_value:
++                matching_ids += 1
++            elif incoming_value or identifier_type not in merged_ids:
++                merged_ids[identifier_type] = incoming_value
++
++        if conflicts:
++            raise AuthorRemoteIdConflictError(
++                f"Conflicting remote IDs for author {self.key}: "
++                + ", ".join(sorted(conflicts))
++            )
++
++        return merged_ids, matching_ids
++
+     def wikidata(
+         self, bust_cache: bool = False, fetch_missing: bool = False
+     ) -> WikidataEntity | None:

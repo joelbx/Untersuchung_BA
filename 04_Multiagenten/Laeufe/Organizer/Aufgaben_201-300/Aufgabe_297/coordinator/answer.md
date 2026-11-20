@@ -1,0 +1,5 @@
+Implemented reverse proxy login. `ReverseProxyWhitelist` now checks the connection address against IPv4 and IPv6 ranges, individual IPs, `IP:port` entries, and the special Unix socket value `@`. An empty whitelist disables proxy login. `ReverseProxyUserHeader` defaults to `Remote-User`, and `ReverseProxyDefaultUser` provides an optional fallback.
+
+Trusted requests create a missing user on first login, make the first user admin, update `LastLoginAt`, and return the token and Subsonic fields the frontend needs to initialize its session. Untrusted requests receive no `auth` payload. I also removed full configuration payload logging and added nested map redaction for sensitive fields.
+
+Verification passed: `go test ./...`, 34 frontend tests, lint, formatting, and the affected Go package tests after the final edits. No delegation was used.

@@ -1,0 +1,3 @@
+Updated anonymous telemetry to version **1.3**. The payload now includes `flipt.audit.sinks` with `log`, `webhook`, or both when those sinks are enabled, and omits `audit` when neither is enabled. The existing telemetry fields retain their structure and behavior.
+
+Added coverage for each sink combination in [telemetry_test.go](/app/internal/telemetry/telemetry_test.go). The telemetry package tests and `git diff --check` pass.

@@ -1,0 +1,1 @@
+Implemented greedy merging of adjacent search-result timelines at a shared event_id, with one tile per chain, no repeated pivot, match indexes, and per-match links. Updated tile call-grouping input and tests. Focused Jest: 9 passed; TypeScript, ESLint, Prettier, and git diff --check passed.

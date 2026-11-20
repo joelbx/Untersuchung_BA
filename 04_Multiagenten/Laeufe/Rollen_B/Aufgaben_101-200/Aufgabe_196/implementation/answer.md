@@ -1,0 +1,3 @@
+Updated the assistant upsell paths to use the shared Scribe addon resolver. Both paid flows now build `planIDs` from the selected plan and add a Scribe addon only when the resolver finds one. I also exported `SelectedPlan` and the resolver from `payments/core` and moved the affected imports to that public entrypoint.
+
+The focused upsell tests pass (11/11), including new cases for a plan without a Scribe addon. Formatting and `git diff --check` pass. The components TypeScript check remains blocked by an unrelated `openpgp` type mismatch in `packages/crypto/lib/worker/api.ts`.

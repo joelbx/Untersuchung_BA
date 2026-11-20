@@ -1,0 +1,3 @@
+Added a per-user or guest-session posting lock to [topics.js](/app/src/controllers/write/topics.js). Overlapping create requests now receive HTTP 400 with `status.code: "bad-request"`; the accepted request keeps the existing `status.code: "ok"` response. The lock also covers replies and is released after success or failure.
+
+Added a concurrent request regression test that checks the responses, the single created topic, and topic counters. Lint and syntax checks pass. The test could not start because the local Redis test service refused the connection.

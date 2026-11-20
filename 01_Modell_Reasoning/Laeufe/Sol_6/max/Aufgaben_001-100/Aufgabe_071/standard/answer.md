@@ -1,0 +1,3 @@
+Updated the [PowerShell CLIXML parser](/app/lib/ansible/plugins/shell/powershell.py:32) to decode UTF-16 escape tokens and surrogate pairs, preserve control characters and unpaired surrogates, and join matching stream text with separators only between blocks. Added [unit coverage](/app/test/units/plugins/shell/test_powershell.py:77).
+
+Verification: all 11 PowerShell shell tests pass; `git diff --check` passes.

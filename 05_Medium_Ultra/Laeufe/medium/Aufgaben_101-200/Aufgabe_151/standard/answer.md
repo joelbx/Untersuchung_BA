@@ -1,0 +1,3 @@
+Updated [webview.py](/app/qutebrowser/browser/webengine/webview.py) so the file picker adds missing suffixes for accepted MIME types on affected Qt versions (6.2.3 through 6.6.x). Added coverage in [test_webview.py](/app/tests/unit/browser/webengine/test_webview.py) for wildcard and specific MIME types, existing suffixes, and version boundaries.
+
+All 11 focused tests pass. The broader WebEngine suite aborted during Qt application setup before reaching these tests.

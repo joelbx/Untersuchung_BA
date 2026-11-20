@@ -1,0 +1,1 @@
+Implemented contextual plugin errors, loader results, tombstone handling, centralized display formatting, and consumer updates. Compilation and 10 focused display/template tests pass. Broader legacy tests have failures in template JSON conversion and an action mock that still supplies the old `find_plugin` API.

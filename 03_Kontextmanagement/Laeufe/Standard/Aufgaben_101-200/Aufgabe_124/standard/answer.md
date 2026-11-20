@@ -1,0 +1,3 @@
+Implemented DynamoDB `billing_mode` support. It accepts `pay_per_request` and `provisioned`, defaults to `pay_per_request`, and sends the corresponding AWS billing mode and throughput settings when creating a table. Initialization now uses an existing table’s reported billing mode to disable auto scaling when the table is on-demand, with a log message; it does the same before creating an on-demand table.
+
+Updated the [backend documentation](/app/docs/pages/reference/backends.mdx) and added focused tests. `go test ./lib/backend/dynamo -count=1` and `git diff --check` pass.

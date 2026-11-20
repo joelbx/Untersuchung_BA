@@ -1,0 +1,3 @@
+Updated [module_common.py](/app/lib/ansible/executor/module_common.py) so new-style Python modules use their declared shebang and arguments by default. Explicit inventory or config overrides take precedence; modules without a shebang fall back to `/usr/bin/python`. Shebang replacement preserves the original argument text, and the encoding line follows the shebang.
+
+Validation: 64 relevant tests passed, and `git diff --check` passed. The test run emitted one `ZipFile.__del__` warning.

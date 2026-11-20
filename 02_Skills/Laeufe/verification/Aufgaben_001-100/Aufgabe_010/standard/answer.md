@@ -1,0 +1,3 @@
+Updated the composer so replaced-room notices use paragraphs and clearly state that the room is no longer active. Added a reusable, labelled cancel button for reply, search, and link previews. Reply previews now identify the sender, including for emote messages.
+
+Verification: 11 focused tests passed; ESLint, Stylelint, and `git diff --check` passed. The full type check remains blocked by errors in untouched SDK and settings files, recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

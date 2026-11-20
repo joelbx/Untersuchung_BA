@@ -1,0 +1,3 @@
+Fixed the notification dropdown’s asynchronous loading and trigger handling, including stale response protection. Updated the fork and move category selectors, quick search focus and navigation behavior, dropdown sizing and scrolling, chat room links, and the requested database, email, install, and route handling.
+
+Verification: targeted ESLint and `git diff --check` passed; 102 relevant Mocha tests passed. No delegation was used.

@@ -1,0 +1,3 @@
+Added a first class `KEVs` field to vulnerabilities and mapped both CISA and VulnCheck records into it, including source specific details. KEV entries now sort consistently for JSON output, and scan summaries report the number of CVEs with KEVs. Missing due dates are stored as `nil`.
+
+Updated go-kev to a version already in the local cache. The existing model, detector, and reporter tests pass, along with new KEV mapping and summary tests.

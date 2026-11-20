@@ -1,0 +1,3 @@
+Implemented `storage.readOnly` across backend configuration and the UI. An explicit setting on any non-database backend now returns the required validation error. The UI uses the flag when present, defaults to read-only for non-database storage, and shows a backend-specific icon in the “Read-Only” badge. Authentication bootstrap also avoids a database connection when authentication is disabled on non-database storage.
+
+Added the required invalid configuration fixture and focused tests. `GOPROXY=off go test ./internal/config ./internal/cmd` and `git diff --check` pass. UI tests could not run because the local UI tooling is not installed.

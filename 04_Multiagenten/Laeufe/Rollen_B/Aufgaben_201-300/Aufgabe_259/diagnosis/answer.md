@@ -1,0 +1,5 @@
+The priority error is in [SolrProcessor.add_ebook_info](/app/openlibrary/solr/update_work.py:741). It puts public OCAIDs in `ia` and sets `public_scan_b`, but chooses `lending_edition_s` only from editions in the `lendinglibrary` or `inlibrary` collections. A public edition therefore cannot win that selection.
+
+The existing [multi-edition test](/app/openlibrary/tests/solr/test_update_work.py:350) reproduces the requested mix: public `OL2M`, in-library `OL3M`, and print-disabled `OL4M`. It currently **expects `OL3M`**, contrary to the requirement for `OL2M`. The three relevant existing tests pass.
+
+A fix should prioritize the public edition for `lending_edition_s`, keep `lending_identifier_s` paired with that edition, and retain all editions’ OCAIDs, collection union, and print-disabled IDs. The code appears to aggregate those latter fields for this fixture; other metadata combinations remain unverified. I left source and tests unchanged under this run’s fault-localization restriction.

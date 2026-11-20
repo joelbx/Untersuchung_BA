@@ -1,0 +1,3 @@
+Implemented namespace-aware listing. Both authorization engines now evaluate `viewable_namespaces`; the interceptor passes accessible namespaces to the service, which filters results before calculating the count and pages. Added coverage for the requested role combinations, invalid decisions, and pagination.
+
+`go test ./internal/server/authz/... ./internal/server -count=1` and `git diff --check` pass.

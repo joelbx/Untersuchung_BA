@@ -1,0 +1,3 @@
+Added an OCI snapshot source and connected it to Flipt’s gRPC storage setup. Local OCI fetches now reopen the directory so external retags are detected; the source reuses unchanged snapshots and publishes updates only when the digest changes. The change also makes `SnapshotSource.Get` context-aware and supports namespace annotations and gzip layers.
+
+The relevant config, command, fs, and OCI tests pass, as do OCI race tests. Remote registry behavior uses the existing ORAS target but was not covered by a local registry integration test.

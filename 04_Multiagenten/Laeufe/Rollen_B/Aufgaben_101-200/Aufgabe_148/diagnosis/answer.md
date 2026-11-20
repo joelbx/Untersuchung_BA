@@ -1,0 +1,5 @@
+The failure starts in [detectProto](/app/lib/multiplexer/multiplexer.go): it recognizes `SSH` but classifies a connection starting with `Teleport-Proxy` as unknown, so the multiplexer closes it before the SSH server can read the payload.
+
+The wire format is already defined in [ssh.go](/app/api/utils/sshutils/ssh.go), and [connectionWrapper.Read](/app/lib/sshutils/server.go) already parses `ClientAddr` and exposes it through `RemoteAddr()`. That parser assumes the prefix, JSON, and null terminator arrive in one read; fragmented input may still lose the address after routing is fixed. If callers of the multiplexer’s SSH listener need the address immediately, [Conn.RemoteAddr](/app/lib/multiplexer/wrappers.go) also needs an override.
+
+The fix should cover prefixed SSH with and without `ClientAddr`, fragmented and malformed payloads, and unchanged standard SSH routing. Existing mux tests cover standard SSH but not this prefix. I did not edit source or tests or run tests: the assigned fault-localization role limits this pass to diagnosis.

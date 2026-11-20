@@ -1,0 +1,3 @@
+Added `qcolor_to_qsscolor` in [qtutils.py](/app/qutebrowser/utils/qtutils.py). It returns `rgba(r, g, b, a)` with the QColor’s exact channel values. [WebView](/app/qutebrowser/browser/webkit/webview.py) and [TabBar](/app/qutebrowser/mainwindow/tabwidget.py) now use it for their background stylesheets.
+
+I delegated the helper and widget changes to two agents, then reviewed the combined patch and added a TabBar integration test. **124 targeted tests pass**, and syntax and diff checks pass. The broader TabWidget tests stop during setup at an existing `QSize(float, float)` error; WebView runtime testing was unavailable because `PyQt5.QtWebKitWidgets` is missing.

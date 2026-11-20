@@ -1,0 +1,3 @@
+The new member view now reads members, internal invitations, and external invitations for the current share only. Both Drive store copies keep those arrays by `shareId`, so setting or updating one share leaves other shares’ data intact. I also added `getExistingEmails` and isolation tests.
+
+Verification passed: both TypeScript checks, both new test suites, the existing shares store suite (18 tests), ESLint, and `git diff --check`.

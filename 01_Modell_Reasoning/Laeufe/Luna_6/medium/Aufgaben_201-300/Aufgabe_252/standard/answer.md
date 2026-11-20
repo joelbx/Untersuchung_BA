@@ -1,0 +1,3 @@
+Implemented BSD uptime gathering through `sysctl -n kern.boottime` for FreeBSD and OpenBSD. The shared sysctl parser now handles `=`, `:`, and whitespace delimiters, preserves indented continuation lines, warns on malformed lines, and returns an empty dictionary with a warning when execution fails.
+
+The existing facts unit suite reported **352 passed, 5 skipped, 1 failed**. The failure was `test_implicit_file_default_timesout`, where a timing-sensitive test unexpectedly completed before timing out.

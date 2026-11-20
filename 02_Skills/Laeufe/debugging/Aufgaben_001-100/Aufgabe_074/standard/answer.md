@@ -1,0 +1,3 @@
+Updated `FnToCLI` to parse `Path` values and typed lists of `int`, `str`, `float`, and `Path`. Required lists are positional; optional lists use `--<parameter_name>` and receive `None` when omitted. `parse_args` now accepts a token sequence, and `run()` returns the wrapped function’s result for both synchronous and asynchronous functions. Existing dashed option names remain accepted.
+
+Verification: 9 tests passed; Ruff and `git diff --check` passed.

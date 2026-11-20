@@ -1,0 +1,3 @@
+Updated the [WinRM connection plugin](/app/lib/ansible/plugins/connection/winrm.py) to support `ansible_winrm_kinit_args`. It now parses arguments in both the custom kinit command and `kinit_args`, uses the same command line for subprocess and pexpect, and omits the default `-f` delegation flag when `kinit_args` is set. Tests also cover a unique credential cache per authentication attempt.
+
+Verification: 37 WinRM unit tests passed; `git diff --check` passed.

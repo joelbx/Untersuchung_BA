@@ -1,0 +1,3 @@
+Fixed owner-encrypted session key propagation through single and batch entity loads, the cache, and MailDetails call sites. Supplied keys are applied before decryption; cached details with failed decryption can be reloaded when the key becomes available.
+
+I delegated the loader, call-site, and regression-test work, then reviewed and verified the combined patch. **249 focused tests passed** across the REST client, cache, crypto, MailIndexer, and InboxRuleHandler suites. TypeScript, ESLint, Prettier, and `git diff --check` also passed.

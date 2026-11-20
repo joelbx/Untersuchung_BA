@@ -1,0 +1,3 @@
+Implemented Best Book Awards in the checked-out repository: persisted nominations with read-status and uniqueness checks, add/update/remove and count JSON APIs, work accessors, and updates during work redirects and account anonymization.
+
+Verification: 46 core tests passed; account tests had 3 passes and 5 expected failures. Ruff and `git diff --check` passed. The new table in [schema.sql](/app/openlibrary/core/schema.sql) must be applied to existing databases before the endpoints are used.

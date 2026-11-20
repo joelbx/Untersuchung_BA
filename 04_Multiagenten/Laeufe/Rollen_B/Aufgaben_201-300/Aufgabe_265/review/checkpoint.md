@@ -1,0 +1,5 @@
+VERDICT: FIX
+
+Review complete. No code defect found in the applied QtColor patch: HSV/HSVA first components use 359, other components use 255, and supported function names/counts are checked before dispatch. `git diff --check` passed.
+
+TEST_ENVIRONMENT_PROBLEM: `python -m pytest -q tests/unit/config/test_configtypes.py -k 'QtColor or QssColor'` exits 1 at startup because repository `pytest.ini` uses deprecated `--strict` with warnings treated as errors. `python -m pytest -o addopts='' -q tests/unit/config/test_configtypes.py -k 'QtColor or QssColor'` exits 1: 73 passed, 2 failed in `TestAll.test_from_str_hypothesis[QtColor/QssColor]` due Hypothesis's function-scoped fixture health check. `python -m pytest -o addopts='' -q tests/unit/config/test_configtypes.py::TestQtColor tests/unit/config/test_configtypes.py::TestQssColor` exits 0: 55 passed. To restore the broader run, update pytest config to `--strict-markers` and address the Hypothesis fixture health check (for example, use a compatible Hypothesis version or explicitly suppress that check where appropriate). No project code or tests were changed during review.

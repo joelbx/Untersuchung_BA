@@ -1,0 +1,5 @@
+The missing entry point is in [RoomSummaryCard.tsx](/app/src/components/views/right_panel/RoomSummaryCard.tsx:319). Its About group needs a “Polls history” button guarded by `useFeatureEnabled("feature_poll_history")`; the click handler should call `Modal.createDialog(PollHistoryDialog, { roomId: room.roomId })`.
+
+Two dependencies are also missing. [Settings.tsx](/app/src/settings/Settings.tsx:180) has no `feature_poll_history` definition, and `SettingsStore.getValue` throws for unregistered settings. The requested named component file, `src/components/views/dialogs/polls/PollHistoryDialog.tsx`, does not exist. Labs builds its list from registered feature settings, so it needs no separate entry.
+
+I recorded the diagnosis in `.codex-role-output/checkpoint.md`. **No source or tests were edited**: my assigned scope for this pass was fault localization only. The remaining uncertainty is the dialog’s content; the specified interface defines its title, close callback, and room ID prop, but no history display behavior.

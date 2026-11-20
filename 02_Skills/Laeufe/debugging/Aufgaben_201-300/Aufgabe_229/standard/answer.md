@@ -1,0 +1,3 @@
+Implemented image cleanup for group covers and thumbnails, user covers and avatars, and account deletion. The user image layer now removes matching `.png`, `.jpeg`, `.jpg`, and `.bmp` files, validates local upload paths, and tolerates missing files. Socket removal hooks remain in place.
+
+The focused [cleanup test](/app/test/manual/image-cleanup.js) and ESLint pass. The existing Mocha suite could not start because the configured Redis test service refused the connection (`ECONNREFUSED 127.0.0.1:6379`). I recorded the check and its limitation in the [checkpoint](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,188 @@
+diff --git a/lib/multiplexer/multiplexer.go b/lib/multiplexer/multiplexer.go
+index 6202460..108dc0b 100644
+--- a/lib/multiplexer/multiplexer.go
++++ b/lib/multiplexer/multiplexer.go
+@@ -20,19 +20,20 @@ limitations under the License.
+ // mux, _ := multiplexer.New(Config{Listener: listener})
+ // mux.SSH() // returns listener getting SSH connections
+ // mux.TLS() // returns listener getting TLS connections
+-//
+ package multiplexer
+ 
+ import (
+ 	"bufio"
+ 	"bytes"
+ 	"context"
++	"encoding/json"
+ 	"io"
+ 	"net"
+ 	"sync"
+ 	"time"
+ 
+ 	"github.com/gravitational/teleport"
++	apisshutils "github.com/gravitational/teleport/api/utils/sshutils"
+ 	"github.com/gravitational/teleport/lib/defaults"
+ 	"github.com/gravitational/teleport/lib/utils"
+ 
+@@ -255,6 +256,7 @@ func detect(conn net.Conn, enableProxyProtocol bool) (*Conn, error) {
+ 	// if the first attempt encounters proxy it
+ 	// goes to the second pass to do protocol detection
+ 	var proxyLine *ProxyLine
++	var remoteAddr net.Addr
+ 	for i := 0; i < 2; i++ {
+ 		proto, err := detectProto(reader)
+ 		if err != nil {
+@@ -286,11 +288,18 @@ func detect(conn net.Conn, enableProxyProtocol bool) (*Conn, error) {
+ 			}
+ 			// repeat the cycle to detect the protocol
+ 		case ProtoTLS, ProtoSSH, ProtoHTTP:
++			if proto == ProtoSSH {
++				reader, remoteAddr, err = readTeleportProxyHandshake(reader)
++				if err != nil {
++					return nil, trace.Wrap(err)
++				}
++			}
+ 			return &Conn{
+-				protocol:  proto,
+-				Conn:      conn,
+-				reader:    reader,
+-				proxyLine: proxyLine,
++				protocol:   proto,
++				Conn:       conn,
++				reader:     reader,
++				proxyLine:  proxyLine,
++				remoteAddr: remoteAddr,
+ 			}, nil
+ 		case ProtoPostgres:
+ 			return &Conn{
+@@ -342,12 +351,83 @@ func (p Protocol) String() string {
+ }
+ 
+ var (
+-	proxyPrefix   = []byte{'P', 'R', 'O', 'X', 'Y'}
+-	proxyV2Prefix = []byte{0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A}
+-	sshPrefix     = []byte{'S', 'S', 'H'}
+-	tlsPrefix     = []byte{0x16}
++	proxyPrefix         = []byte{'P', 'R', 'O', 'X', 'Y'}
++	proxyV2Prefix       = []byte{0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A}
++	sshPrefix           = []byte{'S', 'S', 'H'}
++	tlsPrefix           = []byte{0x16}
++	teleportProxyPrefix = []byte(apisshutils.ProxyHelloSignature)
+ )
+ 
++const maxTeleportProxyPayloadSize = 64 * 1024
++
++// readTeleportProxyHandshake parses the optional Teleport proxy handshake and
++// then restores it to the reader. The SSH server also reads this handshake to
++// extract tracing context, so the multiplexer must leave the bytes available.
++func readTeleportProxyHandshake(reader *bufio.Reader) (*bufio.Reader, net.Addr, error) {
++	firstBytes, err := reader.Peek(8)
++	if err != nil {
++		return nil, nil, trace.Wrap(err)
++	}
++	if !bytes.HasPrefix(teleportProxyPrefix, firstBytes) {
++		return reader, nil, nil
++	}
++
++	prefix, err := reader.Peek(len(teleportProxyPrefix))
++	if err != nil {
++		return nil, nil, trace.Wrap(err, "failed to peek Teleport proxy handshake")
++	}
++	if !bytes.Equal(prefix, teleportProxyPrefix) {
++		return nil, nil, trace.BadParameter("malformed Teleport proxy handshake prefix")
++	}
++
++	handshake := make([]byte, 0, len(teleportProxyPrefix)+128)
++	for range teleportProxyPrefix {
++		b, err := reader.ReadByte()
++		if err != nil {
++			return nil, nil, trace.Wrap(err)
++		}
++		handshake = append(handshake, b)
++	}
++
++	payload := make([]byte, 0, 128)
++	for {
++		b, err := reader.ReadByte()
++		if err != nil {
++			return nil, nil, trace.Wrap(err, "failed to read Teleport proxy handshake")
++		}
++		handshake = append(handshake, b)
++		if b == 0 {
++			break
++		}
++		if len(payload) >= maxTeleportProxyPayloadSize {
++			return nil, nil, trace.BadParameter("Teleport proxy handshake payload exceeds %d bytes", maxTeleportProxyPayloadSize)
++		}
++		payload = append(payload, b)
++	}
++
++	var handshakePayload apisshutils.HandshakePayload
++	if err := json.Unmarshal(payload, &handshakePayload); err != nil {
++		return nil, nil, trace.Wrap(err, "failed to parse Teleport proxy handshake payload")
++	}
++
++	var remoteAddr net.Addr
++	if handshakePayload.ClientAddr != "" {
++		if clientAddr, parseErr := utils.ParseAddr(handshakePayload.ClientAddr); parseErr == nil {
++			remoteAddr = clientAddr
++			if clientAddr.AddrNetwork == "tcp" {
++				remoteAddr = &net.TCPAddr{
++					IP:   net.ParseIP(clientAddr.Host()),
++					Port: clientAddr.Port(0),
++				}
++			}
++		}
++	}
++
++	// Put the handshake back so the SSH server can extract any tracing context.
++	reader = bufio.NewReader(io.MultiReader(bytes.NewReader(handshake), reader))
++	return reader, remoteAddr, nil
++}
++
+ // This section defines Postgres wire protocol messages detected by Teleport:
+ //
+ // https://www.postgresql.org/docs/13/protocol-message-formats.html
+@@ -412,6 +492,14 @@ func detectProto(r *bufio.Reader) (Protocol, error) {
+ 		}
+ 	case bytes.HasPrefix(in, sshPrefix):
+ 		return ProtoSSH, nil
++	case bytes.HasPrefix(teleportProxyPrefix, in):
++		in, err = r.Peek(len(teleportProxyPrefix))
++		if err != nil {
++			return ProtoUnknown, trace.Wrap(err, "failed to peek Teleport proxy handshake")
++		}
++		if bytes.Equal(in, teleportProxyPrefix) {
++			return ProtoSSH, nil
++		}
+ 	case bytes.HasPrefix(in, tlsPrefix):
+ 		return ProtoTLS, nil
+ 	case isHTTP(in):
+diff --git a/lib/multiplexer/wrappers.go b/lib/multiplexer/wrappers.go
+index 1b7ea51..19a1a70 100644
+--- a/lib/multiplexer/wrappers.go
++++ b/lib/multiplexer/wrappers.go
+@@ -30,9 +30,10 @@ import (
+ // protocol detection
+ type Conn struct {
+ 	net.Conn
+-	protocol  Protocol
+-	proxyLine *ProxyLine
+-	reader    *bufio.Reader
++	protocol   Protocol
++	proxyLine  *ProxyLine
++	remoteAddr net.Addr
++	reader     *bufio.Reader
+ }
+ 
+ // NewConn returns a net.Conn wrapper that supports peeking into the connection.
+@@ -58,6 +59,9 @@ func (c *Conn) LocalAddr() net.Addr {
+ 
+ // RemoteAddr returns remote address of the connection
+ func (c *Conn) RemoteAddr() net.Addr {
++	if c.remoteAddr != nil {
++		return c.remoteAddr
++	}
+ 	if c.proxyLine != nil {
+ 		return &c.proxyLine.Source
+ 	}

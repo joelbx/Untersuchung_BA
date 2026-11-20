@@ -1,0 +1,3 @@
+Added [removeTechnicalFields](/app/src/api/common/utils/EntityUtils.ts:226). It mutates a cloned entity to remove keys starting with `_finalEncrypted`, `_defaultEncrypted`, or `_errors` from the root and nested objects, including objects in arrays. Other properties remain intact.
+
+Added [tests](/app/test/tests/api/common/utils/EntityUtilsTest.ts:40) for nested cleanup and entities without technical fields. The full app test run passed with 8,683 assertions; TypeScript, formatting, lint, and `git diff --check` also passed.

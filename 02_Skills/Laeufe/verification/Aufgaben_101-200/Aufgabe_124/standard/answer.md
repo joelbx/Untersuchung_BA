@@ -1,0 +1,3 @@
+Added DynamoDB `billing_mode`, defaulting new tables to `pay_per_request`. On-demand creation omits provisioned throughput and disables configured auto scaling; provisioned creation uses the configured capacity units. Initialization also checks an existing table’s billing mode before applying auto scaling.
+
+Updated the [backend documentation](/app/docs/pages/reference/backends.mdx) and added unit tests. Verification: `GOPROXY=off GOSUMDB=off go test ./lib/backend/dynamo` and `git diff --check` both passed.

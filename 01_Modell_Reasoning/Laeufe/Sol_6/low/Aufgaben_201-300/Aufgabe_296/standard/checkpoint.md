@@ -1,0 +1,1 @@
+Implemented token keyed invitation metadata, token based validation and group joining, matching email confirmation, and email/token cleanup. Registration form client reads token from URL. ESLint passed. Invitation tests could not run because Redis at 127.0.0.1:6379 refused connection.

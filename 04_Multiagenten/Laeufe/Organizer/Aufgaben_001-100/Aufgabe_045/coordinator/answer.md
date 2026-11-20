@@ -1,0 +1,3 @@
+Collection names now require exactly two valid Python identifiers, and either segment is rejected if it is a Python keyword. Galaxy requirement parsing uses the same validator. I removed the legacy helpers and Python 2/3 fallback from `dataclasses.py` and added regression tests.
+
+The collection loader suite passed (70 tests), and the Galaxy suites passed when run separately (77 tests). A combined run fails because the loader tests remove a finder that later Galaxy CLI tests expect. `git diff --check` passed. No delegation was used.

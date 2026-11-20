@@ -1,0 +1,3 @@
+Refactored Drive’s extended-attribute helpers to use `XAttrCreateParams`, added public `DeepPartial` and stricter attribute types, and updated the upload caller. File creation now returns immutable attributes without a zero-size trailing block; parsing handles partial and malformed JSON without throwing and normalizes SHA1 digests.
+
+Validation passed: the focused Jest suite (5 tests), the Drive TypeScript check, and `git diff --check`.

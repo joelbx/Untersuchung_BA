@@ -1,0 +1,5 @@
+The fault is in the three backend hash implementations: [MongoDB](/app/src/database/mongo/hash.js:64), [Redis](/app/src/database/redis/hash.js:64), and [Postgres](/app/src/database/postgres/hash.js:73). Their `getObject` and `getObjects` methods do not accept or forward `fields`. Postgres also turns an empty field list into `null` in its field helpers; MongoDB and Redis already treat `[]` as a full-object request.
+
+A fix should cover omitted and empty `fields`, selected fields with `null` for absent names, missing keys, and input order across all three backends. There is one compatibility detail: existing helper tests expect an object of null fields for a missing key when specific fields are requested, while the requested public `getObject` and `getObjects` behavior is falsy.
+
+I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). I did not edit project source or tests because this run’s instructions restrict it to fault localization. Integration tests were not run.

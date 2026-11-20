@@ -1,0 +1,483 @@
+diff --git a/conf/configuration.go b/conf/configuration.go
+index 5e3f55c..bbe47ff 100644
+--- a/conf/configuration.go
++++ b/conf/configuration.go
+@@ -50,6 +50,8 @@ type configOptions struct {
+ 	EnableLogRedacting     bool
+ 	AuthRequestLimit       int
+ 	AuthWindowLength       time.Duration
++	ReverseProxyWhitelist  string
++	ReverseProxyUserHeader string
+ 
+ 	Scanner scannerOptions
+ 
+@@ -200,6 +202,8 @@ func init() {
+ 	viper.SetDefault("enablelogredacting", true)
+ 	viper.SetDefault("authrequestlimit", 5)
+ 	viper.SetDefault("authwindowlength", 20*time.Second)
++	viper.SetDefault("reverseproxywhitelist", "")
++	viper.SetDefault("reverseproxyuserheader", "Remote-User")
+ 
+ 	viper.SetDefault("scanner.extractor", "taglib")
+ 	viper.SetDefault("agents", "lastfm,spotify")
+diff --git a/log/redact_value_test.go b/log/redact_value_test.go
+new file mode 100644
+index 0000000..94408dc
+--- /dev/null
++++ b/log/redact_value_test.go
+@@ -0,0 +1,35 @@
++package log
++
++import (
++	"testing"
++
++	"github.com/sirupsen/logrus"
++)
++
++func TestNestedMapRedaction(t *testing.T) {
++	h := &Hook{RedactionList: []string{`(jwt=)[^ ]+`}}
++	e := &logrus.Entry{Data: logrus.Fields{
++		"request": map[string]interface{}{
++			"nested": map[string]string{"token": "secret", "url": "jwt=abc next"},
++		},
++	}}
++	if err := h.Fire(e); err != nil {
++		t.Fatal(err)
++	}
++	request := e.Data["request"].(map[string]interface{})
++	nested := request["nested"].(map[string]interface{})
++	if nested["token"] != "[REDACTED]" || nested["url"] != "jwt=[REDACTED] next" {
++		t.Fatalf("unexpected redaction: %#v", nested)
++	}
++}
++
++func TestRedactValueStringifiesOtherTypes(t *testing.T) {
++	h := &Hook{RedactionList: []string{`(jwt=)[^ ]+`}}
++	e := &logrus.Entry{Data: logrus.Fields{"items": []string{"jwt=abc", "public"}}}
++	if err := h.Fire(e); err != nil {
++		t.Fatal(err)
++	}
++	if got := e.Data["items"]; got != "[jwt=[REDACTED] public]" {
++		t.Fatalf("unexpected redaction: %v", got)
++	}
++}
+diff --git a/log/redactrus.go b/log/redactrus.go
+index 8c0d2ac..4c58648 100755
+--- a/log/redactrus.go
++++ b/log/redactrus.go
+@@ -4,6 +4,7 @@ package log
+ // Copyright (c) 2018 William Huang
+ 
+ import (
++	"fmt"
+ 	"reflect"
+ 	"regexp"
+ 
+@@ -19,6 +20,8 @@ type Hook struct {
+ 	redactionKeys  []*regexp.Regexp
+ }
+ 
++var sensitiveField = regexp.MustCompile(`(?i)(password|token|secret|api.?key|salt)`)
++
+ // Levels returns the user defined AcceptedLevels
+ // If AcceptedLevels is empty, all logrus levels are returned
+ func (h *Hook) Levels() []logrus.Level {
+@@ -37,17 +40,12 @@ func (h *Hook) Fire(e *logrus.Entry) error {
+ 	for _, re := range h.redactionKeys {
+ 		// Redact based on key matching in Data fields
+ 		for k, v := range e.Data {
+-			if re.MatchString(k) {
++			if re.MatchString(k) || sensitiveField.MatchString(k) {
+ 				e.Data[k] = "[REDACTED]"
+ 				continue
+ 			}
+ 
+-			// Redact based on value matching in Data fields
+-			switch reflect.TypeOf(v).Kind() {
+-			case reflect.String:
+-				e.Data[k] = re.ReplaceAllString(v.(string), "$1[REDACTED]$2")
+-				continue
+-			}
++			e.Data[k] = redactValue(v, re)
+ 		}
+ 
+ 		// Redact based on text matching in the Message field
+@@ -57,6 +55,29 @@ func (h *Hook) Fire(e *logrus.Entry) error {
+ 	return nil
+ }
+ 
++func redactValue(value interface{}, re *regexp.Regexp) interface{} {
++	if value == nil {
++		return nil
++	}
++	if s, ok := value.(string); ok {
++		return re.ReplaceAllString(s, "$1[REDACTED]$2")
++	}
++	v := reflect.ValueOf(value)
++	if v.Kind() == reflect.Map && v.Type().Key().Kind() == reflect.String {
++		redacted := make(map[string]interface{}, v.Len())
++		for _, key := range v.MapKeys() {
++			name := key.String()
++			if re.MatchString(name) || sensitiveField.MatchString(name) {
++				redacted[name] = "[REDACTED]"
++			} else {
++				redacted[name] = redactValue(v.MapIndex(key).Interface(), re)
++			}
++		}
++		return redacted
++	}
++	return re.ReplaceAllString(fmt.Sprint(value), "$1[REDACTED]$2")
++}
++
+ func (h *Hook) initRedaction() error {
+ 	if len(h.redactionKeys) == 0 {
+ 		for _, redactionKey := range h.RedactionList {
+diff --git a/server/app/auth.go b/server/app/auth.go
+index 10943a1..86f545a 100644
+--- a/server/app/auth.go
++++ b/server/app/auth.go
+@@ -2,8 +2,11 @@ package app
+ 
+ import (
+ 	"context"
++	"crypto/md5"
+ 	"encoding/json"
+ 	"errors"
++	"fmt"
++	"net"
+ 	"net/http"
+ 	"strings"
+ 	"time"
+@@ -71,6 +74,106 @@ func handleLogin(ds model.DataStore, username string, password string, w http.Re
+ 	_ = rest.RespondWithJSON(w, http.StatusOK, payload)
+ }
+ 
++// validateIPAgainstList only trusts the connection peer, never forwarded IP headers.
++func validateIPAgainstList(remoteAddr, whitelist string) bool {
++	if whitelist == "" {
++		return false
++	}
++	if remoteAddr == "@" {
++		for _, entry := range strings.Split(whitelist, ",") {
++			if strings.TrimSpace(entry) == "@" {
++				return true
++			}
++		}
++		return false
++	}
++	if host, _, err := net.SplitHostPort(remoteAddr); err == nil {
++		remoteAddr = host
++	}
++	ip := net.ParseIP(strings.Trim(remoteAddr, "[]"))
++	if ip == nil {
++		return false
++	}
++	for _, entry := range strings.Split(whitelist, ",") {
++		entry = strings.TrimSpace(entry)
++		if host, _, err := net.SplitHostPort(entry); err == nil {
++			entry = host
++		}
++		entry = strings.Trim(entry, "[]")
++		if _, network, err := net.ParseCIDR(entry); err == nil {
++			if network.Contains(ip) {
++				return true
++			}
++			continue
++		}
++		if allowed := net.ParseIP(entry); allowed != nil && allowed.Equal(ip) {
++			return true
++		}
++	}
++	return false
++}
++
++func handleLoginFromHeaders(ds model.DataStore, r *http.Request) map[string]interface{} {
++	if !validateIPAgainstList(r.RemoteAddr, conf.Server.ReverseProxyWhitelist) {
++		return nil
++	}
++	header := conf.Server.ReverseProxyUserHeader
++	if header == "" {
++		header = "Remote-User"
++	}
++	username := strings.TrimSpace(r.Header.Get(header))
++	if username == "" {
++		return nil
++	}
++	repo := ds.User(r.Context())
++	user, err := repo.FindByUsername(username)
++	if err == model.ErrNotFound {
++		count, countErr := repo.CountAll()
++		if countErr != nil {
++			log.Error(r, "Counting users for proxy login", countErr)
++			return nil
++		}
++		user = &model.User{
++			ID: uuid.NewString(), UserName: username, Name: username,
++			NewPassword: uuid.NewString(), IsAdmin: count == 0,
++		}
++		if err = repo.Put(user); err != nil {
++			log.Error(r, "Creating proxy user", err)
++			return nil
++		}
++	} else if err != nil {
++		log.Error(r, "Finding proxy user", err)
++		return nil
++	}
++	if err = repo.UpdateLastLoginAt(user.ID); err != nil {
++		log.Error(r, "Updating proxy user login", err)
++		return nil
++	}
++	now := time.Now()
++	user.LastLoginAt = &now
++	auth.Init(ds)
++	token, err := auth.CreateToken(user)
++	if err != nil {
++		log.Error(r, "Creating proxy token", err)
++		return nil
++	}
++	salt := strings.ReplaceAll(uuid.NewString(), "-", "")[:6]
++	password := user.Password
++	if password == "" {
++		password = user.NewPassword
++	}
++	payload := map[string]interface{}{
++		"id": user.ID, "isAdmin": user.IsAdmin, "name": user.Name,
++		"username": user.UserName, "token": token,
++		"subsonicSalt":  salt,
++		"subsonicToken": fmt.Sprintf("%x", md5.Sum([]byte(password+salt))),
++	}
++	if conf.Server.EnableGravatar && user.Email != "" {
++		payload["avatar"] = gravatar.Url(user.Email, 50)
++	}
++	return payload
++}
++
+ func getCredentialsFromBody(r *http.Request) (username string, password string, err error) {
+ 	data := make(map[string]string)
+ 	decoder := json.NewDecoder(r.Body)
+diff --git a/server/app/reverse_proxy_test.go b/server/app/reverse_proxy_test.go
+new file mode 100644
+index 0000000..0661390
+--- /dev/null
++++ b/server/app/reverse_proxy_test.go
+@@ -0,0 +1,98 @@
++package app
++
++import (
++	"net/http/httptest"
++	"os"
++	"testing"
++
++	"github.com/navidrome/navidrome/conf"
++	"github.com/navidrome/navidrome/core/auth"
++	"github.com/navidrome/navidrome/model"
++	"github.com/navidrome/navidrome/tests"
++)
++
++func TestValidateIPAgainstList(t *testing.T) {
++	for _, tc := range []struct {
++		peer, list string
++		want       bool
++	}{
++		{"192.0.2.10:1234", "bad, 192.0.2.0/24", true},
++		{"192.0.2.10:1234", "192.0.2.10:8080", true},
++		{"[2001:db8::1]:1234", "bad, 2001:db8::/32", true},
++		{"[2001:db8::1]:1234", "[2001:db8::1]:8080", true},
++		{"192.0.3.1:1234", "192.0.2.0/24", false},
++		{"192.0.2.10:1234", "", false},
++		{"@", "@", true},
++		{"@", "192.0.2.0/24", false},
++		{"192.0.2.10:1234", "@", false},
++	} {
++		if got := validateIPAgainstList(tc.peer, tc.list); got != tc.want {
++			t.Errorf("validateIPAgainstList(%q, %q) = %v, want %v", tc.peer, tc.list, got, tc.want)
++		}
++	}
++}
++
++func TestHandleLoginFromHeaders(t *testing.T) {
++	oldWhitelist, oldHeader := conf.Server.ReverseProxyWhitelist, conf.Server.ReverseProxyUserHeader
++	defer func() {
++		conf.Server.ReverseProxyWhitelist, conf.Server.ReverseProxyUserHeader = oldWhitelist, oldHeader
++	}()
++	conf.Server.ReverseProxyWhitelist = "192.0.2.0/24"
++	conf.Server.ReverseProxyUserHeader = "X-Authenticated-User"
++	ds := &tests.MockDataStore{}
++	request := httptest.NewRequest("GET", "/", nil)
++	request.RemoteAddr = "192.0.3.1:1234"
++	request.Header.Set("X-Authenticated-User", "alice")
++	if got := handleLoginFromHeaders(ds, request); got != nil {
++		t.Fatal("untrusted peer received authentication")
++	}
++	request.RemoteAddr = "192.0.2.1:1234"
++	request.Header.Del("X-Authenticated-User")
++	if got := handleLoginFromHeaders(ds, request); got != nil {
++		t.Fatal("missing username received authentication")
++	}
++	request.Header.Set("X-Authenticated-User", "alice")
++	got := handleLoginFromHeaders(ds, request)
++	if got == nil || got["username"] != "alice" || got["isAdmin"] != true {
++		t.Fatalf("unexpected first user payload: %v", got)
++	}
++	if _, err := auth.Validate(got["token"].(string)); err != nil {
++		t.Fatalf("invalid token: %v", err)
++	}
++	user, err := ds.User(request.Context()).FindByUsername("alice")
++	if err != nil || user.LastLoginAt == nil {
++		t.Fatalf("last login was not updated: %v, %v", user, err)
++	}
++	request.Header.Set("X-Authenticated-User", "bob")
++	got = handleLoginFromHeaders(ds, request)
++	if got == nil || got["isAdmin"] != false {
++		t.Fatalf("second user should not be admin: %v", got)
++	}
++	if _, err := ds.User(request.Context()).FindByUsername("bob"); err == model.ErrNotFound {
++		t.Fatal("second user was not created")
++	}
++}
++
++func TestServeIndexDoesNotExposeAuthToUntrustedPeer(t *testing.T) {
++	oldWhitelist, oldHeader := conf.Server.ReverseProxyWhitelist, conf.Server.ReverseProxyUserHeader
++	defer func() {
++		conf.Server.ReverseProxyWhitelist, conf.Server.ReverseProxyUserHeader = oldWhitelist, oldHeader
++	}()
++	conf.Server.ReverseProxyWhitelist = "192.0.2.0/24"
++	conf.Server.ReverseProxyUserHeader = "Remote-User"
++	ds := &tests.MockDataStore{}
++	request := httptest.NewRequest("GET", "/index.html", nil)
++	request.RemoteAddr = "192.0.3.1:1234"
++	request.Header.Set("Remote-User", "alice")
++	w := httptest.NewRecorder()
++	serveIndex(ds, os.DirFS("tests/fixtures"))(w, request)
++	if _, present := extractAppConfig(w.Body.String())["auth"]; present {
++		t.Fatal("auth must be absent for untrusted peer")
++	}
++	request.RemoteAddr = "192.0.2.1:1234"
++	w = httptest.NewRecorder()
++	serveIndex(ds, os.DirFS("tests/fixtures"))(w, request)
++	if _, present := extractAppConfig(w.Body.String())["auth"]; !present {
++		t.Fatal("auth missing for trusted peer")
++	}
++}
+diff --git a/server/app/serve_index.go b/server/app/serve_index.go
+index 8d35af2..d406819 100644
+--- a/server/app/serve_index.go
++++ b/server/app/serve_index.go
+@@ -51,14 +51,14 @@ func serveIndex(ds model.DataStore, fs fs.FS) http.HandlerFunc {
+ 			"enableUserEditing":       conf.Server.EnableUserEditing,
+ 			"devEnableShare":          conf.Server.DevEnableShare,
+ 		}
++		if authentication := handleLoginFromHeaders(ds, r); authentication != nil {
++			appConfig["auth"] = authentication
++			appConfig["firstTime"] = false
++		}
+ 		j, err := json.Marshal(appConfig)
+ 		if err != nil {
+-			log.Error(r, "Error converting config to JSON", "config", appConfig, err)
+-		} else {
+-			log.Trace(r, "Injecting config in index.html", "config", string(j))
++			log.Error(r, "Error converting config to JSON", err)
+ 		}
+-
+-		log.Debug("UI configuration", "appConfig", appConfig)
+ 		version := consts.Version()
+ 		if version != "dev" {
+ 			version = "v" + version
+diff --git a/server/server.go b/server/server.go
+index 5392ab4..55f77f7 100644
+--- a/server/server.go
++++ b/server/server.go
+@@ -54,7 +54,6 @@ func (a *Server) initRoutes() {
+ 	r.Use(secureMiddleware())
+ 	r.Use(cors.AllowAll().Handler)
+ 	r.Use(middleware.RequestID)
+-	r.Use(middleware.RealIP)
+ 	r.Use(middleware.Recoverer)
+ 	r.Use(middleware.Compress(5, "application/xml", "application/json", "application/javascript"))
+ 	r.Use(middleware.Heartbeat("/ping"))
+diff --git a/ui/src/authProvider.js b/ui/src/authProvider.js
+index a22cbcf..536c2ac 100644
+--- a/ui/src/authProvider.js
++++ b/ui/src/authProvider.js
+@@ -5,6 +5,23 @@ import { baseUrl } from './utils'
+ import config from './config'
+ import { startEventStream, stopEventStream } from './eventStream'
+ 
++const storeAuth = (response) => {
++  jwtDecode(response.token)
++  localStorage.setItem('token', response.token)
++  localStorage.setItem('userId', response.id)
++  localStorage.setItem('name', response.name)
++  localStorage.setItem('username', response.username)
++  if (response.avatar) localStorage.setItem('avatar', response.avatar)
++  else localStorage.removeItem('avatar')
++  localStorage.setItem('role', response.isAdmin ? 'admin' : 'regular')
++  localStorage.setItem('subsonic-salt', response.subsonicSalt)
++  localStorage.setItem('subsonic-token', response.subsonicToken)
++}
++
++if (config.auth) {
++  storeAuth(config.auth)
++}
++
+ const authProvider = {
+   login: ({ username, password }) => {
+     let url = baseUrl('/app/login')
+@@ -24,21 +41,12 @@ const authProvider = {
+         return response.json()
+       })
+       .then((response) => {
+-        // Validate token
+-        jwtDecode(response.token)
+-        // TODO Store all items in one object
+-        localStorage.setItem('token', response.token)
+-        localStorage.setItem('userId', response.id)
+-        localStorage.setItem('name', response.name)
+-        localStorage.setItem('username', response.username)
+-        response.avatar && localStorage.setItem('avatar', response.avatar)
+-        localStorage.setItem('role', response.isAdmin ? 'admin' : 'regular')
+         const salt = generateSubsonicSalt()
+-        localStorage.setItem('subsonic-salt', salt)
+-        localStorage.setItem(
+-          'subsonic-token',
+-          generateSubsonicToken(password, salt)
+-        )
++        storeAuth({
++          ...response,
++          subsonicSalt: salt,
++          subsonicToken: generateSubsonicToken(password, salt),
++        })
+         // Avoid going to create admin dialog after logout/login without a refresh
+         config.firstTime = false
+         if (config.devActivityPanel) {
+diff --git a/ui/src/authProvider.test.js b/ui/src/authProvider.test.js
+new file mode 100644
+index 0000000..5d2bdf9
+--- /dev/null
++++ b/ui/src/authProvider.test.js
+@@ -0,0 +1,25 @@
++jest.mock('jwt-decode', () => jest.fn())
++jest.mock('./config', () => ({
++  auth: {
++    id: 'user-id',
++    isAdmin: true,
++    name: 'Alice',
++    username: 'alice',
++    token: 'signed-token',
++    subsonicSalt: 'salt',
++    subsonicToken: 'subsonic-token',
++  },
++  devActivityPanel: false,
++}))
++
++test('initializes local storage from trusted proxy authentication', () => {
++  require('./authProvider')
++
++  expect(localStorage.getItem('token')).toBe('signed-token')
++  expect(localStorage.getItem('userId')).toBe('user-id')
++  expect(localStorage.getItem('name')).toBe('Alice')
++  expect(localStorage.getItem('username')).toBe('alice')
++  expect(localStorage.getItem('role')).toBe('admin')
++  expect(localStorage.getItem('subsonic-salt')).toBe('salt')
++  expect(localStorage.getItem('subsonic-token')).toBe('subsonic-token')
++})

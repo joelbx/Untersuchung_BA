@@ -1,0 +1,3 @@
+Implemented the token lifecycle API in [src/api/utils.js](/app/src/api/utils.js): token creation and metadata, creation and ownership indexes, ordered listing, get/update/delete, and usage timestamps. Existing top level `log` and `getLastSeen` remain as aliases. Updated `.codex-role-output/checkpoint.md`.
+
+`npx eslint src/api/utils.js` and `git diff --check` pass. I did not run the API or database test suites because their database mock loads and prints `config.json`, which would expose credentials.

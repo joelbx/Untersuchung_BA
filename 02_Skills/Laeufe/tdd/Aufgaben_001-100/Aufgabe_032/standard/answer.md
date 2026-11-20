@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) so exit paths use structured JSON, job results are written atomically, and completion, timeout, and supervisor failures retain the job ID and lifecycle fields. Timeout results include the child PID. The immediate response now reflects the configured cleanup policy.
+
+The focused tests pass: **11 passed**. An isolated process smoke test also confirmed a single JSON response and a completed job record with the same ID. The full pytest run was **not green**; it was interrupted after 93 failures and 185 errors across unrelated tests, including collection errors from missing dependencies. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

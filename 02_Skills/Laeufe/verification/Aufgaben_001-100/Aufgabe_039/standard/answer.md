@@ -1,0 +1,3 @@
+Updated [Booknotes.update_work_id](/app/openlibrary/core/booknotes.py:15) so an existing target work ID leaves every booknote unchanged and returns `{"rows_changed": 0, "rows_deleted": 0, "failed_deletes": 1}`. The [admin caller](/app/openlibrary/plugins/admin/code.py:247) now uses the returned dictionary directly.
+
+Verification: 7 database tests and 1 admin test passed. The database tests used SQLite; PostgreSQL was not tested.

@@ -1,0 +1,3 @@
+Collection name validation now returns `False` when either segment is a Python keyword or an invalid Python identifier. The Galaxy resolver uses the same check, and the legacy helpers and Python 2/3 compatibility code have been removed from `dataclasses.py`.
+
+The 71 collection loader tests and 7 new resolver cases pass. The broader Galaxy install suite could not complete in a direct pytest run because its collection finder was not installed during fixture setup.

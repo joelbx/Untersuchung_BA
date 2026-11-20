@@ -1,0 +1,3 @@
+Added the feature flagged “Polls history” button to [RoomSummaryCard.tsx](/app/src/components/views/right_panel/RoomSummaryCard.tsx). It opens the new named [PollHistoryDialog](/app/src/components/views/dialogs/polls/PollHistoryDialog.tsx) with the current room’s `roomId`.
+
+ESLint passed and `git diff --check` was clean. The TypeScript check reported an existing error in `RoomCreate.tsx:50` (`RoomState.findPredecessor` is missing). No focused tests for these components were present.

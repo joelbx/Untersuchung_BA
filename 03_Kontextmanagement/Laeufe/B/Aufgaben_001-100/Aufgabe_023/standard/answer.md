@@ -1,0 +1,3 @@
+Resolved the auth database dependency issue. JWT-only authentication now starts without an auth database connection on Local, Git, OCI, and object storage. Static token, OIDC, GitHub, and Kubernetes auth still require a database; cleanup runs only for enabled database-backed methods.
+
+The affected config, startup, and cleanup tests passed, including an isolated JWT startup test across all four non-database storage types.

@@ -1,0 +1,5 @@
+The fault is in [`Forwarder.authenticate`](/app/lib/kube/proxy/forwarder.go:316): its `setupContext` error branch replaces every error with `trace.AccessDenied`. Returning `trace.Wrap(err)` for non-access failures would preserve their classification; access-related failures should still return `AccessDenied`. The authorization layer’s default error branch also converts unrelated errors to `AccessDenied`, so it needs review under the stated rule.
+
+The two specified non-access cases already originate with the appropriate classification: an explicitly unknown local Kubernetes cluster returns `BadParameter` from [`CheckOrSetKubeCluster`](/app/lib/kube/utils/utils.go:177), and a remote request without a reverse tunnel returns `BadParameter` from [`setupContext`](/app/lib/kube/proxy/forwarder.go:395). `setupContext` need not change.
+
+[`TestAuthenticate`](/app/lib/kube/proxy/forwarder_test.go:92) currently expects `AccessDenied` for every error case. It should distinguish authorization and unsupported-user failures from those two `BadParameter` cases. I inspected code and existing tests only; the specialist instructions prohibited source and test edits.

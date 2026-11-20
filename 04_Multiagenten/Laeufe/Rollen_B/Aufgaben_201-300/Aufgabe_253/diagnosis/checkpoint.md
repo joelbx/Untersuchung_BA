@@ -1,0 +1,11 @@
+Progress: Fault localization complete; project source and tests unchanged.
+
+Likely locus: qutebrowser/misc/guiprocess.py, GUIProcess.__init__, _on_ready_read, _on_finished.
+- __init__ selects QProcess.StandardOutput (line 184) and connects only readyRead to _on_ready_read (line 191). The handler reads the selected channel with readLine and appends solely to self.stdout (lines 214-229). Thus stderr waits for _on_finished's readAllStandardError (line 286), causing delayed error output.
+- _on_ready_read unconditionally calls message.info for stdout after its loop (line 231). A signal with no decoded text can emit a blank live message. There is no corresponding stderr live message or stream-specific error severity.
+- _on_finished drains both streams, then conditionally publishes stdout via message.info and stderr via message.error in that order (lines 286-294). That already enforces final stdout-before-stderr order for buffered data, but final messages are bare content, and stderr has no live counterpart. Existing stdout live and final messages share a replace key; stderr final uses no replace key.
+- _output_messages suppresses live display, and final drains still populate stdout/stderr for process inspection and failure logging. A fix should preserve this behavior and keep carriage-return handling per stream.
+
+Existing tests: tests/unit/misc/test_guiprocess.py::test_start_output_message expects only one stderr message (at finish) and two stdout messages. test_live_messages_output covers live stdout and carriage returns only. Neither checks stderr before exit, final ordering as distinct completion events, or absence of blank live updates. Targeted run: pytest -q tests/unit/misc/test_guiprocess.py -k 'start_output_message or live_messages_output' => 9 passed, 31 deselected.
+
+Uncertainty: Exact desired presentation/labels for final summaries is unspecified by the issue. The existing final calls already use info/error severity and stdout-before-stderr order when both buffers are nonempty, so the most certain defect is missing live stderr handling plus possible empty live stdout notification. Tests should observe messages before process finish, after finish, severity and ordering, and no stream message when it emitted no bytes.

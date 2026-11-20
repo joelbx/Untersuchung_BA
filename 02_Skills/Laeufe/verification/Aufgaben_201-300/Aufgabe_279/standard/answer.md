@@ -1,0 +1,3 @@
+Payment token verification is now injectable through `VerifyPayment`, `getDefaultVerifyPayment`, and `getCreatePaymentToken` in [paymentTokenHelper.tsx](/app/packages/components/containers/payments/paymentTokenHelper.tsx). All direct callers now bind the default modal handler. Chargeable tokens return immediately; pending tokens use the injected handler; terminal initial statuses reject. Approval polling stops and releases timers and listeners when verification ends or is canceled.
+
+Verification passed: 32 component tests, 2 `PaymentStep` tests, both component and account type checks, lint, and `git diff --check`. The results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

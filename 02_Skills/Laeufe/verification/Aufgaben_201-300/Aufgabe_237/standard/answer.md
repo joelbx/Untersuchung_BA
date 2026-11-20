@@ -1,0 +1,3 @@
+Implemented the specified chat changes: REST message editing with validation and v3 responses, `Messaging.messageExists`, the enabled `PUT` route, client `PUT` requests, socket deprecation warning, and the `invalid-mid` locale entry. The `DirectedGraph` description does not match this repository; no `LinkProvider` or `DirectedGraph` references were found.
+
+Verification: the full messaging suite passed **78 tests**, targeted ESLint passed, and `git diff --check` passed. Broader ESLint still reports 14 pre-existing errors. The test runtime also warned that its loaded `invalid-mid` translation was missing, despite the key being present in the edited locale file. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

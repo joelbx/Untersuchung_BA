@@ -1,0 +1,3 @@
+Implemented topic backlinks with `Topics.syncBacklinks(postData)`, wired into new posts and post edits. It detects site URL and bare `/topic/{tid}` links, ignores self and missing topics, maintains each post’s `pid:{pid}:backlinks` sorted set, and adds or removes matching timeline events. Backlink events link to the source post and use the author’s uid.
+
+Added the `topicBacklinks` admin toggle and localized “Referenced by” timeline text. ESLint, JSON parsing, and `git diff --check` pass. The existing topic and post tests could not start because Redis was unavailable at `127.0.0.1:6379`.

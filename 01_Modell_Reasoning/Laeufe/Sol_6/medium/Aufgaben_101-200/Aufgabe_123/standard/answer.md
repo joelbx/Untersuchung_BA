@@ -1,0 +1,3 @@
+Updated notifications to render sanitized HTML, make links open with `target="_blank"` and `rel="noopener noreferrer"`, and deduplicate non-success messages by their explicit key or the required fallback. Repeated success notifications remain visible.
+
+Added [notification tests](/app/packages/components/containers/notifications/notifications.test.tsx). All 6 pass; the component type check, lint, and `git diff --check` also pass.

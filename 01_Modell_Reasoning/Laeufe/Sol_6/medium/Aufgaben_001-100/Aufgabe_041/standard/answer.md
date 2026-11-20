@@ -1,0 +1,3 @@
+Removed `ListMixin` and moved its list behavior into `List`. List owner lookup now handles `/people/{username}/lists/{list_id}` and returns the user or `None`. The new `lists/model.py` `register_models()` registers `List` under `/type/list` and `ListChangeset` under `lists`.
+
+The 20 focused list and model tests pass. Two broader list tests remain blocked by test setup errors: a `cookielib` import and missing `web.ctx.env`.

@@ -1,0 +1,3 @@
+Implemented manual route-target management in [nxos_vrf_af.py](/app/lib/ansible/modules/network/nxos/nxos_vrf_af.py). The module now accepts multiple `route_targets` entries with `rt`, `direction` (`both` by default), and `state` (`present` by default), and reconciles import/export commands within the selected address-family. `state=absent` for the address family continues to ignore route-target options.
+
+Validation passed: the existing focused unit tests (3 passed) and `git diff --check`.

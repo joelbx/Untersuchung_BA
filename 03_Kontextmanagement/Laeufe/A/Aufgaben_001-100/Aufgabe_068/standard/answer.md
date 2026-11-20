@@ -1,0 +1,3 @@
+Fixed owner-encrypted session key propagation through single and batch entity loads, the entity client and cache, and the mail detail callers. The loaders apply supplied keys before decryption; the cache reloads entities that previously had decryption errors when a key becomes available.
+
+Verification passed: TypeScript type check, 40 EntityRestClient tests, 108 cache tests, and `git diff --check`.

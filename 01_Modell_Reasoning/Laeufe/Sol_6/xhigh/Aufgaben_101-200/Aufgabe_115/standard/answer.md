@@ -1,0 +1,3 @@
+Implemented MARC contributor role support. [The parser](/app/openlibrary/catalog/marc/parse.py:23) now maps common relator codes and abbreviations to readable roles, gives `$4` precedence over `$e`, and omits unrecognized roles. [Work creation](/app/openlibrary/catalog/add_book/__init__.py:243) preserves each role with its author in order and raises on mismatched author counts. I updated the MARC fixtures and added parser and import tests.
+
+Validation: 290 MARC and add-book tests passed; Ruff lint and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Voice broadcast liveness now comes from the info state through `determineVoiceBroadcastLiveness`. `setInfoState` is the only playback path that updates it, and regression tests cover the requested mapping and stable change events.
+
+All 258 voice broadcast tests passed. The full Jest run stopped on a React DOM `document.createEvent` crash before completing; the TypeScript check reported MatrixClient type errors outside the changed files. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

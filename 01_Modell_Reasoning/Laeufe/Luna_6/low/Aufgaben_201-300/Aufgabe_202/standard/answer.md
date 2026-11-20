@@ -1,0 +1,3 @@
+Updated the admin file upload handler to resolve the requested folder against the configured upload path and check that it exists as a directory before saving. Invalid paths return `[[error:invalid-path]]`. Added a regression test for a missing folder in [test/uploads.js](/app/test/uploads.js).
+
+`npx eslint src/controllers/admin/uploads.js test/uploads.js` and `git diff --check` passed. `npx mocha test/uploads.js` could not run because Redis was unavailable at `127.0.0.1:6379`.

@@ -1,0 +1,3 @@
+Added a registration token entry view for both the stable and unstable InteractiveAuth stages. It shows the token field, submits the server’s advertised type, handles busy and error states, and lets the existing flow complete with its callback data.
+
+The focused InteractiveAuth tests pass: 4 tests across 2 suites. ESLint, Prettier, and `git diff --check` pass. The full TypeScript check still fails on errors in untouched Sliding Sync files; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

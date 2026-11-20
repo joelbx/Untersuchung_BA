@@ -1,0 +1,4 @@
+VERDICT: FIX
+Reviewed module_common.py and the current test diff. Existing relevant tests passed: `PYTHONPATH=lib python -m pytest -q test/units/executor/module_common/test_recursive_finder.py test/units/executor/module_common/test_module_common.py test/units/executor/module_common/test_modify_module.py` (49 passed).
+Code defects: LegacyModuleUtilLocator._try_redirect rejects every path except length 3, so dotted routing keys such as sub1.sub2.formerly_core in ansible_builtin_runtime.yml cannot resolve. Direct local probe returned found=False. A redirect to a missing target collection raises raw ModuleNotFoundError in CollectionModuleUtilLocator._get_data, rather than an AnsibleError containing `unable to locate collection <fqcn>`; direct local probe confirmed this.
+No project code or tests changed during review.

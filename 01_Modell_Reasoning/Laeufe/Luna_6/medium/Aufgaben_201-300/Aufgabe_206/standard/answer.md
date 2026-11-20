@@ -1,0 +1,3 @@
+Implemented `lockPosting` in [topics.js](/app/src/controllers/write/topics.js:11) and applied it to topic creation and replies. It keys locks by authenticated user ID or guest session, rejects overlapping requests with `[[error:posting-in-progress]]`, and releases the lock when processing finishes.
+
+ESLint passes. The existing topic tests could not run because Redis was unavailable at `127.0.0.1:6379` (`ECONNREFUSED`).

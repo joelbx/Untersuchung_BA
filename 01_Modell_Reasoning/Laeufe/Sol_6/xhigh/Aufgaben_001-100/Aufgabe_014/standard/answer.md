@@ -1,0 +1,3 @@
+Resolved the NodeBB issues in the checked-out files. Notification dropdowns now load through `app.require`, use the clicked trigger, and ignore stale responses. Fork and move category selectors use `dropup`; quick search uses focus changes and clears after navigation. The hash, email, installer, route, admin menu, merge search, and chat link fixes are also in place.
+
+Verification passed: ESLint, `git diff --check`, 66 hash tests, 3 post redirect tests, and a combined 102-test run covering hashes, notifications, and email. Browser interactions were not automated.

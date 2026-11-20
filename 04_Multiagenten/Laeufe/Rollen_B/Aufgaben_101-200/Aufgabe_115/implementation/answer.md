@@ -1,0 +1,3 @@
+Implemented MARC contributor role support. `read_author_person` now maps recognized `$e` terms and `$4` codes to readable roles, gives `$4` precedence, and omits unrecognized roles. `new_work` preserves each role with its author in order and raises an exception when the edition and record author counts differ.
+
+Updated tests and fixture expectations. All 162 relevant tests pass; Ruff and `git diff --check` pass.

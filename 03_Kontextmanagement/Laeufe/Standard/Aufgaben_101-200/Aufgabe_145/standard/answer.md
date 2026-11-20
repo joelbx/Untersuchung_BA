@@ -1,0 +1,3 @@
+Updated [photos recovery](/app/packages/drive-store/store/_photos/usePhotosRecovery.ts) to load regular and trashed items together, wait for both to decrypt, include trashed photo entries in progress counts, and fail if targeted photos remain after moving. Persisted in-progress recovery still resumes on initialization.
+
+The [focused tests](/app/packages/drive-store/store/_photos/usePhotosRecovery.test.ts) pass: 11 of 11. Formatting and diff checks pass. The package type check remains blocked by an OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts`, outside the edited files.

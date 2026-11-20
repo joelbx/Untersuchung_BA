@@ -1,0 +1,3 @@
+Implemented token audit event support. The checker now recognizes `token:created` and `token:deleted`, and wildcard resource selection includes token events. gRPC startup checks whether `token:deleted` is enabled and passes that setting to the authentication server, which uses it to gate deletion audit events.
+
+Verification passed: `go test ./internal/server/audit ./internal/server/auth ./internal/cmd` and `git diff --check`.

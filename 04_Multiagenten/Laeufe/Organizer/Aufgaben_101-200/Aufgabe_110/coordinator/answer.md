@@ -1,0 +1,3 @@
+Added the mechanism-segmented download metric and registered its `web_drive_download_mechanism_success_rate_total_v1` schema with the metrics client. The download metrics hook now records status, retry, and mechanism for terminal queued and preview downloads; both paths provide file size to the selector.
+
+Validation passed: 20 focused Jest tests, the Drive TypeScript check, and `git diff --check`. I completed the work directly; no delegation was used.

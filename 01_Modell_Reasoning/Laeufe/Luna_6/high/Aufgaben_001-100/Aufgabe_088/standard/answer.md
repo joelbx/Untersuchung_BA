@@ -1,0 +1,3 @@
+Implemented optional `fields` selection for `getObject` and `getObjects` across MongoDB, Postgres, and Redis. Empty fields return full objects; selected fields include missing properties as `null`, preserve key order, and return falsy results for missing records. Added regression tests and updated the [checkpoint](/app/.codex-role-output/checkpoint.md).
+
+ESLint, syntax checks, and `git diff --check` pass. The database tests could not run because Redis at `127.0.0.1:6379` refused the connection.

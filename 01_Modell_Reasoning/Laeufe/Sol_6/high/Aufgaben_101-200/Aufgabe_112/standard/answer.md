@@ -1,0 +1,3 @@
+Fortinet advisories now participate in FortiOS CPE detection and CVE enrichment. Results include advisory IDs and URLs, CVSS v3 data, CWE IDs, references, and dates. Confidence ranking and report selection order include Fortinet, and the dictionary dependency has been updated.
+
+The existing detector and model tests, new Fortinet regression tests, and the server build pass with `GOPROXY=off GOSUMDB=off go test ./detector ./models ./server`. The module file includes a cached-version replacement for an unrelated transitive dependency to support offline builds.

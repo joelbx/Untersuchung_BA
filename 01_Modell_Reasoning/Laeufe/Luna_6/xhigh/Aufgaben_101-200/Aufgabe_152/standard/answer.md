@@ -1,0 +1,3 @@
+Added [icx_logging.py](/app/lib/ansible/modules/network/icx/icx_logging.py:1) with aggregate configuration, validation, running-config parsing, and idempotent commands for IPv4/IPv6 hosts, buffered levels, facilities, console, persistence, RFC5424, and global logging. It supports check mode and the `ANSIBLE_CHECK_ICX_RUNNING_CONFIG` fallback.
+
+Validation passed: the existing ICX unit suite (92 tests), Python syntax compilation, and `git diff --check`. The existing suite has no tests specific to the new module.

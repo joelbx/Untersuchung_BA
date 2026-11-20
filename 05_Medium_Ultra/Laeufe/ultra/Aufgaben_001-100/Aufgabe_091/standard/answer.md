@@ -1,0 +1,3 @@
+Implemented `isoneof` and `isnotoneof` for string and number constraints in [legacy_evaluator.go](/app/internal/server/evaluation/legacy_evaluator.go). Registered the operators in [operators.go](/app/rpc/flipt/operators.go) and added create/update validation for correctly typed JSON arrays with a 100-item limit in [validation.go](/app/rpc/flipt/validation.go).
+
+I delegated test coverage and an edge-case review, then integrated the findings. Both affected packages pass with downloads disabled: `go test ./rpc/flipt ./internal/server/evaluation`. `git diff --check` also passes.

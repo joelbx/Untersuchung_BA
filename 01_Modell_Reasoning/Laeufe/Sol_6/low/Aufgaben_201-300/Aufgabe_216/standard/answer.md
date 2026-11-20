@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to resolve its runtime settings through `get_option()`, including transfer method, retries, timeout, command arguments, and control path. Reset now uses the effective SSH parameters to check for a persistent socket before sending `stop`. I also removed the listed SSH-specific core configuration entries and updated the affected tests.
+
+Verification: all 19 SSH connection unit tests pass, and `git diff --check` passes.

@@ -1,0 +1,3 @@
+`tsh` now reads `TELEPORT_KUBE_CLUSTER` into `KubernetesCluster` while preserving an explicit CLI selection. I added regression tests for that precedence and for the existing `TELEPORT_HOME` override.
+
+The focused tests and full `tool/tsh` package suite pass. The repository-wide suite was interrupted after about five minutes while integration tests were still running, so its remaining packages are unverified.

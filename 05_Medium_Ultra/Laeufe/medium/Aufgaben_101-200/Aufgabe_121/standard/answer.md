@@ -1,0 +1,3 @@
+Registered `flipt.is_auth_method(input, "token")` for both authorization policy engines. It accepts the seven requested labels, maps them to the protobuf method codes, and treats `k8s` and `kubernetes` as aliases. It returns a boolean for matches and the specified errors for missing authentication or unsupported labels.
+
+Tests passed for every label, mismatches, errors, and policy evaluation in the local Rego engine. The existing bundle engine tests also passed.

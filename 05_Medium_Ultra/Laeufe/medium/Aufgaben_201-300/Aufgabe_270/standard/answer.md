@@ -1,0 +1,3 @@
+Updated Drive public pages to select the valid persisted session with the highest `persistedAt` and use its UID and localID together for session resumption, auth state, SRP, user state, and telemetry. Malformed sessions are reported, and unavailable storage returns no session. The old `LAST_ACTIVE_PING` session-selection paths are removed.
+
+The targeted tests pass (13 tests), and formatting and lint checks pass. The typecheck remains blocked by an existing OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts`.

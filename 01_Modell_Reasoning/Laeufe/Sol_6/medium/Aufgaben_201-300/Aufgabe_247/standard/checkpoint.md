@@ -1,0 +1,2 @@
+Task: Fix SocketPosts.getUpvoters access control, cutoff handling, UID deduplication, and frontend tooltip behavior.
+Status: Complete. Implemented bulk category read checks before vote retrieval, administrator bypass, cutoff metadata, one deduplicated username lookup, and frontend cutoff/HTML tooltip handling. Added integration coverage for mixed-category denial, administrator access, truncation, ordering, and deduplication. Final verification: voting suite 12 passing; ESLint and git diff --check passing.

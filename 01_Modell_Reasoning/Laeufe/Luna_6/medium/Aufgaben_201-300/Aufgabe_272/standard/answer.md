@@ -1,0 +1,3 @@
+Implemented configurable TLS ciphers across `get_url`, `uri`, `lookup('url')`, and the shared URL request path. Cipher lists are converted to OpenSSL cipher strings, invalid settings raise a `ValueError`, and redirect handling carries the same cipher configuration. The shared `make_context` and `get_ca_certs` functions are also available.
+
+Compilation and `git diff --check` passed. The URL unit suite had 116 passing tests and 4 failures: existing mock expectations don’t account for the newly required `ciphers=None` argument and its fallback lookup.

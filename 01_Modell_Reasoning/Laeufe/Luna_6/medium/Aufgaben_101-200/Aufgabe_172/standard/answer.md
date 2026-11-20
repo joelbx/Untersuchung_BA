@@ -1,0 +1,3 @@
+Implemented backward compatible listening port handling. `AffectedProcess.ListenPorts` now accepts legacy string lists, while scanning and reporting use structured `ListenPortStats`. Added `PortStat`, `NewPortStat`, and `Package.HasReachablePort`; migrated scan collection, destination selection, reachability updates, and report rendering.
+
+Updated scan fixtures for the new structured field. **Verification:** `go test ./models ./scan ./report` passed, and `git diff --check` passed.

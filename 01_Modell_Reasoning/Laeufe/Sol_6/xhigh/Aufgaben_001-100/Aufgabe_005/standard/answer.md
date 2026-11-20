@@ -1,0 +1,3 @@
+Updated the [Qt machinery](/app/qutebrowser/qt/machinery.py) to return `SelectionInfo`, record import failures with their exception types, and raise `NoWrapperAvailableError` when implicit selection finds no wrapper. [Early initialization](/app/qutebrowser/misc/earlyinit.py) now passes that info to the Qt checker, logs it, and adds blank lines to checker diagnostics.
+
+**Verification:** 63 relevant tests passed. The broader version test file stopped in a GUI Chromium test before reporting a result; its nine affected version snapshot tests passed separately.

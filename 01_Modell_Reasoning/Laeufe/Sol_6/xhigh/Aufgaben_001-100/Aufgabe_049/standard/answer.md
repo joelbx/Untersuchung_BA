@@ -1,0 +1,3 @@
+Updated the email confirmation flow to use a UID-to-code key and a confirmation record with an explicit expiry. The ACP now shows **Validated**, **Validation Pending**, **Validation Expired**, or **(no email)**, and its actions can recover an address from a pending record. Resends respect pending confirmations unless forced; confirmation keys are removed after verification and user deletion.
+
+ESLint, `git diff --check`, and the focused user, ACP, and socket tests passed (**13 tests**). Broader suites stopped on an invitation membership assertion, an admin 404 assertion, and a plugin install request blocked by external access.

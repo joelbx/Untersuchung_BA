@@ -1,0 +1,3 @@
+Added `SimpleCache[V]` in [simple_cache.go](/app/utils/cache/simple_cache.go) and migrated the play tracker, genre repository, and HTTP client to typed cache values. The cache handles TTL expiry, loader errors, and active keys; the HTTP client retains its 100-entry limit. I also removed the unused `ttlcache` dependency.
+
+Uncached tests passed for `./utils/cache`, `./core/scrobbler`, and `./scanner`; `git diff --check` passed.

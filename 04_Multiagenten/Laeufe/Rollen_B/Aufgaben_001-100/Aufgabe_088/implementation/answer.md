@@ -1,0 +1,3 @@
+Implemented optional `fields` support for `getObject` and `getObjects` across MongoDB, Postgres, and Redis. Empty or omitted field lists return full objects in all four getter methods. Selected reads include absent fields as `null`, preserve input order, and return `null` for missing keys. Five callers now use `getObjects(keys, fields)` directly.
+
+Validation: ESLint and diff checks passed; all 57 hash tests passed on Redis. MongoDB and Postgres integration tests were not run.

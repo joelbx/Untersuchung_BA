@@ -1,0 +1,3 @@
+Implemented selective SSE delivery. The UI now sends a per-window client UUID on API and login requests; middleware stores it in an HttpOnly cookie and request context. The broker uses that context to skip the originating client and deliver user-action events only to other sessions of the same user. Server-originated events still broadcast.
+
+Updated event call sites, the diode API, and cookie expiry constants. Focused delivery and middleware tests pass, as do the affected Go packages, UI formatting check, and `git diff --check`.

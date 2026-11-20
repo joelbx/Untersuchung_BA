@@ -1,0 +1,1 @@
+Verified admin exists in production startup before migration; migration test fixture needed explicit pre-upgrade admin role. Implemented downgraded labelled admin role, migrate-by-upsert with labelled skip, admin user/trusted-cluster mappings, legacy user assignment, and deletion guard. Focused TestMigrateOSS passed; role and tctl package checks passed; git diff --check clean.

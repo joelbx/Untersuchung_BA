@@ -1,0 +1,3 @@
+Updated `listRemoveAll` in the Redis, Mongo, and Postgres backends to accept an array of values. Each requested value is removed, the remaining order is preserved, and the operation completes before a subsequent read.
+
+Added a regression test. The Redis list suite passed (20 tests), along with ESLint and `git diff --check`. Mongo and Postgres behavior was reviewed but could not be integration tested locally because those services were unavailable.

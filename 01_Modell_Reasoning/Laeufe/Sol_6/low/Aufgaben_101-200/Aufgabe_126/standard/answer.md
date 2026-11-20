@@ -1,0 +1,3 @@
+Updated the mail assistant’s Markdown and HTML path to carry the composer message ID through model preparation, result preview, and editor insertion. URL placeholders now restore only for their originating message; rejected links keep their visible text, while rejected images are removed. The changes also preserve link and image class/style attributes, correct nested lists, and enable list rendering in the assistant’s Markdown conversion.
+
+The assistant URL suite passes (3 tests), and `git diff --check` passes. The mail typecheck reports only an existing OpenPGP type conflict in `packages/crypto/lib/worker/api.ts`; it reports no errors in the changed mail code.

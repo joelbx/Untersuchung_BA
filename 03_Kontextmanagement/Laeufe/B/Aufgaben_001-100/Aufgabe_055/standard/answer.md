@@ -1,0 +1,3 @@
+Implemented Trivy OS version parsing. Scan results now use `Metadata.OS.Name` for `Release` and `ArtifactName` for `ServerName`, with `:latest` added to untagged container images. Trivy metadata no longer uses `Optional`. Package CVE detection checks eligibility before calling OVAL and GOST, and scanned CVE reuse identifies Trivy through `ScannedBy`.
+
+The relevant parser and detector tests pass; `git diff --check` is clean.

@@ -1,0 +1,3 @@
+Added `transformStyleAttributes` to replace inline `height` values containing `vh` with `auto`, including on the root element. It preserves other styles and any `!important` priority. The HTML preparation pipeline now calls it after `transformStylesheet` and before `transformRemote`.
+
+Verification: the new test and the existing remote transform test passed (5 tests total); formatting and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented bounded retries for Meraki API responses of 429, 500, and 502 in [meraki.py](/app/lib/ansible/module_utils/network/meraki/meraki.py). Requests retry up to three times with one second between attempts. Persistent 429 responses raise `RateLimitException`; persistent 500/502 responses raise `InternalErrorException`. Other HTTP errors of 400 or higher raise `HTTPError` immediately. The public `status` attribute reflects the latest response, and rate limiting produces a warning with the retry count.
+
+Updated [Meraki unit tests](/app/test/units/module_utils/network/meraki/test_meraki.py) for recovery and retry exhaustion. All 11 tests pass; `git diff --check` is clean.

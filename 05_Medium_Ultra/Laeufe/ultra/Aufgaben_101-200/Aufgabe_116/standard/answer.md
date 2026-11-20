@@ -1,0 +1,3 @@
+Implemented the `chat:privileged` gate. Starting a chat with or inviting an administrator or moderator now requires that permission and returns `[[error:no-privileges]]` when it is missing. Chat checks now accept array privileges, the admin UI names the new privilege, and the profile API exposes a boolean `canChat` field documented in [UserObject.yaml](/app/public/openapi/components/schemas/UserObject.yaml).
+
+I delegated the privilege, profile, and chat flow edits to three native agents, then integrated and verified the patch. The full messaging suite, focused privilege and profile tests, ESLint, schema validation, and `git diff --check` passed.

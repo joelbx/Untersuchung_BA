@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) to provide the localized verified and unverified copy in both [CurrentDeviceSection](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx) and [DeviceDetails](/app/src/components/views/settings/devices/DeviceDetails.tsx). Device Details now accepts `DeviceWithVerification` and shows the card immediately after its heading.
+
+The device settings and Devices Panel tests pass: 50 tests across 12 suites. Lint and `git diff --check` pass. Repository-wide TypeScript checking remains blocked by unrelated existing SDK and widget errors, recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

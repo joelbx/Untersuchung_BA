@@ -1,0 +1,3 @@
+Updated [DocCLI.tty_ify](/app/lib/ansible/cli/doc.py:75) to render the requested macros while preserving ordinary words such as `IBM(...)`. Horizontal rules now remain on their own lines in displayed documentation. Added [regression tests](/app/test/units/cli/test_doc.py:12).
+
+Verification: 40 CLI unit tests passed, an end-to-end `ansible-doc` rendering check passed, and `git diff --check` was clean.

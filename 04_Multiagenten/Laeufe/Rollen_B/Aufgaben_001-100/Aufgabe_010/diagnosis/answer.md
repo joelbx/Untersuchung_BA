@@ -1,0 +1,7 @@
+The tombstone notice is rendered in [MessageComposer.tsx](/app/src/components/views/rooms/MessageComposer.tsx:387) as a styled `<span>` followed by `<br>`. Its text already says the room is replaced and inactive; the likely fix is paragraph markup for the status and, when present, the continuation link.
+
+Related requirements point to [ReplyPreview.tsx](/app/src/components/views/rooms/ReplyPreview.tsx:46), whose header says only “Replying” and whose icon-only cancel button has no accessible name. [DisambiguatedProfile.tsx](/app/src/components/views/messages/DisambiguatedProfile.tsx:60) hardcodes a `<div>` root, limiting inline use for a named reply header. The specified `Cancel.tsx` component does not exist; [SearchBar.tsx](/app/src/components/views/rooms/SearchBar.tsx:128) has another unlabeled cancel control.
+
+The existing [composer test](/app/test/components/views/rooms/MessageComposer-test.tsx:51) checks the old CSS class, but not paragraph semantics, notice text, or a replacement link. The intended scope of “all interface components” for cancel button migration remains unclear.
+
+I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were not edited because this run’s specialist instructions restrict it to fault localization.

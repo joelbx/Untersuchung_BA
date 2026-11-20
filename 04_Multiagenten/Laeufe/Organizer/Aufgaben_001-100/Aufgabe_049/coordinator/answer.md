@@ -1,0 +1,3 @@
+Updated email confirmation to store a user-to-code key and a confirmation object with an explicit expiry. ACP validation and resend actions now use the profile email or pending confirmation as available, report accounts with no email, and show **Validated**, **Validation Pending**, **Validation Expired**, or **(no email)**. Confirmation keys are cleaned up when validation succeeds, a password reset confirms the email, or the user is deleted.
+
+Verification: 8 focused user tests and 5 ACP socket tests passed; ESLint and `git diff --check` passed. I solved this directly and made no delegations.

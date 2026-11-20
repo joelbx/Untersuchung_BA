@@ -1,0 +1,3 @@
+Updated [roles.go](/app/roles.go) so `Check` rejects duplicate roles and `Equals` compares distinct-role sets, including nil and empty collections. Added regression tests in [roles_test.go](/app/roles_test.go); they failed for the reported bugs before the fix and pass now. The existing role tests also pass.
+
+The repository-wide suite did not finish. It reported unrelated vet errors in `lib/backend/test/suite.go` before I interrupted it. A separate `lib/utils` run failed because a certificate test fixture expired in 2021. Those failures and the unverified packages are recorded in the checkpoint.

@@ -1,0 +1,3 @@
+Implemented configurable route targets in [nxos_vrf_af.py](/app/lib/ansible/modules/network/nxos/nxos_vrf_af.py:50), including import, export, or both directions; per-entry present/absent state; mixed changes; and idempotent behavior. AF removal ignores route-target options. Added focused unit coverage in [test_nxos_vrf_af.py](/app/test/units/modules/network/nxos/test_nxos_vrf_af.py:65).
+
+Validation passed: the focused unit suite (7 tests), `py_compile`, and `git diff --check`. The required checkpoint is at [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

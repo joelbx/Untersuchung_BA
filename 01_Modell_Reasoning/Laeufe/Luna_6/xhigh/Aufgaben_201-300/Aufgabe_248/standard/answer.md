@@ -1,0 +1,3 @@
+Removed `BreakUp` and `RangeByChunks`, migrated their callers to `slices.Chunk`, and changed `CollectChunks` to accept `(iter.Seq[T], size)`. It reuses a buffer and clones yielded chunks to prevent aliasing. Added lazy `SeqFunc` in [slice.go](/app/utils/slice/slice.go).
+
+Updated the existing slice tests for the new API and removed the obsolete `BreakUp` tests. `go test ./utils/slice ./core ./scanner ./persistence` passed, and `git diff --check` was clean.

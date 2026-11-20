@@ -1,0 +1,3 @@
+Reverted directory traversal and audio-file listing to native OS filesystem calls in [scanner/walk_dir_tree.go](/app/scanner/walk_dir_tree.go) and [scanner/tag_scanner.go](/app/scanner/tag_scanner.go). The walker retains ignore rules, Windows `$Recycle.Bin` handling, and recursive error reporting. Added [utils.IsDirReadable](/app/utils/paths.go) and updated the relevant tests.
+
+Two subagents reviewed scanner behavior and updated tests; I integrated and verified their work. `GOPROXY=off GOSUMDB=off go test ./scanner ./utils` passes.

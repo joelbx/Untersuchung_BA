@@ -1,0 +1,3 @@
+Added the exported [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) to centralize the localized verified and unverified copy. [CurrentDeviceSection](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx) now uses it after the device tile and expanded details. [DeviceDetails](/app/src/components/views/settings/devices/DeviceDetails.tsx) accepts `DeviceWithVerification` and shows the card immediately after the device heading.
+
+The relevant device settings tests pass: **45 tests across 11 suites**. Edited-file lint passes. The full type check reports unrelated existing SDK and widget errors, with none in the changed files. No delegation was used.

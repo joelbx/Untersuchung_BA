@@ -1,0 +1,3 @@
+VERDICT: FIX
+Review complete. Code defect: lib/ansible/modules/network/icx/icx_logging.py:148-159 checks host name before stripping it. A whitespace-only name passes validation, becomes empty, and generates `logging host ` at line 248. Validate the stripped name (and reject whitespace within a host token) before command generation.
+Tests executed: `python -m pytest -q test/units/modules/network/icx/test_icx_logging.py` — 10 passed; `python -m pytest -q test/units/modules/network/icx` — 102 passed. Direct local reproduction with PYTHONPATH=lib returned `['logging host ']` for name='   '. TEST_ENVIRONMENT_PROBLEM: none.

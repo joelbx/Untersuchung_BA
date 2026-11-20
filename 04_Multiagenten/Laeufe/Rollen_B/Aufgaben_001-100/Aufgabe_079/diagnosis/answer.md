@@ -1,0 +1,5 @@
+The change is localized to [walk_dir_tree.go](/app/scanner/walk_dir_tree.go:28) and [tag_scanner.go](/app/scanner/tag_scanner.go:83). `TagScanner.Scan` creates an `os.DirFS` and passes relative paths into the walker; `loadDir`, symlink checks, ignore checks, and readability checks all use that abstraction. The fix should pass absolute paths through traversal, use OS stat and directory operations, and add `utils.IsDirReadable(path)` using `os.Open` and an immediate close while preserving the current logging and error channel behavior.
+
+Existing tests in [walk_dir_tree_test.go](/app/scanner/walk_dir_tree_test.go:21) depend on the current signatures. The Windows test expects `$Recycle.Bin` to be ignored, but its helper signatures already differ from the current code. The referenced fixture directory is absent in this checkout, so I did not run the tests.
+
+I recorded the findings in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). This specialist run was restricted to diagnosis; no project source or tests were changed.

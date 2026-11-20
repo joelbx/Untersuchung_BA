@@ -1,0 +1,3 @@
+Updated collection name validation to reject Python keywords and require both segments to be valid Python identifiers. Removed `_is_py_id`, `_is_fqcn`, and their Python 2 compatibility code from [dataclasses.py](/app/lib/ansible/galaxy/dependency_resolution/dataclasses.py). Added `is_python_identifier` and routed dependency parsing through the shared validator.
+
+A direct check confirmed valid names return `True` and the reported keyword names return `False`, all as booleans. The existing unit tests could not run because the Python 3.8 test environment lacks PyYAML and pytest.

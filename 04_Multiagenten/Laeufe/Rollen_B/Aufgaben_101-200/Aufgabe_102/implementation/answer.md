@@ -1,0 +1,3 @@
+Added the Linux `locally_reachable_ips` fact with separate IPv4 and IPv6 lists. It collects host-scope local routes, normalizes addresses and CIDRs, removes duplicates, and sorts the results. Failed queries return an empty list for that family with a warning, while other network facts continue to gather.
+
+Added parsing and collector tests. The local test suite passed: **145 passed, 5 skipped**. Live route output could not be checked because `ip` is unavailable in this environment.

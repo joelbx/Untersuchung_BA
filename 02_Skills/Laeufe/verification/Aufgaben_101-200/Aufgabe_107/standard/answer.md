@@ -1,0 +1,3 @@
+Updated optimistic mark-as handling so IDs are added to the bypass filter when the new status conflicts with the active Read or Unread filter, and removed when the status matches it. The dispatch now passes `markAsStatus`, and the reducer handles message and conversation IDs consistently. Added helper and reducer tests.
+
+Verification after the final edits: 13 tests passed across 3 suites; TypeScript, ESLint, Prettier, and `git diff --check` passed.

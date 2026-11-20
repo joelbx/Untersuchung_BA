@@ -1,0 +1,3 @@
+Implemented matcher expressions in [parse.go](/app/lib/utils/parse/parse.go). `Match` now supports literals, anchored wildcards, regular expressions, matcher functions, and static prefixes and suffixes. `Variable()` rejects matcher functions with the required error.
+
+Added coverage in [parse_test.go](/app/lib/utils/parse/parse_test.go). `go test -mod=vendor ./lib/utils/parse` and `git diff --check` pass.

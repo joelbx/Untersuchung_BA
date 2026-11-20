@@ -1,0 +1,3 @@
+Implemented `storage.readOnly` in backend configuration and frontend types. Validation rejects the flag on non-database storage, including an explicit `false`. The UI now derives read-only state from the flag, applies the storage-type default when it is absent, and shows the active backend and a “Read-Only” badge with a matching icon. Authentication bootstrap also skips database access when authentication is disabled on non-database storage.
+
+Added the requested [invalid_readonly.yml](/app/internal/config/testdata/storage/invalid_readonly.yml) and regression tests. `go test ./internal/config ./internal/cmd -count=1` passed. UI tests could not run because dependencies are not installed locally.

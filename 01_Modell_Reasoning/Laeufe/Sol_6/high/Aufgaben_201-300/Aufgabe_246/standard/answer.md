@@ -1,0 +1,3 @@
+Updated the scanner to analyze each lockfile separately and carry its path into vulnerability findings. Reports now use both path and library name to show the correct version, and duplicate CVEs retain findings from every affected lockfile. I also added the in-memory file info implementation and error handling for unknown lockfile types.
+
+The required analyzer and driver APIs came from locally cached dependency versions. Regression tests cover two lockfiles with different versions, CVE merging, and report output. `go test ./...` passes.

@@ -1,0 +1,3 @@
+Added `qcolor_to_qsscolor` in [qtutils.py](/app/qutebrowser/utils/qtutils.py:58). It converts named, RGB, and RGBA `QColor` values to `rgba(r, g, b, a)`, including the alpha channel. [WebView](/app/qutebrowser/browser/webkit/webview.py:53) and [TabBar](/app/qutebrowser/mainwindow/tabwidget.py:378) now use it for their QSS background colors.
+
+**Verification:** 124 targeted tests passed, along with syntax and diff checks. The broader TabWidget tests stop at a preexisting float-to-`QSize` error. QtWebKit is unavailable here, so WebView could not be tested at runtime.

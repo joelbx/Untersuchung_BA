@@ -1,0 +1,3 @@
+Added the OCI snapshot source in [source.go](/app/internal/storage/fs/oci/source.go). It supports local layouts and remote registries, reopens local layouts on each fetch, reuses snapshots when the digest is unchanged, and polls for changes with a 30-second default. I also updated `SnapshotSource.Get` and existing sources to accept a context, and added OCI layer namespace and gzip handling.
+
+The local refresh and subscription tests pass, along with `go test ./internal/oci ./internal/storage/fs/...`, `go test ./internal/cmd`, and `git diff --check`.

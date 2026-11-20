@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) to recognize both feature flag prefixes. It now merges enabled features into one `--enable-features=` argument and preserves each `--disable-features=` argument separately, whether supplied through `--qt-flag` or `qt.args`.
+
+Added mixed-source coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py). All 84 Qt argument tests pass; `git diff --check` is clean.

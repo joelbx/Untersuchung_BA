@@ -1,0 +1,4 @@
+Task: Consolidate QtWebEngine --enable-features arguments from CLI, qt.args, and configuration.
+Status: Implemented in qutebrowser/config/qtargs.py with regression coverage in tests/unit/config/test_qtargs.py.
+Checks: `python -m pytest -q tests/unit/config/test_qtargs.py -k 'not new_chromium'` passed (81 passed, 1 deselected). `git diff --check` passed.
+Full test file: `python -m pytest -q tests/unit/config/test_qtargs.py` exited 1 without a summary. Isolated command `python -m pytest -vv -s tests/unit/config/test_qtargs.py -k new_chromium` exited 139 with a segmentation fault in qutebrowser/browser/webengine/webenginesettings.py:init_user_agent, called by version._chromium_version. The chromium version test remains unverified in this environment; it does not exercise the changed argument code.

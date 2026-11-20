@@ -1,0 +1,226 @@
+diff --git a/src/api/utils.js b/src/api/utils.js
+index 63d5473..57234ab 100644
+--- a/src/api/utils.js
++++ b/src/api/utils.js
+@@ -1,13 +1,90 @@
+ 'use strict';
+ 
+ const db = require('../database');
++const user = require('../user');
++const coreUtils = require('../utils');
+ 
+ const utils = module.exports;
+ 
+-// internal token management utilities only
++// Internal token management utilities.
++utils.tokens = {};
+ 
+-utils.log = async (token) => {
++utils.tokens.list = async () => {
++	const tokens = await db.getSortedSetRange('tokens:createtime', 0, -1);
++	return await utils.tokens.get(tokens);
++};
++
++utils.tokens.get = async (tokens) => {
++	if (tokens === null || tokens === undefined) {
++		throw new Error('[[error:invalid-data]]');
++	}
++	const single = typeof tokens === 'string';
++	if (!single && !Array.isArray(tokens)) {
++		throw new Error('[[error:invalid-data]]');
++	}
++	const tokenList = single ? [tokens] : tokens;
++	if (!tokenList.length) {
++		return [];
++	}
++	const [objects, lastSeen] = await Promise.all([
++		db.getObjects(tokenList.map(token => `token:${token}`)),
++		utils.tokens.getLastSeen(tokenList),
++	]);
++	const results = objects.map((data, index) => data && ({
++		token: tokenList[index],
++		uid: Number(data.uid),
++		description: data.description || '',
++		timestamp: Number(data.timestamp),
++		lastSeen: lastSeen[index],
++	}));
++	return single ? results[0] : results;
++};
++
++utils.tokens.generate = async ({ uid, description } = {}) => {
++	const numericUid = Number(uid);
++	if (uid === null || uid === undefined || !Number.isInteger(numericUid) || numericUid < 0) {
++		throw new Error('[[error:invalid-data]]');
++	}
++	if (numericUid !== 0 && !(await user.exists(numericUid))) {
++		throw new Error('[[error:no-user]]');
++	}
++	const token = coreUtils.generateUUID();
++	const timestamp = Date.now();
++	await db.setObject(`token:${token}`, { uid: numericUid, description, timestamp });
++	await Promise.all([
++		db.sortedSetAdd('tokens:createtime', timestamp, token),
++		db.sortedSetAdd('tokens:uid', numericUid, token),
++	]);
++	return token;
++};
++
++utils.tokens.update = async (token, { description }) => {
++	await db.setObjectField(`token:${token}`, 'description', description);
++	return await utils.tokens.get(token);
++};
++
++utils.tokens.delete = async (token) => {
++	await Promise.all([
++		db.delete(`token:${token}`),
++		db.sortedSetRemove(['tokens:createtime', 'tokens:uid', 'tokens:lastSeen'], token),
++	]);
++};
++
++utils.tokens.log = async (token) => {
+ 	await db.sortedSetAdd('tokens:lastSeen', Date.now(), token);
+ };
+ 
+-utils.getLastSeen = async tokens => await db.sortedSetScores('tokens:lastSeen', tokens);
++utils.tokens.getLastSeen = async (tokens) => {
++	if (!tokens.length) {
++		return [];
++	}
++	const scores = await db.sortedSetScores('tokens:lastSeen', tokens);
++	return scores.map((score) => {
++		const value = Number(score);
++		return score === null || score === undefined || !Number.isFinite(value) ? null : value;
++	});
++};
++
++// Existing callers still use the top-level usage helpers.
++utils.log = utils.tokens.log;
++utils.getLastSeen = utils.tokens.getLastSeen;
+diff --git a/src/routes/authentication.js b/src/routes/authentication.js
+index e2b1cd7..991722f 100644
+--- a/src/routes/authentication.js
++++ b/src/routes/authentication.js
+@@ -46,7 +46,8 @@ Auth.getLoginStrategies = function () {
+ 
+ Auth.verifyToken = async function (token, done) {
+ 	const { tokens = [] } = await meta.settings.get('core.api');
+-	const tokenObj = tokens.find(t => t.token === token);
++	const tokenObj = tokens.find(t => t.token === token) ||
++		await require('../api/utils').tokens.get(token);
+ 	const uid = tokenObj ? tokenObj.uid : undefined;
+ 
+ 	if (uid !== undefined) {
+diff --git a/test/api-utils-tokens.js b/test/api-utils-tokens.js
+new file mode 100644
+index 0000000..2806a50
+--- /dev/null
++++ b/test/api-utils-tokens.js
+@@ -0,0 +1,108 @@
++'use strict';
++
++const assert = require('assert');
++const fs = require('fs');
++const path = require('path');
++const vm = require('vm');
++
++function makeHarness() {
++	const objects = new Map();
++	const indexes = new Map();
++	const index = (key) => {
++		if (!indexes.has(key)) indexes.set(key, new Map());
++		return indexes.get(key);
++	};
++	let now = 1700000000000;
++	let nextId = 0;
++	const db = {
++		getSortedSetRange: async key => [...index(key)].sort((a, b) => a[1] - b[1]).map(([member]) => member),
++		getObjects: async keys => keys.map(key => objects.get(key) || null),
++		setObject: async (key, value) => { objects.set(key, { ...value }); },
++		setObjectField: async (key, field, value) => { objects.get(key)[field] = value; },
++		delete: async (key) => { objects.delete(key); },
++		sortedSetAdd: async (key, score, member) => { index(key).set(member, Number(score)); },
++		sortedSetRemove: async (keys, member) => {
++			(Array.isArray(keys) ? keys : [keys]).forEach(key => index(key).delete(member));
++		},
++		sortedSetScores: async (key, members) => members.map((member) => {
++			if (!index(key).has(member)) return null;
++			return index(key).get(member);
++		}),
++	};
++	const module = { exports: {} };
++	const source = fs.readFileSync(path.join(__dirname, '../src/api/utils.js'), 'utf8');
++	const factory = vm.runInNewContext(`(function (require, module, Date) { ${source}\n})`, {}, { filename: 'src/api/utils.js' });
++	factory((id) => {
++		if (id === '../database') return db;
++		if (id === '../user') return { exists: async uid => Number(uid) === 1 };
++		if (id === '../utils') return { generateUUID: () => { nextId += 1; return `id-${nextId}`; } };
++		throw new Error(`Unexpected dependency ${id}`);
++	}, module, { now: () => now });
++	return { tokens: module.exports.tokens, db, objects, index, setNow: (value) => { now = value; } };
++}
++
++describe('internal API token utilities', () => {
++	it('manages token metadata, indexes, usage, and input shapes', async () => {
++		const { tokens, db, objects, index, setNow } = makeHarness();
++		assert.deepEqual(await tokens.list(), []);
++		assert.deepEqual(await tokens.get([]), []);
++		await assert.rejects(tokens.get(null), /\[\[error:invalid-data\]\]/);
++		await assert.rejects(tokens.generate({ uid: 2 }), /\[\[error:no-user\]\]/);
++		assert.strictEqual(objects.size, 0);
++		const first = await tokens.generate({ uid: '1', description: 'first' });
++		setNow(1700000001000);
++		const second = await tokens.generate({ uid: 0 });
++		assert.strictEqual(first, 'id-1');
++		assert.strictEqual(second, 'id-2');
++		assert.strictEqual(index('tokens:createtime').get(first), 1700000000000);
++		assert.strictEqual(index('tokens:uid').get(first), 1);
++		assert.strictEqual(index('tokens:uid').get(second), 0);
++		assert.deepEqual(await tokens.getLastSeen([second, first]), [null, null]);
++		const one = await tokens.get(first);
++		assert.strictEqual(one.uid, 1);
++		assert.strictEqual(one.description, 'first');
++		assert.strictEqual(one.timestamp, 1700000000000);
++		assert.strictEqual(one.lastSeen, null);
++		assert.deepEqual((await tokens.list()).map(item => item.timestamp), [1700000000000, 1700000001000]);
++		await tokens.log(first);
++		assert.deepEqual(await tokens.getLastSeen([second, first]), [null, 1700000001000]);
++		const updated = await tokens.update(first, { description: 'changed' });
++		assert.strictEqual(updated.description, 'changed');
++		assert.strictEqual(updated.uid, 1);
++		assert.strictEqual(updated.timestamp, 1700000000000);
++		assert.strictEqual(updated.lastSeen, 1700000001000);
++		assert.strictEqual((await tokens.get([second, first])).length, 2);
++		await tokens.delete(first);
++		assert.strictEqual(objects.has(`token:${first}`), false);
++		const scores = await Promise.all(['tokens:createtime', 'tokens:uid', 'tokens:lastSeen']
++			.map(key => db.sortedSetScores(key, [first])));
++		scores.forEach(score => assert.strictEqual(score[0], null));
++	});
++});
++
++describe('internal API token authentication', () => {
++	it('accepts a token generated by the internal utility', async () => {
++		const { tokens } = makeHarness();
++		const token = await tokens.generate({ uid: 1 });
++		const module = { exports: {} };
++		const source = fs.readFileSync(path.join(__dirname, '../src/routes/authentication.js'), 'utf8');
++		const factory = vm.runInNewContext(`(function (require, module) { ${source}\n})`, {}, {
++			filename: 'src/routes/authentication.js',
++		});
++		factory((id) => {
++			if (id === '../meta') return { settings: { get: async () => ({ tokens: [] }) } };
++			if (id === '../api/utils') return { tokens };
++			if (id === '../middleware/csrf') return { generateToken: () => '' };
++			if (id === 'passport-http-bearer') return { Strategy: function () {} };
++			if (id === 'passport') return { serializeUser: () => {}, deserializeUser: () => {} };
++			return {};
++		}, module);
++		const result = await new Promise((resolve, reject) => {
++			module.exports.verifyToken(token, (err, identity) => {
++				if (err) return reject(err);
++				resolve(identity);
++			});
++		});
++		assert.strictEqual(result.uid, 1);
++	});
++});

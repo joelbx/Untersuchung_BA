@@ -1,0 +1,10 @@
+I located the missing metric, but **did not edit project source or tests**: my assigned role for this run is fault localization. I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+The likely change points are:
+
+- [useDownloadMetrics.ts](/app/applications/drive/src/app/store/_downloads/DownloadProvider/useDownloadMetrics.ts:76) already records terminal outcomes and deduplicates by download ID and retry count. It needs to increment the new counter with `status`, `retry`, and `mechanism`, using `download.meta.size` for stateful flows and a size argument added to `report` for preview.
+- [fileSaver.ts](/app/applications/drive/src/app/store/_downloads/fileSaver/fileSaver.ts:96) contains the size threshold and fallback behavior that `selectMechanismForDownload(size)` must match.
+- [useDownload.ts](/app/applications/drive/src/app/store/_downloads/useDownload.ts:190) has the preview report calls that currently omit size. The queue already supplies `meta.size` for single files and updates archive size on initialization.
+- [Metrics.ts](/app/packages/metrics/Metrics.ts:186) has no counter registration for this metric. The requested schema file is also absent; the existing [download success schema](/app/packages/metrics/types/drive_download_success_rate_total_v1.schema.d.ts) shows the label typing pattern.
+
+**Behavior to cover:** success and both terminal error states, retries, duplicate observations, sizes below and at the memory threshold, unknown size, and service worker fallback. One uncertainty needs a design decision: registration failure can trigger the saver’s runtime fallback even when browser capability checks pass. Preview also buffers its stream directly, so size and capability alone may label its mechanism differently from the path it actually used.

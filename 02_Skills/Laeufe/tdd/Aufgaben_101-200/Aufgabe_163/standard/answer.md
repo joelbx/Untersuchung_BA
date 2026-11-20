@@ -1,0 +1,3 @@
+Implemented separate database credential settings for SQLite, Postgres, and MySQL. An explicit `db.url` takes precedence; otherwise, configuration validates the required fields and builds the connection target with engine-specific default ports. Regular connections and migrations use the same resolution path, and URL parsing errors no longer expose credentials.
+
+Updated the [sample configuration](/app/config/default.yml) and added regression tests. `go test ./...` and `git diff --check` passed. The build emitted a warning from the SQLite dependency’s C source.

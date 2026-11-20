@@ -1,0 +1,3 @@
+Implemented the XHR `Accept-Language` fallback behavior. `custom_headers` now skips the global value for URL-based calls when requested, while preserving matching domain overrides and the no-URL fallback. The WebEngine interceptor disables fallback only for XHR requests.
+
+Added coverage in [test_shared.py](/app/tests/unit/browser/test_shared.py). The relevant tests passed: **23 passed**. `git diff --check` passed.

@@ -1,0 +1,3 @@
+Notifications now render string HTML through a restricted sanitizer, and every notification link receives `target="_blank"` and `rel="noopener noreferrer"`. React element content still renders directly. The manager deduplicates non-success notifications by explicit key, then string text, then ID; repeated success notifications remain visible.
+
+Added focused tests. The notification Jest suite, TypeScript check, ESLint, Prettier check, and `git diff --check` all pass.

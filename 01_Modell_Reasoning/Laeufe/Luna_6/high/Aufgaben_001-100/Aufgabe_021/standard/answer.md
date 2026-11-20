@@ -1,0 +1,3 @@
+Implemented typed seed handling and normalization in [model.py](/app/openlibrary/core/lists/model.py) and [lists.py](/app/openlibrary/plugins/openlibrary/lists.py). Add, remove, and membership checks now compare normalized seed keys; exports always include authors, works, and editions, filtered by loaded entity type. Added URL helper return annotations in [helpers.py](/app/openlibrary/core/helpers.py) and [models.py](/app/openlibrary/core/models.py).
+
+Verification: compileall and `git diff --check` passed; focused tests passed (**9 passed**). One form-data test was excluded after failing because `web.ctx.env` was missing. `test_listapi.py` could not be collected because Python 3.11 lacks its legacy `cookielib` import.

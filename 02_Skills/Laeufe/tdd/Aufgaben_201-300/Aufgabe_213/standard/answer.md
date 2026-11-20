@@ -1,0 +1,3 @@
+Added `isShareAvailable(signal, shareId)` to [useDefaultShare.ts](/app/applications/drive/src/app/store/_shares/useDefaultShare.ts). It awaits `getShare` with the supplied signal and returns `false` for locked or soft-deleted shares. The existing default-share path remains unchanged.
+
+Added regression cases in [useDefaultShare.test.tsx](/app/applications/drive/src/app/store/_shares/useDefaultShare.test.tsx). The full Drive suite passed (313 tests), as did TypeScript checking and `git diff --check`. The suite emitted warnings from other test paths.

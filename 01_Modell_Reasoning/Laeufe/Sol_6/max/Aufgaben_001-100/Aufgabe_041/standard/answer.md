@@ -1,0 +1,3 @@
+Consolidated `List` and `ListChangeset` in [the list model](/app/openlibrary/core/lists/model.py:30), removed `ListMixin`, and added registration for `/type/list` and `lists`. Owner lookup now handles `/people/{username}/lists/{list_id}` and returns `None` when unresolved.
+
+All 29 relevant tests passed; Ruff and `git diff --check` passed. The separate list API test module could not collect because `cookielib` is unavailable in this environment.

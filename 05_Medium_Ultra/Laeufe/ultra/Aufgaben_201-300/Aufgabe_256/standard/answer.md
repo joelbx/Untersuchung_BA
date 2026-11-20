@@ -1,0 +1,3 @@
+Fixed the invalid `hosts` crash in [Play](/app/lib/ansible/playbook/play.py). `Play.load` no longer derives or mutates `name`; `get_name()` derives unnamed play names dynamically, and `_validate_hosts()` raises the requested `AnsibleParserError` messages. I updated the list output, callback bridge, and error assertion to use the new behavior.
+
+Verification passed: 253 playbook unit tests, 32 CLI and callback tests, 68 collection loader tests, and the existing playbook integration script. An end-to-end check of a mapping inside `hosts` returned a parser error instead of a traceback. Delegated repository and test surveys helped identify the affected consumers; delegated regression tests are included in [test_play.py](/app/test/units/playbook/test_play.py).

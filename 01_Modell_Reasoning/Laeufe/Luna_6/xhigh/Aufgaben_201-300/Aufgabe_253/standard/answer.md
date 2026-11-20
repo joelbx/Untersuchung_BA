@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) to stream stdout and stderr independently. Nonempty streams now get live updates; completion reports stdout as info before stderr as error and skips empty streams.
+
+Updated the existing output-message assertions in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py). The focused suite passed: **40 tests**. `git diff --check` passed. Checkpoint: [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,1 @@
+Correction round complete: migration recognizes array _credentials regardless of _version and maps legacy _theme into _themeId when absent. Regression tests cover both review defects and repeat-load idempotence. npm run types passed. npm run testclient passed: 3,093 assertions. git diff --check passed. No TEST_ENVIRONMENT_PROBLEM.

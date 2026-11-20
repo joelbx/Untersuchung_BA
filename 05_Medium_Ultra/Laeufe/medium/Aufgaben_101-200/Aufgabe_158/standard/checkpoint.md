@@ -1,0 +1,2 @@
+Task: Fix unarchive ZIP timestamps that cause ValueError during is_unarchived.
+Status: Complete. Added regex timestamp validation, ZIP year bounds, calendar validation, and epoch fallback; is_unarchived now uses it. Added regression coverage for invalid timestamps and existing-file comparison. `PYTHONPATH=lib python -m pytest -q test/units/modules/test_unarchive.py` passed (14 tests); `git diff --check` passed.

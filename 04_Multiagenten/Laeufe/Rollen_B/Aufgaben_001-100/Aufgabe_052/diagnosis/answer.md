@@ -1,0 +1,7 @@
+The failure is in [Agent.plan](/app/lib/ai/model/agent.go:241): it never appends streamed deltas to `completion`, then counts the empty string. For a streamed final answer, [parsePlanningOutput](/app/lib/ai/model/agent.go:360) returns while another goroutine is still draining deltas, so counting must remain safe until the stream finishes.
+
+The API change spans [Chat.Complete](/app/lib/ai/chat.go:60), [Agent.PlanAndExecute](/app/lib/ai/model/agent.go:100), and the response-embedded `TokensUsed` in [messages.go](/app/lib/ai/model/messages.go:64). Usage must be returned separately and accumulated for every agent step, including command and streaming outcomes. [ProcessComplete](/app/lib/assist/assist.go:270) and [web usage accounting](/app/lib/web/assistant.go:480) also consume the old fields.
+
+One counting uncertainty remains: this stream exposes text chunks, not token IDs. Calling `Add()` once per chunk would count chunks rather than exact `cl100k_base` tokens. Existing tests do not cover streamed completion totals or multi-step totals.
+
+I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). I did not edit project source or tests; this specialist pass was limited to fault localization.

@@ -1,0 +1,4 @@
+Task: Preserve JavaScript-supplied Accept-Language on XHR while retaining domain overrides and existing defaults.
+Implemented: custom_headers(url, *, fallback_accept_language=True) requests a URL-only Accept-Language value when fallback is disabled, while no URL still uses the global value. WebEngine interceptRequest disables fallback for XHR only.
+Regression coverage: shared header behavior for explicit/default fallback and matching domain override; WebEngine interceptor behavior for XHR, normal navigation, and domain override.
+Validation: QT_QPA_PLATFORM=offscreen pytest -q tests/unit/browser/test_shared.py tests/unit/browser/webengine/test_webengineinterceptor.py (30 passed). Initial run without offscreen aborted while initializing Qt; no tests ran. git diff --check passed before final formatting adjustment.

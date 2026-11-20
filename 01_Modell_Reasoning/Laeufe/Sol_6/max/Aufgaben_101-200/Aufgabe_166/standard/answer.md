@@ -1,0 +1,3 @@
+Fixed the vars file performance regression. [DataLoader](/app/lib/ansible/parsing/dataloader.py) now supports `cache='none'` without populating the file cache and `cache='vaulted'` to reuse parsed vaulted files. [VariableManager](/app/lib/ansible/vars/manager.py) uses vaulted-only caching for play `vars_files`.
+
+Added regression coverage. All 369 relevant unit tests passed, and `git diff --check` passed.

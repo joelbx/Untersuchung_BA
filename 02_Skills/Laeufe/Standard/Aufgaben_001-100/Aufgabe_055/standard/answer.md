@@ -1,0 +1,3 @@
+Updated the Trivy parser to store the OS version in `Release`, use the artifact name for `ServerName`, append `:latest` to untagged container images, and leave `Optional` nil. Package CVE detection now skips Trivy, FreeBSD, Raspbian, and pseudo results; Trivy CVE reuse is identified through `ScannedBy`.
+
+The updated parser and detector tests pass: `GOPROXY=off GOSUMDB=off go test ./contrib/trivy/parser/v2 ./detector -count=1`.

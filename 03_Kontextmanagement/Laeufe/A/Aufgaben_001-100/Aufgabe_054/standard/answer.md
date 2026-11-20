@@ -1,0 +1,3 @@
+Implemented `GetInstance[T](constructor func() T) T` in [singleton.go](/app/utils/singleton/singleton.go). It caches by exact type, so `T` and `*T` have independent instances, and runs each type’s constructor once even under concurrent calls.
+
+Added tests covering reuse, type separation, and 20,000 concurrent calls in [singleton_test.go](/app/utils/singleton/singleton_test.go). The singleton package tests pass with and without the race detector.

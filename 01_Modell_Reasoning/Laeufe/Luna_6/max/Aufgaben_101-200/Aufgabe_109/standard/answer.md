@@ -1,0 +1,3 @@
+Implemented the feature gated “Polls history” button in [RoomSummaryCard.tsx](/app/src/components/views/right_panel/RoomSummaryCard.tsx). It opens the new [PollHistoryDialog.tsx](/app/src/components/views/dialogs/polls/PollHistoryDialog.tsx) with the current room’s `roomId`. Added the poll icon styling in [_RoomSummaryCard.pcss](/app/res/css/views/right_panel/_RoomSummaryCard.pcss).
+
+The existing poll tests passed: 2 suites, 75 tests, and 12 snapshots. ESLint, stylelint, Prettier, and `git diff --check` passed. Type checking stopped on an unrelated error in `RoomCreate.tsx`: `RoomState` has no `findPredecessor` property.

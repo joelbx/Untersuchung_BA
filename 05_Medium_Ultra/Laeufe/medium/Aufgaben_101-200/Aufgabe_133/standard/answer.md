@@ -1,0 +1,3 @@
+The OSS migration now downgrades the existing `admin` role, marks it with `OSSMigratedV6`, and skips it on later runs. Migrated users, trusted cluster mappings, and legacy users keep the `admin` role name, preserving leaf cluster access during a partial upgrade. The role retains read access to events and sessions while restricting administrative permissions.
+
+Focused auth and role permission tests pass. The CLI package compiles, and `git diff --check` passes.

@@ -1,0 +1,3 @@
+Fixed the room load flow. [RoomView](/app/src/components/structures/RoomView.tsx) now dispatches exactly `{ action: Action.RoomLoaded }` after loading and preserves the focused event when the store returns a nullish ID. [RoomViewStore](/app/src/stores/RoomViewStore.tsx) recomputes widget buttons on that new action, including without a prior `ViewRoom`; navigation no longer recomputes them.
+
+Two delegated agents added the store and view tests. I integrated their changes and ran both suites together: **68 tests and 8 snapshots passed**. ESLint, Prettier, and whitespace checks passed. The full TypeScript check still reports errors in untouched SDK and OIDC files.

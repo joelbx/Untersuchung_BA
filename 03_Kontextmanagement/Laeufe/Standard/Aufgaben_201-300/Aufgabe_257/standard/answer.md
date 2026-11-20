@@ -1,0 +1,3 @@
+Updated tsh so `Run` and its command handlers return errors to callers, with runtime options applied after argument parsing. Added the `SSOLoginFunc` override and passed it from `CLIConf` into the client. Auth and Proxy now propagate their assigned listener addresses when binding to `:0`.
+
+Added focused tests for error returns, SSO injection, and the assigned Auth address. `go test ./tool/tsh ./lib/client ./lib/service` and `git diff --check` passed.

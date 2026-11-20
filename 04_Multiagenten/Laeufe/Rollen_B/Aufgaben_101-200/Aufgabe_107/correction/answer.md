@@ -1,0 +1,3 @@
+The checked-out patch already implements the requested bypass removal behavior. The independent review found no code defect, so no code changes were needed in this correction round.
+
+I reran the reviewer’s exact Jest command from `/app/applications/mail`: **2 suites passed, 13 tests passed**. `git diff --check` also passed. I updated [checkpoint.md](/app/.codex-role-output/checkpoint.md) with the result.

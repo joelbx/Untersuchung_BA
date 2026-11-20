@@ -1,0 +1,3 @@
+Updated [useLink.ts](/app/applications/drive/src/app/store/_links/useLink.ts) to reuse known API errors for the same `(shareId, linkId)` for 10 seconds. Other links can still be fetched, and successful fetches follow the existing path.
+
+Added regression coverage in [useLink.test.ts](/app/applications/drive/src/app/store/_links/useLink.test.ts). All 16 tests pass; the Drive type check, ESLint, and Prettier checks pass.

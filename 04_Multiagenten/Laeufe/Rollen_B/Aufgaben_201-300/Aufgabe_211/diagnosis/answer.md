@@ -1,0 +1,7 @@
+The purge path explains the orphaned files: [Posts.purge](/app/src/posts/delete.js:48) removes upload associations but never deletes the files. Topic purge calls that path for each post in [topics/delete.js](/app/src/topics/delete.js:54).
+
+The likely fix is to capture a post’s upload paths before dissociation, then delete each file only after its reverse association set is empty. [posts/uploads.js](/app/src/posts/uploads.js:65) already has the per-post list and orphan check; it is also where the requested `deleteFromDisk(string | string[])` belongs. That function needs to reject other input types and keep resolved paths inside the upload directory.
+
+The ACP option needs a default in [defaults.json](/app/install/data/defaults.json), a checkbox in [uploads.tpl](/app/src/views/admin/settings/uploads.tpl:9), and a label in the [English locale](/app/public/language/en-GB/admin/settings/uploads.json). One additional interaction needs review: [topic thumbnail deletion](/app/src/topics/thumbs.js:111) currently removes files unconditionally, including during topic purge, so it could bypass preservation or shared-file protection.
+
+The [existing upload tests](/app/test/posts/uploads.js:213) verify dissociation on purge, but do not establish disk deletion, retention, or shared-reference behavior. I inspected code and tests only; the specialist instructions for this pass prohibited project source and test edits.

@@ -1,0 +1,3 @@
+Updated the message composer so a replaced room is described in semantic paragraphs with clear status text. The reply preview now names the sender and uses a reusable, accessible CancelButton. Profiles can render as a `span` when an inline context needs one.
+
+The existing MessageComposer tests passed (3/3), and ESLint and stylelint passed on the edited files. The full type check remains blocked by errors in `matrix-js-sdk` and the room alias API.

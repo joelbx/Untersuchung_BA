@@ -1,0 +1,3 @@
+Added `proxy_service.kube_listen_addr` as a shorthand that enables the Kubernetes proxy, with port 3026 as the default. An enabled legacy Kubernetes block now produces a clear conflict error; an explicitly disabled block remains compatible with the shorthand. Client address resolution replaces wildcard listen hosts with the web proxy host and continues to prefer configured public addresses.
+
+Updated the configuration reference and added config and client tests. `go test ./lib/config ./lib/client` and `git diff --check` passed.

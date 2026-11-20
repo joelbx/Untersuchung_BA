@@ -1,0 +1,3 @@
+Implemented MARC contributor role mapping in [parse.py](/app/openlibrary/catalog/marc/parse.py), including `$e` terms, `$4` codes with precedence, and omission of unrecognized roles. Updated [add_book](/app/openlibrary/catalog/add_book/__init__.py) to preserve each author’s role on new work entries in list order and raise an exception when edition and record author counts differ. Refreshed expected MARC author data for normalized roles.
+
+Verification: 152 existing tests passed across the MARC parser and add book suites. `compileall` also completed successfully.

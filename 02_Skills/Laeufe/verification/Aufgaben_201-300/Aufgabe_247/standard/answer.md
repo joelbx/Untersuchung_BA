@@ -1,0 +1,3 @@
+Updated `SocketPosts.getUpvoters` to require `topics:read` for every category associated with the supplied post IDs before loading votes. Administrators retain access. The method now deduplicates UID lookups, preserves username order, and returns a cutoff of 6 with an `otherCount`. The frontend uses the returned cutoff and enables HTML tooltips.
+
+The isolated tests pass (3/3), and ESLint and syntax checks pass. The existing Redis-backed post test could not run because Redis was unavailable (`ECONNREFUSED 127.0.0.1:6379`).

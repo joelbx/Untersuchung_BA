@@ -1,0 +1,3 @@
+Updated the IA import path so `London ; New York ; Paris : Berlitz Publishing` produces `publish_places: ["London", "New York", "Paris"]` and `publishers: ["Berlitz Publishing"]`. ISBN classification now lives in [isbn.py](/app/openlibrary/utils/isbn.py) and uses trimmed string length only.
+
+Verification: 49 focused tests and all 18 import API tests passed; `git diff --check` passed. `ruff` was unavailable, so lint status remains unverified.

@@ -1,0 +1,3 @@
+Payment token verification is now injectable. `getCreatePaymentToken` binds a verifier, and `getDefaultVerifyPayment` owns the verification modal. I updated the payment callers, including single signup, and made polling stop and clean up on completion or cancellation so a canceled verification cannot submit a token.
+
+The relevant payment tests and both account and components TypeScript checks pass.

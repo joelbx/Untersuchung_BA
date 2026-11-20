@@ -1,0 +1,3 @@
+Implemented YAML-native variant attachments in [internal/ext](/app/internal/ext/common.go). Export now renders stored JSON as YAML structures; import accepts YAML maps, lists, and values and stores attachments as JSON strings. Both paths handle missing attachments, and the CLI commands now use them.
+
+Verification: `go test ./storage/sql/... ./internal/ext ./cmd/flipt` and `git diff --check` passed. No delegation was used.

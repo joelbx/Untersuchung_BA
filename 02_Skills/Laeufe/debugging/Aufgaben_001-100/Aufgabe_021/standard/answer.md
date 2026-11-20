@@ -1,0 +1,3 @@
+Updated the list model to use typed seed values, compare seeds by normalized keys, and return loaded, type-filtered authors, works, and editions from `get_export_list()`. Subject paths now share one normalization helper, and the List, Seed, and URL helper signatures have explicit types. Added regression tests for duplicate detection, subject normalization, and export behavior.
+
+Verification: **15 relevant tests passed**, and `git diff --check` passed.

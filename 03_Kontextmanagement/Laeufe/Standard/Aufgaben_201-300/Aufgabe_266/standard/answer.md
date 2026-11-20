@@ -1,0 +1,3 @@
+Added `STAGED_SOURCES = ('amazon', 'idb')` and [ImportItem.find_staged_or_pending](/app/openlibrary/core/imports.py:113). The method builds `{source}:{identifier}` IDs and returns matching `staged` or `pending` rows from `import_item` through the database result set.
+
+Added coverage for source and status filtering, multiple identifiers, custom sources, and empty input. The import tests pass: **6 passed**.

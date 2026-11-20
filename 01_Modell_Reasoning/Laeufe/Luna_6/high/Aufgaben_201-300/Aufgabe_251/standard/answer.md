@@ -1,0 +1,3 @@
+Implemented precise YAML validation reporting in [validate.go](/app/internal/cue/validate.go). Errors now include the field path, descriptive message, and source location; unknown keys point to their individual YAML keys. The validator API aggregates errors, and JSON and text output use the provided writer.
+
+Verified with `go test ./internal/cue ./cmd/flipt`, `git diff --check`, and a CLI check confirming distinct typo-key locations and exit status 1.

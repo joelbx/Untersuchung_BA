@@ -1,0 +1,3 @@
+Added `meta.config.systemTags` with an empty default. Topic creation, editing, queued posts, and the topic tagging API now check the acting user’s privileges before assigning a reserved tag and return “You can not use this system tag.” for unprivileged users. The composer’s `isTagAllowed` check also rejects those tags for unprivileged users.
+
+ESLint, `git diff --check`, and 11 focused topic and category tests passed. No delegation was used.

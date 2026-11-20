@@ -1,0 +1,3 @@
+Updated [FnToCLI](/app/scripts/solr_builder/solr_builder/fn_to_cli.py) to parse `Path` and typed lists, accept required lists positionally and optional lists through name-derived flags, and pass `None` for omitted nullable lists. `parse_args` now accepts a token sequence, and `run` returns synchronous or asynchronous function results. Existing hyphenated option names remain accepted.
+
+Added coverage in [test_fn_to_cli.py](/app/scripts/solr_builder/tests/test_fn_to_cli.py). Verification: 8 tests passed; Ruff and `git diff --check` were clean.

@@ -1,0 +1,3 @@
+Reverted directory scanning to native OS operations. The walker now uses absolute paths, and `utils.IsDirReadable` checks directories by opening and closing them. Audio discovery, ignore rules, symlink handling, logging, and error reporting remain in place; the walker error channel also now avoids a deadlock when the root cannot be read.
+
+Focused scanner tests, the existing directory-reader tests, and the utils suite pass. The fixture-backed scanner specs could not run because their fixture directory is absent from this checkout.

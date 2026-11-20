@@ -1,0 +1,3 @@
+Added `/proc/sysinfo` support to [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py). `get_sysinfo_facts()` returns `{}` when the file is absent; when present, it returns the five requested fields, strips leading zeroes from the serial, and leaves missing values as `"NA"`. The setup facts now merge these values after DMI facts.
+
+Added [focused tests](/app/test/units/module_utils/facts/hardware/test_linux_get_sysinfo_facts.py). All 18 relevant local tests passed, and `git diff --check` passed.

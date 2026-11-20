@@ -1,0 +1,3 @@
+Implemented the combined requirements flow in [galaxy.py](/app/lib/ansible/cli/galaxy.py). Implicit `ansible-galaxy install -r` now parses roles and collections together, and role installs accept `-r/--requirements-file` while retaining `--role-file`. The CLI also reports skipped items and announces install starts.
+
+`py_compile` and `git diff --check` pass. The focused test file reports **103 passed, 4 failed**; all four failures concern collection path warning counts, which were higher than expected. I recorded the work and test results in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

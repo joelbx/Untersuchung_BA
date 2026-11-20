@@ -1,0 +1,3 @@
+Fixed invalid `hosts` handling in [Play](/app/lib/ansible/playbook/play.py). `Play.load` no longer changes `name`; `get_name` derives it from the current hosts, and `_validate_hosts` raises the requested parser errors when hosts are supplied but invalid.
+
+Verification: all 248 playbook unit tests pass. A CLI syntax check of the reported YAML now exits with a parser error that identifies the invalid host value and its source location.

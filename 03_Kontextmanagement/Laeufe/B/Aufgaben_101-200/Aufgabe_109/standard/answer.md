@@ -1,0 +1,3 @@
+Added a **Polls history** button to [RoomSummaryCard](/app/src/components/views/right_panel/RoomSummaryCard.tsx). The new Labs flag controls its visibility; clicking it opens the new [PollHistoryDialog](/app/src/components/views/dialogs/polls/PollHistoryDialog.tsx) with the current `roomId`.
+
+The RightPanel tests and formatting checks pass. The full TypeScript check remains blocked by an unrelated `RoomCreate.tsx` error.

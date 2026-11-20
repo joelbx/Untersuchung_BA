@@ -1,0 +1,3 @@
+Fixed the NULL scan errors in the checked-out repository. Album and artist external metadata timestamps, share expiration and last visit timestamps, and album `image_files` now accept NULL. Added the public `gg.P` and `gg.V` helpers and updated the affected reads and assignments.
+
+The focused Go tests and `git diff --check` pass. A broader run still fails in unrelated TagLib tests due to fixture and permission expectations; those failures are recorded in `.codex-role-output/checkpoint.md`.

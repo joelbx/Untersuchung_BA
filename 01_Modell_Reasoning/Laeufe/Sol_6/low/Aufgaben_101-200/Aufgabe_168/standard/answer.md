@@ -1,0 +1,3 @@
+Updated the user info panel so Kick, Ban, and Mute share a lock for the target member. The lock starts on activation, sets `disabled` and `aria-disabled="true"` on all three controls, and releases when the confirmation is canceled or the operation settles. Failures show one error dialog and release the lock.
+
+The [regression test](/app/test/components/views/right_panel/UserInfo-test.tsx) covers rapid clicks across actions and cancellation. All 69 UserInfo tests pass. The full TypeScript check still reports unrelated repository errors.

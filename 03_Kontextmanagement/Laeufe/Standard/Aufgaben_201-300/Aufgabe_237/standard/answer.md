@@ -1,0 +1,3 @@
+Implemented the chat edit requirements in the checked-out files: the v3 `PUT /chats/:roomId/:mid` route now validates and edits messages, returns the updated message, and uses `Messaging.messageExists` to reject missing IDs. The client sends edits through that route, and the old socket edit handler now warns that it is deprecated.
+
+The messaging test suite passed: **76 tests**. The issue description also requests a `DirectedGraph` refactor, but this repository has no tracked `LinkProvider` or `DirectedGraph` implementation, so that portion remains unresolved.

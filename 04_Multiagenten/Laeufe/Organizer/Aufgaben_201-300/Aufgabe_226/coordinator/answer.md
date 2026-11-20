@@ -1,0 +1,3 @@
+MIME mappings and lossless formats now load at startup from [mime_types.yaml](/app/resources/mime_types.yaml) through a `conf.AddHook` hook. The server’s UI configuration uses the loaded `mime.LosslessFormats` list, and the former hardcoded definitions have been removed. Operators can override the bundled file as described in [README.md](/app/README.md).
+
+The loader, server, core, model, and Subsonic tests passed; `git diff --check` passed. No delegation was used.

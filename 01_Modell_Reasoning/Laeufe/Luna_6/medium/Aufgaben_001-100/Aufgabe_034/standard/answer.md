@@ -1,0 +1,3 @@
+Implemented IA metadata normalization. `get_ia_record` now emits ISBNs as `isbn_10` and `isbn_13`, and publisher values as `publishers` with `publish_places` when present. Added public utilities in [utils.py](/app/openlibrary/plugins/upstream/utils.py) and updated coverage in [test_code.py](/app/openlibrary/plugins/importapi/tests/test_code.py).
+
+Verification: `pytest -q openlibrary/plugins/importapi/tests/test_code.py` — **10 passed**.

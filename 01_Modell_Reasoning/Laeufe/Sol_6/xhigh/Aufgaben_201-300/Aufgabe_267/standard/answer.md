@@ -1,0 +1,3 @@
+Updated [RoomView](/app/src/components/structures/RoomView.tsx) to dispatch `{ action: Action.RoomLoaded }` after a room loads and to preserve the focused event when the store has no initial event ID. [RoomViewStore](/app/src/stores/RoomViewStore.tsx) now recomputes widget buttons on that action alone; the public [Action enum](/app/src/dispatcher/actions.ts) includes `"room_loaded"`.
+
+Both focused test suites pass: 66 tests and 8 snapshots. ESLint and Prettier pass. The full TypeScript check still reports errors in unchanged SDK/OIDC and other files, with none in the edited files.

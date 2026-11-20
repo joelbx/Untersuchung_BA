@@ -1,0 +1,3 @@
+Implemented `storage.readOnly` with validation that rejects an explicit value on non-database storage. The UI now uses that value, applies the requested default when it is absent, and shows the active storage backend’s icon and read-only status in the header. Authentication bootstrap also skips database setup for all non-database backends when authentication is disabled.
+
+The requested invalid config fixture and focused tests are included. `GOPROXY=off go test ./internal/config ./internal/cmd` and `git diff --check` passed. UI tests could not run because Node and the UI dependencies are absent.

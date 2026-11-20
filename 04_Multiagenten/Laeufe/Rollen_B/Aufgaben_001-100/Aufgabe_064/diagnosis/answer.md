@@ -1,0 +1,7 @@
+I located the changes needed, but did not edit project source or tests: the specialist instructions for this run require a diagnosis only.
+
+- [useMyCountry.tsx](/app/packages/components/hooks/useMyCountry.tsx:75) returns `[country, !country]` and can initialize from timezone or language. The requested single-value API also needs a decision on whether “starting as undefined” replaces that synchronous initial value.
+- [SetPhoneContainer.tsx](/app/applications/account/src/app/containers/securityCheckup/routes/phone/SetPhoneContainer.tsx:23) and [AccountRecoverySection.tsx](/app/packages/components/containers/recovery/AccountRecoverySection.tsx:27) gate rendering on `loadingCountry`. Their user-settings gates should remain. The other six call sites only need single-value consumption.
+- [PhoneInput.tsx](/app/packages/components/components/v2/phone/PhoneInput.tsx:41) defaults an absent prop to `'US'` and captures it in state at mount. It needs an empty initial country for undefined or `''`, plus one-time adoption of a later non-empty prop only while its internal country is empty. Its existing number inference, formatting, callbacks, and country label should be preserved.
+
+The existing [PhoneInput tests](/app/packages/components/components/v2/phone/PhoneInput.test.tsx) cover formatting and selection, but not delayed or changing `defaultCountry` props. I recorded progress in `.codex-role-output/checkpoint.md`; no tests were run.

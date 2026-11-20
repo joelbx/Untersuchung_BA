@@ -1,0 +1,3 @@
+Updated the assistant content path to carry the draft’s `messageID` through model preparation, preview, and editor insertion. URL placeholders now restore only for their originating message; unknown or foreign links lose their URL while keeping visible text, and images are removed. The conversion path preserves `<a>` and `<img>` class and style, repairs nested lists with the new `fixNestedLists` helper, and renders lists with configurable Markdown rules.
+
+The relevant Jest suites pass, as do ESLint and formatting checks. The full mail type check still fails on an unrelated OpenPGP type mismatch in the untouched crypto package.

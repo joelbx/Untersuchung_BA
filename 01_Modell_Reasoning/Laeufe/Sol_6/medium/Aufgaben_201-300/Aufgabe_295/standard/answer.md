@@ -1,0 +1,3 @@
+Added and exported `DeviceVerificationStatusCard` to provide the localized verified and unverified messages. `CurrentDeviceSection` now uses it, and `DeviceDetails` shows it directly below the device heading.
+
+The focused tests pass (8 tests), as do ESLint and `git diff --check`. The full TypeScript check still reports errors in unrelated files and the installed SDK; none reference the changed device files.

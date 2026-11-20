@@ -1,0 +1,3 @@
+Updated `flipt validate` to report every YAML validation error with its field path, descriptive message, and precise source location. Text and JSON output now use the command’s output stream, and validation failures produce a nonzero exit code with a clear failure message.
+
+Added tests for multiple errors, coordinates, output formats, and malformed YAML. `go test ./internal/cue ./cmd/flipt` passes.

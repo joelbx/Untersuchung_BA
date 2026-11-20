@@ -1,0 +1,3 @@
+Updated collection build and install handling to preserve internal file and directory symlinks with relative targets. The manifest no longer expands symlinked directories, external file symlinks are copied into the artifact as regular files, and extraction checks that restored symlinks stay within the collection destination. The tar helpers now return both `TarInfo` and a readable stream.
+
+Updated the collection tests for the new behavior and added extraction coverage. **60 collection unit tests passed.**

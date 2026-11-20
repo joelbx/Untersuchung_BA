@@ -1,0 +1,3 @@
+Fixed `Booknotes.update_work_id` so a destination conflict leaves every booknote unchanged and returns `{"rows_changed": 0, "rows_deleted": 0, "failed_deletes": 1}`. Successful updates return the same three keys with the appropriate counts. I also updated the admin response to use that dictionary.
+
+Added regression tests for conflicts, successful updates, and dry runs. All 5 tests in `openlibrary/tests/core/test_db.py` pass.

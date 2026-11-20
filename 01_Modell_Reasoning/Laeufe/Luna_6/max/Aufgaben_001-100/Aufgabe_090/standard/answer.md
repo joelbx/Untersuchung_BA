@@ -1,0 +1,3 @@
+Fixed `/lists/add` input handling in [lists.py](/app/openlibrary/plugins/openlibrary/lists.py:51): nonempty POST bodies are parsed independently of query parameters, defaults avoid submitted nested fields, and invalid or empty seeds are skipped. Updated [utils.py](/app/openlibrary/plugins/upstream/utils.py:286) so later flattened assignments take precedence.
+
+Verification passed: 14 existing list and upstream utility tests, plus `git diff --check`.

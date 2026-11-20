@@ -1,0 +1,3 @@
+Updated [affiliate_server.py](/app/scripts/affiliate_server.py) with `PrioritizedIdentifier` for ISBNs and ASINs. It includes `stage_import`, compares and hashes by identifier for set deduplication, and serializes all four fields as JSON compatible values. The queue and batch path use the new model; `PrioritizedISBN`, `isbn`, and legacy constructor calls remain available.
+
+The affiliate tests pass: **18 passed**. Ruff lint, Ruff format, and `git diff --check` also pass. Black could not run because it is not installed; the exact command and error are recorded in the checkpoint.

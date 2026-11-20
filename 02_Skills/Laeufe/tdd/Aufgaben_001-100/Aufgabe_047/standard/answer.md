@@ -1,0 +1,3 @@
+Added `SetSeed` for both the package and `Hasher`, so setting a seed for an ID produces repeatable hashes and restoring that seed restores the original result. Missing IDs still get a seed automatically.
+
+The hasher tests pass, including a race-enabled run. The full Go suite has two failures in TagLib gain-tag tests, where duplicate values are returned; all other packages passed. Hashes are reproducible within a hasher instance, but the `maphash` seed means they are not stable across process restarts.

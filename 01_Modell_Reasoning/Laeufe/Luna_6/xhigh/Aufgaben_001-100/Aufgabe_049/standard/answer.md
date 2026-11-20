@@ -1,0 +1,5 @@
+Implemented the confirmation flow using `confirm:byUid:<uid>` mappings and confirmation objects with millisecond expiry timestamps. Resends now block while a confirmation is active unless forced; ACP actions can recover an email from pending data, and confirmation-by-code and deletion clean up the associated keys. The ACP user list displays **Validated**, **Validation Pending**, **Validation Expired**, or **(no email)**.
+
+Changed [email.js](/app/src/user/email.js:29), [admin users controller](/app/src/controllers/admin/users.js:184), [user list template](/app/src/views/admin/manage/users.tpl:110), [profile handling](/app/src/user/profile.js:90), and [user deletion](/app/src/user/delete.js:128).
+
+ESLint, syntax checks, and `git diff --check` pass. Focused ACP tests passed (6), as did focused profile email tests (2). The full user suite has one failing legacy assertion that expects a resend while a valid confirmation is pending; the updated requirement requires that resend to be blocked unless forced. The full ACP suite also has an unrelated existing 404 assertion failure.

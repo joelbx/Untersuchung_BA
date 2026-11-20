@@ -1,0 +1,3 @@
+Updated Redis, MongoDB, and Postgres so `getObject` and `getObjects` accept optional field lists. Empty lists return full objects; selected lists include absent fields as `null`, preserve input order, and keep missing keys falsy. Added coverage in [hash.js](/app/test/database/hash.js).
+
+Verification: 59 hash tests passed on Redis, plus ESLint and `git diff --check`. MongoDB and Postgres integration tests were not run.

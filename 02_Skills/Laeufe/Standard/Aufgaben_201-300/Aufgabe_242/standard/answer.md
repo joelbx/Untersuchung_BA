@@ -1,0 +1,3 @@
+Updated voice broadcast playback so **info state is the sole source of liveness**: Started and Resumed show `live`, Paused shows `grey`, and Stopped, unknown, or unset states show `not-live`. Playback actions and chunk changes no longer alter liveness independently. Added tests for the mapping, initialization, and event emissions.
+
+All 52 focused tests pass, along with ESLint, Prettier, and `git diff --check`. The repository-wide TypeScript check still fails on five existing SDK typing errors outside the changed files; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

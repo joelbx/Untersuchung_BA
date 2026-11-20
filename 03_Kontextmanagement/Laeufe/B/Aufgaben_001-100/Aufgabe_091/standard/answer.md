@@ -1,0 +1,1 @@
+Implemented `isoneof` and `isnotoneof` for string and number constraints, with typed JSON array validation and a 100-item limit. Added focused tests; both affected Go packages pass their tests, and `git diff --check` passes.

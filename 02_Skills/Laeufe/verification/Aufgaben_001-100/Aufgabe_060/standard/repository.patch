@@ -1,0 +1,276 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 7d2b27a..91cc3a1 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -75,6 +75,7 @@ SUSPECT_PUBLICATION_DATES: Final = [
+     "01-01-1900",
+ ]
+ SUSPECT_AUTHOR_NAMES: Final = ["unknown", "n/a"]
++SUSPECT_DATE_EXEMPT_SOURCES: Final = ["wikisource"]
+ SOURCE_RECORDS_REQUIRING_DATE_SCRUTINY: Final = ["amazon", "bwb", "promise"]
+ ALLOWED_COVER_HOSTS: Final = ("m.media-amazon.com", "books.google.com")
+ 
+@@ -228,6 +229,8 @@ def build_author_reply(authors_in, edits, source):
+             a['key'] = web.ctx.site.new_key('/type/author')
+             a['source_records'] = [source]
+             edits.append(a)
++        elif getattr(a, '_import_remote_ids_changed', False):
++            edits.append(a.dict())
+         authors.append({'key': a['key']})
+         author_reply.append(
+             {
+@@ -626,10 +629,13 @@ def load_data(
+     reply = {}
+     # edition.authors may have already been processed by import_authors() in build_query(),
+     # but not necessarily
++    # Keep matched Author instances so newly merged IDs remain in the save batch.
++    from openlibrary.core.models import Author
++
+     author_in = [
+         (
+             import_author(a, eastern=east_in_by_statement(rec, a))
+-            if isinstance(a, dict)
++            if isinstance(a, dict) and not isinstance(a, Author)
+             else a
+         )
+         for a in edition.get('authors', [])
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index 7d463ac..dacc843 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -182,6 +182,42 @@ def find_entity(author: dict[str, Any]) -> "Author | None":
+     :return: Existing Author record if found, or None.
+     """
+     assert isinstance(author, dict)
++    # Imported here because core.models loads the catalog package at module import time.
++    from openlibrary.core.models import AuthorRemoteIdConflictError
++    if key := author.get('key'):
++        existing = web.ctx.site.get(key)
++        if existing and existing.type.key == '/type/author':
++            return existing
++
++    remote_ids = author.get('remote_ids') or {}
++    if remote_ids:
++        candidates = {}
++        for kind, value in remote_ids.items():
++            if not value:
++                continue
++            query = {'type': '/type/author', 'remote_ids': {kind: value}}
++            for candidate_key in web.ctx.site.things(query):
++                candidate = web.ctx.site.get(candidate_key)
++                if candidate and candidate.type.key == '/type/author':
++                    candidates[candidate_key] = candidate
++        compatible = []
++        conflict = None
++        for candidate in candidates.values():
++            try:
++                _, count = candidate.merge_remote_ids(remote_ids)
++                compatible.append((count, candidate))
++            except AuthorRemoteIdConflictError as error:
++                conflict = error
++        if compatible:
++            return min(
++                compatible,
++                key=lambda item: (-item[0], key_int(item[1]), item[1].key),
++            )[1]
++        if conflict:
++            raise conflict
++
++    if not author.get('name'):
++        return None
+     things = find_author(author)
+     if author.get('entity_type', 'person') != 'person':
+         return things[0] if things else None
+@@ -241,10 +277,15 @@ def import_author(author: dict[str, Any], eastern=False) -> "Author | dict[str,
+              or new candidate dict without "key".
+     """
+     assert isinstance(author, dict)
+-    if author.get('entity_type') != 'org' and not eastern:
++    if author.get('name') and author.get('entity_type') != 'org' and not eastern:
+         do_flip(author)
+     if existing := find_entity(author):
+         assert existing.type.key == '/type/author'
++        if remote_ids := author.get('remote_ids'):
++            merged, _ = existing.merge_remote_ids(remote_ids)
++            if merged != (existing.get('remote_ids') or {}):
++                existing['remote_ids'] = merged
++                existing._import_remote_ids_changed = True
+         for k in 'last_modified', 'id', 'revision', 'created':
+             if existing.k:
+                 del existing.k
+@@ -253,7 +294,7 @@ def import_author(author: dict[str, Any], eastern=False) -> "Author | dict[str,
+             new['death_date'] = author['death_date']
+         return new
+     a = {'type': {'key': '/type/author'}}
+-    for f in 'name', 'title', 'personal_name', 'birth_date', 'death_date', 'date':
++    for f in 'name', 'title', 'personal_name', 'birth_date', 'death_date', 'date', 'remote_ids':
+         if f in author:
+             a[f] = author[f]
+     return a
+@@ -276,7 +317,8 @@ def build_query(rec: dict[str, Any]) -> dict[str, Any]:
+             if v and v[0]:
+                 book['authors'] = []
+                 for author in v:
+-                    author['name'] = remove_author_honorifics(author['name'])
++                    if 'name' in author:
++                        author['name'] = remove_author_honorifics(author['name'])
+                     east = east_in_by_statement(rec, author)
+                     book['authors'].append(import_author(author, eastern=east))
+             continue
+diff --git a/openlibrary/catalog/add_book/tests/test_add_book.py b/openlibrary/catalog/add_book/tests/test_add_book.py
+index 86cc6ac..71daafb 100644
+--- a/openlibrary/catalog/add_book/tests/test_add_book.py
++++ b/openlibrary/catalog/add_book/tests/test_add_book.py
+@@ -193,6 +193,26 @@ def test_load_with_subjects(mock_site, ia_writeback):
+     assert w.subjects == ['Protected DAISY', 'In library']
+ 
+ 
++def test_load_persists_merged_author_identifiers(mock_site, ia_writeback):
++    mock_site.quicksave(
++        '/authors/OL1A', '/type/author', name='Existing',
++        remote_ids={'viaf': '123'},
++    )
++    reply = load({
++        'title': 'Identifier import',
++        'source_records': ['ia:identifier_import'],
++        'authors': [{
++            'name': 'Different name',
++            'remote_ids': {'viaf': '123', 'goodreads': '456'},
++        }],
++    })
++    assert reply['success'] is True
++    assert reply['authors'][0]['key'] == '/authors/OL1A'
++    assert mock_site.get('/authors/OL1A').dict()['remote_ids'] == {
++        'viaf': '123', 'goodreads': '456'
++    }
++
++
+ def test_load_with_new_author(mock_site, ia_writeback):
+     rec = {
+         'ocaid': 'test_item',
+diff --git a/openlibrary/catalog/add_book/tests/test_load_book.py b/openlibrary/catalog/add_book/tests/test_load_book.py
+index 4b971f0..b20f606 100644
+--- a/openlibrary/catalog/add_book/tests/test_load_book.py
++++ b/openlibrary/catalog/add_book/tests/test_load_book.py
+@@ -8,7 +8,7 @@ from openlibrary.catalog.add_book.load_book import (
+     remove_author_honorifics,
+ )
+ from openlibrary.catalog.utils import InvalidLanguage
+-from openlibrary.core.models import Author
++from openlibrary.core.models import Author, AuthorRemoteIdConflictError
+ 
+ 
+ @pytest.fixture
+@@ -79,6 +79,75 @@ def test_build_query(add_languages):
+ 
+ class TestImportAuthor:
+ 
++    def test_key_takes_priority_and_merges_identifiers(self, mock_site):
++        mock_site.quicksave(
++            '/authors/OL1A', '/type/author', name='First',
++            remote_ids={'viaf': '123'},
++        )
++        mock_site.quicksave(
++            '/authors/OL2A', '/type/author', name='Second',
++            remote_ids={'goodreads': '456'},
++        )
++        result = import_author({
++            'key': '/authors/OL1A', 'name': 'Second',
++            'remote_ids': {'viaf': '123', 'librivox': '789'},
++        })
++        assert result.key == '/authors/OL1A'
++        assert result.remote_ids == {'viaf': '123', 'librivox': '789'}
++
++    def test_key_only_finds_existing_author(self, mock_site):
++        mock_site.quicksave('/authors/OL1A', '/type/author', name='Existing')
++        assert import_author({'key': '/authors/OL1A'}).key == '/authors/OL1A'
++
++    def test_remote_ids_take_priority_over_name_and_dates(self, mock_site):
++        mock_site.quicksave(
++            '/authors/OL1A', '/type/author', name='Different',
++            remote_ids={'viaf': '123'},
++        )
++        mock_site.quicksave('/authors/OL2A', '/type/author', name='Same')
++        result = import_author({
++            'name': 'Same', 'remote_ids': {'viaf': '123', 'amazon': 'A1'}
++        })
++        assert result.key == '/authors/OL1A'
++        assert result.remote_ids == {'viaf': '123', 'amazon': 'A1'}
++
++    def test_remote_match_uses_match_count_then_lowest_key(self, mock_site):
++        mock_site.quicksave(
++            '/authors/OL3A', '/type/author', name='One',
++            remote_ids={'viaf': '123', 'goodreads': '456'},
++        )
++        mock_site.quicksave(
++            '/authors/OL2A', '/type/author', name='Two',
++            remote_ids={'viaf': '123'},
++        )
++        ids = {'viaf': '123', 'goodreads': '456'}
++        assert import_author({'name': 'Other', 'remote_ids': ids}).key == '/authors/OL3A'
++        mock_site.quicksave(
++            '/authors/OL1A', '/type/author', name='Three', remote_ids=ids
++        )
++        assert import_author({'name': 'Other', 'remote_ids': ids}).key == '/authors/OL1A'
++
++    def test_conflicting_ids_raise_for_key_and_name_matches(self, mock_site):
++        mock_site.quicksave(
++            '/authors/OL1A', '/type/author', name='Same',
++            remote_ids={'viaf': 'old'},
++        )
++        for incoming in (
++            {'key': '/authors/OL1A', 'name': 'Other', 'remote_ids': {'viaf': 'new'}},
++            {'name': 'Same', 'remote_ids': {'viaf': 'new'}},
++        ):
++            with pytest.raises(AuthorRemoteIdConflictError, match='viaf'):
++                import_author(incoming)
++
++    def test_new_author_keeps_remote_ids(self, mock_site):
++        result = import_author({
++            'name': 'New', 'remote_ids': {'viaf': '123', 'librivox': '456'}
++        })
++        assert result == {
++            'type': {'key': '/type/author'}, 'name': 'New',
++            'remote_ids': {'viaf': '123', 'librivox': '456'},
++        }
++
+     def add_three_existing_authors(self, mock_site):
+         for num in range(3):
+             existing_author = {
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index 604b5e4..8cbed19 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -760,9 +760,32 @@ class Work(Thing):
+         logger.info(f"[update-redirects] Done, processed {total}, fixed {fixed}")
+ 
+ 
++class AuthorRemoteIdConflictError(ValueError):
++    """An incoming author identifier disagrees with an existing identifier."""
++
++
+ class Author(Thing):
+     """Class to represent /type/author objects in OL."""
+ 
++    def merge_remote_ids(self, incoming_ids: dict[str, str]) -> tuple[dict[str, str], int]:
++        """Return the combined IDs and number of identifiers already shared.
++
++        Keep this operation atomic: a conflict never changes the author.
++        """
++        existing = self.get('remote_ids') or {}
++        merged = dict(existing)
++        matches = 0
++        for kind, value in incoming_ids.items():
++            if kind in existing and existing[kind] != value:
++                raise AuthorRemoteIdConflictError(
++                    f"Conflicting {kind} remote ID for {self.key}: "
++                    f"{existing[kind]!r} != {value!r}"
++                )
++            if kind in existing:
++                matches += 1
++            merged[kind] = value
++        return merged, matches
++
+     def url(self, suffix="", **params):
+         return self.get_url(suffix, **params)
+ 

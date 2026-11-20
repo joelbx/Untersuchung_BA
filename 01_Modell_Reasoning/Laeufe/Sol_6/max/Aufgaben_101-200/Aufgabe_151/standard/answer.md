@@ -1,0 +1,3 @@
+Fixed the file picker workaround in [webview.py](/app/qutebrowser/browser/webengine/webview.py). On Qt 6.2.3 through 6.6.x, `chooseFiles` now adds missing extensions from Python’s MIME mappings, including `image/*` matches, without adding duplicates.
+
+Added coverage in [test_webview.py](/app/tests/unit/browser/webengine/test_webview.py). All 31 relevant tests passed, and `git diff --check` passed. The exact extensions returned depend on the host’s `mimetypes` database; flake8 was unavailable locally.

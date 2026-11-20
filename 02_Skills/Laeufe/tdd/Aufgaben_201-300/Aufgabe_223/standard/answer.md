@@ -1,0 +1,3 @@
+Updated [module_common.py](/app/lib/ansible/executor/module_common.py) so new-style Python modules use their declared interpreter and arguments by default. Explicit interpreter overrides take precedence; modules without a shebang fall back to `/usr/bin/python`. Added regression tests for those paths and for preserving non-Python shebangs.
+
+The focused suite passed: **59 tests**. Repository-wide pytest did not complete within 60 seconds and encountered collection errors for missing `ansible_test._internal` and `mock`; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

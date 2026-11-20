@@ -1,0 +1,3 @@
+RemoteCluster status and last heartbeat are now persisted. Status refreshes record the latest tunnel heartbeat in UTC, do not move it backward when a newer connection is removed, and retain it when the final connection disappears and the cluster becomes Offline. The `Presence` interface and local service now provide `UpdateRemoteCluster`.
+
+Verified with `go test ./lib/services/local ./lib/auth` and `git diff --check`.

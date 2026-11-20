@@ -1,0 +1,3 @@
+Redis cache now supports `ca_cert_path`, inline `ca_cert_bytes`, and `insecure_skip_tls`. The new [client constructor](/app/internal/cache/redis/client.go) uses TLS 1.2 or newer, trusts the configured CA when provided, and leaves system certificate authorities in place by default. [Configuration validation](/app/internal/config/cache.go) rejects both CA options together. The YAML fixtures, schemas, and `api/cachetls` CI integration case are also in place.
+
+The relevant Go tests and integration runner compilation passed. The container based integration case was not run locally.

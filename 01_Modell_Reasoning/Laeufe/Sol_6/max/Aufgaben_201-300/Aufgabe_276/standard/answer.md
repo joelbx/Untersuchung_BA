@@ -1,0 +1,3 @@
+Flipt now rejects enabled GitHub or OIDC configurations with missing or whitespace-only `client_id`, `client_secret`, or `redirect_address` values. Errors name the provider and field in the required format. The GitHub `read:org` rule also returns the specified error.
+
+I added configuration load tests for those cases, multiple OIDC providers, and valid and disabled methods. `go test ./internal/config` passes.

@@ -1,0 +1,1 @@
+Implemented DynamoDB FieldsMap writes and dual-format reads. Added resumable, distributed-lock-protected batch migration with conversion validation and progress logging. Added backend FlagKey helper. Verified: go test ./lib/events/dynamoevents ./lib/backend passes.

@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) to combine CLI and configured QtWebEngine features into one `--enable-features=` argument. Other backends keep their existing arguments. Added regression coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+Verification: 84 relevant tests passed. One existing Chromium version check was excluded because it terminates the test process in this environment.

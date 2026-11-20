@@ -1,0 +1,1 @@
+Verified handoff: MARC personal-name parser ignored $4 and copied $e raw; new_work omitted roles. Added ROLES mappings, $4 precedence, mapped roles only, ordered work author-role pairing, and count validation. Updated fixture expectations and focused tests. Validation: 162 relevant tests pass; Ruff check and git diff --check pass.

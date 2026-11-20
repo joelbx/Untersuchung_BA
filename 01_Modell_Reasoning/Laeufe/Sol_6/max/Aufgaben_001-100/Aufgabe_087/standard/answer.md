@@ -1,0 +1,3 @@
+Implemented opt-out anonymous telemetry. It is enabled by default, uses the configured state directory or OS configuration directory, persists a stable UUID, and attempts a `flipt.ping` every four hours. State and delivery errors are logged without stopping Flipt. The [configuration](/app/config/config.go), [advanced example](/app/config/testdata/advanced.yml), and [README](/app/README.md) include the opt-out settings. The `/meta/info` handler now lives in [internal/info](/app/internal/info/flipt.go).
+
+`go test ./...` and `go test -race ./telemetry` pass. Live delivery to the configured Flipt collection endpoint was not verified because external access was blocked.

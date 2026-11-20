@@ -1,0 +1,3 @@
+Added [mailMetricsHelper.ts](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts) with `getLabelID` and `getPageSizeString`. Custom labels and folders resolve to `"custom"`; page sizes resolve to `"50"`, `"100"`, or `"200"`, with `"50"` as the default. The mail manifest and lockfile now include `@proton/metrics`.
+
+Verification passed: 5 focused tests, the mail workspace type check, and `git diff --check`.

@@ -1,0 +1,3 @@
+Updated the message composer so replaced-room notices use paragraphs and clearly state that the room is no longer active. Added a reusable, accessible `CancelButton` for the reply preview and search bar; the reply preview now names the sender, including for emote replies. Profile components can render as a `span` where the heading needs inline markup.
+
+The relevant tests passed (7 total), as did ESLint and Stylelint. TypeScript still reports errors in unchanged SDK and room alias code.

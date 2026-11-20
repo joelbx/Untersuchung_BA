@@ -1,0 +1,3 @@
+Added [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py) with firmware upload, compatible drive selection, online or offline upgrades, optional completion polling, check mode, and Ansible status output.
+
+Added [unit tests](/app/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py). All 19 relevant tests passed, and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Fixed both review findings. Host filtering now runs before scheduler registration, so disallowed jobs are never registered. The 60-second HAProxy job now keeps one collector task running instead of awaiting its endless loop on each firing.
+
+Updated the tests for the decorator order and single-collector behavior. The reviewer’s exact test command passed (**9 passed**), and `git diff --check` passed. **TEST_ENVIRONMENT_PROBLEM:** none.

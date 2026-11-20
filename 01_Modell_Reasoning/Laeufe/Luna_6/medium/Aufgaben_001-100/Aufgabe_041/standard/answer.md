@@ -1,0 +1,3 @@
+Removed `ListMixin` and moved its functionality onto `List`. Owner lookup now parses `/people/{username}/lists/{list_id}` and returns `None` for invalid keys. Added `register_models()` in [model.py](/app/openlibrary/core/lists/model.py) to register the list type and `lists` changeset.
+
+The core, upstream, and list model tests passed. The broader list plugin run had one failure: `ListRecord.from_input` encountered a missing `web.ctx.env` in the test context; the other 23 cases passed.

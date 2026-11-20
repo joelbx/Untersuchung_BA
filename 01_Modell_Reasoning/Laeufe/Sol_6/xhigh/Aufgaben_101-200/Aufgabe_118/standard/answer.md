@@ -1,0 +1,3 @@
+Fixed the pip module so it uses `sys.executable -m pip` when pip is importable and no executable or virtualenv is set. It now runs listing commands as argv, falls back from `pip list` to `pip freeze`, and builds the virtualenv PATH prefix with `os.path.join`.
+
+Added regression tests in [test_pip.py](/app/test/units/modules/test_pip.py). **All 14 focused tests pass**, and `git diff --check` is clean.

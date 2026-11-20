@@ -1,0 +1,3 @@
+Updated `ansible-galaxy install -r` to install roles and collections from one requirements file when using default paths. A custom roles path skips collections with a warning; explicit `role` and `collection` installs handle only their own type and report skipped items. Empty requirements now produce “Skipping install, no requirements found.”
+
+Added routing and parsing tests. The relevant CLI suite passed: **134 tests**.

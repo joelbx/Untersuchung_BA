@@ -1,0 +1,5 @@
+I traced the overwrite to [`DeviceConfig._load()`](/app/src/misc/DeviceConfig.ts:68). It writes whenever stored JSON exists, even when the version is current and a signup token is present. That write occurs before several fields are restored, so it can replace a complete stored config with a partial one.
+
+Migration also leaves V2 credentials as an array. The loader turns that array into a Map keyed by array indexes, so lookup by user ID fails. The class lacks the required single config object, public static version and storage key, and controlled constructor parameters. Storage read failures and malformed stored values can still interrupt initialization.
+
+I recorded the diagnosis and fix scope in [checkpoint.md](/app/.codex-role-output/checkpoint.md). The existing test covers only direct V2 credential conversion; it does not test loading or writes. I did not edit source or tests because this run’s assigned role is fault localization only, despite the request to implement the fix.

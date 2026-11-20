@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` for MongoDB and Redis. It validates tuple input and safe integer increments, updates multiple fields atomically per key, creates missing objects and fields, and invalidates cache after successful writes. Added focused tests.
+
+ESLint passed. The Redis bulk tests passed (3), as did the existing increment tests (6). MongoDB integration tests were not run because this workspace is configured for Redis.

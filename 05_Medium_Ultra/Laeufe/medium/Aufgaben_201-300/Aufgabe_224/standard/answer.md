@@ -1,0 +1,3 @@
+Moved `interpolate_color` and its helper to [qtutils.py](/app/qutebrowser/utils/qtutils.py:177), then updated download and tab progress indicators to call it. The relocated helper preserves RGB, HSV, and HSL interpolation, validates colors, and rejects percentages outside 0–100, including when gradients are disabled.
+
+Moved and extended the interpolation tests. **All 338 relevant tests passed**, and `git diff --check` passed.

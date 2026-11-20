@@ -1,0 +1,2 @@
+Task: Fix list removal so a single call accepts multiple distinct string values, preserves remaining order, and reads reflect the result immediately.
+Status: Implemented array removal in Redis, MongoDB, and PostgreSQL; added a shared regression test. Focused list suite passed (20 tests) against a temporary local Redis instance. ESLint and git diff --check passed. Temporary Redis instance stopped. Initial untracked appendonlydir/ remains untouched.

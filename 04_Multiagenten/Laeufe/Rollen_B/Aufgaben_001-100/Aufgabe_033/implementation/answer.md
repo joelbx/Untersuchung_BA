@@ -1,0 +1,3 @@
+Implemented multi-device U2F challenges. The auth server now returns a challenge for every registered U2F key while preserving the first challenge in the legacy JSON fields. The auth client and web handlers carry the new payload, and CLI login accepts either the challenge list or a legacy single challenge. MFA device management remains hidden in `tsh` help.
+
+The focused web login test passed, including authentication with a second registered key. The affected packages compiled, and `git diff --check` passed.

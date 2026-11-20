@@ -1,0 +1,3 @@
+Added `isFromProton` in [elements.ts](/app/applications/mail/src/app/helpers/elements.ts:44). It returns `true` only when `IsProton === 1`, using the same check for messages and conversations. Added coverage for both types and values 1 and 0 in [elements.test.ts](/app/applications/mail/src/app/helpers/elements.test.ts:23).
+
+The existing helper test passed: `yarn workspace proton-mail test src/app/helpers/elements.test.ts --runInBand`.

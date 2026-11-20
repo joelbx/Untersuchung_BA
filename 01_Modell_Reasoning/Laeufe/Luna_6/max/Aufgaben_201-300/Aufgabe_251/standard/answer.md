@@ -1,0 +1,3 @@
+Implemented the structured validator in [validate.go](/app/internal/cue/validate.go:30). Errors now include field paths, key-specific messages, and coordinates from the matching input file. `ValidateFiles` aggregates errors and writes JSON to its supplied writer; text output includes the same details.
+
+Verification: `go test ./internal/cue` passes. JSON and text CLI smoke runs reported all four sample failures with distinct coordinates and exited with status 1.

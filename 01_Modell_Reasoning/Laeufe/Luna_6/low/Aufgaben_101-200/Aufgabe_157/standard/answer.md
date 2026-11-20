@@ -1,0 +1,3 @@
+Implemented the mail metrics helpers in [mailMetricsHelper.ts](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts). Custom labels and folders map to `"custom"`; system mailbox IDs are preserved. Page sizes map to `"50"`, `"100"`, or `"200"`, with missing or unrecognized values defaulting to `"50"`.
+
+Added `@proton/metrics` to the mail package manifest and Yarn lockfile. The existing `labels.test.ts` passed, though Jest stayed running after reporting success and I interrupted it. `git diff --check` passed.

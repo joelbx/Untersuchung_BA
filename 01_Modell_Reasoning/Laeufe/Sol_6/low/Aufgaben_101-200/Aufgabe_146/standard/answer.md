@@ -1,0 +1,3 @@
+Added `/proc/sysinfo` parsing to [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py) and applied the resulting hardware facts during gathering. The new method returns `{}` when the file is absent; when present, it returns the five requested keys, uses `NA` for missing values, and strips leading zeros from the serial.
+
+Added unit tests for present and absent files in [test_linux.py](/app/test/units/module_utils/facts/hardware/test_linux.py). All 13 tests in that file pass.

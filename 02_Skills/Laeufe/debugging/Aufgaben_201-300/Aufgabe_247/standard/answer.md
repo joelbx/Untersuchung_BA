@@ -1,0 +1,3 @@
+Updated [getUpvoters](/app/src/socket.io/posts/votes.js) to require `topics:read` on every supplied post category before returning data, while allowing administrators. It now resolves deduplicated UIDs once and returns ordered usernames with a cutoff of 6. The [frontend tooltip](/app/public/src/client/topic/votes.js) uses the server’s cutoff and supports HTML.
+
+Verification: the voting suite passed (11 tests), the isolated regression test passed, and ESLint and `git diff --check` passed.

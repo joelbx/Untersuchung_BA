@@ -1,0 +1,3 @@
+Implemented zip-based cover archival with zero-padded IDs, batch locks, upload verification, retryable cleanup, and database URLs for completed covers. The cover server now follows verified URLs instead of the hardcoded `.tar` redirect. Schema changes and the existing-database migration SQL are documented in the [coverstore README](/app/openlibrary/coverstore/README.md).
+
+Verification: 25 coverstore tests passed, 7 were skipped; Ruff and diff checks passed. Live archive.org uploads were not exercised.

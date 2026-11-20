@@ -1,0 +1,3 @@
+Updated [db.go](/app/detector/vuls2/db.go) to validate metadata and schema versions. A mismatch now forces a database download, or returns a path-bearing error when `SkipUpdate` is enabled. Connection and metadata errors also include the database path.
+
+Added mismatch and missing-metadata coverage in [db_test.go](/app/detector/vuls2/db_test.go). `go test -p 2 ./detector/vuls2` and `git diff --check` passed.

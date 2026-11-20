@@ -1,0 +1,3 @@
+Added [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py) with firmware upload, compatible drive selection, online or offline upgrade, optional completion polling, check mode, and error reporting. Added [unit tests](/app/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py).
+
+All 10 selected tests pass. The repository has no drive firmware API response fixtures, so the response fields could not be verified against a controller.

@@ -1,0 +1,3 @@
+Fixed the cancellation expiry date. The [expiry utility](/app/packages/components/containers/payments/subscription/helpers/payment.ts) now uses the active term when cancellation is in progress or renewal is disabled, while preserving scheduled-term behavior for normal renewal and leaving free plans unchanged. The cancellation confirmation and follow-up screens now display the date from that utility.
+
+Verification passed: 42 tests across four suites, the components TypeScript check, and formatting checks.

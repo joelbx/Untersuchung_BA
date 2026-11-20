@@ -1,0 +1,3 @@
+Refactored [Pill.tsx](/app/src/components/views/elements/Pill.tsx:45) into a named functional component and added permalink resolution, profile lookup, avatar selection, and user actions in [usePermalink.tsx](/app/src/hooks/usePermalink.tsx:95). Updated `ReplyChain`, `BridgeTile`, and `pillify` to use named exports and the exported `@room` helpers.
+
+The focused Jest suites passed (5 tests), as did ESLint, Prettier, and `git diff --check`. The full TypeScript check still reports errors in unrelated login rendezvous and push-rule files; it reported none in the changed files.

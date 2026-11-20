@@ -1,0 +1,1 @@
+Implemented GetInstance using an exact reflect.Type key and per-type sync.Once; legacy Get remains unchanged. Added tests for typed reuse, independent value/pointer instances, and 20,000 simultaneous callers. Package tests and targeted race test passed.

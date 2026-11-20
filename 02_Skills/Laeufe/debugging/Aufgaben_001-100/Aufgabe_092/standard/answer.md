@@ -1,0 +1,3 @@
+Implemented `-U` / `--upgrade` for `ansible-galaxy collection install`, including requirements-file installs. Upgrade resolution selects the latest version allowed by each constraint, updates dependencies when required, honors `--no-deps` and `--pre`, and skips reinstalling an already current version. Added unit coverage and [upgrade.yml](/app/test/integration/targets/ansible-galaxy-collection/tasks/upgrade.yml).
+
+**Verification:** 104 relevant unit tests passed; YAML parsing and `git diff --check` passed. The service-backed integration test was added but was not run locally.

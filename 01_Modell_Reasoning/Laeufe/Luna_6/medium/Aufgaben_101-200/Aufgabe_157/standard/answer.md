@@ -1,0 +1,3 @@
+Implemented the metrics helpers in [mailMetricsHelper.ts](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts). Built in mailbox IDs pass through; other IDs return `"custom"`. Page sizes return `"50"`, `"100"`, or `"200"`, defaulting to `"50"` for missing or unrecognized values.
+
+Added `@proton/metrics` to the mail manifest and Yarn lockfile. The mail workspace type check did not finish, so verification is incomplete.

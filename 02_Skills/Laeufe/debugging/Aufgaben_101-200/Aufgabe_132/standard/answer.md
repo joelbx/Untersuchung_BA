@@ -1,0 +1,3 @@
+Added the configurable `meta.config.systemTags` list and enforced it during topic creation, editing, queued posting, the tagging API, and the `isTagAllowed` socket check. Unprivileged users who submit a reserved tag through validation receive “You can not use this system tag.” Privileged users can still assign it.
+
+Verification passed: 223 topic and category tests, 99 post tests, ESLint, and `git diff --check`.

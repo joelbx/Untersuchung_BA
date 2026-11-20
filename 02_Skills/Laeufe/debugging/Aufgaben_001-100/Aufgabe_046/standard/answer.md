@@ -1,0 +1,3 @@
+Resolved the `module_common` dependency issue in [module_common.py](/app/lib/ansible/executor/module_common.py). Dependency discovery now uses a queue and separate legacy and collection locators. It follows collection redirects, bundles package initializers and missing parent packages, handles relative imports from `__init__.py`, and reports attempted paths when resolution fails.
+
+Added focused regression tests and updated payload expectations for the required base package files. **Verification:** all 53 `module_common` tests passed, and `git diff --check` passed.

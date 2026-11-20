@@ -1,0 +1,3 @@
+Fixed `/lists/add` so a POST body is parsed as URL-encoded form data, with its first value per field taking precedence over defaults and no query values merged in. Nested seeds now avoid default collisions, invalid seeds are ignored, and unflattening lets later assignments win.
+
+The relevant plugin tests passed: **74 passed, 5 expected failures**. The full `pytest -q` run stopped during collection because `/app/infogami/conftest.py` was registered twice, so the full suite remains unverified.

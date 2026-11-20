@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) to detect SIGTERM, show signal names for crashes, include the correct process PID in completion messages, and set SIGTERM’s state to `"terminated"`. SIGTERM is silent by default and reported when verbose mode is enabled.
+
+`py_compile` and `git diff --check` pass. The focused pytest run could not collect because PyQt5 is not installed. The checkpoint is in `.codex-role-output/checkpoint.md`.

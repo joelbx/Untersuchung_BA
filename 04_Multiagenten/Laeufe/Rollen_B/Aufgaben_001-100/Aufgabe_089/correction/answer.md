@@ -1,0 +1,3 @@
+Fixed the three review findings: validation now returns located, unwrap-able errors for malformed YAML; boolean rollout segment references are checked; and both snapshot constructors run full CUE and reference validation. I added regression tests and corrected valid fixtures that the checks exposed.
+
+The review’s exact command, `go test ./internal/cue ./internal/ext ./internal/storage/fs ./cmd/flipt`, passes. `git diff --check` also passes. **TEST_ENVIRONMENT_PROBLEM:** none.

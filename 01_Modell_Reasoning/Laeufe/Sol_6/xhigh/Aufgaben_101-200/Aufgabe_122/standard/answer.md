@@ -1,0 +1,3 @@
+Implemented `storage.readOnly` as an optional config flag. Validation rejects either explicit value on non-database storage with the required error. The UI now uses the config to determine read-only state and shows the active backend in the header, with a backend icon in the “Read-Only” badge when active. Authentication bootstrap skips database access for unauthenticated non-database storage.
+
+`go test ./internal/config ./internal/cmd` passes. The UI tests could not run because Node/npm are not installed in the workspace.

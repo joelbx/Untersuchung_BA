@@ -1,0 +1,3 @@
+Updated [email confirmation handling](/app/src/user/email.js) so pending checks return a strict boolean, the new `getValidationExpiry` returns the live remaining TTL in milliseconds, and `canSendValidation` applies the configured resend interval. Expiring a confirmation clears its marker and record; confirmation codes also require a matching active marker.
+
+Added a one-day default for `emailConfirmExpiry` and regression coverage. The email confirmation suites passed (11 tests total), as did ESLint and `git diff --check`.

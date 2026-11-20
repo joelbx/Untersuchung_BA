@@ -1,0 +1,3 @@
+Updated the WordPress cache to use a map directly. `searchCache` now distinguishes a cached empty string from a missing key and treats a nil value as a miss. The scan now reads `IgnoreInactive` from the named server’s WordPress configuration and excludes inactive plugins and themes.
+
+Added tests for cache values and active/inactive package filtering. `GOPROXY=off GOSUMDB=off go test ./wordpress ./report ./models` passed.

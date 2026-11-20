@@ -1,0 +1,3 @@
+Updated [VoiceBroadcastPreRecordingPip](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx) so “Go live” is a native button that disables immediately and ignores repeat activations until `start()` settles. Device selection continues to close the menu and update the header label without a remount.
+
+The focused suite passes: 12 tests and the updated snapshot. ESLint and Prettier pass. Repository-wide type checking still reports unrelated existing `MatrixClient` errors.

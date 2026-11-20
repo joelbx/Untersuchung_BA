@@ -1,0 +1,4 @@
+Task: unify ansible-galaxy installs from a requirements file.
+Changes: implicit `install -r` dispatches both role and collection requirements when no roles path was supplied; explicit role and collection commands install only their respective type. Added skip messages, empty-file handling, parser defaults, and focused CLI tests. Role dependency queue behavior remains in the role install method: unresolved dependencies are appended and installed dependencies are skipped unless forced.
+Verification (2026-10-28): `ANSIBLE_DEVEL_WARNING=False PYTHONPATH=lib:test pytest -q test/units/cli/test_galaxy.py` exited 0, 113 passed. `python -m py_compile lib/ansible/cli/galaxy.py` exited 0. `git diff --check` exited 0.
+Note: initial test runs without ANSIBLE_DEVEL_WARNING=False included Ansible's development-version warning, changing warning-count assertions; one argument-validation-order failure was fixed. Final test run above passed.

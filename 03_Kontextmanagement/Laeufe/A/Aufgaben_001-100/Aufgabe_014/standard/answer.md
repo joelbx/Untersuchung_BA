@@ -1,0 +1,3 @@
+Implemented the NodeBB fixes in `/app`. Notifications now load asynchronously from the dropdown trigger, with stale responses prevented from replacing newer ones. Fork and move selectors initialize from a cached element with `dropup`; quick search now clears stale results after navigation. The remaining requested hash, email, route, admin dropdown, merge modal, and chat markup changes are also in place.
+
+ESLint and `git diff --check` pass. The existing `search-admin` suite passes (8 tests). The directly related suites were not run because their database mock reads and prints `config.json`, which the repository access constraints prohibit.

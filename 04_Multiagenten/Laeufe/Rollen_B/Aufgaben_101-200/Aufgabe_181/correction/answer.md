@@ -1,0 +1,3 @@
+Fixed both review findings in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py): the verbose failure test selects the ERROR message, and the PID test allows the expected ERROR log.
+
+The reviewed PyQt6 command reported **45 passed, 0 test failures**. It still exited 1 because the X server raised an XIO error during teardown. `git diff --check` passed. **TEST_ENVIRONMENT_PROBLEM:** disabling xvfb leaves the suite without the display required by its setup.

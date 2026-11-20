@@ -1,0 +1,3 @@
+Moved evaluation logic into the new [EvaluatorStorage](/app/storage/evaluator.go) and removed `Evaluate` from `RuleStore`. [Server.Evaluate](/app/server/evaluator.go) now delegates through the `Evaluator` interface while handling request IDs and duration. The evaluator applies typed constraints, evaluates rules in rank order, and selects variants with deterministic CRC32 buckets.
+
+Added focused tests for rule order, comparisons, bucket boundaries, and request IDs. `go test ./...` and `git diff --check` pass.

@@ -1,0 +1,3 @@
+Implemented the gRPC version interceptor and registered it in the server’s unary chain. It reads `x-flipt-accept-server-version`, accepts versions with or without `v`, and makes the parsed version available through `FliptAcceptServerVersionFromContext`. Missing or invalid values fall back to `1.0.0`.
+
+The new regression test failed before the implementation and passed afterward. Both relevant packages passed: `go test ./internal/server/middleware/grpc ./internal/cmd`.

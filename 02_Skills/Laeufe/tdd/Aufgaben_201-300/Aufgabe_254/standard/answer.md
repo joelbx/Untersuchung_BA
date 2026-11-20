@@ -1,0 +1,3 @@
+Updated [EC2 metadata detection](/app/lib/utils/ec2.go) to retrieve `instance-id` through the internal IMDS client, apply a 250 ms deadline, and accept only valid EC2 instance IDs. The constructor now accepts functional options, including `WithIMDSClient`. Added regression tests in [ec2_test.go](/app/lib/utils/ec2_test.go).
+
+`go test ./lib/utils -count=1` passed. `go test ./...` could not complete because local C dependencies failed to compile; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

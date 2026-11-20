@@ -1,0 +1,3 @@
+Implemented `DocCLI.tty_ify` in [doc.py](/app/lib/ansible/cli/doc.py). It now renders `L()`, `R()`, and `HORIZONTALLINE`, formats multiple macros on one line, and preserves ordinary text such as `IBM(International Business Machines)`.
+
+The new regression tests and existing base CLI tests pass: **35 passed**. The broader CLI and repository-wide test runs had unrelated failures and collection errors; the full run was stopped after 108 seconds. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

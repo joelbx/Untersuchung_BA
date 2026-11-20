@@ -1,0 +1,3 @@
+The calendar subscription modal now uses `MAX_LENGTHS_API.CALENDAR_URL` (10,000 characters), blocks empty, invalid, or overlong URLs, and shows one warning at a time in the requested priority order. I removed the input length cap and counter. ResizeObserver mocks now live in the shared Jest setup files instead of individual tests.
+
+Added [modal regression tests](/app/packages/components/containers/calendar/subscribeCalendarModal/SubscribeCalendarModal.spec.tsx) using a default-export mock for `useGetCalendarSetup`. Component typecheck, lint, formatting, and all affected test suites passed (21 tests).

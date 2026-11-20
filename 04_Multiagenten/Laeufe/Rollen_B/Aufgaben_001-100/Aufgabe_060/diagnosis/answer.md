@@ -1,0 +1,7 @@
+I located the gap in [load_book.py](/app/openlibrary/catalog/add_book/load_book.py:174): `find_entity` searches by name and dates, while `import_author` neither uses an incoming author key or `remote_ids` for matching nor preserves `remote_ids` when creating a new author. [Author](/app/openlibrary/core/models.py:763) has no identifier merge method or conflict exception. [build_author_reply](/app/openlibrary/catalog/add_book/__init__.py:212) queues new authors for saving, but not matched authors whose identifiers have been enriched.
+
+The fix should try the Open Library key first, then external identifiers, then name and dates; reject conflicting values for the same identifier type; merge nonconflicting IDs and save the matched author; and preserve IDs on a newly created author. Existing [tests](/app/openlibrary/catalog/add_book/tests/test_load_book.py:90) cover name and date matching, but not these cases. Multiple identifier matches need an explicit, stable tie break; the current name matcher uses the lowest numeric author key.
+
+The requested `SUSPECT_DATE_EXEMPT_SOURCES` constant is also absent from [add_book/__init__.py](/app/openlibrary/catalog/add_book/__init__.py:58). Its intended effect on the existing date scrutiny rule is unclear from the code.
+
+I wrote the required [checkpoint](/app/.codex-role-output/checkpoint.md). No project source or tests were changed, so the issue remains unresolved.

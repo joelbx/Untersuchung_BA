@@ -1,0 +1,3 @@
+Implemented Redis cache TLS support in the checked-out repository. `RedisCacheConfig` now accepts `ca_cert_path`, `ca_cert_bytes`, and `insecure_skip_tls`; conflicting CA settings fail validation with the required error. The server uses the new `redis.NewClient`, which requires TLS 1.2 when TLS is enabled.
+
+Added YAML fixtures, client tests, and the `api/cachetls` integration case and GitHub Actions matrix entry. Local Go tests passed for `internal/config`, `internal/cache/redis`, `internal/cmd`, and `build/testing`. The Dagger integration case compiled but was not run locally.

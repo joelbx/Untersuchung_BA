@@ -1,0 +1,3 @@
+Updated `SocketPosts.getUpvoters` to check `topics:read` across every category derived from the supplied post IDs before fetching votes. Administrators retain access. The handler now resolves distinct visible UIDs in one lookup, preserves their per-post order, and returns the cutoff with each result. The frontend uses that cutoff and supports HTML tooltips.
+
+Verification: 4 focused tests pass; lint, syntax, and diff checks pass. The broader post suite was not run because its setup prints local database configuration.

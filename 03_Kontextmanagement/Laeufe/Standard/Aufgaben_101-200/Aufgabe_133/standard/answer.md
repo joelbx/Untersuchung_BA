@@ -1,0 +1,3 @@
+Updated the OSS migration to **downgrade the existing `admin` role in place** and mark it with `OSSMigratedV6`. Existing users, trusted-cluster mappings, and legacy user creation now use `admin`, preserving the role name used for leaf-cluster access. The downgraded role has restricted permissions, and repeat migrations skip an already labelled admin role.
+
+The focused migration and role tests, the `tctl` package tests, and `git diff --check` all pass.

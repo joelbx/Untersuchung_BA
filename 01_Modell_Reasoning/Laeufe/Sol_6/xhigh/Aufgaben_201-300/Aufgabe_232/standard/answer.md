@@ -1,0 +1,3 @@
+Implemented OS EOL checks in the scan path. The [canonical lookup](/app/config/os.go) uses the specified release dates, and scans now add boundary-aware warnings for ended, extended, approaching, and unknown support in the [per-target results](/app/scan/eol.go). The [summary](/app/report/util.go) prints each warning with `Warning: ` in evaluation order. I also centralized major-version parsing and improved Amazon Linux release detection.
+
+Affected package tests passed. A repository-wide compile check and `git diff --check` passed, all with dependency downloads disabled.

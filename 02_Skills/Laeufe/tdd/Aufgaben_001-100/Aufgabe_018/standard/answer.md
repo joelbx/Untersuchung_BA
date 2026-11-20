@@ -1,0 +1,3 @@
+Updated [config.go](/app/internal/config/config.go) so scalar strings decode into `[]string` by splitting on whitespace. Empty strings produce an empty slice, including when supplied through ENV; values that are already sequences pass through unchanged. Added regression tests in [config_test.go](/app/internal/config/config_test.go) and updated the advanced YAML fixture.
+
+`go test ./internal/config` passed. The full `go test ./...` run failed only in the Redis integration tests (`TestSet`, `TestGet`, `TestDelete`) because Docker was unavailable. I recorded the result in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

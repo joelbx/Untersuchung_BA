@@ -1,0 +1,3 @@
+Implemented local artist image lookup. Albums now store their unique media directories, and the artist reader uses them to check the computed artist folder for `artist.*` before trying album images, URLs, and the placeholder. Each artwork source attempt now logs its duration. The database migration triggers a full rescan to populate the new directory data.
+
+Added focused tests. `go test ./model ./core/artwork ./scanner ./persistence ./db/migration` and `git diff --check` pass.

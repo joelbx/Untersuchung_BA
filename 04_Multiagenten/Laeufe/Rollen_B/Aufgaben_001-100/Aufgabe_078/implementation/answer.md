@@ -1,0 +1,3 @@
+Implemented three-state voice broadcast liveness. Playback now reports and emits `live`, `grey`, or `not-live` as playback and broadcast info change; the hook and header use that value, and the badge has a grey style. I also added last-chunk detection and updated the relevant tests and snapshots.
+
+All 24 voice broadcast test suites pass (218 tests). ESLint, stylelint, and `git diff --check` pass. The repository type check still reports an unrelated existing error at [notifications.ts](/app/src/utils/notifications.ts:79).

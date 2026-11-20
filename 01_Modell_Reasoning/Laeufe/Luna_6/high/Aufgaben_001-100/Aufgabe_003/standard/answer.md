@@ -1,0 +1,3 @@
+Implemented `timeOffset` support through FFmpeg transcoding and streaming. Built-in templates include `-ss %t`; commands without that placeholder add `-ss OFFSET` after the input path for nonzero offsets. Stream cache keys now include the offset, and public shared streams and Subsonic `/stream` parse it with a default of zero. Other callers pass zero, and OpenSubsonic advertises `transcodeOffset` version 1.
+
+Updated mocks and call sites for the new signatures. The relevant existing tests passed: `go test ./core/ffmpeg ./core ./server/public ./server/subsonic ./tests`. `git diff --check` passed.

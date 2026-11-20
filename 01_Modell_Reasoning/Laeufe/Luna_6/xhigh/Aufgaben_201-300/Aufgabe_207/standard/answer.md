@@ -1,0 +1,3 @@
+Implemented feature argument consolidation in [qtargs.py](/app/qutebrowser/config/qtargs.py:52). QtWebEngine now merges CLI and config features into one `--enable-features=` argument, omitting it when there are no features. QtWebKit arguments remain unchanged. Added coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py:338).
+
+**Verification:** 80 tests passed; the remaining `test_new_chromium` probe segfaults in this environment inside `webenginesettings.init_user_agent`. `git diff --check` passed. Flake8 could not run because it is not installed.

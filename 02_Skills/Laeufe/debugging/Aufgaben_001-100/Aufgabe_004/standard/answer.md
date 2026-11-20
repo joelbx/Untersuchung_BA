@@ -1,0 +1,3 @@
+Fixed the PassAliases drawer flow. It now loads aliases when a vault exists, shows “No aliases” when none exists, and opens the creation modal from “Get an alias.” Vault creation happens when the user starts creating an alias. The provider also refreshes and caches aliases after creation.
+
+Verification passed: 9 PassAliases tests, Components and Pass type checks, formatting, and `git diff --check`.

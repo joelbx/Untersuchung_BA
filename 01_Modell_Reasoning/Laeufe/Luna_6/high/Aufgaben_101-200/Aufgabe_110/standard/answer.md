@@ -1,0 +1,3 @@
+Implemented the mechanism segmented download metric and registered its v1 schema. Stateful downloads report `meta.size` and retry status; preview downloads report `link.size`. Mechanism selection accounts for the size threshold, service worker support, and saver fallback state.
+
+Verification passed: all 17 download metrics tests, TypeScript checks for Drive and the metrics package, and `git diff --check`.

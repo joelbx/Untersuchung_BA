@@ -1,0 +1,3 @@
+Updated [ansible-galaxy’s install command](/app/lib/ansible/cli/galaxy.py) so `ansible-galaxy install -r requirements.yml` installs both roles and collections using the default paths. Custom role paths and explicit `role` or `collection` commands install only their selected type, with messages explaining skipped requirements. The change also handles empty requirements files and role dependency forcing.
+
+Added coverage in [test_galaxy.py](/app/test/units/cli/test_galaxy.py). **All 133 Galaxy CLI unit tests pass** with `PYTHONPATH=lib ANSIBLE_DEVEL_WARNING=False`; `git diff --check` also passes.

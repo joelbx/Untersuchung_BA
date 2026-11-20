@@ -1,0 +1,3 @@
+Implemented digest-based image references across configuration, scanning, scan results, and report UUID naming. Validation now requires a name and exactly one of tag or digest, with the specified errors. Per-image server names use `<index>@<originalServerName>`, and image UUIDs are saved under the original server’s configuration.
+
+Offline tests pass for `config`, `scan`, and `report`, including the new regression tests. The full `models` suite still fails in an existing library scanner test because it finds no vulnerability data; standard `go test` also flags an existing vet warning in `models/library.go`.

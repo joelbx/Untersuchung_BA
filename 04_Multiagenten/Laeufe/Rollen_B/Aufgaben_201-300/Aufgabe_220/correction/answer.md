@@ -1,0 +1,3 @@
+The QColor utility now produces QSS `rgba(r, g, b, a)` strings, with tests covering named colors, RGB, and RGBA values. I also converted two favicon dimensions in [tabwidget.py](/app/qutebrowser/mainwindow/tabwidget.py) to integers so the installed PyQt can run the tab widget tests.
+
+**Tests:** 123 utility tests passed. All 18 tab widget tests reported passing, but that process exited with code 134 during window registry cleanup after the test run. **TEST_ENVIRONMENT_PROBLEM:** the checkout’s deprecated pytest `--strict` option prevents both suites from starting without `-o addopts=''`.

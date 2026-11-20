@@ -1,0 +1,3 @@
+Updated `authenticate` to wrap `setupContext` errors, preserving their trace classification. Authorization failures and unsupported user types remain `AccessDenied`; unknown Kubernetes clusters and missing reverse tunnels do not. I also added the specified `httplib` error-writer wrappers.
+
+Both relevant package test suites passed with `GOPROXY=off GOSUMDB=off go test ./lib/httplib ./lib/kube/proxy -count=1`.

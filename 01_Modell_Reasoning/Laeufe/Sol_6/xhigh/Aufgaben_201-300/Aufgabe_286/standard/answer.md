@@ -1,0 +1,3 @@
+Startup now uses `release.Is(version)` to identify proper releases, so `-rc`, `-snapshot`, and `-dev` builds skip update checks and disable telemetry. The new [release checker](/app/internal/release/check.go) owns version comparison and logs a warning if a check fails; startup continues. [Startup reporting](/app/cmd/flipt/main.go) uses its result for console or configured logger messages, and [build metadata](/app/internal/info/flipt.go) now includes the optional latest version URL.
+
+Relevant package tests passed, including the new release tests. `git diff --check` passed.

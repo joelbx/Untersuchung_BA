@@ -1,0 +1,3 @@
+Implemented `remove_values` for iterative value redaction and added recursive `sanitize_keys` with exact-key ignores and `_ansible` exemptions. The URI module now sanitizes its response when `no_log_values` is set, using `NO_MODIFY_KEYS`.
+
+Direct checks passed for bytes, nested mappings, ignored keys, scalar preservation, and 10,000-level nesting. `git diff --check` passed. The existing no-log tests still have three failures because they expect the previous sentinel behavior or a `TypeError` for arbitrary scalar objects; the heuristic sanitization tests passed. No URI unit test file was present.

@@ -1,0 +1,3 @@
+Updated collection manifest handling so an absent `manifest` uses `Sentinel`, while explicit `manifest: {}` and `manifest: null` select the default manifest directives. The walk path still applies `build_ignore`, excludes symlinks to files or directories outside the collection, and includes an internal directory symlink once under its linked path. I updated the documentation and integration expectation to match.
+
+The Galaxy unit suite passed: **216 tests**. Actual directive processing remains unverified because optional `distlib` is not installed locally; routing for both minimal values was tested with a mock.

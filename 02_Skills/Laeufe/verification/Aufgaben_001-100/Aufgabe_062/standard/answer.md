@@ -1,0 +1,3 @@
+Updated `ContextReader` to restore the terminal when a password read is canceled, reaches its deadline, or is closed. Canceled reads return an empty result and leave the reader ready for a subsequent read. Added `NotifyExit` and wired `tsh` to call it before exit handling.
+
+Verification passed: `go test ./lib/utils/prompt`, a `tsh` compile check, and `git diff --check`. The `tsh` check selected no runtime tests.

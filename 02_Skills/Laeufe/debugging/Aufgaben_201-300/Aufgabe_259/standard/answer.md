@@ -1,0 +1,3 @@
+Fixed IA edition prioritization in the Solr work builder. Public scans now take precedence over loanable editions for `lending_edition_s`, and `lending_identifier_s` stays paired with the selected edition. The builder also classifies `lendinglibrary` editions as borrowable, so they do not set `public_scan_b` on their own. Added mixed-edition tests covering the availability flags, IA IDs, collection union, and multiple print-disabled editions.
+
+Verification: all 61 Solr tests passed; `git diff --check` passed.

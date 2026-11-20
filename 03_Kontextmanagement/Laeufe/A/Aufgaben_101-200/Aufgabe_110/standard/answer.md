@@ -1,0 +1,3 @@
+Implemented the Drive download mechanism metric. Terminal download outcomes now increment `drive_download_mechanism_success_rate_total` with status, retry, and mechanism labels. Stateful downloads use `meta.size`; preview downloads pass their resolved size through the report interface. The file saver and metric use the same mechanism selector.
+
+Verification passed: 19 focused tests, Drive and metrics type checks, and `git diff --check`.

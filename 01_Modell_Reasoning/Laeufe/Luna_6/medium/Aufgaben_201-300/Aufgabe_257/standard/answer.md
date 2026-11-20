@@ -1,0 +1,3 @@
+Implemented the SSO mock hook, added the SSH listener field and began propagating runtime listener addresses, and changed `Run` to accept runtime options and return errors. Updated `makeClient` to pass the mock hook and changed `refuseArgs` to return an error.
+
+The CLI handler conversion is incomplete: handlers still call `utils.FatalError` or exit directly, so the requested error handling is not yet complete. The targeted `go test ./lib/client ./lib/service ./tool/tsh` run failed to compile because `Run` now expects handler errors while the handlers still return no values. I did not finish resolving that failure.

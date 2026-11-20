@@ -1,0 +1,5 @@
+Implemented Qt native version handling. Added normalized `utils.parse_version()`, switched Qt runtime checks to `QLibraryInfo.version()`, and updated early initialization, distribution metadata, and crash dialog comparisons.
+
+Verification: the affected utility and dialog tests reported 318 passed; the version module excluding its QtWebEngine initialization case reported 93 passed and 4 skipped. In both runs, pytest exited nonzero after an X server shutdown error. The focused distribution and sandbox tests passed cleanly: 19 passed. `git diff --check` passed.
+
+The changes are in [utils.py](/app/qutebrowser/utils/utils.py), [qtutils.py](/app/qutebrowser/utils/qtutils.py), [earlyinit.py](/app/qutebrowser/misc/earlyinit.py), [version.py](/app/qutebrowser/utils/version.py), and [crashdialog.py](/app/qutebrowser/misc/crashdialog.py).

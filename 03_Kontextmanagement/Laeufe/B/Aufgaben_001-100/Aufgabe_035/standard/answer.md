@@ -1,0 +1,1 @@
+Completed the evaluator decoupling in `/app`. [EvaluatorStorage](/app/storage/evaluator.go) now handles evaluation, and [Server.Evaluate](/app/server/evaluator.go) delegates through the new interface. Added coverage for rule rank, comparisons, response metadata, and hash boundaries. `GOPROXY=off go test ./...` and `git diff --check` pass. No further work is pending.

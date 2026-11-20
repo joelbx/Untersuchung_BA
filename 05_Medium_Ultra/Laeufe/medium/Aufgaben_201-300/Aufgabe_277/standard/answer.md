@@ -1,0 +1,3 @@
+Updated [audit types and constructors](/app/internal/server/audit/types.go) so rules and rollouts include the requested operator fields, join multiple segment keys with commas, and retain single or legacy segment keys. The operator fields use the requested JSON tags and are omitted when empty.
+
+Added coverage in [types_test.go](/app/internal/server/audit/types_test.go). All audit package tests passed with `GOPROXY=off GOSUMDB=off go test ./internal/server/audit/...`.

@@ -1,0 +1,7 @@
+The fault is in [dynamoevents.go](/app/lib/events/dynamoevents/dynamoevents.go:188): `event.Fields` is a string. All three write paths serialize metadata into it, and the session and search read paths decode that string.
+
+The likely fix spans those write and read paths plus a new migration. The existing date migration in [dynamoevents.go](/app/lib/events/dynamoevents/dynamoevents.go:1157) provides a starting pattern for a consistent scan, batches of 25, retries, progress logging, and a distributed lock. It cannot supply a completion marker for `FieldsMap`; this migration needs its own. The requested `FlagKey` function is absent from [helpers.go](/app/lib/backend/helpers.go); [backend.Key](/app/lib/backend/backend.go:337) supplies the standard separator-prefixed key format.
+
+The main data-loss risk is a direct JSON-to-DynamoDB marshal: the SDK’s default encoder converts empty strings and empty collections to `NULL`. Conversion should validate semantic equality, report malformed records, and let reads accept either format during migration. Search pagination also hashes the event and measures `Fields` length, so both behaviors need review when the representation changes.
+
+The existing DynamoDB integration suite is gated by `AWSRunTests`. I made no source or test changes under the fault-localization scope and did not run that suite.

@@ -1,0 +1,3 @@
+Updated move-out behavior to call `onBack` only after mailbox elements finish loading and the active ID is missing from the valid ID list. The [hook](/app/applications/mail/src/app/hooks/useShouldMoveOut.ts:10) no longer checks cache or label membership. [MailboxContainer](/app/applications/mail/src/app/containers/mailbox/MailboxContainer.tsx:394) passes the list and loading state to both views; the conversation view uses the message ID for message-level labels.
+
+Verification passed: 16 focused tests, the mail app TypeScript check, and `git diff --check`.

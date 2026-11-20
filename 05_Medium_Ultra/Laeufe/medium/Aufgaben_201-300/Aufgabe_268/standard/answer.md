@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) so process errors identify the capitalized process name, the exact command in single quotes, the error type, and Qt’s error detail. On non-Windows systems, missing or non-executable commands also get the requested hint.
+
+Updated the existing tests in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py). All 29 tests in that module pass, and `git diff --check` is clean.

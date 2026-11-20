@@ -1,0 +1,3 @@
+Updated [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts) to load all persisted fields into one config object, migrate credentials into a userId keyed object, and write during initialization only when migration or signup token creation changes the config. The storage format uses the required underscored keys.
+
+Updated the [DeviceConfig tests](/app/test/client/misc/DeviceConfigTest.ts) to check migration and confirm that loading a current config with a signup token makes no storage write. Type checking passed, and the client suite passed all 3,054 assertions.

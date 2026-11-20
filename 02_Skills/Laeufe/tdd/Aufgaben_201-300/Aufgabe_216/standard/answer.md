@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to resolve connection, transfer, retry, and control path settings through `get_option()`. Reset now checks for a persistent master using the effective SSH command before sending `stop`. I also removed duplicate SSH settings from core configuration and added regression tests for option resolution and CLI-only values.
+
+The focused suite passed: **102 tests**. A broad `pytest` run encountered unrelated collection and fixture errors and was stopped at 24%; the command and failures are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

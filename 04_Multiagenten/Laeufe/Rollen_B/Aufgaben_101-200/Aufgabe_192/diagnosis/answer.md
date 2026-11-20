@@ -1,0 +1,5 @@
+The validation gap is in [CalendarUtils.ts](/app/src/calendar/date/CalendarUtils.ts): `checkEventValidity` and `CalendarEventValidity` do not yet exist. The function should check invalid start or end dates first, a start before 1970-01-01 UTC second, and `startTime >= endTime` third. The epoch boundary itself should be valid.
+
+The entry paths also need attention. [CalendarEventViewModel.ts](/app/src/calendar/date/CalendarEventViewModel.ts:1151) rejects equal or reversed times during manual creation but lacks the other checks. [CalendarImporterDialog.ts](/app/src/calendar/export/CalendarImporterDialog.ts:42) has no shared validation before import. [CalendarParser.ts](/app/src/calendar/export/CalendarParser.ts:451) converts an equal or reversed ICS `DTEND` into a positive duration, so validation after parsing cannot detect that original error. An [existing import test](/app/test/tests/calendar/CalendarImporterTest.ts:715) expects that conversion.
+
+I updated the [diagnostic checkpoint](/app/.codex-role-output/checkpoint.md). No project source or tests were changed; this run was constrained to fault localization.

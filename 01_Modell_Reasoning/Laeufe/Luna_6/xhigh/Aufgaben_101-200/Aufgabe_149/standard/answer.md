@@ -1,0 +1,3 @@
+Implemented feature flag handling in [qtargs.py](/app/qutebrowser/config/qtargs.py:32): enable flags from CLI and config are merged into one entry, and disable flags are preserved unchanged as separate entries. Added tests for comma separated values, multiple flags, and injected `OverlayScrollbar` in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py:386).
+
+Verification: `python -m pytest tests/unit/config/test_qtargs.py` — 84 passed. `git diff --check` passed.

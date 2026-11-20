@@ -1,0 +1,3 @@
+Fixed the PassAliases drawer in `/app`. It now shows the aliases list when aliases exist, displays a clear “No aliases” empty state, and opens the creation flow for a user with no vault by creating the vault when alias options are requested. The provider uses the new `usePassAliasesSetup` hook, and vault lookup no longer creates a vault implicitly.
+
+Verification passed: the focused PassAliases tests, both full Components and Pass test suites, TypeScript checks, targeted ESLint, and `git diff --check`.

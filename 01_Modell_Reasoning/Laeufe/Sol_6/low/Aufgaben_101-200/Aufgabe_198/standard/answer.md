@@ -1,0 +1,3 @@
+Updated the repository’s Red Hat OVAL path. It now uses a locally cached `goval-dictionary` version that exposes `AffectedResolution`, filters advisories by the supported distribution prefixes, and carries package fix states through both HTTP and database results. Gost no longer detects CVEs for Red Hat and its derivatives; their CVE detection uses OVAL.
+
+Added regression tests for advisory prefixes and unfixed resolution states. `GOPROXY=off go test ./oval ./gost ./detector` passes.

@@ -1,0 +1,3 @@
+Added a feature flagged **Polls history** button to the room summary card and a named `PollHistoryDialog` component. Clicking the button opens the dialog with the current room’s `roomId`.
+
+**Verification:** The existing poll tests passed (75 tests), and ESLint, Prettier, and `git diff --check` passed. Type checking found an unrelated existing error in `RoomCreate.tsx:50`: `RoomState.findPredecessor` is missing.

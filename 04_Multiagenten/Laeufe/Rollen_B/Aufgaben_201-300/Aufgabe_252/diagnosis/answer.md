@@ -1,0 +1,7 @@
+The reported FreeBSD failure starts in [FreeBSDHardware.populate](/app/lib/ansible/module_utils/facts/hardware/freebsd.py:44): it never collects or merges an uptime fact. NetBSD has the same gap in [NetBSDHardware.populate](/app/lib/ansible/module_utils/facts/hardware/netbsd.py:46). DragonFly also uses the FreeBSD hardware class.
+
+Two related paths need attention. [OpenBSDHardware.get_uptime_facts](/app/lib/ansible/module_utils/facts/hardware/openbsd.py:121) already feeds `uptime_seconds` into `populate()`, but it reads bulk sysctl data and raises on a missing or nonnumeric boot time. The shared [get_sysctl](/app/lib/ansible/module_utils/facts/sysctl.py:22) stops on malformed lines, loses multiline continuations, and has no required warnings or command failure handling.
+
+A fix should run `sysctl -n kern.boottime`, raise `ValueError` for a missing binary, and emit `uptime_seconds` only for a successful numeric result. The parser should retain valid entries around malformed lines, preserve continuation line breaks, accept the required delimiters, and warn with the specified messages. Existing BSD tests check class selection only, so these behaviors remain unverified.
+
+I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were left untouched because this assignment’s specialist instructions explicitly restrict me to fault localization.

@@ -1,0 +1,3 @@
+Implemented date based module deprecations across Python, C#, display, and `validate-modules`, including alias validation and the requested deprecation output order and error messages.
+
+The focused Python suite passed: **101 tests**. Syntax checks and `git diff --check` also passed. The validator tests could not run because `voluptuous` is unavailable locally; the C# integration tests could not run because there is no PowerShell runtime.

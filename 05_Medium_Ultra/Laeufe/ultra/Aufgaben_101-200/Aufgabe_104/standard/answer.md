@@ -1,0 +1,3 @@
+Added `Metadata.CheckForUpdates` to [config.go](/app/config/config.go), defaulting to `true`. YAML and JSON files can set `metadata.check_for_updates`; JSON also accepts `checkForUpdates`. The sample configs document the option.
+
+A delegated audit found no existing startup version checker to connect to this setting. Delegated tests cover defaults, both file formats, and the config JSON response. `GOPROXY=off GOSUMDB=off go test -count=1 ./...` passed.

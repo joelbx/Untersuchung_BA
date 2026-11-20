@@ -1,0 +1,3 @@
+Added `SimpleCache[V]` in [simple_cache.go](/app/utils/cache/simple_cache.go) and migrated the HTTP client, genre repository, and play tracker to typed cache operations. The wrapper keeps TTL fixed on reads, excludes expired keys, and preserves the HTTP client’s cache size limit.
+
+The cache, scanner, and scrobbler tests pass. The full `go test ./...` run fails only in two m4a gain-tag specs in the unchanged `scanner/metadata/taglib` package; both receive duplicate gain values. I recorded the results in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

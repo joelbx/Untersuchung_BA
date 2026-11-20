@@ -1,0 +1,3 @@
+Updated WPScan ingestion in [wordpress.go](/app/detector/wordpress.go) to preserve the first canonical CVE identifier, ordered reference URLs, UTC timestamps, classification and fix version. It now maps descriptions, PoC, introduced version, and CVSS fields when present, with an empty optional map when they’re absent.
+
+`go test ./detector ./models` was started but did not finish within the available run; I stopped it, so the tests remain unverified.

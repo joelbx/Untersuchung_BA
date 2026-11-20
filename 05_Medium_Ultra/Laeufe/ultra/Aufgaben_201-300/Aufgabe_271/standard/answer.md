@@ -1,0 +1,3 @@
+Fixed IA imports without MARC records. [ImportAPI](/app/openlibrary/plugins/importapi/code.py:338) now separates semicolon-delimited locations from publisher names, keeps `publishers` as a list, and classifies ISBNs by trimmed length. The parsing helpers are in [upstream utils](/app/openlibrary/plugins/upstream/utils.py:1193), and the canonical ISBN helper is in [isbn.py](/app/openlibrary/utils/isbn.py:5).
+
+I delegated the parser, ISBN utility, and ImportAPI changes to three agents, then integrated and verified the patch. **All 69 affected tests passed**; `git diff --check` passed.

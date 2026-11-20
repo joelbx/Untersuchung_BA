@@ -1,0 +1,3 @@
+Updated address parsing in the checked-out repository. `splitBySeparator` now splits on commas and semicolons, removes angle brackets and surrounding whitespace, and drops empty tokens in order. `inputToRecipient` uses the bare address for both `Name` and `Address`. Both autocomplete paste paths use the splitter.
+
+Shared and component type checks, formatting, and local parsing assertions passed. The shared test suite compiled but could not run because its configured Chrome binary could not execute.

@@ -1,0 +1,3 @@
+Implemented shared process ownership scanning in [base.go](/app/scan/base.go:924) and switched Debian and Red Hat post-scan to use it. RPM ownership parsing now preserves version and architecture records, skips the specified diagnostic lines, and errors on malformed output.
+
+Added parser coverage in [redhatbase_test.go](/app/scan/redhatbase_test.go:147). `go test ./scan` passed; `git diff --check` passed.

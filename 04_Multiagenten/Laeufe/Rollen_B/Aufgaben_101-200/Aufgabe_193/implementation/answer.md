@@ -1,0 +1,3 @@
+Updated [galaxy.py](/app/lib/ansible/cli/galaxy.py) so an implicit `ansible-galaxy install -r` processes roles and collections from one requirements file. Custom role paths skip collections with a warning; explicit `role install` reports skipped collections at `-vvv`; `collection install` reports skipped roles. Empty requirements skip installation, and selected roles still install their discovered dependencies.
+
+Added coverage in [test_galaxy.py](/app/test/units/cli/test_galaxy.py). Verification: **113 CLI tests passed** with `ANSIBLE_DEVEL_WARNING=False`; `git diff --check` passed.

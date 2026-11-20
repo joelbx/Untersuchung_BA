@@ -1,0 +1,140 @@
+diff --git a/lib/ansible/module_utils/network/meraki/meraki.py b/lib/ansible/module_utils/network/meraki/meraki.py
+index eaed8525..000cbda7 100644
+--- a/lib/ansible/module_utils/network/meraki/meraki.py
++++ b/lib/ansible/module_utils/network/meraki/meraki.py
+@@ -31,6 +31,7 @@
+ 
+ import os
+ import re
++import time
+ from ansible.module_utils.basic import AnsibleModule, json, env_fallback
+ from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
+ from ansible.module_utils.urls import fetch_url
+@@ -38,6 +39,22 @@ from ansible.module_utils.six.moves.urllib.parse import urlencode
+ from ansible.module_utils._text import to_native, to_bytes, to_text
+ 
+ 
++class HTTPError(Exception):
++    """Raised when the Meraki API returns an unhandled HTTP error."""
++
++
++class RateLimitException(Exception):
++    """Raised when Meraki rate limiting persists beyond the retry budget."""
++
++
++class InternalErrorException(Exception):
++    """Raised when a Meraki server error persists beyond the retry budget."""
++
++
++MAX_RETRIES = 5
++RETRY_DELAY = 1
++
++
+ def meraki_argument_spec():
+     return dict(auth_key=dict(type='str', no_log=True, fallback=(env_fallback, ['MERAKI_KEY']), required=True),
+                 host=dict(type='str', default='api.meraki.com'),
+@@ -343,21 +360,37 @@ class MerakiModule(object):
+         if method is not None:
+             self.method = method
+         self.url = '{protocol}://{host}/api/v0/{path}'.format(path=self.path.lstrip('/'), **self.params)
+-        resp, info = fetch_url(self.module, self.url,
+-                               headers=self.headers,
+-                               data=payload,
+-                               method=self.method,
+-                               timeout=self.params['timeout'],
+-                               use_proxy=self.params['use_proxy'],
+-                               )
+-        self.response = info['msg']
+-        self.status = info['status']
+-
+-        if self.status >= 500:
+-            self.fail_json(msg='Request failed for {url}: {status} - {msg}'.format(**info))
+-        elif self.status >= 300:
+-            self.fail_json(msg='Request failed for {url}: {status} - {msg}'.format(**info),
+-                           body=json.loads(to_native(info['body'])))
++        retries = 0
++        while True:
++            resp, info = fetch_url(self.module, self.url,
++                                   headers=self.headers,
++                                   data=payload,
++                                   method=self.method,
++                                   timeout=self.params['timeout'],
++                                   use_proxy=self.params['use_proxy'],
++                                   )
++            self.response = info['msg']
++            self.status = info['status']
++
++            if self.status not in (429, 500, 502):
++                break
++            if retries >= MAX_RETRIES:
++                message = 'Request failed for {url}: {status} - {msg}'.format(**info)
++                if self.status == 429:
++                    self.module.warn('Meraki rate limiter triggered; {0} retries performed.'.format(retries))
++                    raise RateLimitException(message)
++                raise InternalErrorException(message)
++            retries += 1
++            time.sleep(RETRY_DELAY)
++
++        if self.status >= 400:
++            message = 'Request failed for {url}: {status} - {msg}'.format(**info)
++            body = info.get('body')
++            try:
++                body = json.loads(to_native(body)) if body is not None else None
++            except (TypeError, ValueError):
++                pass
++            raise HTTPError(message, body)
+         try:
+             return json.loads(to_native(resp.read()))
+         except Exception:
+diff --git a/test/units/module_utils/network/meraki/test_meraki.py b/test/units/module_utils/network/meraki/test_meraki.py
+index acd7510b..75d16e6e 100644
+--- a/test/units/module_utils/network/meraki/test_meraki.py
++++ b/test/units/module_utils/network/meraki/test_meraki.py
+@@ -26,7 +26,8 @@ import pytest
+ 
+ from units.compat import unittest, mock
+ from ansible.module_utils.basic import AnsibleModule
+-from ansible.module_utils.network.meraki.meraki import MerakiModule, meraki_argument_spec
++from ansible.module_utils.network.meraki.meraki import (HTTPError, RateLimitException,
++                                                        MerakiModule, meraki_argument_spec)
+ from ansible.module_utils.six import PY2, PY3
+ from ansible.module_utils._text import to_native, to_bytes
+ from units.modules.utils import set_module_args
+@@ -91,19 +92,33 @@ def mocked_fail_json(*args, **kwargs):
+ def test_fetch_url_404(module, mocker):
+     url = '404'
+     mocker.patch('ansible.module_utils.network.meraki.meraki.fetch_url', side_effect=mocked_fetch_url)
+-    mocker.patch('ansible.module_utils.network.meraki.meraki.MerakiModule.fail_json', side_effect=mocked_fail_json)
+-    data = module.request(url, method='GET')
++    with pytest.raises(HTTPError):
++        module.request(url, method='GET')
+     assert module.status == 404
+ 
+ 
+ def test_fetch_url_429(module, mocker):
+     url = '429'
+     mocker.patch('ansible.module_utils.network.meraki.meraki.fetch_url', side_effect=mocked_fetch_url)
+-    mocker.patch('ansible.module_utils.network.meraki.meraki.MerakiModule.fail_json', side_effect=mocked_fail_json)
+-    data = module.request(url, method='GET')
++    mocker.patch('ansible.module_utils.network.meraki.meraki.time.sleep')
++    with pytest.raises(RateLimitException):
++        module.request(url, method='GET')
+     assert module.status == 429
+ 
+ 
++def test_fetch_url_429_then_success(module, mocker):
++    responses = [
++        (None, {'status': 429, 'msg': 'rate limited', 'body': '429'}),
++        (mock.Mock(read=mock.Mock(return_value=b'{"ok": true}')),
++         {'status': 200, 'msg': 'OK', 'body': ''}),
++    ]
++    fetch = mocker.patch('ansible.module_utils.network.meraki.meraki.fetch_url', side_effect=responses)
++    mocker.patch('ansible.module_utils.network.meraki.meraki.time.sleep')
++    assert module.request('resource', method='GET') == {'ok': True}
++    assert module.status == 200
++    assert fetch.call_count == 2
++
++
+ def test_define_protocol_https(module):
+     module.params['use_https'] = True
+     module.define_protocol()

@@ -1,0 +1,6 @@
+Fault-localization progress (2026-10-21):
+- VariableManager.get_vars defaults include_delegate_to=True (manager.py:142) and invokes _get_delegated_vars before execution (439-440). That method independently evaluates with_* or loop items (521-580), templates delegate_to for each item (587-598), and conditionally supplies _ansible_loop_cache (641-649).
+- TaskExecutor.run then calls _get_loop_items (task_executor.py:109, 203-253); its private cache branch (218-222) only suppresses the second evaluation when prior delegation templating changed the literal directive. Random/non-idempotent loops can diverge from prepared delegated variables.
+- WorkerProcess already owns VariableManager (worker.py:68), but does not pass it to TaskExecutor (179-188). TaskExecutor._execute consumes ansible_delegated_vars (533-535); PlayContext also templates delegate_to and reads that map (play_context.py:218-223).
+- Task has no get_play; Task._parent can be TaskInclude or Block (task.py:90-99), and Block._play holds the containing Play (block.py:48). Existing integration tests test_delegate_to_loop_randomness.yml and test_delegate_to_loop_caching.yml cover related outcomes.
+- Project source and tests have not been modified. Remaining uncertainty: intended handling of delegate_to expressions that depend on each loop item under the requested pre-loop resolution order.

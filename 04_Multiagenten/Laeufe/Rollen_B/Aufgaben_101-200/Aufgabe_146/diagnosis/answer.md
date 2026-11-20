@@ -1,0 +1,5 @@
+The likely fault is in [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py:88): `LinuxHardware.populate()` merges DMI facts but never reads `/proc/sysinfo`. When the DMI files and `dmidecode` are unavailable, [get_dmi_facts()](/app/lib/ansible/module_utils/facts/hardware/linux.py:314) fills the relevant fields with `"NA"`.
+
+The fix belongs in `LinuxHardware`: add `get_sysinfo_facts()` and merge its result after DMI facts. It should return `{}` when `/proc/sysinfo` is absent. When present, it should return exactly the five specified keys, using `Manufacturer:`, `Type:`, and `Sequence Code:` for vendor, name, and serial; remove leading zeroes from the serial and leave undiscovered values as `"NA"`.
+
+I found no existing sysinfo or DMI unit tests. The requirement does not specify sources for `product_version` or `product_uuid`, so those should remain `"NA"` unless such a source is established. No project source or tests were changed; this pass was limited to fault localization by the repository handoff.

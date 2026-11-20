@@ -1,0 +1,3 @@
+Updated Direct Dial heartbeat handling so SSH nodes advertising wildcard or loopback addresses use the control stream peer’s host while retaining the node’s SSH port. The rewritten address is passed to `UpsertNode`. I also added `PeerAddr()` to the upstream stream and `ICSPipePeerAddr` for in-memory pipes in [inventory.go](/app/api/client/inventory.go), with controller changes in [controller.go](/app/lib/inventory/controller.go).
+
+Focused tests and the full `lib/inventory` suite pass. The full `api/client` suite did not pass: two existing connection tests timed out connecting to `[::]` listeners, so I stopped that run after the failures.

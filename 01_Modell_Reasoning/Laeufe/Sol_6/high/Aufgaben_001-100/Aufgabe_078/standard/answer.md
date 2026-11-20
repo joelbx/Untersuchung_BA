@@ -1,0 +1,3 @@
+Updated voice broadcast liveness across playback, the hook, and the header. The badge is grey while buffering or paused, red while live, and absent when stopped or the broadcast has ended. Playback now emits liveness changes only when the value changes, and last-chunk detection supports end transitions.
+
+All 224 voice broadcast tests pass; ESLint and Stylelint pass. TypeScript checking remains blocked by an existing error in [notifications.ts](/app/src/utils/notifications.ts:79), outside the changed files.

@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` support for new private rooms. The shared policy helper gives the server’s force-enable setting precedence if policies conflict. The dialog keeps the encryption control and creation button disabled while the policy loads, then displays and submits the effective encryption value.
+
+All 26 focused Jest tests pass; ESLint and `git diff --check` pass. The full TypeScript check reports an existing error in [src/Unread.ts](/app/src/Unread.ts:167).

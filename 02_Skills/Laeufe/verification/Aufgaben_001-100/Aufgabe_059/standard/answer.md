@@ -1,0 +1,3 @@
+`ModalTwo` now uses a public `Dialog` abstraction instead of rendering `<dialog>` directly. The abstraction uses a native dialog when its modal API is available and an accessible fallback host in limited DOM environments. It forwards props, children, and the host ref.
+
+The new role query failed before the change and passes now. Final checks passed: 11 tests across 2 suites, TypeScript, ESLint, Prettier, and `git diff --check`.

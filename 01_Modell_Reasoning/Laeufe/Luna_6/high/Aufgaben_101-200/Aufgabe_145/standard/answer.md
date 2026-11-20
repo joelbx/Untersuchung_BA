@@ -1,0 +1,3 @@
+Updated photo recovery in both mirrored store copies to enumerate regular shares and trashed items, wait for decryption in both sources, and include trashed photos in progress and move counts. Recovery now fails on core action errors, accounts for remaining items, checks both sources before succeeding, and resumes persisted in progress work.
+
+The existing hook tests pass (7/7), and lint and diff checks pass. Type checking remains blocked by an unrelated OpenPGP type mismatch in [api.ts](/app/packages/crypto/lib/worker/api.ts:579).

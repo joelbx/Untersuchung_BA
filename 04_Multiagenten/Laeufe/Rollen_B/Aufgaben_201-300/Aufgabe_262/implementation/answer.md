@@ -1,0 +1,3 @@
+Implemented cover host validation in both book import paths. The new `process_cover_url` helper accepts HTTP and HTTPS URLs with case insensitive hostname matching, removes `cover` when present, and skips uploads from unsupported hosts.
+
+All 88 add-book tests pass. Ruff and `git diff --check` pass. The proxy allow-list was not available in the repository, so `ALLOWED_COVER_HOSTS` contains the two cover hosts evidenced by local code: `archive.org` and `covers.openlibrary.org`.

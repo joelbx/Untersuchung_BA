@@ -1,0 +1,3 @@
+The missing helper belongs beside `luqum_remove_child` in [query_utils.py](/app/openlibrary/solr/query_utils.py:11). That function establishes the supported parents (`BaseOperation`, `Group`, `Unary`), tuple reassignment pattern, and exact unsupported-parent error.
+
+The fix should rebuild `parent.children` in order, replace **every direct child equal to** `old_child` with `new_child`, and leave the children unchanged when there is no match. [Existing tests](/app/openlibrary/tests/solr/test_query_utils.py:9) cover removal but provide no replacement coverage. I recorded the diagnosis in `.codex-role-output/checkpoint.md`. Source and tests remain unchanged because this pass was restricted to fault localization.

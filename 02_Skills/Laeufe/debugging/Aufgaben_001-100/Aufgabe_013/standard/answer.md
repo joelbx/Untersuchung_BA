@@ -1,0 +1,3 @@
+Updated [DocCLI.tty_ify](/app/lib/ansible/cli/doc.py) to render `L()`, `R()`, and `HORIZONTALLINE`, preserve ordinary words such as `IBM(International Business Machines)`, and handle multiple macros on one line. Added [regression tests](/app/test/units/cli/test_doc.py).
+
+The focused doc and base CLI tests pass (37 tests), and an `ansible-doc assemble` check shows the link output. The broader CLI suite still fails in adhoc and galaxy tests; its baseline state was not established. Details are in the [checkpoint](/app/.codex-role-output/checkpoint.md).

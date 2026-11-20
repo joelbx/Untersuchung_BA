@@ -1,0 +1,3 @@
+Updated [forwarder.go](/app/lib/kube/proxy/forwarder.go) to return a clear `NotFound` when a local session omits its Kubernetes cluster, prefer configured local credentials, and dial discovered kube_service endpoints through the new `dialEndpoint` method. Remote sessions continue to use `reversetunnel.LocalKubernetes` with client credentials.
+
+Validation passed: `go test ./lib/kube/proxy` and `git diff --check`. Checkpoint: [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

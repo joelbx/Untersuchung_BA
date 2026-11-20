@@ -1,0 +1,3 @@
+Implemented MIME configuration loading from [mime_types.yaml](/app/resources/mime_types.yaml). The new `mime` package loads it through `conf.AddHook`, registers its MIME mappings plus `.js` and `.css`, and exposes `mime.LosslessFormats`. The server UI now uses that list, and model MIME lookups ensure the hook is registered.
+
+`go test ./model ./server` passed. `go test ./...` still reports two TagLib metadata assertion failures in `scanner/metadata/taglib`; `git diff --check` passed.

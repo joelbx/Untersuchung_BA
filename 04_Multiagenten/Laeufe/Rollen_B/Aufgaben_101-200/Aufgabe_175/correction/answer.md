@@ -1,0 +1,3 @@
+Restore now verifies core Navidrome tables and an applied migration record before replacing the live database. I added a regression test confirming that a healthy, unrelated SQLite file is rejected and the live data stays intact.
+
+Both reviewer test commands passed: `go test ./db ./cmd ./conf` and `go test ./scheduler` with the specified offline environment variables. TEST_ENVIRONMENT_PROBLEM: none.

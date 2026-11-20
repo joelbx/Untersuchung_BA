@@ -1,0 +1,3 @@
+Implemented topic backlinks in the checked-out repository. Posts now create and remove backlink events as their links change, with per-post associations tracked in `pid:{pid}:backlinks`. The topic timeline shows localized “Referenced by” links to the referencing post when the new admin `topicBacklinks` setting is enabled; the setting defaults to off.
+
+Verification passed: 10 focused backlink and event tests, 288 topic and post tests, ESLint, and `git diff --check`.

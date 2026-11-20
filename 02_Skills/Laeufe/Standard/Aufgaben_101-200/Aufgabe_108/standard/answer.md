@@ -1,0 +1,3 @@
+Added `SimpleCache[V]` and `NewSimpleCache[V]` in [simple_cache.go](/app/utils/cache/simple_cache.go), then moved the play tracker, genre repository, and HTTP client to the typed interface. Cache reads no longer require assertions in those callers, and TTL behavior is consistent.
+
+Added tests for expiration, loader errors, active keys, and nil values. `go test ./utils/cache ./core/scrobbler ./scanner` and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated email confirmation handling in [src/user/email.js](/app/src/user/email.js). Pending checks now return strict booleans, the new TTL and resend helpers use the store’s live millisecond TTL, and both confirmation keys use the configured expiry. Explicit expiry clears both keys, and orphaned codes are rejected. I also added a one day default, an admin setting, and regression tests.
+
+Verification: ESLint and diff checks passed; the full user suite passed 256 tests, followed by 7 focused confirmation tests and 6 email API tests.

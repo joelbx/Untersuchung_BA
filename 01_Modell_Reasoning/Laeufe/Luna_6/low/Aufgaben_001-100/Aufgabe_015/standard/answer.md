@@ -1,0 +1,3 @@
+Implemented the QR sign-in feature flag `feature_qr_signin_reciprocate_show` in Labs with a disabled default and a homeserver compatibility description. The QR section and both settings tabs now check the flag, while retaining the MSC3882 and MSC3886 support checks.
+
+The focused tests pass: 3 suites, 60 tests, and 8 snapshots. `git diff --check` passes. TypeScript lint remains blocked by an existing error in `RoomView-test.tsx:178`: a call is missing the required `eventId` property.

@@ -1,0 +1,3 @@
+Added `getCachedChildrenCount(shareId, parentLinkId)` to [useLinksListing.tsx](/app/applications/drive/src/app/store/links/useLinksListing.tsx). It returns the number of children currently in the cache for that share and parent. The new [regression test](/app/applications/drive/src/app/store/links/useLinksListing.test.tsx) checks counts after fetching across different parents and shares.
+
+Verification passed: 34 Drive test suites (282 tests), type checking, Prettier, and `git diff --check`.

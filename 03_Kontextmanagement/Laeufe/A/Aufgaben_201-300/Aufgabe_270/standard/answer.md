@@ -1,0 +1,3 @@
+Updated the Drive app and `drive-store` so public pages select the newest valid session through `getPersistedSessions()`. The provider now resumes that session using its local ID and initializes authentication and user state; telemetry uses its UID. Removed the `LAST_ACTIVE_PING` lookup dependency.
+
+The focused session, active ping, and telemetry tests pass in both workspaces. Both type checks remain blocked by an OpenPGP type mismatch in [packages/crypto/lib/worker/api.ts](/app/packages/crypto/lib/worker/api.ts:579).

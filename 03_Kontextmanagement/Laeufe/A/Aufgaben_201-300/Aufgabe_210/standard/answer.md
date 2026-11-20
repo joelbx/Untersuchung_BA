@@ -1,0 +1,3 @@
+Updated TaskExecutor to evaluate loop items once and resolve `delegate_to` before loop iterations. Added `VariableManager.get_delegated_vars_and_hostname()` and `Task.get_play()`, disabled delegation resolution in `get_vars()` by default, deprecated the legacy lookup, and removed the loop cache workaround.
+
+Verification: 35 focused unit tests and the existing delegation integration playbooks passed.

@@ -1,0 +1,11 @@
+Task: Replace targeted version parsing with Qt-native QVersionNumber handling.
+
+Status: Implemented Qt-native version parsing and updated the targeted call sites and tests. `rg` is unavailable, so used local grep/find.
+
+Verification:
+- `QT_QPA_PLATFORM=offscreen pytest -o addopts='' -q tests/unit/misc/test_earlyinit.py tests/unit/misc/test_crashdialog.py tests/unit/utils/test_qtutils.py::test_version_check tests/unit/utils/test_qtutils.py::test_is_new_qtwebkit tests/unit/utils/test_utils.py::test_parse_version_normalizes_trailing_zeroes tests/unit/utils/test_version.py::test_distribution`: 52 passed, exit 0.
+- `QT_QPA_PLATFORM=offscreen pytest -o addopts='' -q tests/unit/utils/test_qtutils.py tests/unit/utils/test_version.py tests/unit/utils/test_utils.py tests/unit/misc/test_earlyinit.py tests/unit/misc/test_crashdialog.py`: exit 1 without a test failure summary; stops during `TestChromiumVersion::test_unpatched` (real QtWebEngine initialization). The version-only verbose run also exited 1 at that test.
+- Same broad command with `-k 'not test_unpatched'`: pytest reported 419 passed, 4 skipped, 1 deselected; process exited 1 with `XIO: fatal IO error 0 (Success) on X server ":0"` during shutdown. Thus a clean exit for the full broad suite is unverified.
+- Attempted `QT_QPA_PLATFORM=offscreen pytest -p no:xvfb -o addopts='' -q tests/unit/utils/test_qtutils.py tests/unit/utils/test_version.py tests/unit/utils/test_utils.py tests/unit/misc/test_earlyinit.py tests/unit/misc/test_crashdialog.py -k 'not test_unpatched'`: interrupted after `tests/conftest.py:226` repeatedly raised `Exception("No display and no Xvfb available!")` during setup. Disabling xvfb does not work for this suite.
+- `QT_QPA_PLATFORM=offscreen pytest -o addopts='' -q tests/unit/utils/test_qtutils.py tests/unit/utils/test_utils.py tests/unit/misc/test_earlyinit.py tests/unit/misc/test_crashdialog.py tests/unit/utils/test_version.py::test_distribution`: pytest reported 342 passed, then XIO shutdown error and exit 1. This suggests the broad-run exit issue is Xvfb cleanup in this environment, but a clean process exit for that run remains unverified.
+- Final focused rerun: same 52-test command above, 52 passed, exit 0. `python -m compileall -q` on all changed Python files and `git diff --check` both exited 0.

@@ -1,0 +1,3 @@
+Fixed both review findings. Notifications now use their IDs as React rendering keys while keeping the resolved `key` for deduplication. Links added later by React children receive `rel="noopener noreferrer"` and `target="_blank"`.
+
+Added regression tests for both cases. The reviewer’s exact test command passed (4 tests), the component type check passed, and `git diff --check` passed. No remaining failures or test environment problems.

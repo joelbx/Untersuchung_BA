@@ -1,0 +1,4 @@
+Implementer progress: Starting repository inspection. Diagnosis is a hypothesis; will verify repository, mock, LastFM callers and auth callback before editing, then run relevant local tests.
+Verified: SQL repository uses request context user; mock uses mutable UserID; agent drops userId; callback trusts uid query. Fix will thread explicit ID and bind callback to authenticated one-time state.
+Implemented explicit userId in repository and mock, threaded through LastFM agent/session keys/router, and replaced client uid callback with authenticated one-time state (10 minute validity). Added SQL isolation and LastFM route/agent tests; focused Go suites pass.
+Final verification: GOPROXY=off GOSUMDB=off go test ./... passes; focused LastFM suite passes after spoofed-state test; UI Prettier and ESLint --max-warnings 0 pass; git diff --check clean. Only compiler deprecation warnings from existing native dependencies.

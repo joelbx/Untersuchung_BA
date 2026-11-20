@@ -1,0 +1,3 @@
+Added unit-aware durations to `:later`. The new [parse_duration](/app/qutebrowser/utils/utils.py) accepts decimal hours, minutes, and seconds, including `2m30s` and `1.5h`; bare digits still mean milliseconds. Invalid durations raise `ValueError`, and the command reports them as command errors. I also updated the help text and tests.
+
+Verification: 192 utility tests passed; 207 command tests passed and 1 was skipped.

@@ -1,0 +1,3 @@
+Added a kebab menu to the Current session header with accessible trigger states, keyboard navigation, and destructive “Sign out” actions. “Sign out all other sessions” appears only when other sessions exist and passes only their device IDs to the bulk sign-out flow. Menu interaction closes it and returns focus to the trigger.
+
+Verification: 48 targeted tests pass; ESLint and Stylelint pass. Repository-wide TypeScript checking remains blocked by existing errors in unrelated files.

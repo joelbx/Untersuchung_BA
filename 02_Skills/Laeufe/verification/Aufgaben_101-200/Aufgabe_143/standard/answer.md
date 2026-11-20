@@ -1,0 +1,3 @@
+Centralized author `db_name` generation in [catalog utils](/app/openlibrary/catalog/utils/__init__.py). Every `expand_record` call now adds it, including when an author has no dates. Existing-edition conversion passes name and birth/death dates into expansion instead of building the identifier separately.
+
+Verification: 225 catalog tests passed with one low-threshold test deselected; Ruff and `git diff --check` passed. The full targeted run failed on that low-threshold test, which compares differently ordered author names and has no date data. Its matching score remains 190 against a threshold of 515.

@@ -1,0 +1,7 @@
+The issue is centered in [user settings](/app/src/user/settings.js:79) and [chat permission checks](/app/src/messaging/index.js:337). Settings currently load and save only `restrictChat`; `canMessageUser` uses the recipient’s follow list, with an explicit block checked first. The new fields need parsing and defaults in settings, then ordered block, disable, deny, and allow checks in `canMessageUser`, with the stated admin and global moderator exception.
+
+[Chat creation and invitations](/app/src/api/chats.js:82) call `canMessageUser`, but [room methods](/app/src/messaging/rooms.js:75) do not. The [ActivityPub message path](/app/src/activitypub/notes.js:307) calls those room methods directly, so API checks alone would leave an entry point uncovered.
+
+The upgrade can use the batched `users:joindate` pattern in [existing 4.3.0 upgrades](/app/src/upgrades/4.3.0/topic_follower_counts.js:11). One unresolved behavior needs a decision: for an account with `restrictChat` enabled and no follows, migrating to an empty allow list would permit anyone under the requested rules.
+
+Existing [messaging tests](/app/test/messaging.js:79), [settings tests](/app/test/user.js:1619), the account settings UI, admin defaults, and the settings schema still reflect the old setting. I recorded the findings in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). No project source or tests were edited; this specialist role was limited to fault localization.

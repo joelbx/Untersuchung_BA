@@ -1,0 +1,3 @@
+Implemented `splitBySeparator` to split on commas and semicolons, trim tokens, remove angle brackets, discard empty values, and preserve order. `inputToRecipient` now returns the bare email as both `Name` and `Address` for bracketed emails. Added regression tests in [recipient.spec.ts](/app/packages/shared/test/mail/recipient.spec.ts).
+
+The shared test command bundled successfully, but Karma could not run the tests because the configured ChromeHeadless binary is missing. `git diff --check` passed.

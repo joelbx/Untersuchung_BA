@@ -1,0 +1,3 @@
+Updated [VoiceBroadcastPreRecordingPip](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx) so “Go live” becomes a disabled button on activation and repeated clicks or key activations cannot call `start()` while initiation is pending. Device selection continues to close the menu and update the header label; the selection handler now requires a non-null device.
+
+The focused suite passes (11 tests and 1 snapshot), as do ESLint and `git diff --check`. The full type check remains blocked by five existing MatrixClient typing errors outside the edited files; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

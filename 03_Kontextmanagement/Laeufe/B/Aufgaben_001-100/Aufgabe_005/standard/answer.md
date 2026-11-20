@@ -1,0 +1,3 @@
+Resolved the Qt wrapper initialization and error handling issue. Startup now passes the current `SelectionInfo` to the Qt checker; missing wrappers raise `NoWrapperAvailableError` with import failure details. Implicit initialization selects an available wrapper and returns `INFO`.
+
+**Validation:** 61 relevant tests passed, and `git diff --check` passed. The full version test module exited early in this environment; its targeted `test_version_info` cases passed.

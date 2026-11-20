@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) so finish messages name the process’s own PID and include the signal name for crashes. SIGTERM now sets the state to `terminated` and shows no finish message unless verbose mode is enabled. Added regression tests in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py).
+
+Verification: 173 tests passed, 4 skipped across the process, editor, and completion suites.

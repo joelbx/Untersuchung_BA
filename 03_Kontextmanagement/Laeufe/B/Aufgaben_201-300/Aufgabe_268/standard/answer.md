@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) so process errors include the capitalized process name, quoted command, error-specific wording, and process detail. The specified non-Windows startup failures also include the command-specific hint.
+
+Validation: 26 relevant tests passed, and `git diff --check` passed. The existing crash test timed out waiting for `finished`; that path was unchanged.

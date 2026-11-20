@@ -1,0 +1,3 @@
+Polling now has a managed lifecycle across Git, local, S3, Azure Blob, and OCI snapshot stores. Each store exposes `Close()` to cancel polling and wait for it to finish; closing a store with no active poller is safe. The declarative store wrapper also forwards `Close()`.
+
+Verification: `GOPROXY=off GOSUMDB=off go test ./internal/storage/fs/... && git diff --check` exited successfully. External service dependent test cases may require their test environments to run.

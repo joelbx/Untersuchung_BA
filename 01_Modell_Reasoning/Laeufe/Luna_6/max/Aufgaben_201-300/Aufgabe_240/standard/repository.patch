@@ -1,0 +1,571 @@
+diff --git a/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py b/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py
+new file mode 100644
+index 00000000..7d1da222
+--- /dev/null
++++ b/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py
+@@ -0,0 +1,565 @@
++#!/usr/bin/python
++
++# (c) 2026, NetApp, Inc
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++
++__metaclass__ = type
++
++
++ANSIBLE_METADATA = {'metadata_version': '1.1',
++                    'status': ['preview'],
++                    'supported_by': 'community'}
++
++
++DOCUMENTATION = '''
++---
++module: netapp_e_drive_firmware
++short_description: Manage drive firmware on NetApp E-Series storage arrays
++description:
++    - Upload drive firmware files and upgrade compatible drives on a NetApp E-Series array.
++    - Drives already running the target firmware are left unchanged.
++version_added: '2.10'
++author:
++    - NetApp, Inc
++extends_documentation_fragment:
++    - netapp.eseries
++options:
++    firmware:
++        description:
++            - A list of local drive firmware file paths to upload to the array.
++        required: true
++        type: list
++        elements: path
++    wait_for_completion:
++        description:
++            - Wait for all targeted drives to finish upgrading before returning.
++        type: bool
++        default: false
++    ignore_inaccessible_drives:
++        description:
++            - Ignore drives that are offline or unavailable. By default, the task fails if an inaccessible drive needs
++              an upgrade.
++        type: bool
++        default: false
++    upgrade_drives_online:
++        description:
++            - Upgrade drives while they remain online and accept I/O. Every targeted drive must support online upgrades.
++        type: bool
++        default: true
++notes:
++    - Check mode reports whether an upgrade would be initiated.
++'''
++
++EXAMPLES = '''
++- name: Upgrade compatible drives with the supplied firmware
++  netapp_e_drive_firmware:
++    api_url: "{{ netapp_api_url }}"
++    api_username: "{{ netapp_api_username }}"
++    api_password: "{{ netapp_api_password }}"
++    ssid: "{{ netapp_array_id }}"
++    firmware:
++      - /srv/firmware/drive_firmware.bin
++    wait_for_completion: true
++'''
++
++RETURN = '''
++changed:
++    description: Whether any drives require the requested firmware.
++    type: bool
++    returned: always
++upgrade_in_process:
++    description: Whether the controller is still upgrading the targeted drives.
++    type: bool
++    returned: always
++'''
++
++import os
++import time
++
++from ansible.module_utils._text import to_native
++from ansible.module_utils.netapp import NetAppESeriesModule, create_multipart_formdata
++from ansible.module_utils.six import string_types
++
++
++WAIT_TIMEOUT_SEC = 3600
++
++
++def _normalized_key(key):
++    return ''.join(char.lower() for char in key if char.isalnum())
++
++
++def _get_value(data, *keys):
++    """Get a value from a response dict while accepting API casing variants."""
++    if not isinstance(data, dict):
++        return None
++
++    normalized = dict((_normalized_key(key), value) for key, value in data.items())
++    for key in keys:
++        value = normalized.get(_normalized_key(key))
++        if value is not None:
++            return value
++    return None
++
++
++def _as_list(value):
++    if value is None:
++        return []
++    if isinstance(value, list):
++        return value
++    if isinstance(value, tuple):
++        return list(value)
++    return [value]
++
++
++def _value_is_true(value):
++    if isinstance(value, bool):
++        return value
++    if isinstance(value, (int, float)):
++        return value != 0
++    if isinstance(value, string_types):
++        return value.strip().lower() not in ('', 'false', 'no', 'off', '0', 'unsupported', 'incompatible',
++                                             'not supported', 'not compatible', 'notcompatible')
++    return bool(value)
++
++
++def _response_records(data, list_keys):
++    """Unwrap common E-Series response containers and return their records."""
++    if isinstance(data, list):
++        return data
++    if not isinstance(data, dict):
++        return []
++    if _get_value(data, 'driveRef', 'driveReference') is not None:
++        return [data]
++
++    for key in list_keys:
++        value = _get_value(data, key)
++        if isinstance(value, list):
++            return value
++        if isinstance(value, dict):
++            nested = _response_records(value, list_keys)
++            if nested:
++                return nested
++
++    return []
++
++
++def _drive_ref_list(value):
++    if value is None:
++        return []
++    if isinstance(value, string_types):
++        return [value]
++    if isinstance(value, (list, tuple)):
++        refs = []
++        for item in value:
++            if isinstance(item, string_types):
++                refs.append(item)
++            elif isinstance(item, dict):
++                ref = _get_value(item, 'driveRef', 'driveReference', 'id')
++                if isinstance(ref, string_types):
++                    refs.append(ref)
++        return refs
++    if isinstance(value, dict):
++        refs = _get_value(value, 'driveRef', 'driveRefs')
++        return _drive_ref_list(refs)
++    return []
++
++
++def _normalized_model(value):
++    if value is None:
++        return None
++    return ''.join(str(value).strip().upper().split())
++
++
++class NetAppESeriesDriveFirmware(NetAppESeriesModule):
++    WAIT_TIMEOUT_SEC = WAIT_TIMEOUT_SEC
++    POLL_INTERVAL_SEC = 5
++    IN_PROGRESS_STATUSES = ('inProgress', 'inProgressRecon', 'pending', 'notAttempted')
++
++    def __init__(self):
++        ansible_options = dict(
++            firmware=dict(type='list', elements='path', required=True),
++            wait_for_completion=dict(type='bool', default=False),
++            ignore_inaccessible_drives=dict(type='bool', default=False),
++            upgrade_drives_online=dict(type='bool', default=True),
++        )
++        super(NetAppESeriesDriveFirmware, self).__init__(ansible_options=ansible_options,
++                                                          supports_check_mode=True)
++
++        args = self.module.params
++        self.firmware_list = args['firmware']
++        self.wait_for_completion = args['wait_for_completion']
++        self.ignore_inaccessible_drives = args['ignore_inaccessible_drives']
++        self.upgrade_drives_online = args['upgrade_drives_online']
++        self.upgrade_in_progress = False
++        self.firmware_upgrade_list = []
++
++    @staticmethod
++    def _filename_for(data):
++        return _get_value(data, 'filename', 'fileName', 'firmwareFilename', 'firmwareFileName',
++                          'driveFirmwareFileName', 'driveFirmwareFile')
++
++    def _firmware_groups(self, data, filename):
++        """Find compatibility records scoped to one uploaded firmware basename."""
++        groups = []
++        seen = set()
++
++        def visit(value):
++            if isinstance(value, dict):
++                name = self._filename_for(value)
++                if name and os.path.basename(str(name)) == filename and id(value) not in seen:
++                    groups.append(value)
++                    seen.add(id(value))
++
++                for key, child in value.items():
++                    if isinstance(key, string_types) and os.path.basename(key) == filename and id(child) not in seen:
++                        groups.append(child)
++                        seen.add(id(child))
++                    visit(child)
++            elif isinstance(value, list):
++                for child in value:
++                    visit(child)
++
++        visit(data)
++        return groups
++
++    def _firmware_candidates(self, group):
++        """Return candidate drive/model records with their parent compatibility fields."""
++        candidates = []
++
++        def visit(value, inherited):
++            if isinstance(value, dict):
++                merged = dict(inherited)
++                merged.update(value)
++
++                refs = []
++                ref = _get_value(value, 'driveRef', 'driveReference')
++                if isinstance(ref, string_types):
++                    refs.append(ref)
++                refs.extend(_drive_ref_list(_get_value(value, 'driveRefList', 'driveRefs')))
++
++                model = _get_value(value, 'driveModel', 'model', 'modelNumber', 'productId', 'productID')
++                if refs or model:
++                    candidates.append((merged, refs))
++
++                for key, child in value.items():
++                    if _normalized_key(key) in ('supportedmodels', 'compatibledrivemodels', 'supporteddrivemodels'):
++                        for model_value in _as_list(child):
++                            if isinstance(model_value, string_types):
++                                model_record = dict(merged)
++                                model_record['driveModel'] = model_value
++                                candidates.append((model_record, []))
++                            elif isinstance(model_value, dict):
++                                visit(model_value, merged)
++                    elif isinstance(child, (dict, list)):
++                        visit(child, merged)
++            elif isinstance(value, list):
++                for child in value:
++                    visit(child, inherited)
++
++        visit(group, {})
++
++        # Some compatibility responses place driveRefList directly in a list value.
++        if isinstance(group, list):
++            for item in group:
++                if isinstance(item, dict):
++                    ref = _get_value(item, 'driveRef', 'driveReference')
++                    if isinstance(ref, string_types):
++                        candidates.append((item, [ref]))
++
++        unique = []
++        seen = set()
++        for candidate, refs in candidates:
++            token = (tuple(refs), _normalized_model(_get_value(candidate, 'driveModel', 'model', 'modelNumber', 'productId')),
++                     _get_value(candidate, 'targetFirmwareVersion', 'newFirmwareVersion', 'firmwareVersion', 'version'))
++            if token not in seen:
++                unique.append((candidate, refs))
++                seen.add(token)
++        return unique
++
++    @staticmethod
++    def _drive_model(drive):
++        return _get_value(drive, 'productID', 'productId', 'driveModel', 'model', 'modelNumber')
++
++    @staticmethod
++    def _drive_ref(drive):
++        return _get_value(drive, 'driveRef', 'driveReference', 'id')
++
++    @staticmethod
++    def _target_version(compatibility):
++        return _get_value(compatibility, 'targetFirmwareVersion', 'newFirmwareVersion', 'firmwareVersion',
++                          'firmwareRevision', 'firmwareTargetVersion', 'desiredFirmwareVersion', 'newVersion',
++                          'targetVersion', 'version', 'revision')
++
++    @staticmethod
++    def _current_version(drive):
++        return _get_value(drive, 'currentFirmwareVersion', 'firmwareVersion', 'softwareVersion', 'currentVersion')
++
++    @staticmethod
++    def _is_compatible(compatibility):
++        for key in ('isCompatible', 'compatible', 'compatibilityStatus', 'isSupported', 'supported',
++                    'firmwareSupported', 'upgradeSupported', 'supportedForDrive'):
++            value = _get_value(compatibility, key)
++            if value is not None and not _value_is_true(value):
++                return False
++        return True
++
++    @staticmethod
++    def _supports_target_version(compatibility, target_version):
++        supported_versions = _get_value(compatibility, 'supportedFirmwareVersions', 'compatibleFirmwareVersions',
++                                         'supportedVersions', 'firmwareVersions')
++        if supported_versions is None:
++            return True
++
++        for version in _as_list(supported_versions):
++            if isinstance(version, dict):
++                version = _get_value(version, 'version', 'firmwareVersion', 'revision')
++            if version is not None and str(version) == str(target_version):
++                return True
++        return False
++
++    @staticmethod
++    def _is_inaccessible(drive):
++        if _value_is_true(_get_value(drive, 'offline', 'isOffline')):
++            return True
++
++        accessible = _get_value(drive, 'accessible', 'isAccessible')
++        if accessible is not None and not _value_is_true(accessible):
++            return True
++
++        status = _get_value(drive, 'status', 'healthStatus', 'driveStatus', 'availability')
++        if isinstance(status, string_types) and status.lower() in ('offline', 'unavailable', 'missing', 'removed', 'notavailable'):
++            return True
++
++        available = _get_value(drive, 'available', 'isAvailable')
++        # E-Series uses available=False for drives already assigned to a pool. That alone does not mean
++        # the drive is inaccessible when its health status is good.
++        if available is not None and not _value_is_true(available) and status is None:
++            return True
++
++        return False
++
++    @staticmethod
++    def _online_upgrade_capable(drive):
++        value = _get_value(drive, 'onlineUpgradeCapable', 'isOnlineUpgradeCapable', 'canUpgradeOnline',
++                           'onlineUpgradeSupported', 'supportsOnlineUpgrade', 'upgradeOnlineSupported',
++                           'onlineUpgrade')
++        return _value_is_true(value) if value is not None else False
++
++    def upload_firmware(self):
++        """Upload every supplied firmware file to the E-Series controller."""
++        for firmware_path in self.firmware_list:
++            filename = os.path.basename(firmware_path)
++            try:
++                headers, payload = create_multipart_formdata([('file', filename, firmware_path)])
++                headers['Accept'] = 'application/json'
++                rc, response = self.request('files/drive', data=payload, method='POST', headers=headers)
++                if not 200 <= rc < 300:
++                    raise Exception('Controller returned status [%s], response [%s].' % (rc, response))
++            except Exception as error:
++                self.module.fail_json(msg='Failed to upload drive firmware file [%s] to array [%s]. Error [%s].'
++                                      % (firmware_path, self.ssid, to_native(error)))
++
++    def upgrade_list(self):
++        """Find drives that support and still need each uploaded firmware version."""
++        compatibility_path = 'storage-systems/%s/firmware/drives' % self.ssid
++        health_path = 'storage-systems/%s/drives' % self.ssid
++
++        try:
++            rc, compatibility_data = self.request(compatibility_path)
++            if not 200 <= rc < 300:
++                raise Exception('Controller returned status [%s].' % rc)
++        except Exception as error:
++            self.module.fail_json(msg='Failed to complete compatibility and health check. Array [%s]. Error [%s].'
++                                  % (self.ssid, to_native(error)))
++
++        try:
++            rc, health_data = self.request(health_path)
++            if not 200 <= rc < 300:
++                raise Exception('Controller returned status [%s].' % rc)
++        except Exception as error:
++            self.module.fail_json(msg='Failed to complete compatibility and health check. Array [%s]. Error [%s].'
++                                  % (self.ssid, to_native(error)))
++
++        health_drives = _response_records(health_data, ('drives', 'drive', 'driveList', 'driveHealth'))
++        health_by_ref = {}
++        for drive in health_drives:
++            ref = self._drive_ref(drive)
++            if ref is not None:
++                health_by_ref[ref] = drive
++
++        upgrades = []
++        for firmware_path in self.firmware_list:
++            filename = os.path.basename(firmware_path)
++            drive_refs = []
++            for group in self._firmware_groups(compatibility_data, filename):
++                for candidate, refs in self._firmware_candidates(group):
++                    if not self._is_compatible(candidate):
++                        continue
++
++                    model = self._normalized_model(_get_value(candidate, 'driveModel', 'model', 'modelNumber',
++                                                                'productID', 'productId'))
++                    candidate_refs = list(refs)
++                    if not candidate_refs and model:
++                        candidate_refs = [self._drive_ref(drive) for drive in health_drives
++                                          if self._normalized_model(self._drive_model(drive)) == model]
++
++                    target_version = self._target_version(candidate)
++                    for drive_ref in candidate_refs:
++                        if not drive_ref or drive_ref in drive_refs:
++                            continue
++
++                        health_drive = health_by_ref.get(drive_ref)
++                        if health_drive is None:
++                            if self.ignore_inaccessible_drives:
++                                continue
++                            self.module.fail_json(msg='Drive [%s] is offline or unavailable. Array [%s].'
++                                                  % (drive_ref, self.ssid))
++
++                        if self._is_inaccessible(health_drive):
++                            if self.ignore_inaccessible_drives:
++                                continue
++                            self.module.fail_json(msg='Drive [%s] is offline or unavailable. Array [%s].'
++                                                  % (drive_ref, self.ssid))
++
++                        health_version = self._current_version(health_drive)
++                        if target_version is not None and health_version is not None and \
++                                str(target_version) == str(health_version):
++                            continue
++
++                        try:
++                            rc, drive_data = self.request('storage-systems/%s/drives/%s' % (self.ssid, drive_ref))
++                            if not 200 <= rc < 300:
++                                raise Exception('Controller returned status [%s].' % rc)
++                        except Exception as error:
++                            self.module.fail_json(msg='Failed to retrieve drive information. Drive [%s]. Array [%s]. Error [%s].'
++                                                  % (drive_ref, self.ssid, to_native(error)))
++
++                        if isinstance(drive_data, list):
++                            drive_data = drive_data[0] if drive_data else {}
++                        if not isinstance(drive_data, dict):
++                            drive_data = {}
++                        drive = dict(health_drive)
++                        drive.update(drive_data)
++
++                        current_version = self._current_version(drive)
++                        if target_version is None:
++                            target_version = self._target_version(drive)
++                        if target_version is None or current_version is None:
++                            continue
++                        if str(current_version) == str(target_version):
++                            continue
++                        if not self._supports_target_version(candidate, target_version):
++                            continue
++
++                        if self.upgrade_drives_online and not self._online_upgrade_capable(dict(candidate, **drive)):
++                            self.module.fail_json(msg='Drive is not capable of online upgrade. Drive [%s]. Array [%s].'
++                                                  % (drive_ref, self.ssid))
++
++                        drive_refs.append(drive_ref)
++
++            if drive_refs:
++                upgrades.append(dict(filename=filename, driveRefList=drive_refs))
++
++        self.firmware_upgrade_list = upgrades
++        return upgrades
++
++    def wait_for_upgrade_completion(self):
++        """Poll drive firmware state until all requested drives report success."""
++        targeted_refs = set()
++        for item in self.firmware_upgrade_list:
++            targeted_refs.update(item.get('driveRefList', []))
++        if not targeted_refs:
++            self.upgrade_in_progress = False
++            return
++
++        deadline = time.time() + self.WAIT_TIMEOUT_SEC
++        state_path = 'storage-systems/%s/firmware/drives/state' % self.ssid
++        while True:
++            try:
++                rc, state_data = self.request(state_path)
++                if not 200 <= rc < 300:
++                    raise Exception('Controller returned status [%s].' % rc)
++            except Exception as error:
++                self.module.fail_json(msg='Failed to retrieve drive status. Array [%s]. Error [%s].'
++                                      % (self.ssid, to_native(error)))
++
++            states = _response_records(state_data, ('drives', 'drive', 'driveState', 'driveStates', 'states',
++                                                    'driveFirmwareState', 'driveFirmwareUpgradeStateList'))
++            state_by_ref = {}
++            if isinstance(state_data, dict) and not states:
++                # Some controller versions return a map from drive reference to state.
++                for ref, status in state_data.items():
++                    if isinstance(status, string_types):
++                        state_by_ref[ref] = status
++                    elif isinstance(status, dict):
++                        state_by_ref[ref] = _get_value(status, 'status', 'state', 'upgradeState',
++                                                       'driveFirmwareStatus', 'driveFirmwareUpgradeStatus')
++
++            in_progress = False
++            for state in states:
++                ref = _get_value(state, 'driveRef', 'driveReference', 'id')
++                if ref in targeted_refs:
++                    state_by_ref[ref] = _get_value(state, 'status', 'state', 'upgradeState', 'driveFirmwareStatus',
++                                                   'driveFirmwareUpgradeStatus', 'driveFirmwareUpgradeState',
++                                                   'firmwareStatus')
++
++            for drive_ref in targeted_refs:
++                status = state_by_ref.get(drive_ref)
++                if status in self.IN_PROGRESS_STATUSES:
++                    in_progress = True
++                elif status != 'okay':
++                    self.module.fail_json(msg='Drive firmware upgrade failed. Drive [%s] status [%s]. Array [%s].'
++                                          % (drive_ref, status, self.ssid))
++
++            if not in_progress:
++                self.upgrade_in_progress = False
++                return
++
++            remaining = deadline - time.time()
++            if remaining <= 0:
++                self.module.fail_json(msg='Timed out waiting for drive firmware upgrade. Array [%s].' % self.ssid)
++            time.sleep(min(self.POLL_INTERVAL_SEC, remaining))
++
++    def upgrade(self):
++        """Initiate firmware upgrades for the drives selected by upgrade_list()."""
++        if not self.firmware_upgrade_list:
++            self.firmware_upgrade_list = self.upgrade_list()
++        if not self.firmware_upgrade_list:
++            return
++
++        request_data = dict(driveFirmwareUpgradeList=self.firmware_upgrade_list,
++                            onlineUpgrade=self.upgrade_drives_online)
++        try:
++            rc, response = self.request('storage-systems/%s/firmware/drives/initiate-upgrade' % self.ssid,
++                                        data=request_data, method='POST')
++            if not 200 <= rc < 300:
++                raise Exception('Controller returned status [%s], response [%s].' % (rc, response))
++        except Exception as error:
++            self.module.fail_json(msg='Failed to upgrade drive firmware. Array [%s]. Error [%s].'
++                                  % (self.ssid, to_native(error)))
++
++        self.upgrade_in_progress = True
++        if self.wait_for_completion:
++            self.wait_for_upgrade_completion()
++
++    def apply(self):
++        """Upload firmware, determine required upgrades, and apply them."""
++        self.upload_firmware()
++        upgrades = self.upgrade_list()
++        self.firmware_upgrade_list = upgrades
++
++        if upgrades and not self.module.check_mode:
++            self.upgrade()
++
++        self.module.exit_json(changed=bool(upgrades), upgrade_in_process=self.upgrade_in_progress)
++
++
++def main():
++    drive_firmware = NetAppESeriesDriveFirmware()
++    drive_firmware.apply()
++
++
++if __name__ == '__main__':
++    main()

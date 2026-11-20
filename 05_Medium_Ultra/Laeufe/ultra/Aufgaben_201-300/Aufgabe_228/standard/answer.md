@@ -1,0 +1,3 @@
+Implemented [utils.parse_version](/app/qutebrowser/utils/utils.py:69) with normalized `QVersionNumber` values. The Qt runtime, distribution, and crash dialog checks now use Qt-native comparisons.
+
+Three subagents handled the separate call sites; I integrated and verified their changes. **348 relevant tests passed**, and `git diff --check` is clean. An exploratory broader `test_version.py` run encountered a QtWebEngine/X11 process error; its 19 relevant distribution tests passed separately.

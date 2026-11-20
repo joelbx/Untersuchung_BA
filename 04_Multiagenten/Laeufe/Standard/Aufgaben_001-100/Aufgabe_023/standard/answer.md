@@ -1,0 +1,3 @@
+Updated authentication startup to open a database only when an enabled method requires one. JWT is marked as database free; static token, OIDC, GitHub, and Kubernetes require a database. Cleanup now runs only for enabled, database backed methods.
+
+Verified with the existing `internal/config`, `internal/cmd`, and `internal/cleanup` tests. A new startup test also confirms JWT works with Local, Git, and object storage while the database URL is invalid.

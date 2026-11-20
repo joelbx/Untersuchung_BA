@@ -1,0 +1,3 @@
+Updated optimistic mark-as handling so elements are added to `bypassFilter` only when their new status needs to bypass the active filter, and stale IDs are removed when it does not.
+
+The change passes `markAsStatus` through the dispatch, adds the filter decision helper, and covers both message and conversation IDs with tests. Verification passed: 13 tests across three Jest suites, the mail TypeScript check, and Prettier.

@@ -1,0 +1,3 @@
+Updated work search documents to expose `id_project_runeberg` as an array, including `[]` when absent, while preserving other identifier fields. Added and registered `ProjectRunebergProvider` and its public read and download templates.
+
+The 57 targeted tests pass. The full suite has 78 unrelated errors involving blocked external access and infogami setup; the failing targets are recorded in [full-suite-errors.txt](/app/.codex-role-output/full-suite-errors.txt). Project Runeberg’s format URLs render as intended, but their live availability could not be verified offline.

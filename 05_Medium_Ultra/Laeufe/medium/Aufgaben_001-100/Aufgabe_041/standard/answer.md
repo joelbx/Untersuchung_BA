@@ -1,0 +1,3 @@
+Removed `ListMixin` and moved its methods into `List`. List owner lookup now parses `/people/{username}/lists/{list_id}` and returns `None` when the path is invalid or the user is missing. Added `register_models()` in [lists/model.py](/app/openlibrary/core/lists/model.py) to register `/type/list` and the `lists` changeset.
+
+Verification: 18 model tests and the list engine test passed; `git diff --check` passed. A separate list page test fails because `web.ctx.env` is unset, and the list API tests cannot collect because `cookielib` is unavailable in this Python 3 environment.

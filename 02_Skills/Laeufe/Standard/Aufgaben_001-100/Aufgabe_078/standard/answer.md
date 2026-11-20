@@ -1,0 +1,3 @@
+Updated voice broadcast liveness so the badge shows live during chunk playback, grey while buffering or paused, and disappears when playback stops or the broadcast ends. Playback now emits liveness changes only when the value changes; the hook and header use the shared three-state type. Added `isLast()` and coverage for state transitions, badge rendering, and event updates.
+
+All 219 voice broadcast tests pass. Changed-file lint and badge style lint pass. The full TypeScript check remains blocked by an existing `TS2554` error in [notifications.ts](/app/src/utils/notifications.ts:79), outside these changes.

@@ -1,0 +1,1 @@
+Updated both photo recovery hook copies to load and await regular and trashed items, recover trashed photo entries, check both sources before success, and account for pending items on errors. Added mixed-source coverage. Both focused Jest suites pass (8 tests each). Type check is running.

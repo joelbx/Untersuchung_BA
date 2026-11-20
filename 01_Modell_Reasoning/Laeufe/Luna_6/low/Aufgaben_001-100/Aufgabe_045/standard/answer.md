@@ -1,0 +1,3 @@
+Implemented collection name validation so both segments must be valid Python identifiers and neither can be a Python keyword. Dependency resolution now uses the same validator, and the legacy `_is_py_id` and `_is_fqcn` helpers and Python 2 compatibility code have been removed from `dataclasses.py`.
+
+Validation: all 57 collection loader unit tests passed. Direct checks also confirmed the reported keyword names and malformed identifiers are rejected.

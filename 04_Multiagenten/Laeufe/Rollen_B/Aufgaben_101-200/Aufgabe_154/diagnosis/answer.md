@@ -1,0 +1,5 @@
+The likely fault is in [ssh.py](/app/lib/ansible/plugins/connection/ssh.py:1332): Windows stderr is parsed only when it starts with `#< CLIXML`. Passing the whole stream to `_parse_clixml` would also lose surrounding text. The replacement should isolate each complete CLIXML block, parse it, and preserve all bytes before and after it.
+
+In [powershell.py](/app/lib/ansible/plugins/shell/powershell.py:31), the escape regex accepts arbitrary combinations of zero and hex bytes instead of four UTF-16-BE zero/hex pairs. I reproduced a `ValueError` for the valid literal `_x\u6100\u6200\u6300\u6400_`. The parser also returns empty bytes for an incomplete block and raises `ParseError` for malformed XML, so the new helper should retain those blocks unchanged and apply UTF-8 decoding with cp437 fallback to complete blocks.
+
+Existing [parser tests](/app/test/units/plugins/shell/test_powershell.py:8) cover complete CLIXML but not mixed stderr, incomplete blocks, or cp437. I recorded the findings in `.codex-role-output/checkpoint.md`. **No project source or tests were changed** because this role is limited to fault localization.

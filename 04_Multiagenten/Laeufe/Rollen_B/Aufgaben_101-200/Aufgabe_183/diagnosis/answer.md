@@ -1,0 +1,5 @@
+The lifecycle defect is in [config/os.go](/app/config/os.go:115). Ubuntu 20.04 has no extended support date, so the EOL logic treats its 2025 standard support date as the end of all support. Ubuntu 22.04 has no entry. The fix should retain 20.04’s standard date and add **1 April 2030** for extended support, then add 22.04 with **1 April 2027** standard and **1 April 2032** extended support. [config/os_test.go](/app/config/os_test.go:210) is the place to cover both dates and lookup behavior.
+
+There is a separate limit to the expected CVE behavior: [gost/ubuntu.go](/app/gost/ubuntu.go:24) rejects release `2204` and returns before CVE detection. Also, [scanner/debian.go](/app/scanner/debian.go:71) parses Ubuntu releases generically, while [scanner/scanner.go](/app/scanner/scanner.go:820) calls `CheckEOL` after scanning; the missing lifecycle entry alone does not appear to block package collection.
+
+I did not edit project source or tests because this pass was restricted to fault localization. I did not run tests.

@@ -1,0 +1,3 @@
+Added `checkEventValidity` and its result enum in [CalendarUtils.ts](/app/src/calendar/date/CalendarUtils.ts). It rejects invalid dates first, then starts before January 1, 1970, then events whose start is equal to or after the end. Manual creation and ICS import now use the same check; imports reject invalid end times instead of correcting them.
+
+TypeScript checking and `npm run test:app` passed (7,992 assertions). No delegation was used.

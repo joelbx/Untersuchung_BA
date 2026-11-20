@@ -1,0 +1,3 @@
+Added the disabled-by-default `feature_qr_signin_reciprocate_show` experimental setting with a homeserver compatibility description. Both settings tabs now show QR sign-in only when the flag is enabled, and `LoginWithQRSection` also requires MSC3882 and MSC3886 support. The existing “Show QR code” action still opens the QR login view.
+
+Verification: 3 focused test suites passed (60 tests, 8 snapshots); lint, formatting, and diff checks passed. The full type check remains blocked by an error in the untouched `RoomView-test.tsx`. Details are recorded in `.codex-role-output/checkpoint.md`.

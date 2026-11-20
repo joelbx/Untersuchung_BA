@@ -1,0 +1,3 @@
+Implemented unified voice broadcast liveness across playback, hooks, and headers. Badges now distinguish live, grey buffering/paused, and not-live states; playback emits `LivenessChanged` only when the value changes, and chunk events expose `isLast()`.
+
+Focused tests passed: **51 tests across 4 suites**. ESLint and `git diff --check` passed. The full type check remains blocked by an unrelated existing error in `src/utils/notifications.ts:79` (`TS2554`, expected 1–2 arguments but got 3). The playback body snapshot tests also expect the old badge output and need updating.

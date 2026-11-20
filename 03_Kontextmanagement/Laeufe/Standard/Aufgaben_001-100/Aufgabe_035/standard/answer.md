@@ -1,0 +1,3 @@
+Evaluation now runs through a dedicated `storage.Evaluator` implemented by `EvaluatorStorage`; `Server.Evaluate` delegates to it, and `RuleStore` no longer owns evaluation logic. The evaluator preserves rule rank, uses deterministic CRC32 variant selection with inclusive cutoffs, and handles typed, case-insensitive constraints. I updated the mocks and tests.
+
+Verification: `GOPROXY=off go test ./...` and `git diff --check` passed.

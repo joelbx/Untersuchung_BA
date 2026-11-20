@@ -1,0 +1,3 @@
+Updated [Worksearch](/app/openlibrary/plugins/worksearch/code.py) to read Solr JSON for search results, facets, spellcheck suggestions, and work documents. Queries now default to `wt=json` while respecting an explicit value. Updated the [tests](/app/openlibrary/plugins/worksearch/tests/test_worksearch.py) for the JSON interfaces.
+
+Verification: all 28 Worksearch tests pass, and `git diff --check` passes.

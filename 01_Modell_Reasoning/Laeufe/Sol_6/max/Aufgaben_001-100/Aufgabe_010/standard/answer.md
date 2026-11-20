@@ -1,0 +1,3 @@
+Updated the [message composer](/app/src/components/views/rooms/MessageComposer.tsx) to show room replacement status and the destination link in paragraphs. The [reply preview](/app/src/components/views/rooms/ReplyPreview.tsx) now names the sender and uses a labeled [CancelButton](/app/src/components/views/buttons/Cancel.tsx), which is also used in search and link previews. Profiles can render inline where the reply heading needs them.
+
+All 11 focused tests pass, along with focused ESLint and Stylelint checks. The full TypeScript check still reports five errors in untouched SDK and room settings files; it reports none in the changed files.

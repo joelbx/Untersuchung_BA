@@ -1,0 +1,3 @@
+Diff reports now mark newly detected CVEs with `+` and resolved CVEs with `-`. The diff function accepts plus/minus filters, excludes unchanged CVEs, and uses package data from the scan where each change appeared. The new `DiffStatus`, `CveIDDiffFormat`, and `CountDiff` interfaces are in place.
+
+Use `--diff` for both types, or add `--diff-plus` or `--diff-minus` to show one type. Regression tests and `GOPROXY=off go test ./...` passed. The build emitted an existing sqlite3 C compiler warning.

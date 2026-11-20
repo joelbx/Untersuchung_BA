@@ -1,0 +1,3 @@
+Implemented the requested fixes across notifications, topic modals, quick search, hash utilities, email formatting, installer guards, post routes, and the affected templates.
+
+ESLint passed for the changed JavaScript files. The focused Mocha tests could not run because their setup requires Redis at `127.0.0.1:6379`, which refused the connection. I recorded the work and validation result in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

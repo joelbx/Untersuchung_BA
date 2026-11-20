@@ -1,0 +1,3 @@
+Updated the WPScan ingestion in [wordpress.go](/app/detector/wordpress.go) to use the first CVE as the canonical ID and retain UTC timestamps, references, classification, and fix version. Enterprise responses now populate the summary, proof of concept, introduced version, and CVSS v3 fields; absent or null fields leave optional metadata empty.
+
+Added regression coverage in [wordpress_test.go](/app/detector/wordpress_test.go). `go test ./detector -count=1` passes.

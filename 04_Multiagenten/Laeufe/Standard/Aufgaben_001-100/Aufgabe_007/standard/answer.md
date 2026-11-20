@@ -1,0 +1,3 @@
+Updated the [WinRM connection plugin](/app/lib/ansible/plugins/connection/winrm.py) to accept `ansible_winrm_kinit_args` and split command and argument strings into separate tokens. When `kinit_args` is set, it takes precedence over the default delegation `-f` flag. Both subprocess and pexpect use the same constructed command line.
+
+Added [unit tests](/app/test/units/plugins/connection/test_winrm.py) for argument parsing, delegation precedence, invocation count, and unique credential caches. All 36 WinRM unit tests pass.

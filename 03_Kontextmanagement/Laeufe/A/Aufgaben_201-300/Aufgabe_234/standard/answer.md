@@ -1,0 +1,3 @@
+Updated the checkout to use the supplied `*sql.DB` for persistence reads, writes, and transactions. The SQLite connection string now includes all requested settings, and the global database fallback and redundant builder accessor are removed.
+
+`go test ./db ./persistence ./cmd` passes. The issue’s request to recreate read/write routing conflicts with its stated goal, so I followed the unified connection requirements.

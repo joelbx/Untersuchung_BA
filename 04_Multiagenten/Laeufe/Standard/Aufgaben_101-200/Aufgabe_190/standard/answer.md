@@ -1,0 +1,3 @@
+Implemented import preview for `/import` and `/ia_import`. With `preview=true`, the import returns the Edition, Work, and Author records in `edits` with temporary keys, without saving records, uploading covers, or updating Archive.org metadata. Cover host validation is case insensitive; disallowed hosts are rejected.
+
+Updated the author and edition conversion functions and added preview and cover validation tests. The targeted suite passes: **131 tests**. Ruff and `git diff --check` also pass.

@@ -1,0 +1,3 @@
+Implemented `guessDateFromText` and connected it to CSV import and vCard date conversion. It parses the requested ISO, month-name, and slash-separated formats into valid `Date` objects. Unparseable text remains unset, and existing valid dates are returned unchanged. Added tests for parsing and vCard serialization.
+
+TypeScript, formatting, and diff checks passed. The shared test suite ran with **872 passing and 2 failing**; the failures were in the unrelated cookie helper and `toBase64` tests.

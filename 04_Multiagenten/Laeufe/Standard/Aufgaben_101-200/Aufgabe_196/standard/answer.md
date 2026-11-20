@@ -1,0 +1,3 @@
+Updated the assistant upsell configuration to use the shared `getScribeAddonNameByPlan` resolver. Both paid flows now build a `planIDs` object from the base or selected plan and add a Scribe addon only when one applies. I also exported the resolver and `SelectedPlan` from payments/core and updated their external imports to use that entrypoint.
+
+Added coverage for plans without a Scribe addon. The relevant Jest suites passed: 50 tests. Prettier and `git diff --check` also passed.

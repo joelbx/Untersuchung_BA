@@ -1,0 +1,3 @@
+Refactored [Pill](/app/src/components/views/elements/Pill.tsx) as a functional component, extracted permalink resolution into [usePermalink](/app/src/hooks/usePermalink.tsx), and updated its callers to use named imports. Message links now keep the supplied URL verbatim. I updated the affected snapshots.
+
+All 45 relevant tests pass; ESLint and Prettier pass. The full type check still reports unrelated existing `matrix-js-sdk` API errors, with none in the changed files.

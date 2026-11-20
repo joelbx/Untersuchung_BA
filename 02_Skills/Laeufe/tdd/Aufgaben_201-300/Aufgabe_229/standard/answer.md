@@ -1,0 +1,3 @@
+Implemented disk cleanup for group covers and thumbnails, user covers and avatars, and account deletion. Removal now clears the associated database fields, handles legacy and timestamped image variants, limits file deletion to local upload paths, and tolerates files that are already missing. The socket removal hooks remain in place.
+
+The five focused regression tests and ESLint pass. `npm test` could not run beyond its setup hook because the configured Redis server refused the connection at `127.0.0.1:6379`; the remaining integration tests are unverified.

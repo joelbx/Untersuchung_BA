@@ -1,0 +1,3 @@
+Implemented `always`, `auto`, and `never` for `qt.workarounds.disable_accelerated_2d_canvas`, with `auto` as the default in [configdata.yml](/app/qutebrowser/config/configdata.yml). In [qtargs.py](/app/qutebrowser/config/qtargs.py), `auto` adds the flag only on Qt 6 with a known Chromium major below 111; unknown versions omit it.
+
+Added boundary tests in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py). All 146 focused tests passed, and `git diff --check` passed. The Qt 6 cases were simulated on the installed Qt 5 runtime.

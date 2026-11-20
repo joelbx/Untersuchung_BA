@@ -1,0 +1,3 @@
+Implemented `flipt.is_auth_method(input, "method")` in [extentions.go](/app/internal/server/authz/engine/ext/extentions.go) and loaded it in both authorization engines. It supports all seven requested identifiers, maps `k8s` and `kubernetes` to the same protobuf code, and returns the specified errors.
+
+[Focused tests](/app/internal/server/authz/engine/ext/extentions_test.go) cover matches, mismatches, errors, Rego registration, and protobuf input. The ext, local Rego, and bundle engine test suites pass.

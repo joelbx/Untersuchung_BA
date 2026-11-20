@@ -1,0 +1,5 @@
+Updated `RoomView` to dispatch exactly `{ action: Action.RoomLoaded }` after its room-load callback, and to fall back to its current initial event ID when the store has none. `RoomViewStore` now recomputes widget buttons on `RoomLoaded`, even without a preceding `ViewRoom` dispatch. The public enum includes `RoomLoaded = "room_loaded"`.
+
+The affected suites passed: **65 tests**. ESLint, Prettier, and `git diff --check` passed. The full Jest run finished with **511 passed and 10 failed suites**, all outside the edited files: `Lifecycle`, `WysiwygComposer`, `AutoDiscoveryUtils`, `DateUtils`, `ServerPickerDialog`, `StopGapWidget`, `ThreadView`, `registerClient`, `TokenRefresher`, and `SpellCheckLanguagesDropdown`. The TypeScript check also failed on errors outside the edited files, chiefly SDK/OIDC API mismatches.
+
+The exact verification results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated `getObject` and `getObjects` across MongoDB, Postgres, and Redis to accept optional field lists. An empty list returns the full object; selected fields include `null` for absent fields, and `getObjects` preserves input order with `null` for missing keys. Added regression cases for the wrapper and helper methods.
+
+The Redis hash suite passes (57 tests), and ESLint and diff checks pass. MongoDB and Postgres integration tests could not run because their servers are unavailable locally.

@@ -1,0 +1,3 @@
+Updated the Solr work builder to prefer a public IA edition for `lending_edition_s` and keep `lending_identifier_s` paired with that edition. It also classifies lending-library scans as borrowable and aggregates print-disabled edition IDs consistently. Regression tests cover edition order, IA IDs, collections, and multiple print-disabled editions.
+
+Verification: all 57 tests in `test_update_work.py` passed; `git diff --check` passed.

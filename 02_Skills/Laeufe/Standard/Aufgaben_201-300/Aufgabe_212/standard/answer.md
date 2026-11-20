@@ -1,0 +1,3 @@
+Updated WPScan ingestion to use the first CVE reference as the canonical record ID and map Enterprise descriptions, proof of concept, introduced version, and CVSS fields. It preserves ordered links, UTC timestamps, classification, and fix version; absent optional fields leave an empty metadata map. Added regression tests for enriched, null, and absent fields.
+
+`go test ./detector -count=1` and `git diff --check` passed.

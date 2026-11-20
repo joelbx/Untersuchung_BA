@@ -1,0 +1,3 @@
+Implemented route-target management in [nxos_vrf_af.py](/app/lib/ansible/modules/network/nxos/nxos_vrf_af.py:50), including `import`, `export`, and default `both` directions, per-entry `present`/`absent` state, and idempotent matching within the selected VRF and address family. AF removal ignores route-target requests.
+
+The existing module unittest suite passes: **3 tests**. `git diff --check` passes. `ansible-test` could not run this suite because the environment has Python 3.11 and this checkout recognizes Python 2.6–3.8; running the unittest module directly succeeded.

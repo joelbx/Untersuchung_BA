@@ -1,0 +1,3 @@
+Implemented user scoped property storage with a new `user_props` migration and SQL repository exposed through `DataStore.UserProps`. Last.fm session keys now use the `sessionKeyProperty` constant and the contextual user; relevant errors include request ID context where available.
+
+Added per user isolation coverage and updated the datastore mock. `go test ./persistence ./core/agents/lastfm` passes. `git diff --check` is clean. The SQLite C dependency emits a compiler warning during the test build.

@@ -1,0 +1,3 @@
+Implemented the token lifecycle utilities in [src/api/utils.js](/app/src/api/utils.js). They now create, list, retrieve, update, delete, and log tokens using the required database keys and sorted indexes. Bearer authentication recognizes newly generated tokens while continuing to accept existing settings-backed tokens.
+
+Verification passed: 4 existing authentication tests, 2 new [integration tests](/app/test/api-token-utils.js), ESLint, and `git diff --check`.

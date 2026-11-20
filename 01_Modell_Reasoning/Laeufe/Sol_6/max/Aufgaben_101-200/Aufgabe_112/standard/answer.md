@@ -1,0 +1,3 @@
+Fortinet advisories now participate in FortiOS CPE detection and CVE enrichment. Results include advisory IDs and URLs, CVSS v3, CWE IDs, references, and dates. Confidence selection and report ordering include Fortinet, and the build uses a Fortinet capable `go-cve-dictionary` version. The existing enrichment function remains available as a wrapper.
+
+The full Go test suite passed offline, along with a fresh detector and models test run. The new integration test uses a local HTTP fixture; it does not exercise a live Fortinet feed.

@@ -1,0 +1,3 @@
+Refactored `Pill` into a functional component with named exports and added the reusable `usePermalink` hook. Updated named imports in `ReplyChain.tsx`, `BridgeTile.tsx`, and `pillify.tsx`.
+
+The pillification tests, ESLint, and Prettier pass. Type checking is blocked by existing Matrix SDK type errors in unrelated files. In `TextualBody-test.tsx`, 13 tests pass; 2 snapshots differ because they expect user pills without an `href`, while the new requirement requires the original URL as the link’s `href`.

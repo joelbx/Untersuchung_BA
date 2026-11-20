@@ -1,0 +1,3 @@
+Updated the [pip module](/app/lib/ansible/modules/pip.py) to use the current interpreter’s `python -m pip` when pip is importable and no executable or virtualenv is specified. Launchers now use argv lists; package listing tries `list --format=freeze` before `freeze`, and the virtualenv path prefix uses `os.path.join`.
+
+Added focused coverage in [test_pip.py](/app/test/units/modules/test_pip.py). Verification: **10 tests passed**; `git diff --check` passed.

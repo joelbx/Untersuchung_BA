@@ -1,0 +1,3 @@
+Updated [UserInfo.tsx](/app/src/components/views/right_panel/UserInfo.tsx) so Kick, Ban, and Mute share a lock for the selected member. The lock starts before confirmation, immediately sets `disabled` and `aria-disabled="true"` on all three controls, and releases after cancellation, success, or failure. A failed action shows one error dialog. Added coverage in [UserInfo-test.tsx](/app/test/components/views/right_panel/UserInfo-test.tsx).
+
+All 70 UserInfo tests pass; ESLint and formatting checks pass. The repository type check still fails on existing errors outside the edited files and reports no UserInfo errors.

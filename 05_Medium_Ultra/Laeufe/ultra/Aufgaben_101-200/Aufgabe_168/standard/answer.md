@@ -1,0 +1,3 @@
+Fixed the admin action buttons in [UserInfo.tsx](/app/src/components/views/right_panel/UserInfo.tsx:612). Kick, Ban, and Mute now share an immediate lock for the target room member. All three buttons set `disabled` and `aria-disabled="true"` before confirmation opens, then re-enable on cancel, success, or failure. Failures show one action-specific error dialog.
+
+A delegated agent added [regression tests](/app/test/components/views/right_panel/UserInfo-test.tsx:1253) for rapid clicks, keyboard activation, cancellation, operation completion, and member switching. I verified the final patch: **76 tests and 6 snapshots passed**; ESLint, Prettier, and diff checks passed. The full TypeScript check still reports 36 unrelated existing errors, with none in the changed files.

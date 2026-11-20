@@ -1,0 +1,3 @@
+Implemented a Qt 6.4 specific dark mode variant that emits `ForegroundBrightnessThreshold` with the numeric value converted to a string. Earlier Qt versions retain their existing mapping. Added tests for the Qt 6.4 output and version selection.
+
+Validation: `py_compile` passed. The focused pytest module aborted during Qt application fixture initialization, both directly and under `xvfb-run`, before tests ran. The checkpoint is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

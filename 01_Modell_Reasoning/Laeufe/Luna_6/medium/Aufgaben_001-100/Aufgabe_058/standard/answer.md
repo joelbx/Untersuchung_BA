@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts) with anonymity state, DNT handling, configuration validation, enabled and initialized queries, capture gating, SHA-256 hashing, location redaction, and logout reset.
+
+The existing analytics tests report 10 passing and 3 failing. Those failures come from tests calling async `init()` without awaiting it before checking initialization or tracking. TypeScript checking reports repository-wide dependency and type errors; the changed file had no remaining diagnostics in the filtered output.

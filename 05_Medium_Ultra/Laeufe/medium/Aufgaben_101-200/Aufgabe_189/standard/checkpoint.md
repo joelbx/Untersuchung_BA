@@ -1,0 +1,2 @@
+Task: Move MIME suffix workaround to module scope in webview.py and update chooseFiles.
+Status: Moved the version-gated MIME suffix helper to module scope, updated chooseFiles to pass a deduplicated union, and updated tests for direct calls, iterables, version gates, and class-style invocation. QT_QPA_PLATFORM=offscreen pytest -q tests/unit/browser/webengine/test_webview.py: 25 passed. git diff --check: passed.

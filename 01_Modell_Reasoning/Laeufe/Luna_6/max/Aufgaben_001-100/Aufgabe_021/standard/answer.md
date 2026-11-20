@@ -1,0 +1,3 @@
+Implemented typed seed handling and normalization in [model.py](/app/openlibrary/core/lists/model.py:29) and [lists.py](/app/openlibrary/plugins/openlibrary/lists.py:35). `add_seed()` and `remove_seed()` now compare normalized keys; exports always include authors, works, and editions, filtered by record type. Added annotations for List and Seed methods, URL helpers, and `get_user()`.
+
+`compileall`, `git diff --check`, and the focused existing tests passed: **20 passed**. The separate `test_listapi.py` module could not be collected because `cookielib` is unavailable in this environment.

@@ -1,0 +1,3 @@
+Implemented `-wp-ignore-inactive` for `report` and `tui`, added the `wpIgnoreInactive` config option, and updated `FillWordPress` to skip inactive packages and remove them from results. Existing per-server `wordpress.ignoreInactive` also activates the filtering.
+
+`go test ./config ./commands ./wordpress` and `git diff --check` passed. The build emitted a warning from the existing `go-sqlite3` C source.

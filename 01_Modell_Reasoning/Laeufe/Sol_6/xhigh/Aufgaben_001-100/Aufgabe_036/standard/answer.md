@@ -1,0 +1,3 @@
+Updated [config/config.go](/app/config/config.go) so `Load` reads the three DB pool options and `meta.check_for_updates`. When the update-check key is absent, it now remains `false` from `Default()`, and both default fixtures still load field-for-field equal to `Default()`.
+
+Added fixture coverage for explicit pool values and both update-check values. The config tests, startup package test, and `git diff --check` passed.

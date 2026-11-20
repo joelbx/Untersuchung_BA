@@ -1,0 +1,1 @@
+Completed: min/max use Jinja2 do_min/do_max with environment and keyword forwarding when available; otherwise built-in fallback and specified keyword error. Updated unit tests for attribute, case_sensitive, and fallback. Verified: PYTHONPATH=/app/lib python -m pytest -q test/units/plugins/filter/test_mathstuff.py (55 passed).

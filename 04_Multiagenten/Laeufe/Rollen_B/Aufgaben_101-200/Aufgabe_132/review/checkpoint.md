@@ -1,0 +1,4 @@
+VERDICT: FIX
+Review complete. Code defect: src/controllers/write/topics.js:100 validates existingTags.concat(req.body.tags), so an ordinary tag addition by an unprivileged topic owner fails whenever an existing system tag was assigned by a privileged user. src/posts/edit.js:134 likewise rejects edits that keep an existing system tag in the submitted list. Check reserved-tag privilege only for newly assigned tags; keep whole-list count validation.
+Tests: `./node_modules/.bin/mocha test/topics.js --grep 'should reserve configured system tags for privileged users'` initially failed before assertions (Redis ECONNREFUSED 127.0.0.1:6379). With a temporary local redis-server, the same command passed (1 passing), and `./node_modules/.bin/mocha test/topics.js` passed (165 passing). Redis was stopped. TEST_ENVIRONMENT_PROBLEM: initial missing Redis service, resolved for test execution.
+No project code or tests were changed during review.

@@ -1,0 +1,3 @@
+Added `api.utils.tokens` with generation, listing, retrieval, description updates, deletion, and usage tracking. New tokens use the requested object and sorted-set indexes. Bearer authentication reads the new store and still accepts existing settings-backed tokens; usage and admin last-seen callers use the new interface.
+
+A local lifecycle smoke test, ESLint, syntax checks, and `git diff --check` passed. Database-backed Mocha tests were not run because their bootstrap prints local configuration that may contain credentials.

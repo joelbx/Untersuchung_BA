@@ -1,0 +1,3 @@
+Updated [custom_headers](/app/qutebrowser/browser/shared.py) so XHR requests omit the global Accept-Language fallback while still using a URL-specific override. The [WebEngine interceptor](/app/qutebrowser/browser/webengine/interceptor.py) now selects that behavior only for XHR requests. Added tests for both paths.
+
+Verification: 41 relevant tests passed (1 rerun); `git diff --check` and Python compilation passed.

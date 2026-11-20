@@ -1,0 +1,3 @@
+Implemented native database backups in [db/backup.go](/app/db/backup.go) and the `backup create`, `backup prune`, and `backup restore` commands in [cmd/backup.go](/app/cmd/backup.go). Configuration now exposes `conf.Server.Backup` for `backup.path`, `backup.schedule`, and `backup.count`; scheduled backups prune old files, while manual creation leaves retention untouched. Pruning with a count of zero and restoring both require confirmation unless `--force` is used.
+
+Verified with `go test ./db ./conf ./cmd -count=1`, including a SQLite WAL backup and restore test. CLI help and `git diff --check` also passed.

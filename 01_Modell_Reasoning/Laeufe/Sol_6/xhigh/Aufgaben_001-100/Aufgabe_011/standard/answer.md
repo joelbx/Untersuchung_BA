@@ -1,0 +1,3 @@
+Implemented the repository fixes: a shared `_UNSET` sentinel, clearer module parameter and traceback handling, compatible legacy YAML constructors, `None` safe templar overrides, improved lookup and deprecation messages, Boolean `timedout` results, and early CLI errors with help text.
+
+Verification: **380 passed, 1 skipped** in the focused suite; **329 passed** in neighboring suites. `git diff --check` passed. The broader module suite still encounters existing test isolation conflicts in its deprecation tests and after `test_imports.py` reloads `basic`.

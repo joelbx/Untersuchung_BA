@@ -1,0 +1,3 @@
+Fixed the two review findings. New works now match edition authors to MARC authors before assigning roles, so reordered authors keep the correct roles. Existing works now receive parsed roles when authors are added. I also fixed the preserved edition author path and added regression tests.
+
+The reviewer’s exact test commands pass: **165 tests** in MARC parsing and add_book, and **34 tests** in test_load_book. No remaining failures or test environment problems.

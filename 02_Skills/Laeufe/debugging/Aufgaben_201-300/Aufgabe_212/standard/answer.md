@@ -1,0 +1,3 @@
+Updated [WPScan ingestion](/app/detector/wordpress.go) to use the first CVE reference as the canonical ID, normalize timestamps to UTC, and retain Enterprise summary, proof of concept, introduced version, and CVSS fields. Basic payloads keep an empty optional metadata map without inventing values.
+
+Added regression coverage for enriched, null, and omitted fields in [wordpress_test.go](/app/detector/wordpress_test.go). `GOPROXY=off go test ./detector -count=1` and `git diff --check` passed.

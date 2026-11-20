@@ -1,0 +1,3 @@
+Resolved the email validation issue. Confirmations now use a UID-to-code key and a confirmation object with an explicit expiry. Admins can see **Validated**, **Validation Pending**, **Validation Expired**, or **(no email)**, and validation actions can use a pending email when the profile has none. Resends replace stale confirmations when forced; user deletion removes both confirmation keys.
+
+I delegated the backend, ACP, and deletion changes to three agents, then integrated and reviewed the patch. Focused Mocha runs passed **33 tests** across confirmation, ACP, socket, deletion, reset, and profile flows. ESLint, template precompilation, and `git diff --check` also passed.

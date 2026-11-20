@@ -1,0 +1,5 @@
+The likely scan bug is in [FillWordPress](/app/wordpress/wordpress.go:81): it uses the global `WpIgnoreInactive` flag, while the requested setting lives in `Conf.Servers[r.ServerName].WordPress.IgnoreInactive`. The existing [removeInactives](/app/wordpress/wordpress.go:293) already excludes packages whose `Status` is `"inactive"` and keeps `"active"` packages.
+
+[searchCache](/app/wordpress/wordpress.go:303) takes `*map[string]string` and dereferences it for lookup. Moving to direct map access also requires updating its callers in `FillWordPress`, [WordPressOption](/app/report/report.go:510), and the existing test. **Uncertainty:** a `map[string]string` cannot contain a nil value, so the nil-entry requirement needs a pointer-valued cache or clarification of the intended cache type.
+
+`go test ./wordpress ./models` passes. Those tests do not cover per-server scan filtering or nil cache entries. I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). No project source or tests were changed because this run was restricted to fault localization.

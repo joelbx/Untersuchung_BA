@@ -1,0 +1,3 @@
+Added `lockPosting` in [topics.js](/app/src/controllers/write/topics.js) and applied it to topic creation and replies. Overlapping requests from the same user or guest session now receive HTTP 400 with `status.code: "bad-request"`; the accepted request retains `status.code: "ok"`. The lock is released after success or failure.
+
+Added a concurrent API test in [test/topics.js](/app/test/topics.js) that checks only one request succeeds and the global and category topic counters each increase by one. ESLint and all three focused tests passed.

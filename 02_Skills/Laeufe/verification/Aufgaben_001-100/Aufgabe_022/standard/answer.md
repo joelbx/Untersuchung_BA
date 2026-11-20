@@ -1,0 +1,3 @@
+Updated [redhatbase.go](/app/scanner/redhatbase.go) so an unparseable `SOURCERPM` adds a warning while the binary package remains available and the scan continues. Source RPM filenames with a numeric epoch now produce the correct source name and `epoch:version-release`.
+
+Added line-level and scan-continuation coverage in [redhatbase_test.go](/app/scanner/redhatbase_test.go). The full scanner test suite passed: `GOPROXY=off GOSUMDB=off go test ./scanner -count=1`.

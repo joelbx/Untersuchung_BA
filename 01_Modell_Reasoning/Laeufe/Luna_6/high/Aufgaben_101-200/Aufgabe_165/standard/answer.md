@@ -1,0 +1,3 @@
+Implemented `.well-known` force-disable support. The shared policy helper now checks server and `.well-known` settings, prefers server force-enable on conflict, and warns when policies conflict. The dialog stays non-interactive while policy loads, applies enforced values over defaults, and submits the encryption state it displays. `privateShouldBeEncrypted` also honors force-disable.
+
+Verification: 3 focused Jest suites passed (23 tests); ESLint, Prettier, and `git diff --check` passed. `yarn lint:types` remains blocked by an unrelated existing error in [Unread.ts](/app/src/Unread.ts:167). Checkpoint: [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

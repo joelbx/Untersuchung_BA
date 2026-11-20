@@ -1,0 +1,8 @@
+I located the faults, but **did not edit project source or tests**: this inspection pass is restricted to diagnosis.
+
+- [url.ts](/app/applications/mail/src/app/helpers/assistant/url.ts:5) stores placeholders globally without `messageID`; `restoreURLs` restores any known placeholder and leaves unknown ones in place. It needs message scoped storage, removal of unmatched images, and replacement of unmatched links with their visible text.
+- [html.ts](/app/applications/mail/src/app/helpers/assistant/html.ts:31) strips `style` from links and images and `class` from links. The Markdown conversion also needs to retain those attributes through the round trip.
+- [markdown.ts](/app/applications/mail/src/app/helpers/assistant/markdown.ts:19) removes ordered list markers and nested list indentation. It has no `fixNestedLists` export. [textToHtml.ts](/app/applications/mail/src/app/helpers/textToHtml.ts:16) disables the `list` rule.
+- The `messageID` available in [useComposerContent.tsx](/app/applications/mail/src/app/hooks/composer/useComposerContent.tsx:123) needs to reach preparation, preview, restoration, and editor insertion. The current caller chain omits it.
+
+Existing [url.test.ts](/app/applications/mail/src/app/helpers/assistant/url.test.ts:47) covers restoration within one document only. Attribute retention through Turndown and sanitization remains unverified. I recorded the findings in `.codex-role-output/checkpoint.md`.

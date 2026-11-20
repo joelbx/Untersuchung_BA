@@ -1,0 +1,3 @@
+Resolved the collection manifest issue. An omitted `manifest` now uses `Sentinel`, while explicit `manifest: {}` and `manifest: null` select the default manifest directives. Separately configured `build_ignore` patterns still apply when the manifest is absent. File selection excludes symlinks that resolve outside the collection and retains internal links once. The [documentation](/app/docs/docsite/rst/dev_guide/developing_collections_distributing.rst:253) now shows the minimal configurations.
+
+All 128 relevant unit tests passed, and `git diff --check` passed. The optional `distlib` package is unavailable locally, so its path was tested with a mocked manifest rather than an integration run.

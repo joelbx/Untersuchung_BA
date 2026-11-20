@@ -1,0 +1,3 @@
+Added a **Polls history** button to `RoomSummaryCard`. It appears only when the new `feature_poll_history` Messaging lab setting is enabled and opens the named [PollHistoryDialog](/app/src/components/views/dialogs/polls/PollHistoryDialog.tsx) with the current room’s `roomId`.
+
+The relevant Jest suites passed (7 tests), along with ESLint, Prettier, and Stylelint. Full TypeScript checking remains blocked by an error in untouched [RoomCreate.tsx](/app/src/components/views/messages/RoomCreate.tsx:50): `RoomState` lacks `findPredecessor`.

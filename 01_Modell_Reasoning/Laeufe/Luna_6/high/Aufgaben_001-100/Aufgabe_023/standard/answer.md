@@ -1,0 +1,3 @@
+Implemented database dependency tracking for authentication methods. JWT uses the in-memory auth store without initializing a database; static token, OIDC, GitHub, and Kubernetes still use database storage. Cleanup only runs for enabled methods that require a database.
+
+Added config coverage and adjusted cleanup coverage for JWT. `go test ./internal/config ./internal/cmd ./internal/cleanup` passed.

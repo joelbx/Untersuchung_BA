@@ -1,0 +1,3 @@
+Fixed the undefined-variable YAML error. `AnsibleDumper` now lets `AnsibleUndefined` raise Jinja’s undefined error, and `to_yaml` and `to_nice_yaml` report the failing filter through `AnsibleFilterError` while preserving the original cause.
+
+The focused YAML, filter, and templating run passed **127 tests**. The full pytest run encountered unrelated collection errors and failures and was interrupted; its overall status remains unverified. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

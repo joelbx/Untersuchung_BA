@@ -1,0 +1,3 @@
+Added event polling for newly saved card and PayPal methods. [usePollEvents.ts](/app/packages/components/payments/client-extensions/usePollEvents.ts:5) exposes `interval = 5000` and `maxPollingSteps = 5`, stops early on a matching property and action, and cleans up its subscription.
+
+Verification passed: 7 new polling tests, 14 existing payment method tests, component type checking, ESLint, and Prettier.

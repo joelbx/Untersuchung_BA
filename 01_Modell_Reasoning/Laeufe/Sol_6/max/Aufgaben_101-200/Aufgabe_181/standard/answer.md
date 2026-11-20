@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) so finish messages use the correct PID, SIGTERM sets the `terminated` state and stays silent unless verbose, and crashes show a signal name when one is known. Updated the unit tests and spawn/hint feature expectations.
+
+**Validation:** 72 relevant unit tests passed. The focused spawn scenario matched the new message, but its teardown failed on an offscreen Qt warning.

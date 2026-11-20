@@ -1,0 +1,3 @@
+Fixed the Qt 6.4 mapping in [darkmode.py](/app/qutebrowser/browser/webengine/darkmode.py): a numeric `colors.webpage.darkmode.threshold.text` value of `100` now emits `("ForegroundBrightnessThreshold", "100")`. Qt 6.3 retains its existing key. Added a regression test in [test_darkmode.py](/app/tests/unit/browser/webengine/test_darkmode.py).
+
+Two subagents reviewed the mapping and test coverage; I integrated the change. The dark mode test file passed all 40 tests, and `git diff --check` passed.

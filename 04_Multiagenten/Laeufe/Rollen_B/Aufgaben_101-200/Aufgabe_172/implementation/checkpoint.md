@@ -1,0 +1,1 @@
+Implemented legacy listenPorts []string decoding and new PortStat/ListenPortStats scan path; updated report rendering, scan producers, and tests. Verified with GOPROXY=off GOSUMDB=off go test -p 1 ./models ./scan ./report and git diff --check (both pass).

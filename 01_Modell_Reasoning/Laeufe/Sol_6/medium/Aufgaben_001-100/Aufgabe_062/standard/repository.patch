@@ -1,0 +1,240 @@
+diff --git a/lib/utils/prompt/context_reader.go b/lib/utils/prompt/context_reader.go
+index 01d4371..78e0eb1 100644
+--- a/lib/utils/prompt/context_reader.go
++++ b/lib/utils/prompt/context_reader.go
+@@ -207,14 +207,10 @@ func (cr *ContextReader) fireCleanRead() error {
+ 		cr.cond.Broadcast()
+ 	case readerStateClean: // OK, ongoing read.
+ 	case readerStatePassword: // OK, ongoing read.
+-		// Attempt to reset terminal state to non-password.
+-		if cr.previousTermState != nil {
+-			state := cr.previousTermState
+-			cr.previousTermState = nil
+-			if err := cr.term.Restore(cr.fd, state); err != nil {
+-				return trace.Wrap(err)
+-			}
++		if err := cr.maybeRestoreTerm(); err != nil {
++			return trace.Wrap(err)
+ 		}
++		cr.state = readerStateClean
+ 	case readerStateClosed:
+ 		return ErrReaderClosed
+ 	}
+@@ -243,7 +239,31 @@ func (cr *ContextReader) ReadPassword(ctx context.Context) ([]byte, error) {
+ 		return nil, trace.Wrap(err)
+ 	}
+ 
+-	return cr.waitForRead(ctx)
++	value, err := cr.waitForRead(ctx)
++	if ctx.Err() != nil && err != nil {
++		cr.mu.Lock()
++		restoreErr := cr.maybeRestoreTerm()
++		if restoreErr == nil && cr.state == readerStatePassword {
++			cr.state = readerStateClean
++		}
++		cr.mu.Unlock()
++		if restoreErr != nil {
++			return nil, trace.Wrap(restoreErr)
++		}
++	}
++	return value, err
++}
++
++// maybeRestoreTerm must be called with cr.mu held.
++func (cr *ContextReader) maybeRestoreTerm() error {
++	if cr.state != readerStatePassword || cr.previousTermState == nil {
++		return nil
++	}
++	if err := cr.term.Restore(cr.fd, cr.previousTermState); err != nil {
++		return err
++	}
++	cr.previousTermState = nil
++	return nil
+ }
+ 
+ func (cr *ContextReader) firePasswordRead() error {
+@@ -277,6 +297,7 @@ func (cr *ContextReader) firePasswordRead() error {
+ // doesn't guarantee a release of all resources.
+ func (cr *ContextReader) Close() error {
+ 	cr.mu.Lock()
++	err := cr.maybeRestoreTerm()
+ 	switch cr.state {
+ 	case readerStateClosed: // OK, already closed.
+ 	default:
+@@ -285,7 +306,7 @@ func (cr *ContextReader) Close() error {
+ 		cr.cond.Broadcast()
+ 	}
+ 	cr.mu.Unlock()
+-	return nil
++	return trace.Wrap(err)
+ }
+ 
+ // PasswordReader is a ContextReader that reads passwords from the underlying
+diff --git a/lib/utils/prompt/context_reader_test.go b/lib/utils/prompt/context_reader_test.go
+index 83b26b1..bdbeeae 100644
+--- a/lib/utils/prompt/context_reader_test.go
++++ b/lib/utils/prompt/context_reader_test.go
+@@ -18,6 +18,7 @@ package prompt
+ 
+ import (
+ 	"context"
++	"errors"
+ 	"io"
+ 	"os"
+ 	"testing"
+@@ -163,6 +164,7 @@ func TestContextReader_ReadPassword(t *testing.T) {
+ 		got, err := cr.ReadPassword(cancelCtx)
+ 		require.ErrorIs(t, err, context.Canceled, "ReadPassword returned unexpected error")
+ 		require.Empty(t, got, "ReadPassword mismatch")
++		require.True(t, term.restoreCalled, "terminal was not restored on cancellation")
+ 
+ 		// Reclaim as clean read.
+ 		const want = "abandoned pwd read"
+@@ -186,9 +188,72 @@ func TestContextReader_ReadPassword(t *testing.T) {
+ 	})
+ }
+ 
++func TestContextReaderPasswordDeadline(t *testing.T) {
++	pr, pw := io.Pipe()
++	defer pr.Close()
++	defer pw.Close()
++	cr := NewContextReader(pr)
++	cr.term = &fakeTerm{reader: pr}
++	cr.fd = 0
++	defer cr.Close()
++
++	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
++	defer cancel()
++	value, err := cr.ReadPassword(ctx)
++	require.ErrorIs(t, err, context.DeadlineExceeded)
++	require.Empty(t, value)
++
++	cr.mu.Lock()
++	state := cr.state
++	previousTermState := cr.previousTermState
++	restored := cr.term.(*fakeTerm).restoreCalled
++	cr.mu.Unlock()
++	require.Equal(t, readerStateClean, state)
++	require.Nil(t, previousTermState)
++	require.True(t, restored)
++
++	go func() { _, _ = pw.Write([]byte("next")) }()
++	value, err = cr.ReadContext(context.Background())
++	require.NoError(t, err)
++	require.Equal(t, "next", string(value))
++}
++
++func TestContextReaderCloseRestoresPassword(t *testing.T) {
++	pr, pw := io.Pipe()
++	defer pr.Close()
++	defer pw.Close()
++	cr := NewContextReader(pr)
++	cr.fd = 0
++	cr.term = &fakeTerm{reader: pr}
++	cr.mu.Lock()
++	cr.state = readerStatePassword
++	cr.previousTermState = &term.State{}
++	cr.mu.Unlock()
++
++	require.NoError(t, cr.Close())
++	require.True(t, cr.term.(*fakeTerm).restoreCalled)
++	require.Equal(t, readerStateClosed, cr.state)
++	require.NoError(t, cr.Close())
++}
++
++func TestContextReaderCloseReturnsRestoreError(t *testing.T) {
++	cr := NewContextReader(&io.LimitedReader{R: os.Stdin, N: 0})
++	cr.fd = 0
++	want := errors.New("restore failed")
++	cr.term = &fakeTerm{restoreErr: want}
++	cr.mu.Lock()
++	cr.state = readerStatePassword
++	cr.previousTermState = &term.State{}
++	cr.mu.Unlock()
++
++	require.ErrorIs(t, cr.Close(), want)
++	require.Equal(t, readerStateClosed, cr.state)
++}
++
+ type fakeTerm struct {
+ 	reader        io.Reader
+ 	restoreCalled bool
++	restoreErr    error
+ }
+ 
+ func (t *fakeTerm) GetState(fd int) (*term.State, error) {
+@@ -209,5 +274,5 @@ func (t *fakeTerm) ReadPassword(fd int) ([]byte, error) {
+ 
+ func (t *fakeTerm) Restore(fd int, oldState *term.State) error {
+ 	t.restoreCalled = true
+-	return nil
++	return t.restoreErr
+ }
+diff --git a/lib/utils/prompt/stdin.go b/lib/utils/prompt/stdin.go
+index 39d9646..86d38fd 100644
+--- a/lib/utils/prompt/stdin.go
++++ b/lib/utils/prompt/stdin.go
+@@ -52,3 +52,13 @@ func SetStdin(rd StdinReader) {
+ 	defer stdinMU.Unlock()
+ 	stdin = rd
+ }
++
++// NotifyExit closes the global stdin reader so an active password prompt can
++// restore the terminal before the program exits.
++func NotifyExit() {
++	stdinMU.Lock()
++	defer stdinMU.Unlock()
++	if closer, ok := stdin.(interface{ Close() error }); ok {
++		_ = closer.Close()
++	}
++}
+diff --git a/lib/utils/prompt/stdin_test.go b/lib/utils/prompt/stdin_test.go
+new file mode 100644
+index 0000000..8115b3c
+--- /dev/null
++++ b/lib/utils/prompt/stdin_test.go
+@@ -0,0 +1,29 @@
++package prompt
++
++import (
++	"strings"
++	"testing"
++
++	"github.com/stretchr/testify/require"
++	"golang.org/x/term"
++)
++
++func TestNotifyExitRestoresStdin(t *testing.T) {
++	stdinMU.Lock()
++	previous := stdin
++	stdinMU.Unlock()
++	t.Cleanup(func() { SetStdin(previous) })
++
++	cr := NewContextReader(strings.NewReader(""))
++	cr.term = &fakeTerm{}
++	cr.fd = 0
++	cr.mu.Lock()
++	cr.state = readerStatePassword
++	cr.previousTermState = &term.State{}
++	cr.mu.Unlock()
++	SetStdin(cr)
++
++	NotifyExit()
++	require.True(t, cr.term.(*fakeTerm).restoreCalled)
++	require.Equal(t, readerStateClosed, cr.state)
++}
+diff --git a/tool/tsh/tsh.go b/tool/tsh/tsh.go
+index 4a6c4fa..f643c68 100644
+--- a/tool/tsh/tsh.go
++++ b/tool/tsh/tsh.go
+@@ -392,7 +392,9 @@ func main() {
+ 	default:
+ 		cmdLine = cmdLineOrig
+ 	}
+-	if err := Run(ctx, cmdLine); err != nil {
++	err := Run(ctx, cmdLine)
++	prompt.NotifyExit()
++	if err != nil {
+ 		var exitError *exitCodeError
+ 		if errors.As(err, &exitError) {
+ 			os.Exit(exitError.code)

@@ -1,0 +1,3 @@
+Author import now checks Open Library keys, including redirects, then external identifiers, then name and dates. It merges nonconflicting IDs into matched authors, raises `AuthorRemoteIdConflictError` for conflicting IDs, and preserves IDs on new author candidates. Multiple identifier matches use a deterministic tie break. The requested `SUSPECT_DATE_EXEMPT_SOURCES` constant is also defined.
+
+Verification: 183 relevant tests passed; `ruff check` and `git diff --check` passed.

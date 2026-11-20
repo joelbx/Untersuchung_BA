@@ -1,0 +1,5 @@
+The likely fault is in [simple_cache.go](/app/utils/cache/simple_cache.go:10). The wrapper has no eviction sweep or `evictionDeadline`, `Keys` delegates directly to the underlying cache, and `Values` is absent. `Add`, `AddWithTTL`, `Get`, and `GetWithLoader` do not trigger eviction; the loader callback also inserts through `t.Set`, bypassing the wrapper’s add path.
+
+[play_tracker.go](/app/core/scrobbler/play_tracker.go:109) depends on `Keys` to enumerate current players. The existing [cache tests](/app/utils/cache/simple_cache_test.go:1) pass, but they check expiry through `Get`, not expired `Keys` or `Values`. Underlying `ttlcache` enumeration behavior remains an uncertainty because this inspection was limited to repository code.
+
+A fix should sweep expired entries during the listed operations, include loader insertion, and make `Keys` and `Values` expose only active entries after short TTLs such as 10 ms. It should preserve capacity eviction and loader supplied TTLs and values. **No project source or tests were changed** under the fault localization assignment. The progress note is in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

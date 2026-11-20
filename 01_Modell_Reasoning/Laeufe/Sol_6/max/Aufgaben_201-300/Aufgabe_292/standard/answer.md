@@ -1,0 +1,3 @@
+Implemented polling lifecycle management for Git, local, Azure Blob, S3, and OCI stores. The [poller](/app/internal/storage/fs/poll.go) now owns its context and update callback; `Close()` cancels polling and waits for it to finish. Each store exposes `Close()`, including a safe no-op when no poller is active. The [store wrapper](/app/internal/storage/fs/store.go) and [gRPC shutdown](/app/internal/cmd/grpc.go) forward that call.
+
+Offline storage and gRPC tests passed. Focused poller and local store race tests passed.

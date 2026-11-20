@@ -1,0 +1,2 @@
+Task: Fix config loading of DB pool options and update-check flag.
+Status: Complete. Added DB pool fields and conditional loader mappings; mapped the update-check key and made its absent-key default false. Extended config fixtures and assertions for pool values, explicit true/false, and default equality. `GOPROXY=off GOSUMDB=off go test ./config` and `GOPROXY=off GOSUMDB=off go test ./...` passed; `git diff --check` passed.

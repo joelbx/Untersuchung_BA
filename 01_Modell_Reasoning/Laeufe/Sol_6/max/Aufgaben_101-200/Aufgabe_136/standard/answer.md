@@ -1,0 +1,3 @@
+Updated the certificate error handling in `/app`. The WebKit wrapper now accepts `reply` and `errors`, leaves the reply untouched during construction, and calls `ignoreSslErrors()` only when the certificate is accepted. Its `html()` output uses an escaped paragraph for one error and an escaped unordered list for multiple errors. I also added the shared decision API, Qt5/Qt6 WebEngine wrappers and factory, and wired those decisions into the browser call sites.
+
+The focused suite passed **27 tests**, and `git diff --check` passed. The existing WebEngine tab suite reported **25 passing tests**, but its process exited during X11 teardown. Qt6 is unavailable locally, so its wrapper was tested with a fake Qt error object.

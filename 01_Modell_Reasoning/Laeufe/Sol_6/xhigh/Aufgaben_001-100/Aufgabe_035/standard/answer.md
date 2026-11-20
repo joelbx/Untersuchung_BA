@@ -1,0 +1,3 @@
+Implemented the evaluation split. [EvaluatorStorage](/app/storage/evaluator.go) now handles ranked rule matching, typed constraints, and deterministic CRC32 variant selection. [Server.Evaluate](/app/server/evaluator.go) delegates through the new `Evaluator` interface; `RuleStore` no longer implements evaluation.
+
+Added regression coverage for rule rank, zero rollouts, cutoff boundaries, operator normalization, and request IDs. `GOPROXY=off GOSUMDB=off go test ./...` passes.

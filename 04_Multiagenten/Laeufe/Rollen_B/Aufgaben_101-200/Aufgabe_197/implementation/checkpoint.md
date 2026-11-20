@@ -1,0 +1,1 @@
+Progress: Verified the reported cause in local code. Added a Qt 6.4 dark mode variant that inherits Qt 6.3 settings but replaces threshold.text with ForegroundBrightnessThreshold. Added regression coverage for 5.15.3, 6.3, and 6.4 and variant selection. QT_QPA_PLATFORM=offscreen pytest -q tests/unit/browser/webengine/test_darkmode.py passed (41 tests); git diff --check passed.

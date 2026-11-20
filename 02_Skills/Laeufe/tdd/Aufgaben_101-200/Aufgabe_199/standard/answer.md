@@ -1,0 +1,3 @@
+Migrated `get_ia.py` to `requests`, including status handling, retries, range headers, and response content and text handling. Updated its dependent `marc_subject.py` callers and added regression tests.
+
+The focused run passed: **102 tests**. The full `pytest -q` run remains red with 10 failures and 182 errors outside the changed area, including missing dependencies and database setup. The exact failures are recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

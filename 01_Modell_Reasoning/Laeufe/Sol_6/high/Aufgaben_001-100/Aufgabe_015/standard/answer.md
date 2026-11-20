@@ -1,0 +1,3 @@
+Added `feature_qr_signin_reciprocate_show` as a Labs setting, disabled by default, with a description of the MSC3882 and MSC3886 homeserver requirements. The QR sign-in section now appears only when the flag is enabled and the server supports both protocols. Both settings tabs check the flag before presenting the option; “Show QR code” still opens the QR login view.
+
+The three relevant test suites passed (60 tests). ESLint, Prettier, and `git diff --check` passed. The full TypeScript check remains blocked by an unrelated existing error in [RoomView-test.tsx](/app/test/components/structures/RoomView-test.tsx:178): a test value is missing `eventId`.

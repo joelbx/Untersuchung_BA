@@ -1,0 +1,3 @@
+Implemented voice broadcast liveness across playback, the hook, and the UI. The badge now shows red for live, grey for paused or buffering, and no badge when not live. Playback emits `LivenessChanged` only when the value changes, and chunk handling can identify the final event.
+
+The focused tests pass, including playback transitions and badge updates. ESLint, stylelint, and `git diff --check` pass. The full TypeScript check still reports an unrelated existing error in [notifications.ts](/app/src/utils/notifications.ts:79) (`TS2554`).

@@ -1,0 +1,3 @@
+Registered an `AnsibleUndefined` representer so YAML dumping raises Jinja’s undefined-variable error. Both YAML filters now wrap other dump failures in a filter-specific `AnsibleFilterError` and retain the original exception.
+
+The relevant YAML, filter, and templating tests passed: **96 passed**. A broader run stopped on an existing test because the `mocker` fixture is unavailable; that limitation is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

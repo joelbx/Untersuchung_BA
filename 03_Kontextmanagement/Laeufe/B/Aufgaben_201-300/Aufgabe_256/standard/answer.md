@@ -1,0 +1,3 @@
+Fixed the hosts validation issue in [play.py](/app/lib/ansible/playbook/play.py). `Play.load` no longer derives or mutates `name`; `get_name` derives it when needed, and invalid supplied `hosts` values now raise specific `AnsibleParserError` messages.
+
+Added regression cases to [test_play.py](/app/test/units/playbook/test_play.py). The relevant play and playbook tests passed (**16 passed**), and `git diff --check` passed.

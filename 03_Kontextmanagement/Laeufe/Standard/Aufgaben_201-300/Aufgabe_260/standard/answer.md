@@ -1,0 +1,3 @@
+Implemented selective SSE delivery. The UI sends a per-window UUID on API requests, and server middleware passes it through a cookie and request context for EventSource connections. The broker now sends request-scoped events only to other sessions of the same user; background events still broadcast to all sessions. I also updated the event and diode APIs and the cookie expiry constant.
+
+The relevant Go tests pass, as do the UI formatting check and `git diff --check`.

@@ -1,0 +1,3 @@
+Updated [DocCLI.tty_ify](/app/lib/ansible/cli/doc.py) to render `L()`, `R()`, and `HORIZONTALLINE`, handle multiple macros on one line, and preserve ordinary text such as `IBM(International Business Machines)`. The existing `I()`, `B()`, `M()`, `U()`, and `C()` output patterns remain covered.
+
+Added focused tests in [test_doc.py](/app/test/units/cli/test_doc.py). All 30 relevant unit tests passed, and `git diff --check` passed.

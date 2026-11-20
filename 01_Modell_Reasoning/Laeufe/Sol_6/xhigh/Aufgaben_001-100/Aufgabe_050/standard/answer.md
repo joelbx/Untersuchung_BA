@@ -1,0 +1,3 @@
+Fixed the nullable field scans. Album `image_files`, album and artist metadata timestamps, and share expiration and last visit timestamps now represent SQL NULL safely. Added `gg.P` and `gg.V` and updated their callers. Repository tests cover unset and populated values.
+
+The affected package tests pass. The full `go test ./...` run fails only in unrelated TagLib tests involving fixture metadata and a file permission check.

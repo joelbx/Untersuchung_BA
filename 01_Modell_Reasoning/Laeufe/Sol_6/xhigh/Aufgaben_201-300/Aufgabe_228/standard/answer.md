@@ -1,0 +1,3 @@
+Added [utils.parse_version](/app/qutebrowser/utils/utils.py), which returns a normalized `QVersionNumber`. The Qt checks, distribution version, startup minimum check, and crash dialog update note now use Qt-native comparisons.
+
+The relevant tests finished with **420 passed, 4 skipped**. One existing Chromium initialization test was excluded because it abruptly exits in this environment. `git diff --check` passed.

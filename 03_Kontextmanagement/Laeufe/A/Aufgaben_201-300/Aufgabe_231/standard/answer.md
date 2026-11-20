@@ -1,0 +1,3 @@
+Updated [db.go](/app/detector/vuls2/db.go) to validate database metadata and schema version, include the database path in connection and metadata errors, and force a download when the schema mismatches. With `SkipUpdate` enabled, a mismatch now returns an explicit error. Added mismatch cases to [db_test.go](/app/detector/vuls2/db_test.go).
+
+`GOPROXY=off GOSUMDB=off go test ./detector/vuls2` passed.

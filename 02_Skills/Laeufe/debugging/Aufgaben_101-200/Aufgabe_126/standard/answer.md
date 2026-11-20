@@ -1,0 +1,3 @@
+Resolved the assistant formatting and URL scoping issue. Composer, preview, and editor insertion now pass the same `messageID`; URL restoration accepts only placeholders stored for that message and removes unknown links and images while keeping link text. The conversion path preserves `<a>` and `<img>` class and style, repairs nested lists, renders Markdown lists, and keeps code indentation.
+
+The relevant Jest suites passed: **13 tests**. The full type check remains blocked by an existing OpenPGP type conflict in `packages/crypto/lib/worker/api.ts`; it reported no errors in the edited mail files. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

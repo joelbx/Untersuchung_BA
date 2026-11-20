@@ -1,0 +1,5 @@
+The fault is in two places: [configdata.yml](/app/qutebrowser/config/configdata.yml:3337) defines `threshold.text` but has no `threshold.foreground` option, and [darkmode.py](/app/qutebrowser/browser/webengine/darkmode.py:270) emits `TextBrightnessThreshold` for every WebEngine version ≥ 6.3, including 6.4.
+
+The fix should define `threshold.foreground` as an Int with default `256`, map the old name for compatibility, and select `ForegroundBrightnessThreshold` starting at WebEngine 6.4 while retaining `TextBrightnessThreshold` below 6.4. Existing rename migration covers autoconfig.yml; direct config.py settings currently receive a rename error, so compatibility there needs explicit attention.
+
+I was assigned fault localization only, so I did not edit project source or tests. The existing dark mode test run aborted in the Qt fixture before assertions; behavior remains unverified.

@@ -1,0 +1,3 @@
+Implemented token audit support. The [audit checker](/app/internal/server/audit/checker.go) now recognizes `token:created` and `token:deleted`, including matching wildcards. [gRPC initialization](/app/internal/cmd/grpc.go) uses the configured checker to enable deletion logging in the [authentication server](/app/internal/server/auth/server.go). Deletion events are emitted only after a successful delete.
+
+Added focused tests and updated the audit event documentation. The audit, authentication, middleware, and command package tests passed; `git diff --check` passed.

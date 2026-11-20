@@ -1,0 +1,5 @@
+I located the cause, but did not edit project source or tests because my assigned role in this repository is fault localization only.
+
+[darkmode.py](/app/qutebrowser/browser/webengine/darkmode.py:318) selects the Qt 6.3 variant for Qt 6.4. That variant inherits `threshold.text` → `TextBrightnessThreshold` from the 5.15.3 definition at line 270. The fix should give Qt 6.4 a version-specific mapping to `ForegroundBrightnessThreshold`; the existing value conversion already produces `"100"` from `100`.
+
+The [existing tests](/app/tests/unit/browser/webengine/test_darkmode.py:138) check this threshold only on Qt 5.15.2. They need a Qt 6.4 case that checks `("ForegroundBrightnessThreshold", "100")` under `dark-mode-settings`, while retaining coverage for older mappings. All 36 existing dark mode tests passed with `QT_QPA_PLATFORM=offscreen`. The repository alone does not establish whether the rename also applies beyond Qt 6.4.

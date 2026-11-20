@@ -1,0 +1,3 @@
+Updated [Vuls2 database handling](/app/detector/vuls2/db.go:31) to report connection and metadata errors with the database path, validate the schema before returning a connection, and force a download when the existing schema differs. With `SkipUpdate` enabled, a mismatch now returns an explicit error.
+
+Added [tests](/app/detector/vuls2/db_test.go:91) for mismatches, missing metadata, and reopening a validated connection. `go test ./detector/vuls2` passed.

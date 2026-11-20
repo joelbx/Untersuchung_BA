@@ -1,0 +1,3 @@
+Tracing now accepts a `SamplingRatio` from 0 to 1 and a validated list of supported propagators. Both settings have the requested defaults, and the runtime uses them for sampling and context propagation. The config schema and regression tests were updated.
+
+Verification passed: `go test ./internal/config ./internal/tracing ./internal/cmd` in offline mode, plus `git diff --check`. No delegation was used.

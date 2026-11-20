@@ -1,0 +1,3 @@
+Fixed kubeconfig address selection. `ProxyConfig.KubeAddr()` now returns an HTTPS URL on port 3026 and errors when Kubernetes proxy support is disabled. `tctl auth sign --format=kubernetes` uses it for a local Kubernetes proxy; otherwise it searches registered proxies, skipping invalid public addresses. An explicit `--proxy` still takes precedence.
+
+The relevant `lib/service` and `tool/tctl/common` tests pass.

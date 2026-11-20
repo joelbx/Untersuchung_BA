@@ -1,0 +1,3 @@
+Implemented matcher expressions in [parse.go](/app/lib/utils/parse/parse.go), including literals, anchored wildcards, raw regular expressions, `regexp.match`, `regexp.not_match`, and prefix/suffix matching. The parser now rejects invalid matcher syntax and matcher functions used in `Variable()`.
+
+Added coverage in [parse_test.go](/app/lib/utils/parse/parse_test.go). `go test ./lib/utils/parse` passes, and `git diff --check` is clean. No delegation was used.

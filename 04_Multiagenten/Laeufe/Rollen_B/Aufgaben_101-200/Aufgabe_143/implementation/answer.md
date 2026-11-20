@@ -1,0 +1,3 @@
+Centralized author identifier generation in catalog utils and made record expansion apply it to every author. Existing-edition conversion now supplies name and birth or death dates for expansion to process. Matching also recognizes equivalent names in natural and catalog order.
+
+The updated tests cover missing identifiers, absent or empty author lists, and the 515 threshold case. The local add_book and merge tests finished with **82 passed, 1 expected failure, and 2 unexpected passes**.

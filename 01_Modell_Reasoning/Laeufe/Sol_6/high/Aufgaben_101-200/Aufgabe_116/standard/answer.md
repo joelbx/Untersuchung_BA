@@ -1,0 +1,3 @@
+Implemented the `chat:privileged` gate. Direct chats and invitations to privileged users now return `[[error:no-privileges]]` unless the initiator has that permission. Chat checks use the new array-capable `privileges.global.can`, and profile APIs expose a boolean `canChat` field documented in OpenAPI.
+
+Added the admin privilege label and regression tests. The messaging suite passed (80 tests), the middleware suite passed (12 tests), and the user tests passed in the combined run. ESLint and `git diff --check` passed.

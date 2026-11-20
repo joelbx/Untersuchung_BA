@@ -1,0 +1,3 @@
+Exported `NamespaceEnv` and `ReleaseNameEnv` and used them throughout the Kubernetes backend. `NewWithClient()` now checks both required variables through the constants and populates the config from them. The tests explicitly set the required environment variables and cover missing values, config fields, and Helm annotations.
+
+`GOPROXY=off go test ./lib/backend/kubernetes` and `git diff --check` passed. I solved this directly; there were no delegations or adoption decisions.

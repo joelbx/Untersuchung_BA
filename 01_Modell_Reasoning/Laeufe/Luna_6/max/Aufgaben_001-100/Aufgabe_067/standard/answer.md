@@ -1,0 +1,5 @@
+Implemented `scrolling.bar=overlay` with the Chromium flag gated to QtWebEngine on Qt 5.11+ outside macOS. Legacy `False` values now migrate to `overlay`; `True` still migrates to `always`. Added the `@js_headers` marker and applied it to the dynamic user-agent scenario, skipping QtWebEngine on Qt 5.12–5.14.
+
+**Validation:** `test_configfiles.py` passed (159 passed, 1 skipped); 11 focused config argument tests passed; end-to-end collection selected the marked scenario on Qt 5.15. A combined run of both full config modules exited with status 1 after test progress, without a pytest summary. The focused tests and complete configfiles module finished cleanly.
+
+Changed files include [configdata.yml](/app/qutebrowser/config/configdata.yml:1488), [configinit.py](/app/qutebrowser/config/configinit.py:286), [configfiles.py](/app/qutebrowser/config/configfiles.py:322), and [end2end/conftest.py](/app/tests/end2end/conftest.py:155).

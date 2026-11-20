@@ -1,0 +1,3 @@
+Added SQL Server support to the database connection diagnostic flow. `getDatabaseConnTester` now selects `SQLServerPinger` for SQL Server and still returns an error for unsupported protocols. The pinger validates connection parameters, uses the context for its connection test, and classifies refused connections, login failures, and invalid database names.
+
+The full test runs for `./lib/client/conntest/database` and `./lib/client/conntest` passed.

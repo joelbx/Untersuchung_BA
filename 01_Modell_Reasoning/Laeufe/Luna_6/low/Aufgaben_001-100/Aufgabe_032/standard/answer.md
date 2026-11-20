@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) with centralized JSON termination, atomic job-file writes, and structured status for setup failures, fork failures, timeouts, and module completion. Job records now carry consistent lifecycle fields and the job ID; timeout records include the child PID and limit.
+
+Verified with `python -m py_compile`, `git diff --check`, and the existing async wrapper unit test (1 passed).

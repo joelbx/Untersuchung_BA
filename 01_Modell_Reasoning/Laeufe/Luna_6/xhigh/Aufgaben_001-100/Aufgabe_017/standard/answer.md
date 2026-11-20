@@ -1,0 +1,3 @@
+Implemented SQL Server connection diagnostics. [database.go](/app/lib/client/conntest/database.go) now selects the SQL Server pinger; [sqlserver.go](/app/lib/client/conntest/database/sqlserver.go) validates connection parameters, uses the caller’s context, and categorizes refused connections, login failures, and invalid database errors. Unsupported protocols still return an error.
+
+`go test ./lib/client/conntest/database ./lib/client/conntest` passed.

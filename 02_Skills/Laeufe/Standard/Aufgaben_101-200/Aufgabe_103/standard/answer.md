@@ -1,0 +1,3 @@
+Updated [redhatbase.go](/app/scanner/redhatbase.go) to preserve empty release fields in RPM and repoquery output, format source package versions without a trailing hyphen, validate source RPM filenames, and handle `(none)` update epochs. Added regression cases in [redhatbase_test.go](/app/scanner/redhatbase_test.go).
+
+The full scanner test suite passed: `GOTOOLCHAIN=local GOPROXY=off go test ./scanner -count=1`.

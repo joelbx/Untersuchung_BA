@@ -1,0 +1,3 @@
+Implemented Best Book Awards backend support: persisted nominations with read and uniqueness checks, add/update/remove and count JSON APIs, Work model accessors, and updates for work redirects and account anonymization.
+
+Verification passed: 49 relevant tests, Ruff, and `git diff --check`. The new table is defined in [schema.sql](/app/openlibrary/core/schema.sql); existing databases need that DDL applied before the endpoints can use it.

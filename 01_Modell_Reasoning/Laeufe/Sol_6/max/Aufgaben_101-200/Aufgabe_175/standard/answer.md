@@ -1,0 +1,3 @@
+Implemented native SQLite backups in the checked-out repository. [Configuration](/app/conf/configuration.go:90) now exposes `backup.path`, `backup.schedule`, and `backup.count`; [database methods](/app/db/backup.go:24) create, restore, and prune backups; and the [CLI](/app/cmd/backup.go:14) provides `backup create`, `backup prune`, and `backup restore`. Scheduled backups prune to the configured count. Restore and zero-count pruning require confirmation unless `--force` is passed.
+
+Verification passed: `GOTOOLCHAIN=local GOPROXY=off go test ./...`.

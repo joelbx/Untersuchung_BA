@@ -1,0 +1,3 @@
+Updated the composer so replaced rooms show a clear status notice in paragraphs, with a decorative icon hidden from screen readers. Reply previews now name the person being replied to and provide a labeled cancel button. The new reusable `CancelButton` also powers the search cancel control; profiles can render inline where a sentence needs them.
+
+The four relevant test suites pass (10 tests), and lint and style checks pass. The full suite has seven failing snapshots across six location and beacon suites, all showing an added `Symbol(shapeMode)` field. TypeScript still reports errors in untouched SDK and settings files. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

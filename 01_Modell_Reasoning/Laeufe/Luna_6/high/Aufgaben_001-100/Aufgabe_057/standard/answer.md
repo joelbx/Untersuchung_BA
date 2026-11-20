@@ -1,0 +1,3 @@
+Implemented YAML import/export in the new [`internal/ext` package](/app/internal/ext/common.go). Export converts stored JSON attachments into YAML structures, including nested values and explicit `null`; import normalizes YAML map keys and stores attachments as JSON strings.
+
+Verification passed: `go test ./internal/ext ./cmd/flipt`, `go test ./storage/sql ./storage/cache`, and `git diff --check`. The checkout did not include the issue’s referenced `internal/ext/testdata` examples, so those fixtures could not be run.

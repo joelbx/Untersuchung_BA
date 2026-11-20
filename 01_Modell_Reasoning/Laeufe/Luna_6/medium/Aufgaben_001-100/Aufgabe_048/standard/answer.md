@@ -1,0 +1,3 @@
+Implemented the plugin resolution and deprecation updates. Plugin errors now carry load context, loader results expose the plugin and its resolution context, tombstones raise `AnsiblePluginRemovedError`, and connection, action, and template code use the updated resolution behavior. Deprecation formatting is centralized in `Display.get_deprecation_message`.
+
+Validation passed: 68 relevant tests, plus a focused rerun of 10 plugin and display tests. Python compilation and `git diff --check` also passed. The checkpoint is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

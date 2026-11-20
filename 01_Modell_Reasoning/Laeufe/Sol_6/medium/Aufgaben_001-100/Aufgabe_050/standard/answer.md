@@ -1,0 +1,3 @@
+Fixed the nullable-field scan errors. Album and artist metadata timestamps, share timestamps, and album `image_files` now represent SQL `NULL` safely. Added the public `gg.P` and `gg.V` helpers, updated timestamp reads and assignments, and added regression tests for unset fields.
+
+The relevant package tests pass. `go test ./...` still fails in four TagLib fixture and file-permission tests unrelated to these changes.

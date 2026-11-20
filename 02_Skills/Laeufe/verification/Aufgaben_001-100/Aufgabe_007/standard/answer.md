@@ -1,0 +1,3 @@
+Updated the [WinRM connection plugin](/app/lib/ansible/plugins/connection/winrm.py) to accept `ansible_winrm_kinit_args`. It passes the executable, parsed arguments, and principal in that order on both subprocess and pexpect paths. Supplied arguments replace the default delegation `-f` flag; without them, delegation still adds `-f`.
+
+Added [unit coverage](/app/test/units/plugins/connection/test_winrm.py) for both paths and distinct credential caches per attempt. Verification: **35 WinRM unit tests passed** and `git diff --check` passed. Live Windows/Kerberos authentication was not tested.

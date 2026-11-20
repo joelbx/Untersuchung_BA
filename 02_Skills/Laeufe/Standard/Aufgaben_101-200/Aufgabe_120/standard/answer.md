@@ -1,0 +1,3 @@
+Implemented ZIP based cover archival in the checked-out repository. Cover and batch IDs now use the documented zero-padded layout; staging uses uncompressed ZIPs, batch locks, upload verification, and database completion updates. Retrieval follows stored archive URLs, with a fallback for legacy tar records. The schema adds `failed` and `uploaded` fields and indexes.
+
+The coverstore suite passed: **22 passed, 7 skipped**. Live archive.org uploads and the documented PostgreSQL migration were not run locally.

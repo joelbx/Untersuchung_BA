@@ -1,0 +1,3 @@
+Forked `Display.display` calls now send `DisplaySend` events through `FinalQueue`. The parent results thread replays them under a display lock, and worker shutdown no longer redirects stdout and stderr to `/dev/null`. Cleanup flushes both streams. The new tests and existing focused tests pass: **8 passed**.
+
+The full repository test run remains red: **223 failed, 100 errors, 3359 passed**. Every failure and error is named in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

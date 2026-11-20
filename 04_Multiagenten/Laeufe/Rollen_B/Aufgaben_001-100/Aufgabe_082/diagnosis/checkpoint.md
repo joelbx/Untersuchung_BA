@@ -1,0 +1,5 @@
+Fault localization complete.
+- lib/service/service.go initExternalLog accepts multiple AuditEventsURI entries and creates MultiLog for >1, but initAuthService requires the result to implement events.Emitter; MultiLog currently does not, matching the reported startup error.
+- lib/events/multilog.go NewMultiLog returns only *MultiLog with []IAuditLog. It needs Emitter validation, a (*MultiLog,error) result, embedded MultiEmitter, and service call-site error propagation. Existing Close aggregates logger errors; MultiEmitter currently has no Close method or separate resources.
+- lib/service/service.go stdout:// creates WriterLog; lib/events/writer.go WriterLog only supports legacy emission. New WriterEmitter in lib/events/emitter.go should embed *WriterLog, emit JSON lines, and expose Close. Watch double-close because WriterLog.Close closes the same writer.
+- Existing service test covers zero/one file URI, not multiple backends or stdout. Existing config tests confirm list-of-URI parsing. No source/tests modified.

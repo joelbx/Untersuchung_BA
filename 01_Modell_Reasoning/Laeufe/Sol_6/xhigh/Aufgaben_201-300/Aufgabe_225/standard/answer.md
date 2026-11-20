@@ -1,0 +1,3 @@
+Added `VulnInfo.KEVs` as a dedicated field with CISA and VulnCheck details. The detector now populates it from both sources, including XDB and reported exploitation records, and treats placeholder due dates as missing. KEVs are sorted for JSON output and counted in report summaries. The CISA alert field remains available for older JSON.
+
+Updated `go-kev` to a locally cached version with VulnCheck support. Tests passed offline: `go test ./models ./detector ./reporter`.

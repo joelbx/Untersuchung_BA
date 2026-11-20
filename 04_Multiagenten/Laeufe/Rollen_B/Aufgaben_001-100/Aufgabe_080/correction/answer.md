@@ -1,0 +1,3 @@
+The checked out album artwork patch implements square covers, and the reviewer’s exact Go and UI tests passed. `git diff --check` also passed. No project code changes were needed in this correction round.
+
+The OCI `Source` requirement remains unmet: this Navidrome repository has none of the specified storage packages or types, so it cannot be implemented coherently here. TEST_ENVIRONMENT_PROBLEM: none.

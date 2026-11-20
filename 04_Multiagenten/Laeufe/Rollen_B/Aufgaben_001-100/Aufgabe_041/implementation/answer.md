@@ -1,0 +1,3 @@
+Removed `ListMixin` and consolidated its methods into `List`. The owner lookup now handles complete `/people/{username}/lists/{list_id}` keys and returns `None` for malformed keys or missing users. Added `core.lists.model.register_models()` to register both `/type/list` and the `lists` changeset type.
+
+All 20 focused tests pass. Two adjacent test files remain limited by local test environment issues: a missing `web.ctx.env` fixture and an unavailable `cookielib` module.

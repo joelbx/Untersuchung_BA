@@ -1,0 +1,3 @@
+Implemented MARC contributor roles in the checked-out repository. `read_author_person` now maps common relator codes and abbreviations from `$e` and `$4` to readable roles, with `$4` taking precedence. `new_work` preserves each author’s role and order and raises an exception when the edition and record author counts differ. I updated the MARC fixtures and added parser, work, and import tests.
+
+Verification: **161 relevant tests passed**; Ruff and `git diff --check` passed.

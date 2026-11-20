@@ -1,0 +1,3 @@
+Reserved tags can now be configured through `meta.config.systemTags`. Topic creation, editing, and queued topic validation reject those tags for users who are not administrators or global moderators with the message “You can not use this system tag.” The `isTagAllowed` check also returns false for reserved tags.
+
+The focused system tag tests, existing tag whitelist tests, ESLint, and `git diff --check` all passed.

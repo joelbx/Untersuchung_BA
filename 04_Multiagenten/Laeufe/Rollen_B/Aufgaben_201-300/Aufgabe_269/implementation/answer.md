@@ -1,0 +1,3 @@
+Updated both Trivy conversion paths to create `trivy:<source>` CVE contents with source-specific severity and CVSS data, references, and publication dates. Repeated CVEs retain their source entries. Metadata aggregation and TUI references now recognize the new entries.
+
+The relevant local tests pass for the Trivy converter and parser, detector, models, and TUI packages. `git diff --check` also passes.

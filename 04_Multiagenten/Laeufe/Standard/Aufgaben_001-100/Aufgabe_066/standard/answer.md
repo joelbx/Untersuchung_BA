@@ -1,0 +1,3 @@
+Added [transformStyleAttributes.ts](/app/applications/mail/src/app/helpers/transforms/transformStyleAttributes.ts) to replace inline `height` values containing `vh` with `auto`, including on the root element. Other inline styles are preserved. The [HTML preparation pipeline](/app/applications/mail/src/app/helpers/transforms/transforms.ts) now runs it after `transformStylesheet` and before `transformRemote`.
+
+The new test and the existing remote transform test passed: 5 tests total.

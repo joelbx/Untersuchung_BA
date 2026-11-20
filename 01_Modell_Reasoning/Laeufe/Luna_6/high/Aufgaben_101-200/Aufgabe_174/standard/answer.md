@@ -1,0 +1,3 @@
+Implemented forked display forwarding through `FinalQueue` and `DisplaySend`. Parent display writes are protected by a lock, workers no longer redirect stdout/stderr at shutdown, and TQM cleanup flushes both streams.
+
+Validation: targeted display and strategy tests passed (5 passed, 9 skipped total). The broader display suite had 2 failures in warning deduplication tests; the singleton suppresses the repeated warning in `test_warning_no_color`. `git diff --check` passed.

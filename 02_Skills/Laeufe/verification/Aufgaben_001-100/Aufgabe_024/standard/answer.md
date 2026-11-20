@@ -1,0 +1,3 @@
+Updated author matching to compare extracted birth and death years across date formats. Searches now try exact names, then alternate names, then surname matching when both years are available. Asterisks in names are treated literally. Honorific removal accepts a string, preserves honorific-only names and the specified exceptions, and runs before author import. New author records retain their input fields.
+
+Verification: the add-book suite reported **162 passed, 1 expected failure**. Ruff lint and `git diff --check` passed. `ruff format --check` reported that the touched files would be reformatted; no formatter pass is claimed.

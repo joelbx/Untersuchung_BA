@@ -1,0 +1,3 @@
+Updated [_on_error](/app/qutebrowser/misc/guiprocess.py:82) to show the capitalized process name, the exact command in single quotes, the error type, and Qt’s error detail. On non-Windows systems, missing or inaccessible commands also get the requested executable hint. Added regression tests in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py:222).
+
+The focused suite passed: **29 tests**. The full suite could not pass because end to end tests could not import QtWebKit; a broader unit run also exited without a failure summary. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

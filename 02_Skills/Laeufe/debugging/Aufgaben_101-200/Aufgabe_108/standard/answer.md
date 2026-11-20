@@ -1,0 +1,3 @@
+Added `SimpleCache[V]` in [utils/cache/simple_cache.go](/app/utils/cache/simple_cache.go) and migrated the play tracker, genre repository, and HTTP client to typed cache operations. The adapter applies a consistent TTL policy, excludes expired entries from `Keys`, and preserves the HTTP client’s 100-entry limit.
+
+Added regression tests for expiry, loading, and error propagation. `go test ./utils/cache ./scanner ./core/scrobbler -count=1` and `git diff --check` passed.

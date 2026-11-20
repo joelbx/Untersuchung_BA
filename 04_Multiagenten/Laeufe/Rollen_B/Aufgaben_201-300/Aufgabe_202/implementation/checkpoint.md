@@ -1,0 +1,1 @@
+Implementer progress: verified admin uploadFile passes folder to saveFileToLocal, which creates missing directories. Added upload_path-relative directory validation and regression tests for missing and file targets. ESLint passes. Integration suite not run: test mock prints full config.json (credential-bearing); avoiding that read/output.

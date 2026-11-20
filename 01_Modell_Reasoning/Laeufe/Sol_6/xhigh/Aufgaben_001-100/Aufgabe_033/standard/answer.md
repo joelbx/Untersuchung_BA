@@ -1,0 +1,3 @@
+U2F login now offers challenges for every registered key while preserving the legacy single-challenge fields in [U2FAuthenticateChallenge](/app/lib/auth/auth.go:831). The CLI accepts either response format, and the web flow passes all offered keys to the browser U2F API. `tsh mfa` remains hidden in help.
+
+Tests passed for two-key authentication, legacy compatibility, web U2F login and password flows, and existing MFA device management. Client and `tsh` packages also built successfully.

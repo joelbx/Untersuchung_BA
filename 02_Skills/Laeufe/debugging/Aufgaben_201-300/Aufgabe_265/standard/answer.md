@@ -1,0 +1,3 @@
+Fixed `QtColor` parsing in [configtypes.py](/app/qutebrowser/config/configtypes.py): HSV/HSVA hue percentages now scale to 359, while the other channels scale to 255. The parser also validates supported function names and component counts before constructing `QColor`.
+
+The focused QtColor tests pass (32 passed). The full config type test file has 61 failures outside the changed parser, chiefly Hypothesis fixture health checks; those results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

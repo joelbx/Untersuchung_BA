@@ -1,0 +1,3 @@
+Direct Dial SSH heartbeats now replace a wildcard or local node host with the inventory stream’s peer host before `UpsertNode`, while preserving the node’s original port. I added `PeerAddr()` to upstream streams and `ICSPipeOption`/`ICSPipePeerAddr` for in-memory pipes.
+
+The full `lib/inventory` test suite passed. The separate `api` module tests could not start offline because `github.com/gogo/protobuf@v1.3.2` is uncached. No delegation was used.

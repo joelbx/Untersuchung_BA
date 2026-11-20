@@ -1,0 +1,3 @@
+Fixed Direct Dial heartbeats that advertised wildcard addresses. Upstream inventory streams now expose `PeerAddr()`, and in-memory pipes support `ICSPipePeerAddr`. Before `UpsertNode`, the controller replaces a non-routable heartbeat host with the peer’s host while preserving the node’s original port.
+
+The targeted `api/client` and `lib/inventory` tests passed, including new address regression cases.

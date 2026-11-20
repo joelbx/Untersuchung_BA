@@ -1,0 +1,3 @@
+Implemented version header handling in [middleware.go](/app/internal/server/middleware/grpc/middleware.go) and registered the interceptor in the gRPC server chain. It accepts versions with or without a `v` prefix and uses the zero value as the default when the header is absent or invalid.
+
+Added coverage for both formats and the fallback cases. `go test ./internal/server/middleware/grpc ./internal/cmd` passed.

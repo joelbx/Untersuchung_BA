@@ -1,0 +1,3 @@
+Updated module execution to honor a module’s declared shebang and arguments. An explicit interpreter override still takes precedence; modules without a shebang use `/usr/bin/python`. Added regression coverage for new style modules, custom Python paths, non Python interpreters, arguments, and overrides.
+
+The module_common suite passed: **62 tests**. One ZipFile destructor warning appeared during the run.

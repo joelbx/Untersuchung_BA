@@ -1,0 +1,3 @@
+Resolved the SSH connection issue in `/app`. The [SSH plugin](/app/lib/ansible/plugins/connection/ssh.py) now uses `get_option()` for command construction, file transfers, retries, and persistent connection settings. Reset checks the effective connection with `ssh -O check`, logs when no socket exists, and sends `stop` only when a master is active. SSH-specific settings were removed from [core configuration](/app/lib/ansible/config/base.yml).
+
+Added regression tests for config, environment, CLI, and variable precedence, transfer fallback, and reset behavior. **All 160 relevant unit tests passed** with CLI tests isolated using `--forked`. Live SSH integration was not run.

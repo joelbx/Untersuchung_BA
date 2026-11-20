@@ -1,0 +1,3 @@
+Implemented selective SSE delivery. UI requests now send a per-client UUID; middleware carries it into the request context and an HttpOnly cookie for EventSource connections. Events from a client go only to other sessions of the same user, while server-originated events still broadcast.
+
+The broker, diode API, cookie expiry usage, and call sites are updated. Targeted Go tests, UI lint and formatting, and the UI build passed. The build required Node’s legacy OpenSSL provider because the default build hit `ERR_OSSL_EVP_UNSUPPORTED`.

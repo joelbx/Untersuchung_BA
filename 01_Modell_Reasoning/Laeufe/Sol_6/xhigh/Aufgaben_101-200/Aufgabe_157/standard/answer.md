@@ -1,0 +1,3 @@
+Added [`getLabelID` and `getPageSizeString`](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts). The helpers preserve built-in mailbox IDs, map custom labels and folders to `"custom"`, and return `"50"`, `"100"`, or `"200"` for page size, defaulting to `"50"`.
+
+Added `@proton/metrics` to the [mail package manifest](/app/applications/mail/package.json) and [lockfile](/app/yarn.lock). Verification passed: 37 existing label and paging tests, the mail TypeScript check, ESLint, Prettier, and `git diff --check`.

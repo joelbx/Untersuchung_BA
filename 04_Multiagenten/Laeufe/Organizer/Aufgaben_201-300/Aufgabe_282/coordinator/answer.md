@@ -1,0 +1,3 @@
+Added `content.javascript.log_message.excludes` for source and message glob patterns, and renamed the existing UI level setting to `.levels` with a migration for saved configurations. `_js_log_to_ui` now applies both filters; messages excluded from the UI still follow the existing standard logger path. The settings reference was regenerated.
+
+The focused logging and configuration tests passed: **106 passed**. A broader run found an unrelated existing Python 3.11 failure in `test_nul_bytes`. No delegation was used.

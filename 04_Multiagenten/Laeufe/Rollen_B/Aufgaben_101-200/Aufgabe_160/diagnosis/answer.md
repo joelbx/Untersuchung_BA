@@ -1,0 +1,5 @@
+The fault is in [handleSSHServerHB](/app/lib/inventory/controller.go:251): it passes the heartbeat’s `[::]:3022` address directly to `UpsertNode`. The legacy [gRPC UpsertNode path](/app/lib/auth/grpcserver.go:2906) already uses [utils.ReplaceLocalhost](/app/lib/utils/addr.go:252) to substitute the peer host while preserving port `3022`.
+
+The fix needs to expose `PeerAddr() string` through both upstream stream implementations in [inventory.go](/app/api/client/inventory.go:52), add the variadic `ICSPipeOption` and `ICSPipePeerAddr` for in-memory streams, and apply the replacement before the controller upsert when the peer address is available. Existing controller tests count upserts but do not check the address sent. Peer addresses may be unavailable; an empty value should leave the heartbeat address unchanged.
+
+I updated [checkpoint.md](/app/.codex-role-output/checkpoint.md). The specialist scope permits diagnosis only, so project source and tests were not changed.

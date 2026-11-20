@@ -1,0 +1,3 @@
+Updated MongoDB, Postgres, and Redis so `getObject(key, fields)` and `getObjects(keys, fields)` accept optional field lists. An empty array returns complete objects; selected fields include `null` for absent fields. Missing keys remain falsy, and `getObjects` preserves input order. The field helpers now also return complete objects for empty or omitted field lists.
+
+**Verified:** the Redis hash suite passed (57 tests), and ESLint, syntax checks, and `git diff --check` passed. MongoDB and Postgres integration behavior remains unverified because local servers were unavailable. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

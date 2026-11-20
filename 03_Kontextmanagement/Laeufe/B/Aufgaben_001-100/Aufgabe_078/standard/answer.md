@@ -1,0 +1,3 @@
+Resolved the voice broadcast liveness issue. The badge now distinguishes live, grey/paused, and not-live states; playback and info changes update the hook and UI, with liveness events emitted only when the value changes.
+
+All **220 voice broadcast tests** pass. ESLint and Stylelint pass. The full TypeScript check remains blocked by an unrelated existing error in [notifications.ts](/app/src/utils/notifications.ts:79).

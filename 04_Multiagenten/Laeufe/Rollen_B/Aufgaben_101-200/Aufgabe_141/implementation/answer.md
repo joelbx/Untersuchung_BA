@@ -1,0 +1,3 @@
+Added `-wp-ignore-inactive` to `report` and a `WpIgnoreInactive` config field. When enabled, WordPress reporting skips vulnerability requests for plugins and themes whose status is exactly `"inactive"`; core scanning and the default behavior remain unchanged. The filter returns `nil` when no packages remain.
+
+Added focused tests for filtering and TOML/CLI configuration. `go test ./wordpress ./config ./commands` passed with network access disabled, and `git diff --check` passed.

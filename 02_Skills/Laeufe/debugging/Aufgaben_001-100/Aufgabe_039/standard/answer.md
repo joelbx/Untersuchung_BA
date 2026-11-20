@@ -1,0 +1,3 @@
+Fixed `Booknotes.update_work_id` so a work ID collision rolls back the update and preserves every booknote. It now returns a dictionary with `rows_changed`, `rows_deleted`, and `failed_deletes`; a collision returns `0`, `0`, and `1`.
+
+The [booknotes code](/app/openlibrary/core/booknotes.py) and [tests](/app/openlibrary/tests/core/test_db.py) are updated. All 5 relevant tests pass, and `git diff --check` passes.

@@ -1,0 +1,1 @@
+Implementer progress: Verified oval.major panics on empty input because strings.Index returns -1 for the slice bound. Added an exact empty-input return in oval/util.go and a regression case in Test_major; non-empty parsing is unchanged. Focused Test_major and the full ./oval test package pass with GOPROXY=off. git diff --check passes.

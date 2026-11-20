@@ -1,0 +1,3 @@
+Fixed both review findings. `remove_values` and `sanitize_keys` now preserve `range` objects, and `sanitize_keys` keeps every value when distinct keys redact to the same name by placing those values in a list under that key. Added regression tests.
+
+The focused no_log, exit, and converter tests passed (427). The full basic suite passed with `--forked` (299 passed, 14 skipped). Without `--forked`, 22 tests still fail from warning and deprecation state leaking between tests, as the reviewer reported.

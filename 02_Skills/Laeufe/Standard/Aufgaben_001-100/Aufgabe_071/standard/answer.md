@@ -1,0 +1,3 @@
+Updated `_parse_clixml` to decode UTF-16 escape tokens, including surrogate pairs and control characters, while preserving invalid escapes and unpaired surrogates. It now includes only the requested stream, handles empty `<S>` elements, concatenates text within each `<Objs>` block, and separates block results with `\r\n`.
+
+Added coverage in [test_powershell.py](/app/test/units/plugins/shell/test_powershell.py). All 19 shell plugin unit tests pass, and `git diff --check` passes.

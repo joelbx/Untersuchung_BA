@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to resolve its settings through `get_option()`, use the effective transfer method and retry values, and check the persistent socket with `ssh -O check` before sending `ssh -O stop`. Removed the SSH-specific core configuration definitions and added focused tests.
+
+**Verification:** 28 SSH and PlayContext tests passed; `git diff --check` and Python compilation passed. A broader config-manager run had eight setup errors because an existing fixture assigns `None` to `ANSIBLE_CONFIG`; those cases remain unverified. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

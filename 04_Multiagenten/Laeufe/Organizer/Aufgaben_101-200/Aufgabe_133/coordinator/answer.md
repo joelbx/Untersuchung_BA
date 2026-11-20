@@ -1,0 +1,3 @@
+The OSS migration now downgrades the existing `admin` role in place, marks it with `OSSMigratedV6`, and assigns existing users and trusted cluster mappings to `admin`. Legacy user creation also assigns `admin`. The downgraded role retains broad resource access while limiting event and session permissions to read only.
+
+`TestMigrateOSS`, `lib/services`, and `tool/tctl/common` pass. The full `lib/auth` suite twice failed only its timing sensitive `PasswordSuite.TestTiming` check; that test passed when run alone. No delegation was used.

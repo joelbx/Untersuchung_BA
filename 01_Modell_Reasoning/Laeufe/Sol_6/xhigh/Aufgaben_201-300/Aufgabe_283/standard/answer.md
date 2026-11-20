@@ -1,0 +1,3 @@
+Added `isFromProton(element)` to return true only when `IsProton === 1` for messages and conversations. The [verified badge](/app/applications/mail/src/app/components/list/VerifiedBadge.tsx) now has a tooltip and uses that flag in both list layouts. Encrypted search records preserve the flag.
+
+Verification passed: 22 focused tests, the mail type check, targeted ESLint, Prettier, and `git diff --check`.

@@ -1,0 +1,3 @@
+Updated the IA import path to split compound publisher metadata into ordered `publish_places` and `publishers` lists, including the London, New York, and Paris example. Plain publisher names remain intact. I also moved raw ISBN classification to [isbn.py](/app/openlibrary/utils/isbn.py) and made the import path use it.
+
+The relevant existing and added tests pass: **39 passed**. `git diff --check` also passes.

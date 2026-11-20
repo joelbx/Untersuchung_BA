@@ -1,0 +1,3 @@
+Fixed the device limit crash. The fake service now returns an `AccessDenied` device limit error and exposes a switch for testing; `RunAdmin` returns the registered device when enrollment fails; and `printEnrollOutcome` prints a fallback message if device details are nil. Added regression tests and updated the [checkpoint](/app/.codex-role-output/checkpoint.md).
+
+The enrollment package tests pass. The CLI test could not run in this environment because required system headers are missing; disabling CGO also prevents `tool/tsh/common` from building.

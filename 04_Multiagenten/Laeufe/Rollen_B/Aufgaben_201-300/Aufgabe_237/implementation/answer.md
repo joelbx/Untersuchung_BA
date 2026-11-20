@@ -1,0 +1,3 @@
+Implemented the concrete chat edit requirements. The v3 `PUT /chats/:roomId/:mid` endpoint now validates content, checks edit permission, saves the edit, and returns the updated message. I added `Messaging.messageExists`, the `invalid-mid` error, room checks, client PUT requests, and validation plus a deprecation warning for socket edits.
+
+The full messaging suite passes: **77 tests**. `git diff --check` also passes. The issue description mentions `DirectedGraph`, but the supplied requirements specify chat changes, so this patch addresses those requirements.

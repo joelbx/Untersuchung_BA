@@ -1,0 +1,3 @@
+Updated `reversetunnel.Server` to own one `localSite`. That site now reuses the proxy’s `LocalAccessPoint` and existing clients, and service connections validate the certificate’s cluster name before registration. Site lookup, reconnect, close, and proxy fan-out paths use the single instance.
+
+Added tests for cluster validation and access point reuse. `go test ./lib/reversetunnel -count=1` and `git diff --check` passed.

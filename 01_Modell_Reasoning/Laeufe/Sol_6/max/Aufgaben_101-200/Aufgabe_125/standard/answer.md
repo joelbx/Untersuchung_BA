@@ -1,0 +1,3 @@
+Implemented topic backlinks. New posts and edits now sync references through [Topics.syncBacklinks](/app/src/topics/posts.js), including removal of outdated backlink events. The [timeline events](/app/src/topics/events.js) link to the referencing post and are shown only when the new admin setting is enabled. I also added the setting, English localization, and focused tests.
+
+Verification: 298 relevant tests passed; ESLint and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented reverse proxy login in `/app`. Administrators can set `ReverseProxyWhitelist`, `ReverseProxyUserHeader` (default `Remote-User`), and an optional `ReverseProxyDefaultUser`. Trusted requests can create a user on first login and receive a session in the frontend configuration; untrusted requests receive no `auth` payload. The UI stores the session fields, and nested log maps now redact sensitive values.
+
+Validation uses the connection peer address rather than a forwarded IP header. Go tests and all 34 UI tests passed.

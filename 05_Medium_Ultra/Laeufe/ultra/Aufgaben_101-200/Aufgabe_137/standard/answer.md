@@ -1,0 +1,5 @@
+Implemented configurable tracing in [TracingConfig](/app/internal/config/tracing.go) and wired it into [gRPC instrumentation](/app/internal/cmd/grpc.go). The sampling ratio defaults to 1 and must be within 0–1; propagators default to TraceContext and Baggage and are limited to the eight supported values. Validation uses the required error messages. The schemas, example config, and tests were updated.
+
+The combined config, tracing, command, audit, middleware, and analytics test suites passed offline. Two subagents implemented config and runtime changes, a third reviewed the integration, and I verified the final patch.
+
+When audit or analytics is enabled, spans remain fully recorded to preserve their events. The ratio then limits trace exports, but local recording and outgoing sampled flags remain at full sampling.

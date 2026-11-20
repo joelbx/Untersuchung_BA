@@ -1,0 +1,3 @@
+Added [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py) with E-Series connection parameters, firmware upload and compatibility checks, online or offline upgrades, check mode, and optional completion polling. Added [focused tests](/app/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py).
+
+Verification passed: 7 new tests, 29 existing E-Series tests, Python compilation, and whitespace checks.

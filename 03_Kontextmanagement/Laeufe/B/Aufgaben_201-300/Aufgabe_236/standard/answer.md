@@ -1,0 +1,1 @@
+The repository issue is resolved. Both `safe_eval` entry points now signal deprecation for 2.21, and `check_type_dict` uses deterministic parsing without calling `safe_eval`. I added changelog entries and regression coverage. **All 90 relevant tests passed.**

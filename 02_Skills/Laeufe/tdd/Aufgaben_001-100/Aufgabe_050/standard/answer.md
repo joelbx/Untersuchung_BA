@@ -1,0 +1,3 @@
+Updated the album, artist, and share models to represent nullable fields with pointers, including the `image_files` column named in the scan error. Added public `gg.P` and `gg.V` helpers and updated timestamp writes and reads so unset values remain optional and nil reads yield zero values. A regression test reproduced the reported scan error and now passes.
+
+The affected package tests pass. The full `go test ./...` run still has four failures in `scanner/metadata/taglib`; all other packages pass. The failures and exact command are recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

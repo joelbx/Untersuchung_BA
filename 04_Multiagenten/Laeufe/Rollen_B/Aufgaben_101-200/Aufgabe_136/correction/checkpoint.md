@@ -1,0 +1,3 @@
+Correction round complete. Inspected the existing certificate wrapper patch and review; no concrete code defect was identified. The reviewer-flagged failure was the WebEngine test environment. Reran the exact clean command:
+QTWEBENGINE_DISABLE_SANDBOX=1 xvfb-run -a pytest -p no:xvfb -q tests/unit/browser/webkit/test_certificateerror.py tests/unit/browser/webengine/test_certificate_decisions.py tests/unit/browser/webkit/network/test_networkmanager.py tests/unit/browser/test_shared.py tests/unit/browser/webengine/test_webenginetab.py
+Result: 48 passed, exit 0. git diff --check also passed. No project code changes were needed in this correction round; existing checked-out patch remains intact.

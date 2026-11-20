@@ -1,0 +1,3 @@
+Implemented OCI configuration validation and parsing for the repository, bundle directory, authentication, and poll interval. The OCI store now uses the directory passed to `NewStore`, and `DefaultBundleDir` creates the default bundles directory. I also wired OCI storage into server startup and added `fs/oci` to the integration test matrix and CI workflow.
+
+The focused Go tests passed with `GOPROXY=off`, and `git diff --check` passed. The Dagger integration suite was registered but was not run locally.

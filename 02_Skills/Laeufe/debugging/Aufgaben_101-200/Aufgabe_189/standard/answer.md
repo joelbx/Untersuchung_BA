@@ -1,0 +1,3 @@
+Moved MIME suffix resolution into the module-level `extra_suffixes_workaround` helper in [webview.py](/app/qutebrowser/browser/webengine/webview.py). `chooseFiles` now passes a deduplicated union of the original and extra suffixes as the third argument to `super().chooseFiles`, without using instance state for the workaround.
+
+Added regression coverage in [test_webview.py](/app/tests/unit/browser/webengine/test_webview.py). The focused test file passes: **24 tests passed**.

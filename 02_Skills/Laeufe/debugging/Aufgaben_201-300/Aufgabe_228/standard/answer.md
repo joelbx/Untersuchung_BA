@@ -1,0 +1,3 @@
+Added [utils.parse_version](/app/qutebrowser/utils/utils.py) to return a normalized Qt `QVersionNumber`. The Qt runtime and compiled version checks, startup minimum check, distribution version value, WebKit check, and crash dialog comparison now use Qt-native versions.
+
+Verification: **421 passed, 4 skipped** across the relevant test files. `git diff --check` passed. The test run used local Xvfb and disabled WebEngine sandboxing to avoid environment-related process exits. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented native database backups in `/app`: `conf.Server.Backup` supports path, schedule, and count; startup creates the backup directory and rejects invalid schedules. The new `backup create`, `backup prune`, and `backup restore` commands use SQLite’s online backup API, with confirmation for restore and for pruning when count is zero. Scheduled backups prune to the configured count.
+
+Verification passed: `go test ./...`, the focused configuration and database tests, and `git diff --check`.

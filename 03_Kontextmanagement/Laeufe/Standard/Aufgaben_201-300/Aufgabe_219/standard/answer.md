@@ -1,0 +1,3 @@
+Added `token` to the audit checker, including wildcard expansion, so configurations can enable `token:created` and `token:deleted`. gRPC initialization now checks whether `token:deleted` is enabled and passes that boolean to the authentication server, which uses it to control deletion audit logging.
+
+Added checker tests for explicit and wildcard settings. The audit, authentication, and command package tests passed.

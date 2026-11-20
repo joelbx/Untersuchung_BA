@@ -1,0 +1,3 @@
+Fixed `atomic_move()` so newly created files use `_DEFAULT_PERM = 0o0600` and the destination is chmoded with `0600 & ~umask`. Modules that accept `mode` now track files created when it is omitted, emit the specified warning during result formatting, and clear a path when `set_mode_if_different()` receives an explicit mode.
+
+Updated the [atomic move tests](/app/test/units/module_utils/basic/test_atomic_move.py). Validation: `PYTHONPATH=lib pytest --forked -q test/units/module_utils/basic` — **300 passed, 14 skipped**. A combined run without `--forked` encounters shared warning state between existing tests.

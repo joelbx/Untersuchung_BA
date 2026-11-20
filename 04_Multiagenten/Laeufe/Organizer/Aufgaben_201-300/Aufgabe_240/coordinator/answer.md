@@ -1,0 +1,3 @@
+Added [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py) with firmware upload, compatibility filtering, check mode reporting, online or offline upgrades, and optional polling with timeout and drive-specific errors. Added [focused unit tests](/app/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py).
+
+Verification: 9 relevant unit tests passed, and the module compiled successfully. No delegation was used.

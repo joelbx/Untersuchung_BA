@@ -1,0 +1,3 @@
+Added SQL Server support to the Discovery connection diagnostic flow. [SQLServerPinger](/app/lib/client/conntest/database/sqlserver.go) validates connection parameters, tests the connection within the context deadline, and categorizes connection, login, and database name failures. The protocol selector now returns it for SQL Server and still errors on unsupported protocols.
+
+Tests covering those cases passed: `go test ./lib/client/conntest/database ./lib/client/conntest -timeout 2m`.

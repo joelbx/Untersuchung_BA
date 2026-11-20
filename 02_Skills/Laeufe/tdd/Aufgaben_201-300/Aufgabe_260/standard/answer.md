@@ -1,0 +1,3 @@
+Implemented selective SSE delivery. The UI now sends a per-window UUID on API and login requests; server middleware carries it through a one-year HttpOnly cookie and request context. Events from a client reach other sessions of the same user, while keepalives and forced refreshes broadcast.
+
+Added regression tests and updated the broker, scanner, logging, diode, and cookie call sites. `go test ./...`, the full UI test suite, UI lint, formatting, and `git diff --check` passed. Go emitted existing SQLite and TagLib compiler warnings.

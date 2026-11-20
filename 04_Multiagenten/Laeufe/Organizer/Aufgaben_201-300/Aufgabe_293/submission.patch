@@ -1,0 +1,537 @@
+diff --git a/.github/workflows/integration-test.yml b/.github/workflows/integration-test.yml
+index 1ea9c76..2ca70e1 100644
+--- a/.github/workflows/integration-test.yml
++++ b/.github/workflows/integration-test.yml
+@@ -50,7 +50,7 @@ jobs:
+       fail-fast: false
+       matrix:
+         test:
+-          ["api", "api/cache", "fs/git", "fs/local", "fs/s3", "import/export"]
++          ["api", "api/cache", "fs/git", "fs/local", "fs/oci", "fs/s3", "import/export"]
+     steps:
+       - uses: actions/checkout@v4
+ 
+diff --git a/build/testing/integration.go b/build/testing/integration.go
+index 4ea49fc..a598f89 100644
+--- a/build/testing/integration.go
++++ b/build/testing/integration.go
+@@ -28,6 +28,7 @@ var (
+ 		"api/cache":     cache,
+ 		"fs/git":        git,
+ 		"fs/local":      local,
++		"fs/oci":        oci,
+ 		"fs/s3":         s3,
+ 		"import/export": importExport,
+ 	}
+@@ -182,6 +183,31 @@ func local(ctx context.Context, client *dagger.Client, base, flipt *dagger.Conta
+ 	return suite(ctx, "readonly", base, flipt.WithExec(nil), conf)
+ }
+ 
++func oci(ctx context.Context, _ *dagger.Client, base, flipt *dagger.Container, conf testConfig) func() error {
++	const bundlesDir = "/tmp/flipt-oci-bundles"
++	built, err := flipt.
++		WithDirectory("/tmp/oci-input", base.Directory(testdataDir)).
++		WithWorkdir("/tmp/oci-input").
++		WithEnvVariable("FLIPT_STORAGE_TYPE", "oci").
++		WithEnvVariable("FLIPT_STORAGE_OCI_REPOSITORY", "features:latest").
++		WithEnvVariable("FLIPT_STORAGE_OCI_BUNDLES_DIRECTORY", bundlesDir).
++		WithExec([]string{"/flipt", "bundle", "build", "features:latest"}).
++		Sync(ctx)
++	if err != nil {
++		return func() error { return err }
++	}
++
++	flipt = flipt.
++		WithDirectory(bundlesDir, built.Directory(bundlesDir)).
++		WithEnvVariable("FLIPT_LOG_LEVEL", "DEBUG").
++		WithEnvVariable("FLIPT_STORAGE_TYPE", "oci").
++		WithEnvVariable("FLIPT_STORAGE_OCI_REPOSITORY", "features:latest").
++		WithEnvVariable("FLIPT_STORAGE_OCI_BUNDLES_DIRECTORY", bundlesDir).
++		WithEnvVariable("UNIQUE", uuid.New().String())
++
++	return suite(ctx, "readonly", base, flipt.WithExec(nil), conf)
++}
++
+ func git(ctx context.Context, client *dagger.Client, base, flipt *dagger.Container, conf testConfig) func() error {
+ 	gitea := client.Container().
+ 		From("gitea/gitea:latest").
+diff --git a/cmd/flipt/bundle.go b/cmd/flipt/bundle.go
+index 826546f..707537a 100644
+--- a/cmd/flipt/bundle.go
++++ b/cmd/flipt/bundle.go
+@@ -6,6 +6,7 @@ import (
+ 	"text/tabwriter"
+ 
+ 	"github.com/spf13/cobra"
++	"go.flipt.io/flipt/internal/config"
+ 	"go.flipt.io/flipt/internal/containers"
+ 	"go.flipt.io/flipt/internal/oci"
+ )
+@@ -151,10 +152,11 @@ func (c *bundleCommand) getStore() (*oci.Store, error) {
+ 		return nil, err
+ 	}
+ 
++	var dir string
+ 	var opts []containers.Option[oci.StoreOptions]
+ 	if cfg := cfg.Storage.OCI; cfg != nil {
+ 		if cfg.BundleDirectory != "" {
+-			opts = append(opts, oci.WithBundleDir(cfg.BundleDirectory))
++			dir = cfg.BundleDirectory
+ 		}
+ 
+ 		if cfg.Authentication != nil {
+@@ -164,8 +166,14 @@ func (c *bundleCommand) getStore() (*oci.Store, error) {
+ 			))
+ 		}
+ 	}
++	if dir == "" {
++		dir, err = config.DefaultBundleDir()
++		if err != nil {
++			return nil, err
++		}
++	}
+ 
+-	return oci.NewStore(logger, opts...)
++	return oci.NewStore(logger, dir, opts...)
+ }
+ 
+ func writer() *tabwriter.Writer {
+diff --git a/config/flipt.schema.json b/config/flipt.schema.json
+index e875e63..a83ad3c 100644
+--- a/config/flipt.schema.json
++++ b/config/flipt.schema.json
+@@ -475,7 +475,7 @@
+       "properties": {
+         "type": {
+           "type": "string",
+-          "enum": ["database", "git", "local", "object"],
++          "enum": ["database", "git", "local", "object", "oci"],
+           "default": "database"
+         },
+         "local": {
+@@ -628,6 +628,21 @@
+             "repository": {
+               "type": "string"
+             },
++            "bundles_directory": {
++              "type": "string"
++            },
++            "poll_interval": {
++              "oneOf": [
++                {
++                  "type": "string",
++                  "pattern": "^([0-9]+(ns|us|µs|ms|s|m|h))+$"
++                },
++                {
++                  "type": "integer"
++                }
++              ],
++              "default": "30s"
++            },
+             "insecure": {
+               "type": "boolean",
+               "default": false
+diff --git a/internal/cmd/grpc.go b/internal/cmd/grpc.go
+index 7cfcd07..0997dd3 100644
+--- a/internal/cmd/grpc.go
++++ b/internal/cmd/grpc.go
+@@ -19,6 +19,7 @@ import (
+ 	"go.flipt.io/flipt/internal/config"
+ 	"go.flipt.io/flipt/internal/containers"
+ 	"go.flipt.io/flipt/internal/info"
++	"go.flipt.io/flipt/internal/oci"
+ 	fliptserver "go.flipt.io/flipt/internal/server"
+ 	"go.flipt.io/flipt/internal/server/audit"
+ 	"go.flipt.io/flipt/internal/server/audit/logfile"
+@@ -31,6 +32,7 @@ import (
+ 	"go.flipt.io/flipt/internal/storage"
+ 	storagecache "go.flipt.io/flipt/internal/storage/cache"
+ 	"go.flipt.io/flipt/internal/storage/fs"
++	fsoci "go.flipt.io/flipt/internal/storage/fs/oci"
+ 	fliptsql "go.flipt.io/flipt/internal/storage/sql"
+ 	"go.flipt.io/flipt/internal/storage/sql/mysql"
+ 	"go.flipt.io/flipt/internal/storage/sql/postgres"
+@@ -220,6 +222,39 @@ func NewGRPCServer(
+ 		if err != nil {
+ 			return nil, err
+ 		}
++	case config.OCIStorageType:
++		ociCfg := cfg.Storage.OCI
++		ref, err := oci.ParseReference(ociCfg.Repository)
++		if err != nil {
++			return nil, fmt.Errorf("parsing OCI repository: %w", err)
++		}
++		dir := ociCfg.BundleDirectory
++		if dir == "" {
++			dir, err = config.DefaultBundleDir()
++			if err != nil {
++				return nil, err
++			}
++		}
++		var opts []containers.Option[oci.StoreOptions]
++		if ociCfg.Authentication != nil {
++			opts = append(opts, oci.WithCredentials(ociCfg.Authentication.Username, ociCfg.Authentication.Password))
++		}
++		bundleStore, err := oci.NewStore(logger, dir, opts...)
++		if err != nil {
++			return nil, err
++		}
++		var sourceOpts []containers.Option[fsoci.Source]
++		if ociCfg.PollInterval > 0 {
++			sourceOpts = append(sourceOpts, fsoci.WithPollInterval(ociCfg.PollInterval))
++		}
++		source, err := fsoci.NewSource(logger, bundleStore, ref, sourceOpts...)
++		if err != nil {
++			return nil, err
++		}
++		store, err = fs.NewStore(logger, source)
++		if err != nil {
++			return nil, err
++		}
+ 	default:
+ 		return nil, fmt.Errorf("unexpected storage type: %q", cfg.Storage.Type)
+ 	}
+diff --git a/internal/config/config_test.go b/internal/config/config_test.go
+index 496f177..c3f66ec 100644
+--- a/internal/config/config_test.go
++++ b/internal/config/config_test.go
+@@ -8,6 +8,7 @@ import (
+ 	"net/http"
+ 	"net/http/httptest"
+ 	"os"
++	"path/filepath"
+ 	"reflect"
+ 	"strings"
+ 	"testing"
+@@ -24,6 +25,18 @@ func TestJSONSchema(t *testing.T) {
+ 	require.NoError(t, err)
+ }
+ 
++func TestDefaultBundleDir(t *testing.T) {
++	root := t.TempDir()
++	t.Setenv("XDG_CONFIG_HOME", root)
++
++	dir, err := DefaultBundleDir()
++	require.NoError(t, err)
++	assert.Equal(t, filepath.Join(root, "flipt", "bundles"), dir)
++	info, err := os.Stat(dir)
++	require.NoError(t, err)
++	assert.True(t, info.IsDir())
++}
++
+ func TestScheme(t *testing.T) {
+ 	tests := []struct {
+ 		name   string
+@@ -754,6 +767,7 @@ func TestLoad(t *testing.T) {
+ 					OCI: &OCI{
+ 						Repository:      "some.target/repository/abundle:latest",
+ 						BundleDirectory: "/tmp/bundles",
++						PollInterval:    5 * time.Minute,
+ 						Authentication: &OCIAuthentication{
+ 							Username: "foo",
+ 							Password: "bar",
+@@ -771,7 +785,7 @@ func TestLoad(t *testing.T) {
+ 		{
+ 			name:    "OCI invalid unexpected repository",
+ 			path:    "./testdata/storage/oci_invalid_unexpected_repo.yml",
+-			wantErr: errors.New("validating OCI configuration: invalid reference: missing repository"),
++			wantErr: errors.New(`validating OCI configuration: unexpected repository scheme: "unknown" should be one of [http|https|flipt]`),
+ 		},
+ 		{
+ 			name:    "storage readonly config invalid",
+diff --git a/internal/config/storage.go b/internal/config/storage.go
+index bb55aa0..bc4c26e 100644
+--- a/internal/config/storage.go
++++ b/internal/config/storage.go
+@@ -3,6 +3,9 @@ package config
+ import (
+ 	"errors"
+ 	"fmt"
++	"os"
++	"path/filepath"
++	"strings"
+ 	"time"
+ 
+ 	"github.com/spf13/viper"
+@@ -60,7 +63,7 @@ func (c *StorageConfig) setDefaults(v *viper.Viper) error {
+ 			v.SetDefault("storage.object.s3.poll_interval", "1m")
+ 		}
+ 	case string(OCIStorageType):
+-		v.SetDefault("store.oci.insecure", false)
++		v.SetDefault("storage.oci.poll_interval", "30s")
+ 	default:
+ 		v.SetDefault("storage.type", "database")
+ 	}
+@@ -95,11 +98,11 @@ func (c *StorageConfig) validate() error {
+ 			return err
+ 		}
+ 	case OCIStorageType:
+-		if c.OCI.Repository == "" {
++		if c.OCI == nil || c.OCI.Repository == "" {
+ 			return errors.New("oci storage repository must be specified")
+ 		}
+ 
+-		if _, err := registry.ParseReference(c.OCI.Repository); err != nil {
++		if err := validateOCIReference(c.OCI.Repository); err != nil {
+ 			return fmt.Errorf("validating OCI configuration: %w", err)
+ 		}
+ 	}
+@@ -112,6 +115,44 @@ func (c *StorageConfig) validate() error {
+ 	return nil
+ }
+ 
++func validateOCIReference(repository string) error {
++	scheme, name, explicit := strings.Cut(repository, "://")
++	if explicit {
++		switch scheme {
++		case "http", "https", "flipt":
++		default:
++			return fmt.Errorf("unexpected repository scheme: %q should be one of [http|https|flipt]", scheme)
++		}
++	} else {
++		name = scheme
++	}
++
++	if !strings.Contains(name, "/") {
++		name = "local/" + name
++	}
++	ref, err := registry.ParseReference(name)
++	if err != nil {
++		return err
++	}
++	if explicit && scheme == "flipt" && ref.Registry != "local" {
++		return fmt.Errorf("unexpected local reference: %q", ref)
++	}
++	return nil
++}
++
++// DefaultBundleDir returns the default directory for local OCI bundles.
++func DefaultBundleDir() (string, error) {
++	dir, err := Dir()
++	if err != nil {
++		return "", err
++	}
++	bundlesDir := filepath.Join(dir, "bundles")
++	if err := os.MkdirAll(bundlesDir, 0755); err != nil {
++		return "", fmt.Errorf("creating bundles directory: %w", err)
++	}
++	return bundlesDir, nil
++}
++
+ // Local contains configuration for referencing a local filesystem.
+ type Local struct {
+ 	Path string `json:"path,omitempty" mapstructure:"path"`
+@@ -244,7 +285,8 @@ type OCI struct {
+ 	// Tag defaults to 'latest' when not supplied.
+ 	Repository string `json:"repository,omitempty" mapstructure:"repository" yaml:"repository,omitempty"`
+ 	// BundleDirectory is the root directory in which Flipt will store and access local feature bundles.
+-	BundleDirectory string `json:"bundles_directory,omitempty" mapstructure:"bundles_directory" yaml:"bundles_directory,omitempty"`
++	BundleDirectory string        `json:"bundles_directory,omitempty" mapstructure:"bundles_directory" yaml:"bundles_directory,omitempty"`
++	PollInterval    time.Duration `json:"pollInterval,omitempty" mapstructure:"poll_interval" yaml:"poll_interval,omitempty"`
+ 	// Insecure configures whether or not to use HTTP instead of HTTPS
+ 	Insecure bool `json:"insecure,omitempty" mapstructure:"insecure" yaml:"insecure,omitempty"`
+ 	// Authentication configures authentication credentials for accessing the target registry
+diff --git a/internal/config/testdata/storage/oci_invalid_unexpected_repo.yml b/internal/config/testdata/storage/oci_invalid_unexpected_repo.yml
+index 6594dfe..ea99ef2 100644
+--- a/internal/config/testdata/storage/oci_invalid_unexpected_repo.yml
++++ b/internal/config/testdata/storage/oci_invalid_unexpected_repo.yml
+@@ -1,7 +1,7 @@
+ storage:
+   type: oci
+   oci:
+-    repository: just.a.registry
++    repository: unknown://registry/repo:tag
+     authentication:
+       username: foo
+       password: bar
+diff --git a/internal/config/testdata/storage/oci_provided.yml b/internal/config/testdata/storage/oci_provided.yml
+index dfb1852..4943bf6 100644
+--- a/internal/config/testdata/storage/oci_provided.yml
++++ b/internal/config/testdata/storage/oci_provided.yml
+@@ -3,6 +3,7 @@ storage:
+   oci:
+     repository: some.target/repository/abundle:latest
+     bundles_directory: /tmp/bundles
++    poll_interval: 5m
+     authentication:
+       username: foo
+       password: bar
+diff --git a/internal/oci/file.go b/internal/oci/file.go
+index d09c4b9..2e421ea 100644
+--- a/internal/oci/file.go
++++ b/internal/oci/file.go
+@@ -16,7 +16,6 @@ import (
+ 
+ 	"github.com/opencontainers/go-digest"
+ 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+-	"go.flipt.io/flipt/internal/config"
+ 	"go.flipt.io/flipt/internal/containers"
+ 	"go.flipt.io/flipt/internal/ext"
+ 	storagefs "go.flipt.io/flipt/internal/storage/fs"
+@@ -28,6 +27,7 @@ import (
+ 	"oras.land/oras-go/v2/errdef"
+ 	"oras.land/oras-go/v2/registry"
+ 	"oras.land/oras-go/v2/registry/remote"
++	"oras.land/oras-go/v2/registry/remote/auth"
+ )
+ 
+ const (
+@@ -46,7 +46,7 @@ type Store struct {
+ 
+ // StoreOptions are used to configure call to NewStore
+ // This shouldn't be handled directory, instead use one of the function options
+-// e.g. WithBundleDir or WithCredentials
++// e.g. WithCredentials
+ type StoreOptions struct {
+ 	bundleDir string
+ 	auth      *struct {
+@@ -55,14 +55,6 @@ type StoreOptions struct {
+ 	}
+ }
+ 
+-// WithBundleDir overrides the default bundles directory on the host for storing
+-// local builds of Flipt bundles
+-func WithBundleDir(dir string) containers.Option[StoreOptions] {
+-	return func(so *StoreOptions) {
+-		so.bundleDir = dir
+-	}
+-}
+-
+ // WithCredentials configures username and password credentials used for authenticating
+ // with remote registries
+ func WithCredentials(user, pass string) containers.Option[StoreOptions] {
+@@ -78,18 +70,13 @@ func WithCredentials(user, pass string) containers.Option[StoreOptions] {
+ }
+ 
+ // NewStore constructs and configures an instance of *Store for the provided config
+-func NewStore(logger *zap.Logger, opts ...containers.Option[StoreOptions]) (*Store, error) {
++func NewStore(logger *zap.Logger, dir string, opts ...containers.Option[StoreOptions]) (*Store, error) {
+ 	store := &Store{
+ 		opts:   StoreOptions{},
+ 		logger: logger,
+ 		local:  memory.New(),
+ 	}
+ 
+-	dir, err := defaultBundleDirectory()
+-	if err != nil {
+-		return nil, err
+-	}
+-
+ 	store.opts.bundleDir = dir
+ 
+ 	containers.ApplyAll(&store.opts, opts...)
+@@ -110,6 +97,10 @@ func ParseReference(repository string) (Reference, error) {
+ 		scheme = SchemeHTTPS
+ 	}
+ 
++	if match && scheme != SchemeHTTP && scheme != SchemeHTTPS && scheme != SchemeFlipt {
++		return Reference{}, fmt.Errorf("unexpected repository scheme: %q should be one of [http|https|flipt]", scheme)
++	}
++
+ 	if !strings.Contains(repository, "/") {
+ 		repository = "local/" + repository
+ 		scheme = SchemeFlipt
+@@ -145,6 +136,14 @@ func (s *Store) getTarget(ref Reference) (oras.Target, error) {
+ 		}
+ 
+ 		remote.PlainHTTP = ref.Scheme == "http"
++		if s.opts.auth != nil {
++			remote.Client = &auth.Client{
++				Credential: auth.StaticCredential(ref.Registry, auth.Credential{
++					Username: s.opts.auth.username,
++					Password: s.opts.auth.password,
++				}),
++			}
++		}
+ 
+ 		return remote, nil
+ 	case SchemeFlipt:
+@@ -555,17 +554,3 @@ func (f FileInfo) Sys() any {
+ func parseCreated(annotations map[string]string) (time.Time, error) {
+ 	return time.Parse(time.RFC3339, annotations[v1.AnnotationCreated])
+ }
+-
+-func defaultBundleDirectory() (string, error) {
+-	dir, err := config.Dir()
+-	if err != nil {
+-		return "", err
+-	}
+-
+-	bundlesDir := filepath.Join(dir, "bundles")
+-	if err := os.MkdirAll(bundlesDir, 0755); err != nil {
+-		return "", fmt.Errorf("creating image directory: %w", err)
+-	}
+-
+-	return bundlesDir, nil
+-}
+diff --git a/internal/oci/file_test.go b/internal/oci/file_test.go
+index 812da1e..68d223a 100644
+--- a/internal/oci/file_test.go
++++ b/internal/oci/file_test.go
+@@ -124,7 +124,7 @@ func TestStore_Fetch_InvalidMediaType(t *testing.T) {
+ 	ref, err := ParseReference(fmt.Sprintf("flipt://local/%s:latest", repo))
+ 	require.NoError(t, err)
+ 
+-	store, err := NewStore(zaptest.NewLogger(t), WithBundleDir(dir))
++	store, err := NewStore(zaptest.NewLogger(t), dir)
+ 	require.NoError(t, err)
+ 
+ 	ctx := context.Background()
+@@ -135,7 +135,7 @@ func TestStore_Fetch_InvalidMediaType(t *testing.T) {
+ 		layer("default", `{"namespace":"default"}`, MediaTypeFliptNamespace+"+unknown"),
+ 	)
+ 
+-	store, err = NewStore(zaptest.NewLogger(t), WithBundleDir(dir))
++	store, err = NewStore(zaptest.NewLogger(t), dir)
+ 	require.NoError(t, err)
+ 
+ 	_, err = store.Fetch(ctx, ref)
+@@ -151,7 +151,7 @@ func TestStore_Fetch(t *testing.T) {
+ 	ref, err := ParseReference(fmt.Sprintf("flipt://local/%s:latest", repo))
+ 	require.NoError(t, err)
+ 
+-	store, err := NewStore(zaptest.NewLogger(t), WithBundleDir(dir))
++	store, err := NewStore(zaptest.NewLogger(t), dir)
+ 	require.NoError(t, err)
+ 
+ 	ctx := context.Background()
+@@ -205,7 +205,7 @@ func TestStore_Build(t *testing.T) {
+ 	ref, err := ParseReference(fmt.Sprintf("flipt://local/%s:latest", repo))
+ 	require.NoError(t, err)
+ 
+-	store, err := NewStore(zaptest.NewLogger(t), WithBundleDir(dir))
++	store, err := NewStore(zaptest.NewLogger(t), dir)
+ 	require.NoError(t, err)
+ 
+ 	testdata, err := fs.Sub(testdata, "testdata")
+@@ -233,7 +233,7 @@ func TestStore_List(t *testing.T) {
+ 	ref, err := ParseReference(fmt.Sprintf("%s:latest", repo))
+ 	require.NoError(t, err)
+ 
+-	store, err := NewStore(zaptest.NewLogger(t), WithBundleDir(dir))
++	store, err := NewStore(zaptest.NewLogger(t), dir)
+ 	require.NoError(t, err)
+ 
+ 	bundles, err := store.List(ctx)
+@@ -272,7 +272,7 @@ func TestStore_Copy(t *testing.T) {
+ 	src, err := ParseReference("flipt://local/source:latest")
+ 	require.NoError(t, err)
+ 
+-	store, err := NewStore(zaptest.NewLogger(t), WithBundleDir(dir))
++	store, err := NewStore(zaptest.NewLogger(t), dir)
+ 	require.NoError(t, err)
+ 
+ 	testdata, err := fs.Sub(testdata, "testdata")
+diff --git a/internal/storage/fs/oci/source_test.go b/internal/storage/fs/oci/source_test.go
+index 7ff1abc..ade6770 100644
+--- a/internal/storage/fs/oci/source_test.go
++++ b/internal/storage/fs/oci/source_test.go
+@@ -91,7 +91,7 @@ func testSource(t *testing.T) (*Source, oras.Target) {
+ 		layer("production", `{"namespace":"production"}`, fliptoci.MediaTypeFliptNamespace),
+ 	)
+ 
+-	store, err := fliptoci.NewStore(zaptest.NewLogger(t), fliptoci.WithBundleDir(dir))
++	store, err := fliptoci.NewStore(zaptest.NewLogger(t), dir)
+ 	require.NoError(t, err)
+ 
+ 	ref, err := fliptoci.ParseReference(fmt.Sprintf("flipt://local/%s:latest", repo))

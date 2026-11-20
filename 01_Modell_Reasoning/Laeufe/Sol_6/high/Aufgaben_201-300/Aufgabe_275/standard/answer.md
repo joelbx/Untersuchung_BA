@@ -1,0 +1,3 @@
+Fixed Kubernetes proxy authentication error classification. `authenticate` now returns `AccessDenied` for access-related failures and preserves non-access errors, including the unknown-cluster and no-reverse-tunnel `BadParameter` cases. I also added the specified `httplib` error-writer wrappers and tests for both behaviors.
+
+Both relevant package test suites passed: `go test ./lib/kube/proxy ./lib/httplib -count=1`.

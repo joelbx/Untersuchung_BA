@@ -1,0 +1,3 @@
+Post purging now deletes uploads when the purged post was their last reference, including resized copies. An ACP switch, `preserveOrphanedUploads`, lets administrators keep those files. `Posts.uploads.deleteFromDisk` accepts one path or a list, rejects other input types, and ignores paths outside the upload directory.
+
+The upload tests pass (22 passing), and lint and `git diff --check` pass. The full suite remains red: its Build test fails while bundling client JavaScript with `document is not defined`. Six post queue tests in a separate run also fail after compiled email templates cannot be found. Details are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

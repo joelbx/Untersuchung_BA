@@ -1,0 +1,3 @@
+Forked workers now send `Display.display` calls through `FinalQueue` for the parent to write under a thread lock. I removed the worker’s shutdown stream redirection, made the results reader drain worker events before its sentinel, and added stdout and stderr flushes to `TaskQueueManager.cleanup`.
+
+Verification: 11 tests passed, 2 skipped, including a real fork test with the parent display lock held. `git diff --check` passed.

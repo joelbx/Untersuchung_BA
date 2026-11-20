@@ -1,0 +1,3 @@
+Fixed email confirmation expiry and resend behavior. The pending marker and confirmation record now share the configured expiry deadline. Pending checks return strict booleans; `getValidationExpiry` returns the store’s live TTL in milliseconds or `null`; and `canSendValidation` uses that TTL and the configured resend interval. Expiring a confirmation clears both records so a new request is allowed immediately.
+
+The regression test reproduced the original failure before the fix. The relevant suites passed afterward: **255 tests**, plus the focused regression rerun. ESLint and diff checks passed.

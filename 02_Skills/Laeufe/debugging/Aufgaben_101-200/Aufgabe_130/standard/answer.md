@@ -1,0 +1,3 @@
+Fixed the device-limit enrollment path. The fake service can now simulate the limit and returns an `AccessDenied` error. `RunAdmin` preserves the registered device when enrollment fails, and `printEnrollOutcome` handles a nil device without panicking. The regression test confirms registration succeeds, enrollment fails with the limit message, and enrollment works after the limit flag is cleared.
+
+The enrollment tests pass. The focused CLI test could not run because this environment lacks required C headers; disabling CGO also fails on build constraints. Those limits are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented the `chat:privileged` permission and target check in messaging, exposed `canChat` in profile responses, and documented it in OpenAPI. Added the admin label in both English locales.
+
+Validation: lint, diff checks, and schema parsing passed. Messaging and middleware suites passed (87 tests), and the focused profile API test passed. The broader run had 227 passing tests and one failure in the user posts export route at `test/controllers.js:1692`.

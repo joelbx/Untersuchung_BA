@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) with localized verified and unverified copy. [CurrentDeviceSection](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx) now delegates status rendering to it, and [DeviceDetails](/app/src/components/views/settings/devices/DeviceDetails.tsx) shows the same card immediately after the heading.
+
+The relevant tests pass: 10 tests and 8 snapshots. ESLint passes. The full TypeScript check remains blocked by unrelated `matrix-js-sdk` type and API errors.

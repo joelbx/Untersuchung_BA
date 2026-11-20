@@ -1,0 +1,3 @@
+Updated `SocketPosts.getUpvoters` to require `topics:read` on **every category** associated with the supplied post IDs before returning vote data. Administrators can still fetch upvoters. The method now resolves deduplicated UIDs in one lookup, preserves username order, and returns a cutoff of 6 with an `otherCount`. The frontend uses the server cutoff and enables HTML tooltips.
+
+Verification: all 12 voting tests passed; ESLint and `git diff --check` passed.

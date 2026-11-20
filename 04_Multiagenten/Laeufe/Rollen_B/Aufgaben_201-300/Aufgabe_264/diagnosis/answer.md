@@ -1,0 +1,5 @@
+The failure is in [MerakiModule.request](/app/lib/ansible/module_utils/network/meraki/meraki.py:338): it makes one API call, records the status, then calls `fail_json` for every status from 300 upward. It has no retry loop or the three requested exception classes.
+
+The fix belongs in that method: retry 429, 500, and 502 within a bounded budget; raise `RateLimitException` if 429 persists; raise `HTTPError` immediately for other statuses of 400 or higher; and warn with the retry count when rate limiting occurs. `self.status` must reflect the latest response, including a successful response after retries. The retry budget and delay are unspecified, so those choices need to be made in the implementation.
+
+[Existing unit tests](/app/test/units/module_utils/network/meraki/test_meraki.py:91) check only the status after mocked 404 and 429 responses; they do not cover retries or warnings. I updated [checkpoint.md](/app/.codex-role-output/checkpoint.md). **I did not edit source or tests:** the repository’s diagnostic role instructions restrict this pass to fault localization, so the issue remains unresolved.

@@ -1,0 +1,3 @@
+The admin file upload handler now checks that the requested folder exists and is a directory under the configured upload path before saving. Invalid folders return HTTP 500 with `[[error:invalid-path]]`. Regression tests cover missing folders and paths that point to a file.
+
+Syntax checks, ESLint, and all 18 admin upload integration tests passed. One subagent traced the upload flow; another added the tests, which I integrated and verified.

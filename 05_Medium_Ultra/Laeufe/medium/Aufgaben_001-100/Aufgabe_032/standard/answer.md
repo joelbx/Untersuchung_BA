@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) to use one JSON termination routine, write job records atomically, and include consistent job IDs and lifecycle fields in results. Startup, fork, and timeout failures now produce structured errors; timeout records include the child PID.
+
+Expanded [test_async_wrapper.py](/app/test/units/modules/test_async_wrapper.py) to cover those paths and temporary directory cleanup. All 7 tests pass; syntax and diff checks pass.

@@ -1,0 +1,3 @@
+Fixed `--upgrade --no-deps` so dependency constraints take part in version selection. The resolver can now choose an older compatible parent version while keeping installed dependencies unchanged. Added a regression test.
+
+Both reviewer-flagged unit test files pass (41 and 43 tests), and `git diff --check` passes. **TEST_ENVIRONMENT_PROBLEM:** the integration target was skipped because Docker is unavailable.

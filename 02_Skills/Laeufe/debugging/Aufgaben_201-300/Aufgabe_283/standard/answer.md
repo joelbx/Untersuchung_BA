@@ -1,0 +1,3 @@
+Added `isFromProton(element)` to [elements.ts](/app/applications/mail/src/app/helpers/elements.ts). It returns `true` only when `IsProton === 1` for messages and conversations. I also added the flag to the relevant types and extracted the existing list badge into [VerifiedBadge.tsx](/app/applications/mail/src/app/components/list/VerifiedBadge.tsx) with the requested tooltip.
+
+Verification passed: 22 focused tests, the mail TypeScript check, ESLint, and `git diff --check`.

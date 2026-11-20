@@ -1,0 +1,3 @@
+Replaced the public `:buffer` command with `:tab-select` in the command registry, tab completion providers, default binding, help pages, and examples. Existing index, title and URL matching, count precedence, and cross-window selection behavior remain covered by the updated tests.
+
+Verification: 7 completion unit tests and 13 end-to-end scenarios passed; 1 existing flaky scenario was skipped. `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented date based module deprecations across the Python runtime, Display, validate-modules, and C#. Dated aliases and `removed_at_date` now produce date entries; the C# `DateTime` overload logs dates as `yyyy-MM-dd`.
+
+I delegated the C#, Display, and validation work to three agents, then reviewed and verified the combined patch. Relevant Python tests passed: **323 passed, 14 skipped**. Syntax and diff checks passed. Validation tests could not collect because `voluptuous` is unavailable; Windows integration tests could not run because PowerShell and a C# runtime are unavailable.

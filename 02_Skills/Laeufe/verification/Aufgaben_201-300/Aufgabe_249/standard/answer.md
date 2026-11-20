@@ -1,0 +1,3 @@
+Added structured external profiles to `WikidataEntity` and displayed them in the author infobox. Wikipedia links use the requested language with an English fallback; Wikidata always appears; each valid P1960 identifier gets its own Google Scholar link. The change also adds the three icon files.
+
+Verification passed: 14 Wikidata tests, Ruff, template compilation, SVG parsing, and `git diff --check`.

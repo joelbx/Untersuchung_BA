@@ -1,0 +1,3 @@
+Updated the FreeBSD, NetBSD, and OpenBSD fact collectors to calculate `uptime_seconds` from a numeric `sysctl -n kern.boottime` result. The shared sysctl parser now preserves multiline values, accepts the required delimiters, and warns while continuing past malformed lines. Added focused unit tests.
+
+The 12 focused tests pass. In the broader fact suite, 364 passed and 5 were skipped; one timeout test failed there but passed when rerun alone.

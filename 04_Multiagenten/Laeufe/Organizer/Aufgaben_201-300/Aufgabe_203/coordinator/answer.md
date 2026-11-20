@@ -1,0 +1,5 @@
+Added a reusable [ExternalLink component](/app/src/components/views/elements/ExternalLink.tsx) with a decorative icon, a screen reader cue for new-tab navigation, and secure default anchor attributes. Settings links now use it, including the Profile Settings hosting link, which is now a single named link. The [Share dialog](/app/src/components/views/dialogs/ShareDialog.tsx) now gives the room link an accessible name and labels its social links. I added the SCSS partial and localization strings.
+
+The new component test and two existing settings test suites pass. ESLint, Stylelint, localization JSON validation, and `git diff --check` pass. TypeScript still fails on existing `ThreadEvent` errors in `ThreadView` and `ThreadNotificationState`; it reports no errors in the changed files.
+
+No delegation was used.

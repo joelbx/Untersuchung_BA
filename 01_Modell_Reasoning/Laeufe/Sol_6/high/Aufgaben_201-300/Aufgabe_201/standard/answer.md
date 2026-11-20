@@ -1,0 +1,3 @@
+Rules now accept `segment` as either a string or a `keys`/`operator` object. Import, export, snapshots, and SQL persistence handle both forms; exports use the object form, and a single key always uses `OR_SEGMENT_OPERATOR`. I updated the requested fixtures and added coverage for YAML parsing, snapshots, and SQL fallback behavior.
+
+Verified with `go test ./internal/ext ./internal/storage/fs ./internal/storage/sql` and `git diff --check`.

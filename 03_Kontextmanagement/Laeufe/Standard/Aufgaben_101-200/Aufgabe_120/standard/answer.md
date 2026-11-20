@@ -1,0 +1,3 @@
+Implemented zip-based cover archival with zero-padded item and batch paths, per-batch locking, upload verification, and database finalization. Cover retrieval now uses stored archive locations, including legacy tar records. I also added the `failed` and `uploaded` schema fields, documented the layout, and added archival tests.
+
+Verification: **22 passed, 7 skipped** in the coverstore test suite; Ruff and `git diff --check` passed.

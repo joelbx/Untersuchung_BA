@@ -1,0 +1,3 @@
+Implemented `DocCLI.tty_ify` in [doc.py](/app/lib/ansible/cli/doc.py:75). It now renders `L()`, `R()`, and `HORIZONTALLINE`, handles multiple macros on one line, preserves the existing macro formats, and leaves words such as `IBM(International Business Machines)` unchanged.
+
+Added focused coverage in [test_doc.py](/app/test/units/cli/test_doc.py:1). Verification: **36 CLI unit tests passed**; `git diff --check` passed.

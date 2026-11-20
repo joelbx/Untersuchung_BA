@@ -1,0 +1,3 @@
+Implemented digest support across configuration, scanning, and reporting. Image validation now requires a name and exactly one of tag or digest; scan results preserve the digest, and full references are used for scan domains, detection logs, and image report identifiers. Per image server names now use `<index>@<originalServerName>`.
+
+Verification: `config`, `scan`, and `report` tests passed. The `models` package compiles, but its existing `TestScan` fails with `no vuln found : actual: []`. The plain test run also reports existing vet warnings in `models/library.go`. `git diff --check` passed.

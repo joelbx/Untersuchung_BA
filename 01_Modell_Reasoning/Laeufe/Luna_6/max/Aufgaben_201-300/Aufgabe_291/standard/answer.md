@@ -1,0 +1,3 @@
+Implemented NVD CVSS v4.0 conversion in [utils.go](/app/models/utils.go:122), preserving metrics by source, and updated [Cvss40Scores()](/app/models/vulninfos.go:612) to return MITRE then NVD. `CveContent` already contained the required v4.0 fields. I updated the dictionary dependency so its NVD model exposes those metrics, and extended the aggregation test.
+
+Validation passed: `GOPROXY=off GOSUMDB=off go test -mod=mod ./models ./detector` and `git diff --check`. The checkpoint is in `.codex-role-output/checkpoint.md`.

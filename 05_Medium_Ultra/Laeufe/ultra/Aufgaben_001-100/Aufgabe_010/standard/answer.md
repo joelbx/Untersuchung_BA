@@ -1,0 +1,3 @@
+Updated the [message composer](/app/src/components/views/rooms/MessageComposer.tsx:387) so replaced rooms show clear paragraph notices and no send button. The [reply preview](/app/src/components/views/rooms/ReplyPreview.tsx:47) now names the sender and uses a labeled, reusable [CancelButton](/app/src/components/views/buttons/Cancel.tsx:23), also used by search.
+
+Three subagents handled the composer, shared button, and reply/profile changes; I reviewed and verified the combined patch. All 12 focused tests pass, as do ESLint, Stylelint, and `git diff --check`. The full TypeScript check still reports five errors in untouched SDK and room settings files.

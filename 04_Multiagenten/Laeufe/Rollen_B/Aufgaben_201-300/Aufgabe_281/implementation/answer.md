@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` for [Mongo](/app/src/database/mongo/hash.js) and [Redis](/app/src/database/redis/hash.js). Shared validation checks tuple shape, safe integer increments, and field names before writing. Updates are atomic per key; successful keys have their cache entries invalidated.
+
+Added coverage in [hash tests](/app/test/database/hash.js). The Redis hash suite passed (68 tests), ESLint passed, and `git diff --check` passed. Mongo integration tests could not run because `mongod` is unavailable.

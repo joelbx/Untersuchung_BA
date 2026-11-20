@@ -1,0 +1,3 @@
+`useLink` now reuses `NOT_FOUND`, `NOT_ALLOWED`, and `INVALID_ID` fetch errors for the same share and link for five seconds. Other links fetch normally, and a successful response clears a stale error. See [useLink.ts](/app/applications/drive/src/app/store/_links/useLink.ts:25).
+
+Added [regression tests](/app/applications/drive/src/app/store/_links/useLink.fetchLink.test.ts:1). All 19 targeted tests passed; TypeScript, ESLint, and Prettier checks passed.

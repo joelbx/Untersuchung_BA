@@ -1,0 +1,7 @@
+VERDICT: FIX
+
+- **Backward compatibility:** New writes omit `Fields` in [dynamoevents.go](/app/lib/events/dynamoevents/dynamoevents.go:1600). Older nodes still read that attribute, so audit reads can fail during a rolling upgrade. Keep a legacy-readable representation until older readers are gone.
+- **Migration correctness:** The migration writes each scanned item with an unconditional batch `Put` in [dynamoevents.go](/app/lib/events/dynamoevents/dynamoevents.go:1715). A concurrent update to the same event can be overwritten by the stale scanned item. Use a conflict-safe update.
+- **Completion:** The flag prevents future scans in [dynamoevents.go](/app/lib/events/dynamoevents/dynamoevents.go:1677). Legacy events written by an older node after the scan can remain unmigrated. Mark completion only once legacy writers can no longer write.
+
+**TEST_ENVIRONMENT_PROBLEM:** `GOPROXY=off GOSUMDB=off go test -v ./lib/events/dynamoevents -run '^TestDynamoevents$' -count=1` reported `0 passed, 5 skipped`; the AWS suite requires `TEST_AWS`. The local commands `go test ./lib/events/dynamoevents -run 'TestFieldsMap|TestDateRangeGenerator' -count=1` and `go test ./lib/events/dynamoevents ./lib/backend -count=1` passed with `GOPROXY=off GOSUMDB=off`.

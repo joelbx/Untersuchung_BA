@@ -1,0 +1,1 @@
+Updated [audit types and constructors](/app/internal/server/audit/types.go) to include optional operator fields and record single or comma-separated segment keys. Added coverage for legacy, single, and multiple segments. `go test ./internal/server/audit` passed.

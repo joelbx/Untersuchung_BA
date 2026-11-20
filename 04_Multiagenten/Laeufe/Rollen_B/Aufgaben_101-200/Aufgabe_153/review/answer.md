@@ -1,0 +1,5 @@
+VERDICT: FIX
+
+The share stores return inherited `Object.prototype` values for an absent share ID such as `toString`, instead of the required empty array. The member view also reads those dictionaries directly and can call `.map` on a non-array. Use own-key checks or dictionaries without a prototype in both copies of the [invitations store](/app/packages/drive-store/zustand/share/invitations.store.ts:9), [members store](/app/packages/drive-store/zustand/share/members.store.ts:9), and [member view](/app/packages/drive-store/store/_views/useShareMemberViewZustand.tsx:86).
+
+Tests executed: `yarn workspace @proton/drive-store test --runInBand --watch=false zustand/share/shareStores.test.ts` (2 passed); `yarn workspace @proton/drive-store check-types` (passed); `yarn workspace proton-drive check-types` (passed). `git diff --check` passed. No test environment problem. I reviewed the patch without changing project code.

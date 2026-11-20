@@ -1,0 +1,3 @@
+Added the canonical OS EOL lookup and date evaluators, plus per-target scan warnings for ended, approaching, and unknown lifecycle data. Scan summaries now render each warning with the required `Warning: ` prefix. Major-version parsing is shared by the Gost and OVAL helpers.
+
+`go test ./config ./util` passed. Tests for `gost`, `scan`, `report`, and `oval` were still running when this response was sent.

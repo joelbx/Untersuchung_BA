@@ -1,0 +1,3 @@
+Task: externalize MIME mappings and lossless formats into mime_types.yaml.
+Status: complete. The default file is resources/mime_types.yaml; operators can override it at <DataFolder>/resources/mime_types.yaml. The new mime package loads both fields through a conf.AddHook startup hook, registers MIME types and .js/.css overrides, and publishes sorted lossless extensions without periods. The model imports the package to register the hook when model functionality is used; the server UI reads mime.LosslessFormats.
+Verification: GOPROXY=off GOTOOLCHAIN=local go test ./mime ./model ./server ./server/subsonic ./scanner ./core/... ./cmd (passed); git diff --check (passed). No remaining known issues.

@@ -1,0 +1,3 @@
+Updated `getObject` and `getObjects` in MongoDB, Postgres, and Redis to accept optional fields. An empty array returns the full object; selected fields include null for absent fields, preserve key order, and return null for missing keys. Added tests for these cases.
+
+ESLint passed, and all 57 hash tests passed against local Redis. MongoDB and Postgres integration tests remain unverified because their servers are unavailable locally. The check results and that limitation are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

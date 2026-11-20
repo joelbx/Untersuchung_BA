@@ -1,0 +1,3 @@
+Implemented Best Book Awards persistence, read-status and uniqueness validation, nomination and count APIs, Work accessors, and award updates during work redirects and account anonymization. Existing databases can use [migrate_bestbook.sql](/app/scripts/migrate_bestbook.sql).
+
+Verification: 50 relevant tests passed; Ruff and `git diff --check` passed. Black could not run because it is not installed.

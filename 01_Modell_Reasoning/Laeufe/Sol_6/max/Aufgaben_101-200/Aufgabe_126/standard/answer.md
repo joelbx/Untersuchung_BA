@@ -1,0 +1,3 @@
+Implemented the assistant content fix. URL placeholders are now scoped to the draft’s message ID; restoration removes foreign or invented links and images while preserving visible link text. Link and image class/style attributes survive conversion, nested lists are repaired, and list parsing is enabled with configurable Markdown rules. The message ID now reaches preview and editor insertion paths.
+
+Validation: 19 relevant tests, ESLint, Prettier, and `git diff --check` passed. The full type check fails on an unrelated existing OpenPGP type mismatch in [worker/api.ts](/app/packages/crypto/lib/worker/api.ts:579).

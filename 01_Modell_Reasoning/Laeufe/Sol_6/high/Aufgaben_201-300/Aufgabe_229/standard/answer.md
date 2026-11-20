@@ -1,0 +1,3 @@
+Image cleanup is implemented. Removing a group cover now deletes its local cover and thumbnail files. Avatar and user cover removal use centralized cleanup that clears the related fields and deletes supported image variants; account deletion cleans up both. Missing files are handled without failing removal, and only validated local upload paths are eligible for deletion.
+
+Verification passed: 334 existing user and group tests, 5 new cleanup tests, ESLint, and `git diff --check`.

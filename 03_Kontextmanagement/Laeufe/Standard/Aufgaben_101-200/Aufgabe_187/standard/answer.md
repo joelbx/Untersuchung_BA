@@ -1,0 +1,3 @@
+Fixed the Kubernetes exec startup path. The Kubernetes service now initializes the session uploader before serving requests, creating the streaming directory needed for recordings. The forwarder now caches only short lived credentials, rebuilds routing state per request, and emits audit events using its service context so client disconnects do not cancel them. I also clarified the forwarder config fields and added explicit `ServeHTTP` delegation.
+
+Verification: `go test ./lib/kube/proxy ./lib/service` and `git diff --check` passed.

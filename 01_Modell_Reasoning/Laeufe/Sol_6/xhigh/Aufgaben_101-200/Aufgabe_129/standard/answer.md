@@ -1,0 +1,3 @@
+Added an accessible kebab menu to the Current session header. It offers **Sign out** and, when other sessions exist, **Sign out all other sessions**. The trigger has disabled and expanded states; menu actions close it and return focus to the trigger. Bulk sign-out passes only non-current device IDs. See [KebabContextMenu.tsx](/app/src/components/views/context_menus/KebabContextMenu.tsx) and [SessionManagerTab.tsx](/app/src/components/views/settings/tabs/user/SessionManagerTab.tsx).
+
+All 105 relevant tests and 13 snapshots pass; ESLint and Stylelint pass. The full TypeScript check remains blocked by existing errors outside the changed files.

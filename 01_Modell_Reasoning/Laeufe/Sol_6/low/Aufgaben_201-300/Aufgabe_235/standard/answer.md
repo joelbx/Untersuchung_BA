@@ -1,0 +1,3 @@
+Updated [parse.py](/app/openlibrary/catalog/marc/parse.py) to collect normalized, deduplicated names from linked MARC `880` fields for `100`, `700`, and `720` person entries. The entries retain their primary name and date data. Organization and event parsing is unchanged.
+
+Added a linkage regression test in [test_parse.py](/app/openlibrary/catalog/marc/tests/test_parse.py). The relevant test suite passed: **60 tests**.

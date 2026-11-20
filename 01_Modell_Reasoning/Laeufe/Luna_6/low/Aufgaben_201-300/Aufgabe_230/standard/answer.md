@@ -1,0 +1,3 @@
+Implemented `PrioritizedIdentifier` with a generic identifier, `stage_import`, identifier-only equality and hashing, queue ordering, and complete JSON serialization. The affiliate queue now uses the new class; the legacy `PrioritizedISBN` name and `.isbn` property remain available for compatibility.
+
+Added coverage for equality, set deduplication, and serialization. `python -m pytest scripts/tests/test_affiliate_server.py -q` passes (17 tests).

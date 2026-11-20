@@ -1,0 +1,3 @@
+VERDICT: FIX
+Code defects: CreateRoomDialog.tsx:106-113 unlocks encryption after a rejected server policy lookup, bypassing the shared policy decision; CreateRoomDialog.tsx:312 uses a new string absent from src/i18n/strings/en_EN.json, yielding a missing-translation message in development.
+Tests: yarn test --runInBand --watch=false test/components/views/dialogs/CreateRoomDialog-test.tsx test/utils/room/shouldForceDisableEncryption-test.ts passed (2 suites, 18 tests). git diff --check passed. Type check ./node_modules/.bin/tsc --noEmit --jsx react --pretty false failed in unchanged src/Unread.ts:167, TS2339; separate baseline type-check issue.

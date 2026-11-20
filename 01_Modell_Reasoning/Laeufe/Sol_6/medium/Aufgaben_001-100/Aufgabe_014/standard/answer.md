@@ -1,0 +1,3 @@
+Updated the checked-out files in `/app`. Notification dropdowns now load through `app.require` using their trigger element, and stale responses cannot overwrite a newer refresh. The fork and move category selectors render as dropups. I also updated quick search focus and navigation behavior, the requested database and email handling, redirect error handling, and the admin, merge, and chat templates.
+
+ESLint and `git diff --check` pass. The available standalone tests pass (11). Database-backed tests could not start because Redis refused the connection at `127.0.0.1:6379`; they ran no test cases.

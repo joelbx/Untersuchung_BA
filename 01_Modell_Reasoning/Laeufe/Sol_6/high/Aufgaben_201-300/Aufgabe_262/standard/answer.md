@@ -1,0 +1,3 @@
+Updated the book import paths to use `process_cover_url`, which removes the `cover` key and uploads only HTTP or HTTPS URLs whose hostname matches `ALLOWED_COVER_HOSTS`, case-insensitively. Added regression tests for new and matched editions, including unsupported and malformed URLs.
+
+Verification: 152 add-book tests passed, 1 expected failure; Ruff and `git diff --check` passed. The proxy’s host list is not in this repository, so [the new constant](/app/openlibrary/catalog/add_book/__init__.py:79) should be kept in sync with it.

@@ -1,0 +1,3 @@
+Implemented the coverstore archive changes in [archive.py](/app/openlibrary/coverstore/archive.py) and added the `failed` and `uploaded` columns and indexes in [schema.sql](/app/openlibrary/coverstore/schema.sql) and [schema.py](/app/openlibrary/coverstore/schema.py). The module now provides `Cover`, `Batch`, `ZipManager`, `Uploader`, and `CoverDB`, plus zip counting and opening helpers.
+
+Focused existing tests passed: **18 passed, 7 skipped**. I also recorded the task checkpoint in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

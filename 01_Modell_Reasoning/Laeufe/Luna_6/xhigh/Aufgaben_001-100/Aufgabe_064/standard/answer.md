@@ -1,0 +1,3 @@
+Implemented the `useMyCountry` single-value return and updated its listed consumers, preserving user-settings gates. `PhoneInput` now starts without a selected country for an empty default and adopts a later non-empty default once when its country state is empty.
+
+Verification passed: 2 existing test suites (13 tests), Prettier, and `git diff --check`. The required checkpoint is at `.codex-role-output/checkpoint.md`.

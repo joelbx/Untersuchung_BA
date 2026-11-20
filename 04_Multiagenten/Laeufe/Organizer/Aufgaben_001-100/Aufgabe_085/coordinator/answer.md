@@ -1,0 +1,3 @@
+Diff reports now mark newly detected CVEs with `+` and resolved CVEs with `-`. The diff function accepts plus/minus booleans, excludes unchanged CVEs, and uses package records from the scan where each reported CVE appeared. Report and TUI users can select either direction with `-diff-plus` and `-diff-minus`; both are enabled by default.
+
+Added `DiffStatus`, `CveIDDiffFormat`, and `CountDiff`, plus regression coverage for both directions and package provenance. `go test ./models ./report ./subcmds` and `git diff --check` passed. No delegation was used.

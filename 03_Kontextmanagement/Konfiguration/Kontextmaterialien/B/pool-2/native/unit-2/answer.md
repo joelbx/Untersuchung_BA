@@ -1,0 +1,1 @@
+Batch 2 is complete. The [JSON summary](/app/catalogue-2-summary.json) records 1,863 complete records, one zero-column blank line at line 1,865, and no trailing source fragment. A second local check validated it against the file.

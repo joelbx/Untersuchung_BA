@@ -1,0 +1,3 @@
+Added a public [Dialog component](/app/packages/components/components/dialog/Dialog.tsx) that uses a native `<dialog>` when supported and an accessible fallback host in limited DOM environments. [ModalTwo](/app/packages/components/components/modalTwo/Modal.tsx) now uses it with `open` and `aria-modal`, so interactive children are discoverable by role in JSDOM.
+
+Verification passed: 10 Dialog and ModalTwo tests, TypeScript, and formatting checks.

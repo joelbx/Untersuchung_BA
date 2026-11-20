@@ -1,0 +1,3 @@
+Updated [types.go](/app/internal/server/audit/types.go:136) so rollout audit records include the requested optional JSON operator fields. `NewRule` and `NewRollout` now use a single listed segment key or join multiple keys with commas and record their operator; legacy keys still work.
+
+Added coverage in [types_test.go](/app/internal/server/audit/types_test.go:177). `GOPROXY=off GOSUMDB=off go test ./internal/server/audit/...` passed, and `git diff --check` is clean.

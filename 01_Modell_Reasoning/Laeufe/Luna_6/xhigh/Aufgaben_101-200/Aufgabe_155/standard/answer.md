@@ -1,0 +1,5 @@
+Implemented digest support across configuration, scanning, scan results, and report UUID identifiers. Image validation now requires a name and exactly one of tag or digest; `GetFullName()` returns the matching reference form. Static image server names use a stable positional index followed by the original server name.
+
+Relevant changes are in [config/config.go](/app/config/config.go:1091), [config/tomlloader.go](/app/config/tomlloader.go:297), [scan/container.go](/app/scan/container.go:108), [scan/serverapi.go](/app/scan/serverapi.go:498), and [report/report.go](/app/report/report.go:532).
+
+**Tests:** `config`, `scan`, and `report` passed. The full `models` run has an existing `go vet` warning in `models/library.go`; with vet disabled, `models.TestScan` failed because it found no vulnerability. The remaining models tests passed.

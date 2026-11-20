@@ -1,0 +1,3 @@
+Replaced `:buffer` with `:tab-select` in command registration, tab completion, the default `gt` binding, help pages, and examples. Tab selection retains index, title/URL matching, count precedence, and cross-window focus.
+
+Verification: 104 unit tests and 15 focused end-to-end scenarios passed. One existing flaky cross-window scenario remains skipped. The command registry contains `tab-select` and excludes `buffer`; generated help matches the checked-in documentation.

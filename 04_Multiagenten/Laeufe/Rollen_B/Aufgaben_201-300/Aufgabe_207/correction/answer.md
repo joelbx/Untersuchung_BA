@@ -1,0 +1,3 @@
+The checked-out patch consolidates user and QtWebEngine features into one `--enable-features=` argument. I found no concrete code defect in the review, so I made no further code changes.
+
+The reviewer’s test command passed: **82 passed, 1 deselected**. **TEST_ENVIRONMENT_PROBLEM:** the full module still cannot complete because `test_new_chromium` segfaults during QtWebEngine user-agent initialization.

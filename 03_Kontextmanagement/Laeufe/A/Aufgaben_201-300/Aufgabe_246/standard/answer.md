@@ -1,0 +1,3 @@
+Updated library vulnerability reports to show each affected library’s lockfile path. Scanning now keeps results separate by file, lookups use path and name, and duplicate CVEs retain findings from every lockfile. Added regression tests and an error for unknown lockfile types.
+
+The pinned analyzer lacks `AnalyzeFile`, so a local adapter provides per-file in-memory analysis. `GOPROXY=off go test ./models ./scan ./libmanager ./report` passed.

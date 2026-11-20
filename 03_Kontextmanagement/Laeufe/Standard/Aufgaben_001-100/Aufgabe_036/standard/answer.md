@@ -1,0 +1,3 @@
+Updated [config.go](/app/config/config.go) so `Load` reads the three database pool options and `meta.check_for_updates`. When the update-check key is absent, the value is now false; absent pool keys retain their defaults.
+
+Added fixture coverage for configured values, an explicit false flag, and loading defaults after a configured file. `go test ./config`, `go test ./cmd/flipt`, and `git diff --check` passed.

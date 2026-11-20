@@ -1,0 +1,3 @@
+The SSH multiplexer now recognizes null terminated `Teleport-Proxy` JSON handshakes, routes them as SSH, and exposes `ClientAddr` through `RemoteAddr()`. It replays the handshake bytes for the SSH server to read. Standard SSH behavior remains unchanged.
+
+The multiplexer test suite passes. The repository-wide `go test ./...` run could not complete: this environment lacks `linux/hidraw.h`, and `go-sqlite3` failed to compile due to missing `pread64`, `pwrite64`, and `off64_t` definitions.

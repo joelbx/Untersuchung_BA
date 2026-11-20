@@ -1,0 +1,3 @@
+Implemented `DocCLI.tty_ify` in [doc.py](/app/lib/ansible/cli/doc.py:74) for `L()`, `R()`, and `HORIZONTALLINE`, while preserving existing macro formatting and leaving ordinary parenthesized text unchanged. Added regression coverage in [test_doc.py](/app/test/units/cli/test_doc.py:1).
+
+The focused tests passed: **32 passed** across `test_doc.py` and `test_cli.py`. The broader CLI suite had unrelated failures and errors in adhoc and Galaxy tests; the new doc tests passed there. `git diff --check` passed.

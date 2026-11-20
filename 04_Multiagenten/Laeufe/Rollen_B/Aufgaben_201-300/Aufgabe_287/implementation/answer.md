@@ -1,0 +1,3 @@
+Implemented album image tracking. Scans now collect image names from each directory, and album refreshes store their full paths in `image_files`. The new migration adds the column and triggers a full media rescan. `MediaFiles.Dirs()` returns sorted, unique directories.
+
+The model, scanner, and database tests pass with `GOPROXY=off go test ./model ./scanner ./db/...`; `git diff --check` also passes.

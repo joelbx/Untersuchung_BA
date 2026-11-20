@@ -1,0 +1,3 @@
+Updated [format_languages](/app/openlibrary/catalog/utils/__init__.py:448) to resolve ISO-639-1 codes and English or native language names, then deduplicate canonical keys while preserving first occurrence.
+
+`test_load_book.py` passes: 34 tests. The combined run had 124 passes and 4 failures: the `test_utils.py` language cases run without `web.ctx.site`, which the function needs to validate language keys. `git diff --check` passed.

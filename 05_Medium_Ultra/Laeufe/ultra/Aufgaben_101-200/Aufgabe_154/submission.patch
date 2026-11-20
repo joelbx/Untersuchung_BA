@@ -1,0 +1,333 @@
+diff --git a/lib/ansible/plugins/connection/ssh.py b/lib/ansible/plugins/connection/ssh.py
+index 299039f..8207c60 100644
+--- a/lib/ansible/plugins/connection/ssh.py
++++ b/lib/ansible/plugins/connection/ssh.py
+@@ -389,7 +389,7 @@ from ansible.errors import (
+ from ansible.module_utils.six import PY3, text_type, binary_type
+ from ansible.module_utils.common.text.converters import to_bytes, to_native, to_text
+ from ansible.plugins.connection import ConnectionBase, BUFSIZE
+-from ansible.plugins.shell.powershell import _parse_clixml
++from ansible.plugins.shell.powershell import _replace_stderr_clixml
+ from ansible.utils.display import Display
+ from ansible.utils.path import unfrackpath, makedirs_safe
+ 
+@@ -1329,8 +1329,8 @@ class Connection(ConnectionBase):
+         (returncode, stdout, stderr) = self._run(cmd, in_data, sudoable=sudoable)
+ 
+         # When running on Windows, stderr may contain CLIXML encoded output
+-        if getattr(self._shell, "_IS_WINDOWS", False) and stderr.startswith(b"#< CLIXML"):
+-            stderr = _parse_clixml(stderr)
++        if getattr(self._shell, "_IS_WINDOWS", False):
++            stderr = _replace_stderr_clixml(stderr)
+ 
+         return (returncode, stdout, stderr)
+ 
+diff --git a/lib/ansible/plugins/shell/powershell.py b/lib/ansible/plugins/shell/powershell.py
+index a6e10b4..c68fc89 100644
+--- a/lib/ansible/plugins/shell/powershell.py
++++ b/lib/ansible/plugins/shell/powershell.py
+@@ -25,10 +25,10 @@ import ntpath
+ from ansible.module_utils.common.text.converters import to_bytes, to_text
+ from ansible.plugins.shell import ShellBase
+ 
+-# This is weird, we are matching on byte sequences that match the utf-16-be
+-# matches for '_x(a-fA-F0-9){4}_'. The \x00 and {8} will match the hex sequence
+-# when it is encoded as utf-16-be.
+-_STRING_DESERIAL_FIND = re.compile(rb"\x00_\x00x([\x00(a-fA-F0-9)]{8})\x00_")
++# Match each hex digit with its UTF-16-BE null byte. Matching the bytes in
++# either order would also consume text such as '_x\u6100\u6200\u6300\u6400_'.
++_STRING_DESERIAL_FIND = re.compile(rb"\x00_\x00x((?:\x00[a-fA-F0-9]){4})\x00_")
++_CLIXML_ROOT = re.compile(rb"<Objs(?=[\s>])")
+ 
+ _common_args = ['PowerShell', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Unrestricted']
+ 
+@@ -57,13 +57,13 @@ def _parse_clixml(data: bytes, stream: str = "Error") -> bytes:
+     # Parse each individual <Objs> element and add the error strings to our stderr list.
+     # https://github.com/ansible/ansible/issues/69550
+     while data:
+-        start_idx = data.find(b"<Objs ")
++        start_match = _CLIXML_ROOT.search(data)
+         end_idx = data.find(b"</Objs>")
+-        if start_idx == -1 or end_idx == -1:
++        if start_match is None or end_idx == -1:
+             break
+ 
+         end_idx += 7
+-        current_element = data[start_idx:end_idx]
++        current_element = data[start_match.start():end_idx]
+         data = data[end_idx:]
+ 
+         clixml = ET.fromstring(current_element)
+@@ -91,6 +91,98 @@ def _parse_clixml(data: bytes, stream: str = "Error") -> bytes:
+     return to_bytes(''.join(lines), errors="surrogatepass")
+ 
+ 
++def _replace_stderr_clixml(stderr: bytes) -> bytes:
++    """Replace complete CLIXML blocks in stderr, leaving other bytes intact."""
++    if b"CLIXML" not in stderr:
++        return stderr
++
++    # Headers can follow ordinary output on the same line. A bare CLIXML
++    # header includes the CRLF before it, so recognize it across line splits.
++    headers: list[tuple[int, int]] = []
++    offset = 0
++    previous_crlf = False
++    for line in stderr.splitlines(keepends=True):
++        for marker in (b"#< CLIXML\r\n", b"<# CLIXML\r\n"):
++            start = line.find(marker)
++            while start != -1:
++                headers.append((offset + start, offset + start + len(marker)))
++                start = line.find(marker, start + len(marker))
++
++        if (previous_crlf or offset == 0) and line.startswith(b"CLIXML\r\n"):
++            headers.append((offset - 2 if previous_crlf else offset, offset + len(b"CLIXML\r\n")))
++
++        previous_crlf = line.endswith(b"\r\n")
++        offset += len(line)
++
++    if not headers:
++        return stderr
++
++    headers.sort()
++    result: list[bytes] = []
++    copied_to = 0
++    header_idx = 0
++    while header_idx < len(headers):
++        block_start, block_header_end = headers[header_idx]
++        if block_start < copied_to:
++            header_idx += 1
++            continue
++
++        # PowerShell can emit repeated headers before the first XML element.
++        next_header_idx = header_idx + 1
++        while next_header_idx < len(headers):
++            next_start, next_end = headers[next_header_idx]
++            if next_start > block_header_end:
++                break
++            block_header_end = max(block_header_end, next_end)
++            next_header_idx += 1
++
++        root_start = block_header_end
++        while root_start < len(stderr) and stderr[root_start] in b" \t\r\n":
++            root_start += 1
++
++        if not _CLIXML_ROOT.match(stderr, root_start):
++            header_idx += 1
++            continue
++
++        # Do not borrow a closing tag from a later CLIXML block when this
++        # one is incomplete. Adjacent Objs elements belong to the same block.
++        next_header_start = headers[next_header_idx][0] if next_header_idx < len(headers) else len(stderr)
++        element_start = root_start
++        while True:
++            closing_tag = stderr.find(b"</Objs>", element_start, next_header_start)
++            if closing_tag == -1:
++                break
++            block_end = closing_tag + len(b"</Objs>")
++            element_start = block_end
++            while element_start < next_header_start and stderr[element_start] in b" \t\r\n":
++                element_start += 1
++            if not _CLIXML_ROOT.match(stderr, element_start):
++                break
++        if closing_tag == -1:
++            header_idx += 1
++            continue
++
++        try:
++            clixml = stderr[block_start:block_end]
++            try:
++                clixml = clixml.decode("utf-8").encode("utf-8")
++            except UnicodeDecodeError:
++                clixml = clixml.decode("cp437").encode("utf-8")
++            decoded = _parse_clixml(clixml)
++        except (ET.ParseError, UnicodeError, ValueError):
++            header_idx += 1
++            continue
++
++        result.extend((stderr[copied_to:block_start], decoded))
++        copied_to = block_end
++        header_idx = next_header_idx
++
++    if not result:
++        return stderr
++    result.append(stderr[copied_to:])
++    return b"".join(result)
++
++
+ class ShellModule(ShellBase):
+ 
+     # Common shell filenames that this plugin handles
+diff --git a/test/units/plugins/connection/test_ssh.py b/test/units/plugins/connection/test_ssh.py
+index 0bba41b..22db801 100644
+--- a/test/units/plugins/connection/test_ssh.py
++++ b/test/units/plugins/connection/test_ssh.py
+@@ -96,6 +96,30 @@ class TestConnectionBaseClass(unittest.TestCase):
+         res, stdout, stderr = conn.exec_command('ssh')
+         res, stdout, stderr = conn.exec_command('ssh', 'this is some data')
+ 
++    def test_plugins_connection_ssh_exec_command_embedded_clixml(self):
++        clixml = (
++            b'#< CLIXML\r\n'
++            b'<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04">'
++            b'<S S="Error">failure</S></Objs>'
++        )
++        raw_stderr = b'before\r\n' + clixml + b'after'
++
++        for shell_type in ('powershell', 'sh'):
++            with self.subTest(shell_type=shell_type):
++                pc = PlayContext()
++                pc.shell = shell_type
++                conn = connection_loader.get('ssh', pc, StringIO())
++                conn._build_command = MagicMock(return_value='ssh')
++                conn._run = MagicMock(return_value=(1, b'output', raw_stderr))
++                conn.get_option = MagicMock(side_effect={
++                    'host': 'host', 'ssh_executable': 'ssh', 'use_tty': False,
++                }.get)
++
++                result = conn.exec_command('command')
++
++                expected_stderr = b'before\r\nfailureafter' if shell_type == 'powershell' else raw_stderr
++                self.assertEqual(result, (1, b'output', expected_stderr))
++
+     def test_plugins_connection_ssh__examine_output(self):
+         pc = PlayContext()
+         new_stdin = StringIO()
+diff --git a/test/units/plugins/shell/test_powershell.py b/test/units/plugins/shell/test_powershell.py
+index b7affce..b633514 100644
+--- a/test/units/plugins/shell/test_powershell.py
++++ b/test/units/plugins/shell/test_powershell.py
+@@ -2,7 +2,7 @@ from __future__ import annotations
+ 
+ import pytest
+ 
+-from ansible.plugins.shell.powershell import _parse_clixml, ShellModule
++from ansible.plugins.shell.powershell import _parse_clixml, _replace_stderr_clixml, ShellModule
+ 
+ 
+ def test_parse_clixml_empty():
+@@ -91,6 +91,7 @@ def test_parse_clixml_multiple_elements():
+     ('surrogate low _xDFB5_', 'surrogate low \uDFB5'),
+     ('lower case hex _x005f_', 'lower case hex _'),
+     ('invalid hex _x005G_', 'invalid hex _x005G_'),
++    ('Unicode hex lookalike _x\u6100\u6200\u6300\u6400_', 'Unicode hex lookalike _x\u6100\u6200\u6300\u6400_'),
+ ])
+ def test_parse_clixml_with_comlex_escaped_chars(clixml, expected):
+     clixml_data = (
+@@ -105,6 +106,117 @@ def test_parse_clixml_with_comlex_escaped_chars(clixml, expected):
+     assert actual == b_expected
+ 
+ 
++def test_replace_stderr_clixml_without_header():
++    stderr = b'plain stderr\r\n<Objs><S S="Error">not CLIXML</S></Objs>\r\n'
++
++    assert _replace_stderr_clixml(stderr) == stderr
++
++
++def test_replace_stderr_clixml_embedded_with_trailing_bytes():
++    stderr = (
++        b'before\r\n'
++        b'#< CLIXML\r\n'
++        b'<Objs Version="1.1.0.1"><S S="Error">decoded</S></Objs> after\r\n'
++        b'last line\r\n'
++    )
++
++    assert _replace_stderr_clixml(stderr) == b'before\r\ndecoded after\r\nlast line\r\n'
++
++
++def test_replace_stderr_clixml_multiline_and_multiple_blocks():
++    stderr = (
++        b'#< CLIXML\r\n'
++        b'<Objs Version="1.1.0.1">\r\n<S S="Error">first</S>\r\n</Objs>\r\n'
++        b'between\r\n'
++        b'#< CLIXML\r\n'
++        b'<Objs Version="1.1.0.1"><S S="Error">second</S></Objs> tail'
++    )
++
++    assert _replace_stderr_clixml(stderr) == b'first\r\nbetween\r\nsecond tail'
++
++
++def test_replace_stderr_clixml_multiple_xml_elements_in_one_block():
++    stderr = (
++        b'#< CLIXML\r\n'
++        b'<Objs Version="1.1.0.1"><S S="Error">first</S></Objs>\r\n'
++        b'<Objs Version="1.1.0.1"><S S="Error">second</S></Objs> tail'
++    )
++
++    assert _replace_stderr_clixml(stderr) == b'first\r\nsecond tail'
++
++
++def test_replace_stderr_clixml_adjacent_xml_elements_in_one_block():
++    stderr = (
++        b'#< CLIXML\r\n'
++        b'<Objs Version="1.1.0.1"><S S="Error">first</S></Objs>'
++        b'<Objs Version="1.1.0.1"><S S="Error">second</S></Objs> tail'
++    )
++
++    assert _replace_stderr_clixml(stderr) == b'first\r\nsecond tail'
++
++
++def test_replace_stderr_clixml_repeated_headers():
++    stderr = (
++        b'#< CLIXML\r\n#< CLIXML\r\n'
++        b'<Objs Version="1.1.0.1"><S S="Error">decoded</S></Objs> tail'
++    )
++
++    assert _replace_stderr_clixml(stderr) == b'decoded tail'
++
++
++@pytest.mark.parametrize('second_element', [
++    b'<Objs Version="1.1.0.1"><S S="Error">incomplete</S>',
++    b'<Objs Version="1.1.0.1"><S S="Error">invalid</Objs>',
++])
++def test_replace_stderr_clixml_bad_second_element_unchanged(second_element):
++    stderr = (
++        b'#< CLIXML\r\n'
++        b'<Objs Version="1.1.0.1"><S S="Error">first</S></Objs>'
++        + second_element
++    )
++
++    assert _replace_stderr_clixml(stderr) == stderr
++
++
++def test_replace_stderr_clixml_crlf_header():
++    stderr = b'\r\nCLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">decoded</S></Objs> tail'
++
++    assert _replace_stderr_clixml(stderr) == b'decoded tail'
++
++
++@pytest.mark.parametrize('stderr', [
++    b'before\r\n#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">incomplete</S>',
++    b'before\r\n#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">invalid</Objs> after',
++    b'#< CLI\r\nXML\r\n<Objs Version="1.1.0.1"><S S="Error">split header</S></Objs>',
++])
++def test_replace_stderr_clixml_incomplete_or_invalid(stderr):
++    assert _replace_stderr_clixml(stderr) == stderr
++
++
++@pytest.mark.parametrize('first_element', [
++    b'<Objs Version="1.1.0.1"><S S="Error">incomplete</S>',
++    b'<Objs Version="1.1.0.1"><S S="Error">invalid</Objs>',
++])
++def test_replace_stderr_clixml_bad_block_before_valid_block(first_element):
++    invalid_prefix = b'#< CLIXML\r\n' + first_element + b'\r\n'
++    stderr = (
++        invalid_prefix
++        + b'#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">valid</S></Objs>'
++    )
++
++    assert _replace_stderr_clixml(stderr) == invalid_prefix + b'valid'
++
++
++@pytest.mark.parametrize('encoded_text', [b'caf\xc3\xa9', b'caf\x82'])
++def test_replace_stderr_clixml_encoding(encoded_text):
++    stderr = (
++        b'\xffplain\r\n#< CLIXML\r\n<Objs Version="1.1.0.1"><S S="Error">'
++        + encoded_text + b'</S></Objs> tail\xfe'
++    )
++
++    assert _replace_stderr_clixml(stderr) == b'\xffplain\r\ncaf\xc3\xa9 tail\xfe'
++
++
+ def test_join_path_unc():
+     pwsh = ShellModule()
+     unc_path_parts = ['\\\\host\\share\\dir1\\\\dir2\\', '\\dir3/dir4', 'dir5', 'dir6\\']

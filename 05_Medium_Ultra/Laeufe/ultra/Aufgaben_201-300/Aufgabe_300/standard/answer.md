@@ -1,0 +1,3 @@
+Implemented `override-validation=true` on the import API. The flag reaches `load()` and `validate_record()`, where it bypasses the specified publication-year, publisher, and ISBN checks. Without the flag, those checks still raise as before; required-field checks remain active. Added the case-insensitive `is_promise_item` utility.
+
+I delegated the API and utility changes to two subagents, then integrated and verified the patch. Relevant tests: **147 passed, 1 expected failure**. Ruff and `git diff --check` passed.

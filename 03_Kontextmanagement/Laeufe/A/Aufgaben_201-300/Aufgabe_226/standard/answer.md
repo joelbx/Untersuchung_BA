@@ -1,0 +1,3 @@
+MIME types and lossless formats now load during startup from [mime_types.yaml](/app/resources/mime_types.yaml). The new [loader](/app/mime/mime.go) registers the mappings through `conf.AddHook`, including explicit `.js` and `.css` types. The UI uses `mime.LosslessFormats`; the hardcoded definitions in `consts/mime_types.go` were removed.
+
+Operators can override the file at `<data folder>/resources/mime_types.yaml`. Relevant existing tests and the new loader tests pass.

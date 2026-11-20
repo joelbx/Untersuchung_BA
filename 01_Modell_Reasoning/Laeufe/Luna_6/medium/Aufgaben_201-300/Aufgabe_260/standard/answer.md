@@ -1,0 +1,3 @@
+Implemented selective SSE delivery. Events sent with a client ID skip the originating client and reach only other subscribers with the same username. Added the UI client UUID header, middleware and context support, and updated broker calls, cookie expiry, and diode API.
+
+Verified with `go test ./server/events ./server ./server/subsonic ./scanner` and `git diff --check`. The TagLib build emits a deprecation warning. Checkpoint: [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated the certificate error wrappers. WebKit now accepts named `reply` and `errors` arguments, leaves the reply untouched during construction, and escapes error text in both paragraph and list HTML. I also added the requested shared decision methods and Qt5/Qt6 WebEngine wrappers and factory.
+
+The WebKit certificate error tests pass: **5 passed**. The broader WebEngine tab test run exited early in this environment, so that path remains unverified.

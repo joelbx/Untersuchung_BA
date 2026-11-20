@@ -1,0 +1,3 @@
+Implemented local artist image lookup. Album models now expose unique media directories, and artist artwork checks the computed artist folder for `artist.*` before external sources. Trace logs include the duration of each lookup attempt.
+
+`go test ./core/artwork ./model` and `git diff --check` pass. The checkpoint is recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

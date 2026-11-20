@@ -1,0 +1,3 @@
+Implemented the token lifecycle interface in [src/api/utils.js](/app/src/api/utils.js). It now supports listing, generation, retrieval, description updates, deletion, usage logging, and last-seen lookup, with the specified storage keys and sorted indexes. Existing authentication callers retain their `log` and `getLastSeen` aliases.
+
+ESLint, syntax, and diff checks pass. The existing authentication token tests could not run because the test database connection was refused during bootstrap.

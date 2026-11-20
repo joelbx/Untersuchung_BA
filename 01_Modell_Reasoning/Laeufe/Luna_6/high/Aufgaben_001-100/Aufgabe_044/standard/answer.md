@@ -1,0 +1,3 @@
+Implemented namespace access evaluation in both OPA engines, added middleware context propagation, and filtered namespace results before pagination so the total count reflects accessible namespaces. Missing or malformed `viewable_namespaces` decisions return errors.
+
+Verification passed: `go test ./internal/server/authz/... ./internal/server -run 'Test(AuthorizationRequiredInterceptor|ListNamespaces|Engine_)'` and `git diff --check`. Role to namespace mappings are supplied by the authorization policy.

@@ -1,0 +1,3 @@
+Added a registration token entry view for both `m.login.registration_token` and `org.matrix.msc3231.login.registration_token`. It shows the labeled, focused field and help text, accepts Enter or button submission, blocks submission while busy, and displays stage errors. The view sends the advertised type and token; the existing authentication flow adds the session and preserves the completion callback’s third argument.
+
+The focused tests pass (4 tests), as do ESLint and formatting checks. The full TypeScript check still reports existing Sliding Sync errors outside the changed files.

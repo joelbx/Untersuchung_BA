@@ -1,0 +1,3 @@
+I traced the duplicate evaluation: `get_vars()` currently evaluates loop items while resolving delegation, then `TaskExecutor` evaluates the loop again. I also confirmed the worker has access to the variable manager, so it can pass that capability into the executor.
+
+I haven’t edited the implementation or run tests yet. The required checkpoint is at [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

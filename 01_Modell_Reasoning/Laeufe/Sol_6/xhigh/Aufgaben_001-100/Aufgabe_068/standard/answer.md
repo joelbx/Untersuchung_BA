@@ -1,0 +1,3 @@
+Fixed owner-encrypted session key propagation for mail details. The single and batch loaders now apply supplied keys before decryption; the entity client, cache, and mail detail call sites pass them through. Cached entities with a missing or different key are reloaded, and the mapper preserves supplied byte keys.
+
+Validation passed: type checks, formatting, diff check, and focused loader, cache, indexer, mail facade, and crypto tests.

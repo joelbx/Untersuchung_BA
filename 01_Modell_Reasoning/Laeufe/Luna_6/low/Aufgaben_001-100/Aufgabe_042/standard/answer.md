@@ -1,0 +1,3 @@
+Implemented `GET /.well-known/webfinger` with resource validation, Guest-aware `view:users` authorization, username lookup, and a JSON response containing the subject, UID and slug aliases, and an HTML profile link. The controller and route are registered through the application’s main composition.
+
+Lint passed. `npm test` could not run successfully because Redis was unavailable at `127.0.0.1:6379`; the suite stopped at its setup hook with 0 tests passing.

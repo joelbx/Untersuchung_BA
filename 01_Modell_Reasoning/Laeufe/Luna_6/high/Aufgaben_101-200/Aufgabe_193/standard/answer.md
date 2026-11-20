@@ -1,0 +1,3 @@
+Implemented mixed role and collection requirements installs in [galaxy.py](/app/lib/ansible/cli/galaxy.py). Bare `ansible-galaxy install -r` installs both types when using the default role path; custom role paths warn and skip collections. Explicit role and collection installs skip the other type with the requested feedback. Empty requirements now report that installation is skipped, and forced role installs can requeue dependencies.
+
+Verification: **147 existing Galaxy CLI and collection install tests passed** with the checkout’s development warning disabled. `git diff --check` and Python compilation passed. The required checkpoint is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

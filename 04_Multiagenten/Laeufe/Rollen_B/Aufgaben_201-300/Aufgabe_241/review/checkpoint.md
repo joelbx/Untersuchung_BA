@@ -1,0 +1,6 @@
+VERDICT: ACCEPT
+Independent review of the applied patch found no correctness or regression issue in the requested flow. The component guards start() synchronously with a ref, renders a native disabled button while pending, prevents duplicate device menus, and updates the header label from useAudioDeviceSelection after selection. No project code or tests were changed by this review.
+Relevant test: ./node_modules/.bin/jest --runInBand --no-coverage test/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip-test.tsx — PASS (12 tests, 1 snapshot). Jest emitted a React warning about mountAsChild in DevicesContextMenu, which is outside the applied diff.
+Focused lint: ./node_modules/.bin/eslint --max-warnings 0 src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx test/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip-test.tsx — PASS.
+Repository type check: ./node_modules/.bin/tsc --noEmit --jsx react — FAIL (exit 2), with five pre-existing MatrixClient type errors in MatrixChat.tsx, clientInformation.ts, and DeviceListener-test.ts; none are in changed files. Actionable correction: align the installed matrix-js-sdk types and the affected call sites/mocks, then rerun type check.
+TEST_ENVIRONMENT_PROBLEM: none for the relevant Jest test. git diff --check — PASS.

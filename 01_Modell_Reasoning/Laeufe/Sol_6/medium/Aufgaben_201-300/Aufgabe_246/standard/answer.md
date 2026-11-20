@@ -1,0 +1,3 @@
+Updated the scanner to analyze each lockfile separately and carry its path into vulnerability findings. Reports now resolve library versions by both path and name, and repeated CVEs retain findings from every affected lockfile. Unknown lockfile types return an initialization error.
+
+Added regression tests and updated the local dependency versions needed for the analyzer APIs. `GOPROXY=off go test ./...` passes.

@@ -1,0 +1,3 @@
+Updated the [List and Seed model](/app/openlibrary/core/lists/model.py) with explicit annotations, a shared `SeedDict`, normalized subject keys, and consistent duplicate detection across seed formats. Exports now always include `authors`, `works`, and `editions`, with loaded documents filtered by type. The [list controller](/app/openlibrary/plugins/openlibrary/lists.py) uses the same normalization and has simpler export handling; URL helpers also have string annotations.
+
+Verification: 20 relevant tests passed. Ruff, `git diff --check`, and targeted mypy checks passed.

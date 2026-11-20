@@ -1,0 +1,3 @@
+Implemented predictable no-log sanitization in `/app`: `remove_values` masks sensitive substrings in values while preserving keys and scalar types; the new `sanitize_keys` masks mapping keys, honors ignored keys and `_ansible` prefixes, and uses the required sentinel for exact matches. The `uri` module applies key sanitization to responses when `no_log_values` is populated.
+
+The focused tests pass: **29 passed**. The earlier broader basic-module run had failures from old expectations, date serialization, and accumulated test warnings; it was not rerun after the fixes. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Fixed the batch import crash: records with no ASIN no longer map to `amazon: [None]`, and metadata lookup skips empty or non-string identifiers. Added regression tests for both cases.
+
+The reviewer’s test commands pass with `PYTHONPATH=/app/scripts:/app`: 33 import tests and 74 add-book tests. The plain pytest command still has the known `_init_path` collection error (**TEST_ENVIRONMENT_PROBLEM**).

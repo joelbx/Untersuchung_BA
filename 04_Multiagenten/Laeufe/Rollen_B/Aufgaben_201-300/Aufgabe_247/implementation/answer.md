@@ -1,0 +1,3 @@
+Updated `SocketPosts.getUpvoters` to check `topics:read` across every supplied post’s category before returning data. Administrators can bypass category restrictions. The response now uses a cutoff of 6, resolves distinct UIDs in one username lookup, and preserves each post’s voter order. The tooltip uses the returned cutoff and supports escaped HTML.
+
+Added regression tests for mixed category access, administrator access, and truncation. The voting suite passed (12 tests); ESLint and `git diff --check` passed.

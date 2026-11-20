@@ -1,0 +1,3 @@
+Resolved issue #3292 in the checked-out files. Removed `BreakUp` and `RangeByChunks`, updated their callers to use `slices.Chunk`, changed `CollectChunks` to accept a sequence first while keeping yielded chunks independent, and added the lazy `SeqFunc` utility.
+
+The relevant tests passed: `GOTOOLCHAIN=local GOPROXY=off go test ./utils/slice ./scanner ./persistence ./core`. `git diff --check` also passed.

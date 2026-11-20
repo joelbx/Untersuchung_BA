@@ -1,0 +1,3 @@
+Implemented YAML-native variant attachments in the new `internal/ext` import and export workflows, and wired the CLI commands to use them. Export now renders stored JSON as YAML structures; import converts YAML structures to JSON strings for storage. Nested values and explicit `null` round trip, while missing attachments stay empty.
+
+Focused round trip tests pass, and `go test ./internal/ext ./cmd/flipt ./rpc/flipt` passes. The named example fixtures are absent from this checkout, so I could not compare output against them.

@@ -1,0 +1,3 @@
+Implemented `utils.parse_version` using normalized `QVersionNumber` values and updated the Qt version checks, distribution version, and crash dialog comparison to use it.
+
+The final focused run passed **18 tests**. A broader affected run reported 341 passing tests but exited during Xvfb teardown. The full suite could not complete because end to end tests require QtWebKit, which is unavailable in this environment. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,1 @@
+Updated [OS EOL data](/app/config/os.go) for Fedora, SUSE Enterprise, and macOS, and extended the [Windows KB mappings](/app/scanner/windows.go) with revision ordered, named struct literals. Focused `config` and `scanner` tests passed, as did `git diff --check`.

@@ -1,0 +1,3 @@
+Implemented Amazon language metadata extraction in [vendors.py](/app/openlibrary/core/vendors.py). Serialization preserves Amazon’s display values, skips “Original Language,” removes duplicates, and omits `languages` when no values remain. The load cleaner now accepts the field.
+
+Added coverage in [test_vendors.py](/app/openlibrary/tests/core/test_vendors.py). All 35 tests in that module passed, and `git diff --check` passed.

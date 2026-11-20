@@ -1,0 +1,3 @@
+Call sounds now clear an audio element’s `muted` state immediately before playback, including after a queued sound reloads. The four [sound IDs](/app/src/LegacyCallHandler.tsx:74) are exported for other code to use.
+
+I added the requested [media event listener](/app/src/legacy/LegacyCallHandler/handleEvent.ts:29), its debug setting, and focused regression tests. Verification passed: 17 targeted tests, ESLint, TypeScript, and `git diff --check`.

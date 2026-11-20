@@ -1,0 +1,3 @@
+Fixed namespace listing for users without access to `default`. The authorization engines now evaluate viewable namespaces, middleware passes the result to the service, and the endpoint filters namespaces and counts to match access. The UI redirects an inaccessible namespace route to a visible namespace.
+
+The affected Go test suites and `git diff --check` pass. The UI build remains unverified because `npm` is unavailable; that limitation is recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

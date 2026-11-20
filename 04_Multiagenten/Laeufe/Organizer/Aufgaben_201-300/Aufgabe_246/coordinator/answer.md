@@ -1,0 +1,3 @@
+Fixed vulnerability reporting for projects with multiple lockfiles. Each lockfile is analyzed separately, and findings carry its path through CVE merging, Trivy JSON parsing, and the TUI and util reports. Library version lookup now uses both path and name. I also added the required `DummyFileInfo` and updated the scanner dependencies to locally cached versions that support `AnalyzeFile` and error returning driver initialization.
+
+Validation: `GOPROXY=off go test -mod=mod ./...` and `git diff --check` passed. No delegation was used.

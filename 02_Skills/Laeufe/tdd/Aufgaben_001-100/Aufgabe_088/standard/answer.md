@@ -1,0 +1,3 @@
+Updated `getObject` and `getObjects` in the Redis, MongoDB, and PostgreSQL backends to accept an optional `fields` array. Requested fields are selected, absent stored fields return `null`, and missing keys remain falsy. An empty array returns the full object in all four object retrieval methods.
+
+The Redis database suite passed (267 tests), as did lint. The full `npm test` run stopped after 198 passing tests: the plugins admin endpoint returned 500 when an external package request received a proxy 403. MongoDB and PostgreSQL integration tests were not run because those services were unavailable locally. The command, failure, and remaining uncertainty are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

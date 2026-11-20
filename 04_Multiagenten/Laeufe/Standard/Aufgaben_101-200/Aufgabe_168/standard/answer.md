@@ -1,0 +1,3 @@
+Added a member-scoped lock to the user info panel’s Kick, Ban, and Mute buttons. It blocks repeat activation immediately, sets both `disabled` and `aria-disabled="true"` on all three buttons, and clears when confirmation is canceled or the operation succeeds or fails. Failures show one error dialog.
+
+The focused UserInfo suite passes all 71 tests, and ESLint passes. The repository-wide type check still reports existing errors outside the changed files; it reports none in these files.

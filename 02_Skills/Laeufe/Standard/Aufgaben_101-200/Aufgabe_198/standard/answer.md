@@ -1,0 +1,3 @@
+Resolved the Red Hat OVAL issue in `/app`. The analyser now accepts only supported advisory identifiers, carries OVAL fix states into package results, and uses OVAL alone for Red Hat and derived package CVE detection. The updated goval-dictionary version was already cached locally.
+
+Added focused tests. `GOPROXY=off GOSUMDB=off go test -mod=mod ./oval ./gost ./detector` and `git diff --check` passed. Progress is recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

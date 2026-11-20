@@ -1,0 +1,3 @@
+Polling now has a managed lifecycle. The shared `Poller` owns its context, cancels it on `Close()`, and waits for its loop to exit. Git, local, S3, Azure Blob, and OCI snapshot stores expose `Close()`; the store wrapper and server shutdown path call it. S3 and Azure Blob requests also receive the polling context so cancellation can reach active network calls.
+
+Verification passed: `go test ./internal/storage/fs/... ./internal/cmd` and `git diff --check`. No delegation was used.

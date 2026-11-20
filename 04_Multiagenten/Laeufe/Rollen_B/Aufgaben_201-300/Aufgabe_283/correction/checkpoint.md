@@ -1,0 +1,1 @@
+Correction complete: added VerifiedBadge with a “Verified message” tooltip, replaced the inline badge in ItemColumnLayout, and changed Item badge visibility to isFromProton(element) while retaining recipient and DMARC checks. Exact reviewer-flagged checks passed: helper test 22/22, proton-mail check-types, and git diff --check. No remaining failures or test environment problems.

@@ -1,0 +1,3 @@
+Implemented `DocCLI.tty_ify` in [doc.py](/app/lib/ansible/cli/doc.py:80) to render the requested macros, process multiple tokens in one line, and preserve unsupported parenthesized text such as `IBM(International Business Machines)`.
+
+**Verification:** The required output examples passed direct assertions; the CLI unit suite passed (27 tests); the `ansible-doc` integration target and `git diff --check` passed. The default unit run lacked `pytest` in its Python 3.8 environment, so I ran the suite locally with Python 3.9.

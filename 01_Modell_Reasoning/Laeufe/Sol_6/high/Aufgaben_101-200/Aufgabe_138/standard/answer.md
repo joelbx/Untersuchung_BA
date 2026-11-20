@@ -1,0 +1,3 @@
+OCI bundle manifests are now configurable with `storage.oci.manifest_version: "1.0"` or `"1.1"`. The default is `"1.1"`; unsupported values fail configuration loading with the specified validation error. Bundle creation uses the configured version through `WithManifestVersion`.
+
+The relevant Go tests passed, including checks of the generated manifests for both versions. AWS ECR was not tested directly.

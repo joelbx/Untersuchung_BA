@@ -1,0 +1,3 @@
+Updated the repository so Ubuntu vulnerability reports include both Ubuntu CVE sources. The new `GetCveContentTypes` mapping is used for source URLs, field and text ordering, and change detection. CVSS v3 retrieval now includes applicable source scores, and `NEGLIGIBLE` maps to the low score range. The existing single-source mapping remains available.
+
+Regression tests were added. `go test ./models ./detector ./reporter` and `git diff --check` passed.

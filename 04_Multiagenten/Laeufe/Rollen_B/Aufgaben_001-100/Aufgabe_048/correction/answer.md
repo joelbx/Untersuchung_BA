@@ -1,0 +1,3 @@
+Fixed both review findings. Jinja lookup now checks routing before file enumeration, so a tombstoned filter without a file raises `TemplateSyntaxError`. Plugin loading and Jinja lookup now display recorded deprecations through `Display.deprecated`.
+
+Added regression tests. The reviewer’s exact test command passed: **45 passed**. `git diff --check` passed. No remaining failures or test environment problems.

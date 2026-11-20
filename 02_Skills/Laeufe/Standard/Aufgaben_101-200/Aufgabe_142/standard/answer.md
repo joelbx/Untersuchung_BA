@@ -1,0 +1,3 @@
+Replaced the expression walker with typed AST nodes for literals, variables, nested string functions, and boolean regex matchers. Interpolation now validates variables through a caller callback; trait and PAM call sites use that callback to enforce their namespace rules. Added parser and matcher tests.
+
+`go test ./lib/utils/parse` and `git diff --check` passed. Service and server tests remain unverified: local C headers and CGO dependencies prevented those packages from building. The exact failures are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

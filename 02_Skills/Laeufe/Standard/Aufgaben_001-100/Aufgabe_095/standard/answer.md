@@ -1,0 +1,3 @@
+Added the importable `make_date_string` function and `patron_check_ins.is_valid` in [checkins.py](/app/openlibrary/plugins/upstream/checkins.py). The formatter zero-pads month and day, handles partial dates, and remains available through the existing `check_ins` method. Validation requires an `id` and at least one of `year` or `data`.
+
+Added focused tests in [test_checkins.py](/app/openlibrary/plugins/upstream/tests/test_checkins.py). All 7 check-in tests pass, and `git diff --check` passes.

@@ -1,0 +1,1 @@
+Task complete: format_languages resolves existing MARC aliases and language names, validates canonical keys, and deduplicates in input order. Added Deutsch alias and regression cases. Verification: openlibrary/tests/catalog/test_utils.py, 96 passed.

@@ -1,0 +1,2 @@
+Task: Fix /lists/add POST handling so form body values take precedence over query parameters; nested seeds reconstruct safely; repeated simple flattened assignments use the last value.
+Status: Implemented body-only parse_qs input with first-value semantics and ancestor-aware defaults, filtered invalid seeds, and updated unflatten overwrite behavior. Added focused regression tests. Verification: 17 relevant tests passed; ruff check and git diff --check passed.

@@ -1,0 +1,3 @@
+Updated [WPScan ingestion](/app/detector/wordpress.go) to use the first CVE for each vulnerability and preserve ordered references, UTC timestamps, classification, and fix version. Enterprise descriptions, proof of concept links, introduced versions, and CVSS metrics now populate the record; omitted or null fields leave optional metadata empty. [CVSS reporting](/app/models/vulninfos.go) now uses WPScan’s supplied score and vector.
+
+Two subagents added ingestion and CVSS tests. `go test ./detector ./models -count=1` passed offline, as did `git diff --check`.

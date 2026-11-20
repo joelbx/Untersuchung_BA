@@ -1,0 +1,3 @@
+Fixed the PassAliases drawer. The provider now loads aliases from an existing vault, shows a clear “No aliases” state when the list is empty, and creates a default vault when the user starts alias creation. The bridge’s default-vault lookup no longer creates a vault implicitly.
+
+Verification passed: all 3 PassAliases drawer tests, components and pass type checks, targeted ESLint, and `git diff --check`.

@@ -1,0 +1,3 @@
+Implemented the no_log sanitization changes in [basic.py](/app/lib/ansible/module_utils/basic.py): `remove_values` now masks sensitive text in values without changing keys, and the new `sanitize_keys` handles key redaction, exact matches, ignored keys, and deeply nested mappings. The [uri module](/app/lib/ansible/modules/uri.py) applies key sanitization when `no_log_values` is populated.
+
+The 32 focused tests pass, and `git diff --check` passes. The broader basic suite has 22 failures caused by shared warning state beginning in `test_argument_spec`; the affected `exit_json` tests pass when run separately.

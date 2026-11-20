@@ -1,0 +1,3 @@
+MIME mappings and lossless formats now load during startup from [mime_types.yaml](/app/resources/mime_types.yaml). The loader uses the resource filesystem, so operators can override the bundled file in the data folder’s `resources` directory. The UI reads `mime.LosslessFormats` for its uppercase, comma-separated setting.
+
+The affected tests passed: `./mime`, `./server`, `./model`, and `./core`. The `./cmd` package compiled successfully and has no tests.

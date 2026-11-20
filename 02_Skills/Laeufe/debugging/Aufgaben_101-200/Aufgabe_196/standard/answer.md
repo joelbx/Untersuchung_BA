@@ -1,0 +1,3 @@
+Updated the assistant upsell paths to use the shared Scribe addon resolver and build `planIDs` with an addon only when the resolver returns one. Exported `SelectedPlan` and the resolver from the public payments/core entrypoint, and updated their call sites.
+
+The relevant Jest suites pass (50 tests), including new cases for unsupported plans. The components type check remains blocked by an unrelated `openpgp` type conflict in `crypto/lib/worker/api.ts`.

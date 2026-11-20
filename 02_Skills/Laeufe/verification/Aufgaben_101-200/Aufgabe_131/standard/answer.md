@@ -1,0 +1,3 @@
+Added bounded polling to [usePollEvents.ts](/app/packages/components/payments/client-extensions/usePollEvents.ts). It calls the event manager every 5000 ms for up to five attempts, stops early on a matching property and action, and unsubscribes on completion. New Chargebee card and PayPal payment method flows now use it.
+
+Verification: 5 tests passed across 2 suites; type check, ESLint, Prettier, and `git diff --check` passed.

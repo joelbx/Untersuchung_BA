@@ -1,0 +1,3 @@
+Started: tracing Qt wrapper selection and early availability checks. Diagnosis is a hypothesis pending code inspection.
+Verified: explicit selection runs in qutebrowser.main; early checker reads INFO globally; implicit init uses default without probing; autoselection discards failure details. Implementing early init handoff, dedicated error, and robust implicit selection.
+Implemented: early_init now initializes machinery and passes its returned SelectionInfo to check_qt_available; implicit init autoselects and raises NoWrapperAvailableError with retained import details; selection messages, debug output, and checker spacing updated. Verification: 26 machinery tests and 24 earlyinit/entry tests pass with PYTHONPATH=.; compileall and git diff --check pass.

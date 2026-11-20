@@ -1,0 +1,3 @@
+Implemented ipset matching in [iptables.py](/app/lib/ansible/modules/iptables.py): `match_set` and `match_set_flags` are documented, validated as a required pair, and rendered as `-m set --match-set <name> <flags>`. Set matching works with or without `match: ['set']`, and a leading `!` on the set name inverts the match.
+
+Added unit coverage for implicit and explicit set matches and inversion. The focused test file passes: **24 passed**.

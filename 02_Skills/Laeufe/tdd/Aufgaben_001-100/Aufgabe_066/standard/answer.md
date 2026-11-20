@@ -1,0 +1,3 @@
+Added [transformStyleAttributes.ts](/app/applications/mail/src/app/helpers/transforms/transformStyleAttributes.ts) to replace inline `height` values containing `vh` with `auto` while preserving other styles. It runs in [prepareHtml](/app/applications/mail/src/app/helpers/transforms/transforms.ts) after `transformStylesheet` and before `transformRemote`. A regression test covers nested elements and unaffected styles.
+
+Verification: the full mail Jest suite passed (117 suites, 994 tests passed, 2 skipped); TypeScript, ESLint, and Prettier passed. `npm test` could not start Jest because of a local npm `stdin` error, so the full suite was run through the Jest binary directly.

@@ -1,0 +1,3 @@
+Startup now uses `release.Is(version)` to classify builds, so `-rc`, `-snapshot`, and `-dev` builds are treated as non-release builds and have telemetry disabled. Update checks use `release.Check` and its returned version, availability, and URL for console or logger status messages. Failed checks log a warning and do not stop startup.
+
+The release classification test passes, and `go test ./internal/release ./internal/info ./cmd/flipt` completed successfully.

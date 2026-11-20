@@ -1,0 +1,3 @@
+Implemented the internal `utils.tokens` lifecycle interface in [src/api/utils.js](/app/src/api/utils.js). It now generates, lists, retrieves, updates, deletes, and logs tokens using the requested metadata and sorted indexes. Existing authentication usage logging and the admin last-seen view now call the unified interface.
+
+Added a focused [lifecycle test](/app/test/api-utils.js). It passed with a temporary local Redis process; ESLint and `git diff --check` also passed.

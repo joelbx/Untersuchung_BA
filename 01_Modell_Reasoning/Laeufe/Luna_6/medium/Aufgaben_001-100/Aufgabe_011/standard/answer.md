@@ -1,0 +1,3 @@
+Implemented the requested fixes across module parameter and traceback handling, YAML legacy constructors, templar overrides, lookup diagnostics, deprecation configuration, the `timedout` test, and early CLI errors.
+
+Verification: 156 focused existing tests passed, followed by 54 display and templating tests. `git diff --check` passed. A broader CLI test run encountered unrelated fixture and setup failures; those are recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

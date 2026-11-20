@@ -1,0 +1,3 @@
+Updated `config.Load` to return a `Result` with separate `Config` and `Warnings` fields. Deprecation warnings now come from keys explicitly present in the configuration file, before defaults are applied. This includes `ui.enabled` and the existing cache and database options. The CLI logs the returned warnings, and the config tests cover these cases.
+
+`go test ./internal/config ./cmd/flipt` and `git diff --check` passed. No delegation was used.

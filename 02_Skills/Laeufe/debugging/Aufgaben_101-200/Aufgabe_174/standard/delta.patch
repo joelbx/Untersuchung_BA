@@ -1,0 +1,262 @@
+diff --git a/lib/ansible/executor/process/worker.py b/lib/ansible/executor/process/worker.py
+index 4e70a34..520b84f 100644
+--- a/lib/ansible/executor/process/worker.py
++++ b/lib/ansible/executor/process/worker.py
+@@ -120,20 +120,11 @@ class WorkerProcess(multiprocessing_context.Process):  # type: ignore[name-defin
+         a try/except added in far-away code can cause a crashed child process
+         to suddenly assume the role and prior state of its parent.
+         '''
++        display.set_queue(self._final_q)
+         try:
+             return self._run()
+         except BaseException as e:
+             self._hard_exit(e)
+-        finally:
+-            # This is a hack, pure and simple, to work around a potential deadlock
+-            # in ``multiprocessing.Process`` when flushing stdout/stderr during process
+-            # shutdown. We have various ``Display`` calls that may fire from a fork
+-            # so we cannot do this early. Instead, this happens at the very end
+-            # to avoid that deadlock, by simply side stepping it. This should not be
+-            # treated as a long term fix.
+-            # TODO: Evaluate overhauling ``Display`` to not write directly to stdout
+-            # and evaluate migrating away from the ``fork`` multiprocessing start method.
+-            sys.stdout = sys.stderr = open(os.devnull, 'w')
+ 
+     def _run(self):
+         '''
+diff --git a/lib/ansible/executor/task_queue_manager.py b/lib/ansible/executor/task_queue_manager.py
+index 8725a38..f9632f5 100644
+--- a/lib/ansible/executor/task_queue_manager.py
++++ b/lib/ansible/executor/task_queue_manager.py
+@@ -58,6 +58,12 @@ class CallbackSend:
+         self.kwargs = kwargs
+ 
+ 
++class DisplaySend:
++    def __init__(self, *args, **kwargs):
++        self.args = args
++        self.kwargs = kwargs
++
++
+ class FinalQueue(multiprocessing.queues.Queue):
+     def __init__(self, *args, **kwargs):
+         kwargs['ctx'] = multiprocessing_context
+@@ -69,6 +75,9 @@ class FinalQueue(multiprocessing.queues.Queue):
+             block=False
+         )
+ 
++    def send_display(self, *args, **kwargs):
++        self.put(DisplaySend(*args, **kwargs), block=False)
++
+     def send_task_result(self, *args, **kwargs):
+         if isinstance(args[0], TaskResult):
+             tr = args[0]
+@@ -320,8 +329,10 @@ class TaskQueueManager:
+         try:
+             play_return = strategy.run(iterator, play_context)
+         finally:
+-            strategy.cleanup()
++            # Let workers finish sending display events before the strategy
++            # stops its result reader with a sentinel.
+             self._cleanup_processes()
++            strategy.cleanup()
+ 
+         # now re-save the hosts that failed from the iterator to our internal list
+         for host_name in iterator.get_failed_hosts():
+@@ -337,6 +348,8 @@ class TaskQueueManager:
+         self.terminate()
+         self._final_q.close()
+         self._cleanup_processes()
++        sys.stdout.flush()
++        sys.stderr.flush()
+ 
+     def _cleanup_processes(self):
+         if hasattr(self, '_workers'):
+diff --git a/lib/ansible/plugins/strategy/__init__.py b/lib/ansible/plugins/strategy/__init__.py
+index 1d703ac..e827e05 100644
+--- a/lib/ansible/plugins/strategy/__init__.py
++++ b/lib/ansible/plugins/strategy/__init__.py
+@@ -41,7 +41,7 @@ from ansible.executor import action_write_locks
+ from ansible.executor.play_iterator import IteratingStates, FailedStates
+ from ansible.executor.process.worker import WorkerProcess
+ from ansible.executor.task_result import TaskResult
+-from ansible.executor.task_queue_manager import CallbackSend
++from ansible.executor.task_queue_manager import CallbackSend, DisplaySend
+ from ansible.module_utils.six import string_types
+ from ansible.module_utils._text import to_text
+ from ansible.module_utils.connection import Connection, ConnectionError
+@@ -116,6 +116,8 @@ def results_thread_main(strategy):
+             result = strategy._final_q.get()
+             if isinstance(result, StrategySentinel):
+                 break
++            elif isinstance(result, DisplaySend):
++                display.display(*result.args, **result.kwargs)
+             elif isinstance(result, CallbackSend):
+                 for arg in result.args:
+                     if isinstance(arg, TaskResult):
+diff --git a/lib/ansible/utils/display.py b/lib/ansible/utils/display.py
+index b9d2465..d7c1a1b 100644
+--- a/lib/ansible/utils/display.py
++++ b/lib/ansible/utils/display.py
+@@ -29,6 +29,7 @@ import random
+ import subprocess
+ import sys
+ import textwrap
++import threading
+ import time
+ 
+ from struct import unpack, pack
+@@ -202,6 +203,9 @@ class Display(metaclass=Singleton):
+ 
+     def __init__(self, verbosity=0):
+ 
++        self._lock = threading.Lock()
++        self._final_q = None
++        self._parent_pid = os.getpid()
+         self.columns = None
+         self.verbosity = verbosity
+ 
+@@ -241,12 +245,26 @@ class Display(metaclass=Singleton):
+                 if os.path.exists(b_cow_path):
+                     self.b_cowsay = b_cow_path
+ 
++    def set_queue(self, queue):
++        if os.getpid() == self._parent_pid:
++            raise RuntimeError('Display queue can only be set in a forked worker process')
++        self._final_q = queue
++
+     def display(self, msg, color=None, stderr=False, screen_only=False, log_only=False, newline=True):
+         """ Display a message to the user
+ 
+         Note: msg *must* be a unicode string to prevent UnicodeError tracebacks.
+         """
+ 
++        if self._final_q is not None:
++            self._final_q.send_display(msg, color, stderr, screen_only, log_only, newline)
++            return
++
++        with self._lock:
++            self._display(msg, color, stderr, screen_only, log_only, newline)
++
++    def _display(self, msg, color, stderr, screen_only, log_only, newline):
++
+         nocolor = msg
+ 
+         if not log_only:
+diff --git a/test/units/executor/test_forked_display.py b/test/units/executor/test_forked_display.py
+new file mode 100644
+index 0000000..ab7a266
+--- /dev/null
++++ b/test/units/executor/test_forked_display.py
+@@ -0,0 +1,111 @@
++import os
++import threading
++from queue import Queue
++from unittest.mock import Mock
++
++import pytest
++
++from ansible.executor.task_queue_manager import DisplaySend, FinalQueue, TaskQueueManager
++from ansible.executor.process.worker import WorkerProcess
++from ansible.plugins.strategy import StrategySentinel, results_thread_main
++from ansible.utils.display import Display
++from ansible.utils.multiprocessing import context as multiprocessing_context
++
++
++def _send_from_fork(queue):
++    display = Display()
++    display.set_queue(queue)
++    display.display('from fork', stderr=True)
++
++
++def test_display_queue_routes_worker_call_and_preserves_arguments(monkeypatch):
++    display = Display()
++    assert isinstance(display._lock, type(threading.Lock()))
++    queue = Mock()
++    with pytest.raises(RuntimeError):
++        display.set_queue(queue)
++
++    worker_pid = os.getpid() + 1
++    monkeypatch.setattr('ansible.utils.display.os.getpid', lambda: worker_pid)
++    try:
++        display.set_queue(queue)
++        display.display('message', 'red', True, False, True, False)
++        queue.send_display.assert_called_once_with('message', 'red', True, False, True, False)
++    finally:
++        display._final_q = None
++
++
++def test_worker_installs_display_queue_before_running(monkeypatch, capsys):
++    display = Display()
++    worker = WorkerProcess.__new__(WorkerProcess)
++    worker._final_q = Mock()
++    worker._run = lambda: display.display('from worker', stderr=True)
++    worker_pid = os.getpid() + 1
++    monkeypatch.setattr('ansible.utils.display.os.getpid', lambda: worker_pid)
++    try:
++        worker.run()
++        worker._final_q.send_display.assert_called_once_with('from worker', None, True, False, False, True)
++        assert capsys.readouterr() == ('', '')
++    finally:
++        display._final_q = None
++
++
++def test_fork_sends_display_while_parent_lock_is_held():
++    display = Display()
++    queue = FinalQueue()
++    worker = multiprocessing_context.Process(target=_send_from_fork, args=(queue,))
++    display._lock.acquire()
++    try:
++        worker.start()
++        event = queue.get(timeout=5)
++        assert isinstance(event, DisplaySend)
++        assert event.args == ('from fork', None, True, False, False, True)
++        worker.join(timeout=5)
++        assert worker.exitcode == 0
++    finally:
++        display._lock.release()
++        if worker.is_alive():
++            worker.terminate()
++            worker.join(timeout=5)
++        queue.close()
++
++
++def test_final_queue_send_display_preserves_call():
++    queue = FinalQueue()
++    try:
++        queue.put = Mock()
++        queue.send_display('message', color='red', stderr=True)
++        event = queue.put.call_args.args[0]
++        assert isinstance(event, DisplaySend)
++        assert event.args == ('message',)
++        assert event.kwargs == {'color': 'red', 'stderr': True}
++        assert queue.put.call_args.kwargs == {'block': False}
++    finally:
++        queue.close()
++
++
++def test_results_thread_dispatches_all_display_events(monkeypatch):
++    queue = Queue()
++    queue.put(DisplaySend('first', stderr=True))
++    queue.put(DisplaySend('second', newline=False))
++    queue.put(StrategySentinel())
++    strategy = Mock(_final_q=queue)
++    parent_display = Mock()
++    monkeypatch.setattr('ansible.plugins.strategy.display', parent_display)
++    results_thread_main(strategy)
++    assert parent_display.display.call_count == 2
++    parent_display.display.assert_any_call('first', stderr=True)
++    parent_display.display.assert_any_call('second', newline=False)
++
++
++def test_cleanup_flushes_both_streams(monkeypatch):
++    stdout = Mock()
++    stderr = Mock()
++    monkeypatch.setattr('ansible.executor.task_queue_manager.sys.stdout', stdout)
++    monkeypatch.setattr('ansible.executor.task_queue_manager.sys.stderr', stderr)
++    tqm = TaskQueueManager.__new__(TaskQueueManager)
++    tqm._final_q = Mock()
++    tqm._terminated = False
++    tqm.cleanup()
++    stdout.flush.assert_called_once_with()
++    stderr.flush.assert_called_once_with()

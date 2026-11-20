@@ -1,0 +1,3 @@
+Implemented YAML-native variant attachments in `internal/ext` and connected the CLI import and export commands to it. Export renders stored JSON attachments as YAML structures; import converts YAML attachments to JSON strings and handles missing attachments. Flags, variants, segments, constraints, rules, and distributions remain in the document hierarchy.
+
+Round-trip tests cover nested values and missing attachments. `go test ./internal/ext`, `go test ./storage/... ./cmd/flipt`, and `git diff --check` passed.

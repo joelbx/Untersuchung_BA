@@ -1,0 +1,3 @@
+Fixed reference validation in `/app`. `Validate` now returns one error that callers can unwrap into individual errors with messages and file positions. Snapshots reject unknown variant and segment references, and `flipt import` checks references before writing state, so repeated attempts with the same invalid file fail consistently.
+
+Updated the valid fixtures and added regression tests. `go test ./internal/cue ./internal/storage/fs ./cmd/flipt` and `git diff --check` pass.

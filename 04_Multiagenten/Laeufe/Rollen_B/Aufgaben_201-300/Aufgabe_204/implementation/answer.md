@@ -1,0 +1,3 @@
+Implemented `guessDateFromText` and wired it into CSV import and vCard text conversion. It parses the requested ISO, month-name, and slash-separated formats; invalid dates return `undefined` instead of defaulting to today. Existing valid `Date` values remain unchanged. Added tests for parsing and vCard serialization.
+
+TypeScript, ESLint, formatting, and direct parser checks passed. The Karma test bundle compiled, but browser tests could not start because the configured Playwright Chromium binary is missing.

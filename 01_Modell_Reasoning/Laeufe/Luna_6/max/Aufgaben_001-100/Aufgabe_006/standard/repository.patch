@@ -1,0 +1,398 @@
+diff --git a/lib/utils/fanoutbuffer/buffer.go b/lib/utils/fanoutbuffer/buffer.go
+new file mode 100644
+index 0000000..05a4926
+--- /dev/null
++++ b/lib/utils/fanoutbuffer/buffer.go
+@@ -0,0 +1,392 @@
++/*
++Copyright 2026 Gravitational, Inc.
++
++Licensed under the Apache License, Version 2.0 (the "License");
++you may not use this file except in compliance with the License.
++You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++*/
++
++// Package fanoutbuffer provides a concurrent buffer with independent read
++// cursors. Each cursor observes the items appended after it was created.
++package fanoutbuffer
++
++import (
++	"context"
++	"errors"
++	"sync"
++	"time"
++
++	"github.com/jonboulle/clockwork"
++)
++
++const (
++	defaultCapacity    = 64
++	defaultGracePeriod = 5 * time.Minute
++)
++
++var (
++	// ErrGracePeriodExceeded is returned when a cursor remains behind the
++	// ring buffer for longer than the configured grace period.
++	ErrGracePeriodExceeded = errors.New("fanout buffer cursor grace period exceeded")
++	// ErrUseOfClosedCursor is returned when a closed cursor is read or closed
++	// again.
++	ErrUseOfClosedCursor = errors.New("use of closed fanout buffer cursor")
++	// ErrBufferClosed is returned when reading from a buffer that has been
++	// closed.
++	ErrBufferClosed = errors.New("fanout buffer is closed")
++)
++
++// Config configures a fanout buffer.
++type Config struct {
++	// Capacity is the number of recent items held in the fixed-size ring.
++	Capacity uint64
++	// GracePeriod is how long a cursor may remain behind the ring while its
++	// unread items are retained in the overflow backlog.
++	GracePeriod time.Duration
++	// Clock provides the time source used to measure the grace period.
++	Clock clockwork.Clock
++}
++
++// SetDefaults sets unset configuration fields to their default values.
++func (c *Config) SetDefaults() {
++	if c.Capacity == 0 {
++		c.Capacity = defaultCapacity
++	}
++	if c.GracePeriod <= 0 {
++		c.GracePeriod = defaultGracePeriod
++	}
++	if c.Clock == nil {
++		c.Clock = clockwork.NewRealClock()
++	}
++}
++
++// Buffer distributes appended items to all cursors that are active when the
++// items are appended. It keeps the newest items in a fixed-size ring and
++// retains displaced items in an overflow backlog while cursors still need
++// them.
++type Buffer[T any] struct {
++	mu sync.Mutex
++
++	capacity    uint64
++	gracePeriod time.Duration
++	clock       clockwork.Clock
++
++	ring      []T
++	ringStart uint64 // sequence number at the start of the ring
++	ringLen   uint64
++	nextSeq   uint64 // sequence number to assign to the next appended item
++
++	backlog      []T
++	backlogHead  int
++	backlogStart uint64 // sequence number at backlogHead
++
++	cursors map[*Cursor[T]]struct{}
++	notify  chan struct{}
++	closed  bool
++}
++
++// NewBuffer creates a buffer with the provided configuration.
++func NewBuffer[T any](cfg Config) *Buffer[T] {
++	cfg.SetDefaults()
++	return &Buffer[T]{
++		capacity:    cfg.Capacity,
++		gracePeriod: cfg.GracePeriod,
++		clock:       cfg.Clock,
++		ring:        make([]T, int(cfg.Capacity)),
++		cursors:     make(map[*Cursor[T]]struct{}),
++		notify:      make(chan struct{}),
++	}
++}
++
++// Append adds items to the buffer and wakes cursors waiting for data. Appends
++// made after Close are ignored.
++func (b *Buffer[T]) Append(items ...T) {
++	if len(items) == 0 {
++		return
++	}
++
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if b.closed {
++		return
++	}
++
++	now := b.clock.Now()
++	b.expireCursorsLocked(now)
++	minCursorSeq, hasCursors := b.minCursorSeqLocked()
++	for _, item := range items {
++		if b.ringLen < b.capacity {
++			index := (b.ringStart + b.ringLen) % b.capacity
++			b.ring[int(index)] = item
++			b.ringLen++
++			b.nextSeq++
++			continue
++		}
++
++		oldestSeq := b.ringStart
++		oldestIndex := int(oldestSeq % b.capacity)
++		if hasCursors && minCursorSeq <= oldestSeq {
++			if b.backlogHead == len(b.backlog) {
++				b.backlog = b.backlog[:0]
++				b.backlogHead = 0
++				b.backlogStart = oldestSeq
++			}
++			b.backlog = append(b.backlog, b.ring[oldestIndex])
++		}
++
++		b.ring[oldestIndex] = item
++		b.ringStart++
++		b.nextSeq++
++	}
++
++	b.updateLaggingLocked(now)
++	b.cleanupBacklogLocked()
++	b.signalLocked()
++}
++
++// NewCursor creates a cursor positioned after all items currently in the
++// buffer. It will observe subsequent appends.
++func (b *Buffer[T]) NewCursor() *Cursor[T] {
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	b.expireCursorsLocked(b.clock.Now())
++	cursor := &Cursor[T]{buffer: b, nextSeq: b.nextSeq}
++	if !b.closed {
++		b.cursors[cursor] = struct{}{}
++	}
++	return cursor
++}
++
++// Close permanently closes the buffer and wakes all blocked reads.
++func (b *Buffer[T]) Close() {
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if b.closed {
++		return
++	}
++	b.closed = true
++	clear(b.ring)
++	b.ringLen = 0
++	clear(b.backlog)
++	b.backlog = nil
++	b.backlogHead = 0
++	b.cursors = nil
++	b.signalLocked()
++}
++
++// Cursor reads items from a Buffer independently of other cursors.
++type Cursor[T any] struct {
++	buffer  *Buffer[T]
++	nextSeq uint64
++
++	lagging      bool
++	laggingSince time.Time
++	terminalErr  error
++	closed       bool
++}
++
++// Read blocks until at least one item is available, the context is canceled,
++// or the cursor or buffer is closed.
++func (c *Cursor[T]) Read(ctx context.Context, out []T) (int, error) {
++	for {
++		b := c.buffer
++		b.mu.Lock()
++		n, err := c.readLocked(out)
++		if n != 0 || err != nil || len(out) == 0 {
++			b.mu.Unlock()
++			return n, err
++		}
++		notify := b.notify
++		b.mu.Unlock()
++
++		select {
++		case <-ctx.Done():
++			return 0, ctx.Err()
++		case <-notify:
++		}
++	}
++}
++
++// TryRead reads available items without waiting. If no items are available,
++// it returns (0, nil).
++func (c *Cursor[T]) TryRead(out []T) (int, error) {
++	b := c.buffer
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	return c.readLocked(out)
++}
++
++func (c *Cursor[T]) readLocked(out []T) (int, error) {
++	b := c.buffer
++	if c.closed {
++		return 0, ErrUseOfClosedCursor
++	}
++	if b.closed {
++		return 0, ErrBufferClosed
++	}
++	b.expireCursorsLocked(b.clock.Now())
++	if c.terminalErr != nil {
++		return 0, c.terminalErr
++	}
++	if len(out) == 0 {
++		return 0, nil
++	}
++
++	n := b.copyAvailableLocked(c, out)
++	if n > 0 {
++		c.nextSeq += uint64(n)
++		if c.nextSeq >= b.ringStart {
++			c.lagging = false
++			c.laggingSince = time.Time{}
++		}
++		b.cleanupBacklogLocked()
++	}
++	return n, nil
++}
++
++func (b *Buffer[T]) copyAvailableLocked(c *Cursor[T], out []T) int {
++	nextSeq := c.nextSeq
++	if nextSeq == b.nextSeq {
++		return 0
++	}
++
++	written := 0
++	if nextSeq < b.ringStart {
++		backlogCount := b.ringStart - nextSeq
++		count := len(out)
++		if uint64(count) > backlogCount {
++			count = int(backlogCount)
++		}
++		backlogIndex := b.backlogHead + int(nextSeq-b.backlogStart)
++		copy(out[:count], b.backlog[backlogIndex:backlogIndex+count])
++		written += count
++		nextSeq += uint64(count)
++	}
++
++	for written < len(out) && nextSeq < b.nextSeq {
++		ringIndex := int(nextSeq % b.capacity)
++		count := len(b.ring) - ringIndex
++		if count > len(out)-written {
++			count = len(out) - written
++		}
++		available := b.nextSeq - nextSeq
++		if uint64(count) > available {
++			count = int(available)
++		}
++		copy(out[written:written+count], b.ring[ringIndex:ringIndex+count])
++		written += count
++		nextSeq += uint64(count)
++	}
++	return written
++}
++
++// Close releases the cursor's claim on unread items.
++func (c *Cursor[T]) Close() error {
++	b := c.buffer
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if c.closed {
++		return ErrUseOfClosedCursor
++	}
++	c.closed = true
++	delete(b.cursors, c)
++	b.cleanupBacklogLocked()
++	b.signalLocked()
++	return nil
++}
++
++func (b *Buffer[T]) minCursorSeqLocked() (uint64, bool) {
++	minSeq := b.nextSeq
++	hasCursors := false
++	for cursor := range b.cursors {
++		if !hasCursors || cursor.nextSeq < minSeq {
++			minSeq = cursor.nextSeq
++			hasCursors = true
++		}
++	}
++	return minSeq, hasCursors
++}
++
++func (b *Buffer[T]) updateLaggingLocked(now time.Time) {
++	for cursor := range b.cursors {
++		if cursor.nextSeq < b.ringStart {
++			if !cursor.lagging {
++				cursor.lagging = true
++				cursor.laggingSince = now
++			}
++			continue
++		}
++		cursor.lagging = false
++		cursor.laggingSince = time.Time{}
++	}
++}
++
++func (b *Buffer[T]) expireCursorsLocked(now time.Time) {
++	for cursor := range b.cursors {
++		if !cursor.lagging || now.Before(cursor.laggingSince.Add(b.gracePeriod)) {
++			continue
++		}
++		cursor.terminalErr = ErrGracePeriodExceeded
++		delete(b.cursors, cursor)
++	}
++	b.cleanupBacklogLocked()
++}
++
++func (b *Buffer[T]) cleanupBacklogLocked() {
++	if b.backlogHead == len(b.backlog) {
++		b.backlog = nil
++		b.backlogHead = 0
++		b.backlogStart = b.ringStart
++		return
++	}
++
++	minSeq := b.ringStart
++	for cursor := range b.cursors {
++		if cursor.nextSeq < minSeq {
++			minSeq = cursor.nextSeq
++		}
++	}
++	if minSeq <= b.backlogStart {
++		return
++	}
++	drop := int(minSeq - b.backlogStart)
++	available := len(b.backlog) - b.backlogHead
++	if drop > available {
++		drop = available
++	}
++	for i := b.backlogHead; i < b.backlogHead+drop; i++ {
++		var zero T
++		b.backlog[i] = zero
++	}
++	b.backlogHead += drop
++	b.backlogStart += uint64(drop)
++	if b.backlogHead == len(b.backlog) {
++		b.backlog = nil
++		b.backlogHead = 0
++		b.backlogStart = b.ringStart
++		return
++	}
++
++	if b.backlogHead >= len(b.backlog)/2 {
++		remaining := copy(b.backlog, b.backlog[b.backlogHead:])
++		for i := remaining; i < len(b.backlog); i++ {
++			var zero T
++			b.backlog[i] = zero
++		}
++		b.backlog = b.backlog[:remaining]
++		b.backlogHead = 0
++	}
++}
++
++func (b *Buffer[T]) signalLocked() {
++	close(b.notify)
++	b.notify = make(chan struct{})
++}

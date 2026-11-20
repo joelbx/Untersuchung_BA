@@ -1,0 +1,3 @@
+Added custom TLS cipher support to `get_url`, `uri`, and `lookup('url')`. The setting accepts an OpenSSL cipher string or an ordered list, passes through `fetch_url`, `open_url`, and `Request`, and uses the same TLS context for redirects and HTTPS handlers. Invalid cipher values produce a clear error; omitting the setting preserves existing defaults.
+
+Added public `make_context` and `get_ca_certs` helpers in [urls.py](/app/lib/ansible/module_utils/urls.py). Verification: **133 relevant unit tests passed**.

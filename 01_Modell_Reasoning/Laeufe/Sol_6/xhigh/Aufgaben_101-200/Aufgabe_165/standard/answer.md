@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` for new private rooms. A named helper reads the flag, and a shared policy check gives server forced encryption precedence if the policies conflict. The room creation dialog keeps the control disabled while the decision loads, then displays and submits the effective encryption value. Private room defaults also honor `force_disable`.
+
+The relevant tests pass (25/25), as do lint, formatting, and whitespace checks. The full TypeScript check still reports an unrelated error in [src/Unread.ts](/app/src/Unread.ts:167); it reports no errors in the edited files. Progress is recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

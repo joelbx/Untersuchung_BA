@@ -1,0 +1,5 @@
+The likely fix is in [guiprocess.py](/app/qutebrowser/misc/guiprocess.py:80). `ProcessOutcome.__str__` reduces every `CrashExit` to “crashed,” and `state_str()` has no SIGTERM state. Add `was_sigterm()` using the specified `CrashExit` and `signal.SIGTERM` check, show the signal name for other crash exits, and return `"terminated"` for SIGTERM.
+
+In [GUIProcess._on_finished](/app/qutebrowser/misc/guiprocess.py:301), every nonsuccessful finish currently emits an error with bare `:process`. Bare `:process` uses the global last PID, so it can open a different process. Finished messages should use `self.pid`; SIGTERM should be silent unless verbose, and verbose messages should use `"{self.outcome} See :process {self.pid} for details."` for each outcome.
+
+[Existing tests](/app/tests/unit/misc/test_guiprocess.py:425) assert the old message text and do not cover SIGTERM or two concurrent PIDs. One uncertainty to check during implementation is how Qt reports signal exit codes across platforms. I inspected the code and tests; I did not edit project source or run tests in this diagnostic pass.

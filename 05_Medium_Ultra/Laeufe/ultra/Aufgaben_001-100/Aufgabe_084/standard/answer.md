@@ -1,0 +1,3 @@
+Added [`removeTechnicalFields`](/app/src/api/common/utils/EntityUtils.ts:226). It mutates a new entity copy, removing `_finalEncrypted*`, `_defaultEncrypted*`, and `_errors*` keys at the root and in nested objects and arrays while preserving other fields. [Tests](/app/test/tests/api/common/utils/EntityUtilsTest.ts:42) cover unchanged clones, recursive removal, and preservation of the original entity.
+
+Validation passed: 8,693 app test assertions, source and test TypeScript checks, Prettier, ESLint, and `git diff --check`. Two read-only subagents inspected clone usage and test coverage.

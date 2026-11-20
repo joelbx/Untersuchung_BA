@@ -1,0 +1,3 @@
+Implemented transparent gzip decoding for `uri`, `get_url`, and the shared URL utilities. Both modules now expose `decompress` with a default of `true`; setting it to `false` preserves compressed bytes. The change also adds `GzipDecodedReader`, advertises gzip support through `Accept-Encoding`, and handles missing gzip support.
+
+The URL utility suite passed: **90 tests**. The full repository suite finished with **3,374 passed, 224 failed, and 96 errors**; no URL utility tests failed in that run. The full-suite failures and a rerun’s test names are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

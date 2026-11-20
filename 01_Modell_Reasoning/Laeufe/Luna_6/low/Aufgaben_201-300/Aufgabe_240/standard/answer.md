@@ -1,0 +1,3 @@
+Created [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py) with the requested class and entry point, E-Series connection parameters, check mode, upload and compatibility handling, upgrade initiation, and optional completion polling.
+
+Syntax validation passed. The existing NetApp unit suite reported **120 passed, 590 skipped, 3 errors**; the errors occurred while collecting unrelated iSCSI interface, iSCSI target, and management interface tests.

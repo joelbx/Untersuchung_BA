@@ -1,0 +1,3 @@
+Added `STAGED_SOURCES` and `ImportItem.find_staged_or_pending` in [imports.py](/app/openlibrary/core/imports.py). The method returns matching staged or pending `import_item` rows for source-prefixed identifiers. [Edition.from_isbn](/app/openlibrary/core/models.py) now uses it to check local records for both ISBN-13 and ISBN-10.
+
+Added lookup coverage in [test_imports.py](/app/openlibrary/tests/core/test_imports.py). Verification: 16 relevant tests passed; Ruff and `git diff --check` passed.

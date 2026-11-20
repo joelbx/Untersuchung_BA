@@ -1,0 +1,3 @@
+Tracing setup now lives in [internal/tracing/tracing.go](/app/internal/tracing/tracing.go). It provides the resource and always-on tracer provider, plus independently constructed Jaeger, Zipkin, and OTLP exporters with shutdown functions. The [gRPC server](/app/internal/cmd/grpc.go) uses those functions and shuts down the provider before the exporter so pending spans can flush.
+
+Isolated tests cover resource attributes, sampling, endpoint handling, HTTP headers, and repeated exporter calls. `go test ./internal/tracing ./internal/cmd` and `git diff --check` pass.

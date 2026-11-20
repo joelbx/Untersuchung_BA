@@ -1,0 +1,3 @@
+Added a `user_props` table and user-scoped repository, then switched Last.fm session storage to the `sessionKeyProperty` key. The migration moves existing Last.fm keys and removes stale prefixed entries. Last.fm property errors now include request IDs when available.
+
+Repository, migration, and callback tests pass. The full Go suite also passed; focused tests passed again after the final migration cleanup change.

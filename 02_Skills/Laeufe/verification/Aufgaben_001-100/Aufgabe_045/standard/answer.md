@@ -1,0 +1,3 @@
+Updated collection-name validation so both the namespace and name must be Python identifiers and neither can be a reserved keyword. Removed the legacy helpers and Python 2/3 compatibility code from `dataclasses.py`, and routed requirement parsing through the shared validator.
+
+Verification: 112 collection-loader tests and 15 targeted Galaxy CLI tests passed; `git diff --check` passed. A broader combined test run was interrupted after a collection-finder setup error, so it is not verified as passing.

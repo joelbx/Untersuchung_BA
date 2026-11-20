@@ -1,0 +1,3 @@
+Implemented greedy merging of adjacent search results whose context timelines overlap at the same event. The merge skips the duplicate pivot and tracks each direct match for highlighting in [RoomSearchView.tsx](/app/src/components/structures/RoomSearchView.tsx). [SearchResultTile.tsx](/app/src/components/views/rooms/SearchResultTile.tsx) now renders the merged timeline and gives each matched event its own link target. Updated the existing tile test fixture for the new props.
+
+Validation passed: both relevant Jest suites (8 tests), TypeScript, ESLint, Prettier, and `git diff --check`.

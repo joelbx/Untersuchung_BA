@@ -1,0 +1,3 @@
+Moved the MIME suffix workaround to the module-level `extra_suffixes_workaround` function in [webview.py](/app/qutebrowser/browser/webengine/webview.py). `chooseFiles` now passes a deduplicated union of the original and extra suffixes as the third argument to `super().chooseFiles(...)`, without using instance state.
+
+Updated the [tests](/app/tests/unit/browser/webengine/test_webview.py) for version limits, iterators, duplicates, and invocation without initialization. All 26 relevant tests pass with Qt’s offscreen platform; `git diff --check` passes.

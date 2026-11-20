@@ -1,0 +1,3 @@
+Added a kebab menu to the Current session header with accessible open and closed states, destructive sign-out actions, and automatic dismissal after interaction. “Sign out all other sessions” appears only when other sessions exist and passes only their device IDs to the bulk sign-out flow.
+
+All 53 relevant tests pass, and ESLint passes. Repository-wide TypeScript checking still reports existing unrelated SDK typing errors.

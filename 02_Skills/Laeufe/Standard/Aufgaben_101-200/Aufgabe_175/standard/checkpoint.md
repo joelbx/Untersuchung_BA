@@ -1,0 +1,1 @@
+Implemented conf.Server.Backup, schedule validation and directory creation; CLI create/prune/restore with confirmation; SQLite online backup/restore and timestamp pruning. Verified: go test ./... (pass); go test ./conf ./db ./cmd (pass); git diff --check (pass).

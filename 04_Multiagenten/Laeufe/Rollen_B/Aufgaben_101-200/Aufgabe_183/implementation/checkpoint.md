@@ -1,0 +1,1 @@
+Complete: Updated config.GetEOL for Ubuntu 20.04 extended support (1 April 2030) and Ubuntu 22.04 standard/extended support (1 April 2027/2032). Enabled 22.04 in Gost's Ubuntu CVE gate. Added date, lifecycle transition, lookup, and supported-release tests. Verified with go test ./config ./gost and git diff --check; both passed.

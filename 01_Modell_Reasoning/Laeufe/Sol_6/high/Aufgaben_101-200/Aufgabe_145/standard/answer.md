@@ -1,0 +1,3 @@
+Updated the photo recovery hook in both the Drive app and drive-store. Recovery now loads regular and trashed items, waits for both to finish decrypting, adds only photo entries from the matching share’s trash, and succeeds only when no targeted items remain. Core errors mark pending items as failed. A persisted in-progress state resumes recovery on initialization.
+
+Both mirrored recovery suites pass (11 tests each). Formatting, lint, and `git diff --check` pass. Both workspace type checks remain blocked by an existing OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts:579`, outside the edited files.

@@ -1,0 +1,3 @@
+Resolved duplicate loop and delegation evaluation. `TaskExecutor` now uses the new `VariableManager.get_delegated_vars_and_hostname()` method to resolve delegation before iterations execute. Loop items are evaluated once, including when `delegate_to` depends on `item`. I also added `Task.get_play()` and removed the loop cache workaround.
+
+Verification: 35 focused unit tests and four existing delegation integration playbooks passed.

@@ -1,0 +1,3 @@
+Fixed the user info panel’s Kick, Ban, and Mute controls in [UserInfo.tsx](/app/src/components/views/right_panel/UserInfo.tsx). They now share an immediate lock for the target member, expose both `disabled` and `aria-disabled="true"` while pending, and unlock after cancellation, success, or failure. Failures show one error dialog.
+
+Added coverage in [UserInfo-test.tsx](/app/test/components/views/right_panel/UserInfo-test.tsx). All 71 tests pass; lint and formatting pass. The full TypeScript check still reports existing errors elsewhere, but none in the changed files.

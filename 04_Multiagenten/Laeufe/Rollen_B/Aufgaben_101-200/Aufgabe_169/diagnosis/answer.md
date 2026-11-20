@@ -1,0 +1,5 @@
+The fault is in [RoomSearchView.tsx](/app/src/components/structures/RoomSearchView.tsx:218): it renders every `SearchResult` as a separate tile. [SearchResultTile.tsx](/app/src/components/views/rooms/SearchResultTile.tsx:32) accepts only one result, highlights only its match index, and gives every event the same result link.
+
+The fix should greedily accumulate adjacent results whose timeline boundaries share an `event_id`, append each next timeline from index 1, and record its direct match at `offset + nextOurEventIndex - 1`. The tile then needs the merged timeline and match indices so each match is highlighted and linked to its own event. Existing tests cover single results and call grouping, but no overlap chain.
+
+**Uncertainty:** the specified boundary check may miss immediately consecutive matches when each result includes one event before and after: their contexts can overlap by two events. I left source and tests unchanged because this specialist pass was restricted to fault localization.

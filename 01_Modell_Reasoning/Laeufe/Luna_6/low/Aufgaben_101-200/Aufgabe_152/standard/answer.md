@@ -1,0 +1,3 @@
+Implemented the new [icx_logging.py](/app/lib/ansible/modules/network/icx/icx_logging.py) module, including aggregate configurations, IPv4/IPv6 syslog hosts with ICX syntax, facilities, buffered levels, console, persistence, RFC5424, and global logging state.
+
+Validation passed: the module compiles, `git diff --check` is clean, and the existing ICX VLAN unit tests pass (12 tests). The repository has no existing ICX logging tests.

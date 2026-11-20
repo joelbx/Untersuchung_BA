@@ -1,0 +1,3 @@
+Fixed the ACP email validation workflow. Confirmation records now use `confirm:byUid:<uid>` and a `confirm:<code>` object with an explicit expiration time. The ACP can find a pending email when the profile has none, shows all four requested statuses, and refreshes after validation actions. Resends respect pending confirmations unless forced, and account deletion removes the confirmation keys.
+
+Validation passed: ESLint, `git diff --check`, and 8 focused user and ACP socket tests.

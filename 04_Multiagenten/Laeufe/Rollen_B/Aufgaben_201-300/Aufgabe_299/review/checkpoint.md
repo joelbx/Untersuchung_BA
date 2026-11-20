@@ -1,0 +1,5 @@
+VERDICT: ACCEPT
+Reviewed the current diff and qutebrowser/completion/models/filepathcategory.py against the filesystem completion requirements. No correctness or regression defect found. The category is configurable and ordered by completion.open_categories; empty patterns show favorite_paths; supported path forms are expanded and sorted; invalid inputs leave an empty category; child columns 1 and 2 return None. Existing quickmark/bookmark omission behavior remains conditional on entries.
+Tests: DISPLAY=:0 QT_QPA_PLATFORM=offscreen python -m pytest --no-xvfb -q tests/unit/completion/test_models.py => 68 passed, exit 0. DISPLAY=:0 QT_QPA_PLATFORM=offscreen python -m pytest --no-xvfb -q tests/unit/config/test_configdata.py => 31 passed, exit 0. git diff --check => exit 0.
+TEST_ENVIRONMENT_PROBLEM: Initial run with default Xvfb printed 68 passed but exited 1 after XIO fatal IO error on X server :0. A run with --no-xvfb and no DISPLAY failed the repository's check_display fixture. Setting DISPLAY=:0 and QT_QPA_PLATFORM=offscreen with --no-xvfb yielded clean exit 0.
+No project code or tests changed by this review.

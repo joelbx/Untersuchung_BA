@@ -1,0 +1,3 @@
+Implemented matcher expressions in [parse.go](/app/lib/utils/parse/parse.go), including literals, anchored wildcards, raw regexps, `regexp.match`, `regexp.not_match`, and static prefixes and suffixes. Added validation for malformed templates, unsupported calls, invalid arguments, and matcher functions used in `Variable()`.
+
+The parse package tests pass. The relevant glob and regexp utility tests pass. The full `lib/utils` suite still fails on an unrelated certificate fixture that expired in 2021; the command and error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

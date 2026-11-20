@@ -1,0 +1,3 @@
+Implemented category read checks for all supplied post IDs, with administrator bypass and rejection before vote data is fetched. The server now deduplicates visible voter IDs, preserves their order, and returns up to five usernames with `cutoff: 6` and `otherCount`. The frontend reads the returned cutoff and enables HTML tooltips.
+
+Verification: ESLint passed; `mocha test/posts.js --grep voting` passed (10 tests) with local Redis running. Checkpoint: [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

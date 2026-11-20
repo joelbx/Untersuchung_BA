@@ -1,0 +1,3 @@
+Implemented typed seed handling, normalized subject keys, explicit `List` and `Seed` annotations, consistent three-key export results, and string annotations for `urlsafe()` and `_get_ol_base_url()`.
+
+Verification: `compileall` and `git diff --check` pass. The targeted tests report 10 passed; one existing test fails because `web.ctx.env` is unset in its setup, and three tests are marked for rerun. The checkpoint is recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

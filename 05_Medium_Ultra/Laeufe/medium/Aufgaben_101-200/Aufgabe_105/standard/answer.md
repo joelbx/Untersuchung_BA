@@ -1,0 +1,3 @@
+`getOpenSubsonicExtensions` is now registered outside the authentication middleware in [api.go](/app/server/subsonic/api.go:69). Requests without credentials can use `?f=json` and receive exactly `transcodeOffset`, `formPost`, and `songLyrics`.
+
+Added route tests in [api_test.go](/app/server/subsonic/api_test.go:105) covering both endpoint paths and confirming protected routes still require authentication. The Subsonic and response test suites pass.

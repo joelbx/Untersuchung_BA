@@ -1,0 +1,3 @@
+Implemented author import matching by Open Library key, then external identifiers, then name and dates. Matched authors gain nonconflicting identifiers and are queued for saving; conflicting identifiers raise `AuthorRemoteIdConflictError`. New authors retain their supplied identifiers. Identifier matches use a stable tie break, and the requested `SUSPECT_DATE_EXEMPT_SOURCES` constant is in place.
+
+Verification: all 155 add-book tests passed, Ruff passed, and `git diff --check` passed.

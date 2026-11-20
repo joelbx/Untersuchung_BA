@@ -1,0 +1,3 @@
+Refactored `Pill` into a functional component and extracted permalink resolution into the public [`usePermalink` hook](/app/src/hooks/usePermalink.tsx). [`Pill.tsx`](/app/src/components/views/elements/Pill.tsx) now exposes the requested named exports, and all production callers use named imports.
+
+The Pill, pillify, and ReplyChain tests pass (10 tests); ESLint and `git diff --check` pass. The full TypeScript check still reports unrelated existing SDK type errors in auth, notifications, and push rule files.

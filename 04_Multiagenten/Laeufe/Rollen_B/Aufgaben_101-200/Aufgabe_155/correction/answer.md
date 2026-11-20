@@ -1,0 +1,3 @@
+Fixed report UUID assignment for digest based images. It now uses the full image reference in the reporting key and resolves the configured server even when an image key contains `@`. Added regression coverage for image keys, server names, and overlapping server names containing `@`.
+
+The focused config, scan, and report tests pass. **TEST_ENVIRONMENT_PROBLEM:** The full test runs still fail on the previously reported `models/library.go` vet warnings and `models.TestScan` failure.

@@ -1,0 +1,3 @@
+Added `samplingRatio` and `propagators` to tracing configuration, with the requested defaults and exact validation errors. Tracer startup now uses the configured sampling ratio and propagation formats; the config schemas and examples are updated.
+
+Tests passed for `./internal/config`, `./internal/tracing`, and `./internal/cmd`. The offline run used a temporary module file because four versions pinned by the repository were missing from the local cache.

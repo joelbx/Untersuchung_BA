@@ -1,0 +1,3 @@
+Added [nios_fixed_address.py](/app/lib/ansible/modules/net_tools/nios/nios_fixed_address.py) to create, update, and delete IPv4 and IPv6 DHCP fixed addresses, with check mode, DHCP options, attributes, and comments. Updated the [NIOS WAPI helper](/app/lib/ansible/module_utils/net_tools/nios/api.py) to look up fixed addresses by their address, MAC, network, and view and to compare managed options and attributes for idempotence.
+
+All 74 NIOS unit tests pass. Python compilation and documentation YAML parsing pass. The repository’s `validate-modules` script could not start because `voluptuous` is not installed locally.

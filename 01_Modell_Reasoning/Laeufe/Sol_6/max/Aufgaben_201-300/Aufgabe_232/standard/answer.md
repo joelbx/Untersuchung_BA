@@ -1,0 +1,3 @@
+Implemented OS EOL lookup with the specified release dates, strict support end checks, and a shared major version parser. Scans now add per-target EOL warnings, and summaries render each warning with `Warning: ` in evaluation order. Amazon Linux 1 and 2 release strings are handled distinctly.
+
+The affected package tests pass: `GOPROXY=off GOSUMDB=off go test ./config ./util ./scan ./report ./oval ./gost`. `git diff --check` is clean.

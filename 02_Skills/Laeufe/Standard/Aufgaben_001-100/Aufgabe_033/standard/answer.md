@@ -1,0 +1,3 @@
+U2F sign requests now include a challenge for every registered key while retaining the legacy single-challenge JSON fields. The auth client and CLI login accept both formats, and the web login test confirms that a second registered key can authenticate.
+
+`go test ./lib/auth ./lib/client ./lib/web -count=1` and `git diff --check` passed. The repository contains only bundled web frontend assets, so no separate MFA management UI was changed.

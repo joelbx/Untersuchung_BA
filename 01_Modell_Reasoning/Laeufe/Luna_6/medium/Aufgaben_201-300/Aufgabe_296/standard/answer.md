@@ -1,0 +1,3 @@
+Implemented token based invitation registration. Registration now reads the URL token into the hidden field, permits token only signups, confirms matching invited emails, adds invited users to the token’s groups, and cleans up invitation records by token or email.
+
+Targeted ESLint and `git diff --check` pass. The invitation tests could not run because Redis at `127.0.0.1:6379` was unavailable; Mocha stopped in its `before all` hook before any tests ran.

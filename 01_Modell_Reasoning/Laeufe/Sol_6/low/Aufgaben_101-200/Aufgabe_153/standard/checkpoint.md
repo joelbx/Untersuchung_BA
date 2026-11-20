@@ -1,0 +1,1 @@
+Implemented and verified shareId-scoped members and invitations in both Drive store copies; member views select current share and getExistingEmails utility added. Drive and drive-store type checks passed. Share isolation tests (2) and existing shares store tests (18) passed. git diff --check passed.

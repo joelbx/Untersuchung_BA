@@ -1,0 +1,3 @@
+Updated the OS EOL data for Fedora 37, 38, and 40; SUSE Enterprise Desktop and Server 13 and 14; and macOS 11 and 15 in [config/os.go](/app/config/os.go). Extended the Windows rollup mappings for builds 19045, 22621, 22631, and 20348 with named struct literals in revision order in [scanner/windows.go](/app/scanner/windows.go). The tests now cover the new EOL dates and KB detection at revision boundaries.
+
+Verification passed: `go test ./config ./scanner`, `go build ./...`, and `git diff --check`.

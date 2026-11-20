@@ -1,0 +1,3 @@
+Implemented the password lookup parsing fix in [password.py](/app/lib/ansible/plugins/lookup/password.py). `run()` now loads plugin options before parsing, and the instance parser validates supported keys, gives term values precedence, defaults length to 20, and handles list or comma-separated `chars` values with `,,` as a literal comma.
+
+Updated the existing unit tests for the instance parser and option loading. The password lookup suite passes: **29 passed**. A repeated `/dev/null seed=myseed` check also returned identical passwords.

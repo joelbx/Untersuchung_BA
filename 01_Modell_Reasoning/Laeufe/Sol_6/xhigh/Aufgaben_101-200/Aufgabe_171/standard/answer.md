@@ -1,0 +1,3 @@
+Implemented the gRPC version header handling in [middleware.go](/app/internal/server/middleware/grpc/middleware.go). The interceptor accepts `v1.0.0` and `1.0.0` formats, stores the parsed version in the request context, and falls back to `1.0.0` for missing or invalid values. It is registered in the server chain in [grpc.go](/app/internal/cmd/grpc.go).
+
+Added focused tests in [version_test.go](/app/internal/server/middleware/grpc/version_test.go). Tests passed for both `./internal/server/middleware/grpc` and `./internal/cmd`.

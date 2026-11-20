@@ -1,0 +1,3 @@
+Added `STAGED_SOURCES = ('amazon', 'idb')` and [`ImportItem.find_staged_or_pending`](/app/openlibrary/core/imports.py:113). It builds `{source}:{identifier}` IDs and returns matching `import_item` rows with `staged` or `pending` status. Added database backed tests for default and custom sources.
+
+The focused suite passed: 7 tests. Ruff and `git diff --check` passed. The project suite had 1,559 passes but did not pass overall: three home template tests and dump test collection failed on tokenization, while two script test modules failed collection when an external schema request returned a proxy 403.

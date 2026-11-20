@@ -1,0 +1,3 @@
+Implemented predictable no_log sanitization in the checked-out repository. `remove_values` now masks sensitive text in values while preserving keys and scalar types. The new `sanitize_keys` masks matching mapping keys throughout nested containers, honors ignored and `_ansible` keys, and uses the required sentinel for exact matches. The `uri` module applies key sanitization when `no_log_values` is populated.
+
+Updated the no_log tests. All 5 no_log tests and 4 heuristic log sanitization tests pass.

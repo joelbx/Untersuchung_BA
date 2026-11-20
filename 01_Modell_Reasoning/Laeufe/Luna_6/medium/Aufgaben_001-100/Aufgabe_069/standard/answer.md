@@ -1,0 +1,3 @@
+Implemented matcher support in [parse.go](/app/lib/utils/parse/parse.go): literal, glob, and anchored regex patterns; `regexp.match` and `regexp.not_match`; static prefixes and suffixes; and validation for malformed templates, unsupported functions, and invalid arguments. `Variable()` now rejects regexp matcher functions with the specified error.
+
+Verification passed: `go test ./lib/utils/parse` and `git diff --check`. The checkpoint is recorded in `.codex-role-output/checkpoint.md`.

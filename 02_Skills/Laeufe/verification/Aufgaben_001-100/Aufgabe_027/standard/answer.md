@@ -1,0 +1,3 @@
+Updated Drive’s session lookup to return `null` when no valid numeric persisted-session ID is available, while preserving a valid ID of `0`. The public bookmark view now calls `resumeSession` only when an ID exists. Added tests for empty and invalid storage, ID `0`, and bookmark resumption.
+
+The focused Jest run passed: **18 tests across 2 suites**. Formatting and `git diff --check` passed. The full Drive type check remains unverified because it exits with an OpenPGP type conflict in `packages/crypto/lib/worker/api.ts`, outside the changed files.

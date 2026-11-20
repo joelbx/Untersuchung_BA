@@ -1,0 +1,3 @@
+Added [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py) with firmware upload, compatibility and health checks, online or offline upgrade initiation, targeted polling, check mode, and change and progress reporting. Added [unit tests](/app/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py).
+
+The focused tests and adjacent E-Series tests pass: **22 passed**. The full NetApp unit directory does not pass in this environment; an existing test fails during collection because `mock.patch` is unavailable. Check mode’s preview depends on firmware compatibility data already present on the controller.

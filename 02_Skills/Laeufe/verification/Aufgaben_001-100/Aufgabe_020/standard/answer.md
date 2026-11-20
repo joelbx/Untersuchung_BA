@@ -1,0 +1,3 @@
+Added Redis TLS configuration for a CA file, inline CA certificate data, and optional certificate verification bypass. The new [Redis client constructor](/app/internal/cache/redis/client.go) enforces TLS 1.2 and rejects conflicting CA options. I also added YAML fixtures, schema entries, and the `api/cachetls` integration case and workflow matrix entry.
+
+Config and schema tests, focused Redis client tests, and compile checks passed. The full Redis cache tests could not pass because Docker is unavailable; the new integration case could not run here. Details are in the [checkpoint](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard.tsx](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) to provide the localized verified and unverified copy. [CurrentDeviceSection.tsx](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx) now uses it, and [DeviceDetails.tsx](/app/src/components/views/settings/devices/DeviceDetails.tsx) renders it immediately after the heading.
+
+A delegated agent updated the focused tests and snapshots. The wider device settings run passed: **13 suites, 58 tests, 25 snapshots**. Changed-file lint passed. The full TypeScript check still fails on unrelated SDK compatibility errors outside the changed files.

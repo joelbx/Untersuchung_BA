@@ -1,0 +1,5 @@
+The fault is in [parse.py](/app/openlibrary/catalog/marc/parse.py:382). `read_author_person` has no record or tag argument, so it cannot find linked `880` fields or populate `alternate_names`. It also lacks the requested `name_from_list` helper and currently applies different cleanup rules to name parts.
+
+The call paths need attention too: [read_authors](/app/openlibrary/catalog/marc/parse.py:434) reads `100` but not `700` or `720`; [read_contributions](/app/openlibrary/catalog/marc/parse.py:567) can promote `700` and `720` entries to authors, but calls the parser without linkage context. Existing binary fixtures contain linked `700`/`880` names. [Binary linkage lookup](/app/openlibrary/catalog/marc/marc_binary.py:194) returns only one match, and XML records have no corresponding lookup method, so support for multiple matches and XML remains uncertain.
+
+The existing `100` name and date unit test passes; it does not cover alternate names. I recorded the diagnosis in the checkpoint file. No project source or tests were changed.

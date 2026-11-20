@@ -1,0 +1,3 @@
+Updated [Play](/app/lib/ansible/playbook/play.py) so `get_name` derives the name dynamically from `hosts`, while `_validate_hosts` raises the specified parser errors for empty or invalid values. `Play.load` no longer changes the input’s `name` field. Added coverage in [test_play.py](/app/test/units/playbook/test_play.py).
+
+Verification: all 248 playbook unit tests pass; `git diff --check` passes. No delegation was used.

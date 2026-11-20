@@ -1,0 +1,3 @@
+Added [nios_fixed_address.py](/app/lib/ansible/modules/net_tools/nios/nios_fixed_address.py) to manage IPv4 and IPv6 DHCP fixed addresses, including metadata and DHCP options. Updated the [WAPI helper](/app/lib/ansible/module_utils/net_tools/nios/api.py) to identify fixed addresses by address, MAC, network, and view, and to clear options when given an empty list.
+
+Verification: all 68 NIOS unit tests passed; `git diff --check` was clean.

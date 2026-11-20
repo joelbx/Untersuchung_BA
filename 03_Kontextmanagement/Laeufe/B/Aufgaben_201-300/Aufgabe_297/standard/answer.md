@@ -1,0 +1,3 @@
+Implemented reverse proxy login with a configurable username header and trusted proxy whitelist, including IPv4, IPv6, and Unix socket support. Successful logins create users when needed, issue tokens, and initialize the frontend session. Untrusted requests receive no auth payload. Nested map log redaction and configuration documentation are also updated.
+
+Focused Go and UI tests passed, along with formatting and diff checks. This work item is complete.

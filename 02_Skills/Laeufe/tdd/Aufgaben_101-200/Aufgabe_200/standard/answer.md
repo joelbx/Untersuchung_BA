@@ -1,0 +1,3 @@
+Added `parse_duration` to accept hours, minutes, and seconds, including decimals and whitespace between units. Bare digits still mean milliseconds. The `:later` command now uses it and reports invalid durations as command errors.
+
+The affected tests and command API tests pass: **249 passed**. The full suite could not pass in this environment: end to end tests require unavailable QtWebKit, and broader unit runs encountered unrelated Qt display and Public Suffix List failures. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

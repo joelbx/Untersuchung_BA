@@ -1,0 +1,3 @@
+Fixed `BatchEvaluate` so disabled flags no longer abort the batch. It returns one response per input, in order; disabled entries have `match: false` and `value: "disabled"`. Every entry has a timestamp and its own duration, and the outer response has the total duration.
+
+Added the typed `ErrDisabled` error and migrated the protobuf timestamp and empty response types. The full test suite passes offline with `go test ./...`.

@@ -1,0 +1,3 @@
+Implemented OS EOL lookup and per-target scan warnings. The lifecycle table is in [config/os.go](/app/config/os.go), and EOL warnings are added during result construction in [scan/base.go](/app/scan/base.go). Added `util.Major` and routed OVAL and GOST major-version parsing through it.
+
+Verification passed: `go test ./scan ./config ./util ./models ./report` and `git diff --check`. The required checkpoint is at [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

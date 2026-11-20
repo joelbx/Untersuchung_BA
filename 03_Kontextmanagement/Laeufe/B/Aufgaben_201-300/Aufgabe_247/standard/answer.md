@@ -1,0 +1,3 @@
+Resolved the upvoter access issue. [getUpvoters](/app/src/socket.io/posts/votes.js) now checks `topics:read` across every supplied post’s category before reading votes, denies unauthorized callers, and allows administrators. It also deduplicates username lookups, preserves display order, and returns a cutoff of 6 with at most five names shown explicitly. The [frontend](/app/public/src/client/topic/votes.js) uses that cutoff and enables HTML tooltips. Focused coverage was added to [test/posts.js](/app/test/posts.js).
+
+ESLint, syntax checks, diff checks, and direct socket checks passed. The focused integration tests could not start because local Redis refused the connection at `127.0.0.1:6379`.

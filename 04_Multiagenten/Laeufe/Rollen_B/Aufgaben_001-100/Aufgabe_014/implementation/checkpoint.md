@@ -1,0 +1,1 @@
+Complete: notification trigger/race fixes, modal dropdowns, quick search focus/navigation, hash coercion, email/install/routes, and template accessibility/layout. ESLint and git diff --check pass. Hash suite: 67 passing with temporary Redis; Redis stopped. Existing untracked appendonlydir/ was not touched.

@@ -1,0 +1,3 @@
+Amazon imports now include language names from edition metadata. The serializer removes duplicates, excludes entries marked `"Original Language"`, preserves Amazon’s spelling and casing, and omits `languages` when no values remain. Metadata cleanup now preserves the field.
+
+A subagent added focused tests; I reviewed and integrated them. The vendor test module passed (36 tests), as did Ruff and `git diff --check`.

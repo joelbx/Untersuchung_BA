@@ -1,0 +1,3 @@
+Database configuration now accepts either `db.url` or separate protocol, host, port, user, password, and name settings. The URL takes precedence; discrete settings receive engine-specific default ports and field-qualified validation errors. Connection and migration paths use the same resolver and pooling settings, and database error messages avoid exposing credentials.
+
+Added configuration and connection tests and documented the new fields in [config/default.yml](/app/config/default.yml). Verification: `GOPROXY=off GOSUMDB=off go test ./... && git diff --check` passed.

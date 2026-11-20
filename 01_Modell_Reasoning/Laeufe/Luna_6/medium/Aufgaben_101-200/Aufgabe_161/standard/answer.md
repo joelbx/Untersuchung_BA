@@ -1,0 +1,3 @@
+Refactored Worksearch Solr search to consume JSON responses and document dictionaries. Added `process_facet` and `process_facet_counts`, including boolean facet ordering and display labels, and made `run_solr_query` default `wt` to `json`. Updated the existing tests for the JSON interfaces.
+
+Verification: `pytest -q openlibrary/plugins/worksearch/tests/test_worksearch.py` passed (25 tests); `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented native database backups in `/app`: configuration for path, schedule, and retention; automatic backup and pruning; and `backup create`, `backup prune`, and `backup restore` CLI commands. Restore checks the backup and requires confirmation unless `--force` is used.
+
+The [database implementation](/app/db/backup.go) and [CLI commands](/app/cmd/backup.go) passed focused tests. All repository packages also compiled.

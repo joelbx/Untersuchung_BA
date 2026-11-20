@@ -1,0 +1,171 @@
+diff --git a/internal/ext/encoding.go b/internal/ext/encoding.go
+index 12d4fbc..535baf2 100644
+--- a/internal/ext/encoding.go
++++ b/internal/ext/encoding.go
+@@ -1,10 +1,12 @@
+ package ext
+ 
+ import (
++	"bufio"
+ 	"encoding/json"
+ 	"io"
+ 
+-	"gopkg.in/yaml.v2"
++	yamlv2 "gopkg.in/yaml.v2"
++	"gopkg.in/yaml.v3"
+ )
+ 
+ type Encoding string
+@@ -18,7 +20,7 @@ const (
+ func (e Encoding) NewEncoder(w io.Writer) EncodeCloser {
+ 	switch e {
+ 	case EncodingYML, EncodingYAML:
+-		return yaml.NewEncoder(w)
++		return yamlv2.NewEncoder(w)
+ 	case EncodingJSON:
+ 		return NopCloseEncoder{json.NewEncoder(w)}
+ 	}
+@@ -46,7 +48,11 @@ func (e Encoding) NewDecoder(r io.Reader) Decoder {
+ 	case EncodingYML, EncodingYAML:
+ 		return yaml.NewDecoder(r)
+ 	case EncodingJSON:
+-		return json.NewDecoder(r)
++		br := bufio.NewReader(r)
++		if first, err := br.Peek(1); err == nil && first[0] == '#' {
++			_, _ = br.ReadBytes('\n')
++		}
++		return json.NewDecoder(br)
+ 	}
+ 
+ 	return nil
+diff --git a/internal/ext/importer.go b/internal/ext/importer.go
+index 673e28f..3ba139c 100644
+--- a/internal/ext/importer.go
++++ b/internal/ext/importer.go
+@@ -196,8 +196,7 @@ func (i *Importer) Import(ctx context.Context, enc Encoding, r io.Reader, skipEx
+ 				var out []byte
+ 
+ 				if v.Attachment != nil {
+-					converted := convert(v.Attachment)
+-					out, err = json.Marshal(converted)
++					out, err = json.Marshal(v.Attachment)
+ 					if err != nil {
+ 						return fmt.Errorf("marshalling attachment: %w", err)
+ 					}
+@@ -419,27 +418,6 @@ func (i *Importer) Import(ctx context.Context, enc Encoding, r io.Reader, skipEx
+ 	return nil
+ }
+ 
+-// convert converts each encountered map[interface{}]interface{} to a map[string]interface{} value.
+-// This is necessary because the json library does not support map[interface{}]interface{} values which nested
+-// maps get unmarshalled into from the yaml library.
+-func convert(i interface{}) interface{} {
+-	switch x := i.(type) {
+-	case map[interface{}]interface{}:
+-		m := map[string]interface{}{}
+-		for k, v := range x {
+-			if sk, ok := k.(string); ok {
+-				m[sk] = convert(v)
+-			}
+-		}
+-		return m
+-	case []interface{}:
+-		for i, v := range x {
+-			x[i] = convert(v)
+-		}
+-	}
+-	return i
+-}
+-
+ func ensureFieldSupported(field string, expected, have semver.Version) error {
+ 	if have.LT(expected) {
+ 		return fmt.Errorf("%s is supported in version >=%s, found %s",
+diff --git a/internal/ext/importer_test.go b/internal/ext/importer_test.go
+index 909c0e9..c61708e 100644
+--- a/internal/ext/importer_test.go
++++ b/internal/ext/importer_test.go
+@@ -1,6 +1,7 @@
+ package ext
+ 
+ import (
++	"bytes"
+ 	"context"
+ 	"encoding/json"
+ 	"errors"
+@@ -11,6 +12,8 @@ import (
+ 	"github.com/stretchr/testify/assert"
+ 	"github.com/stretchr/testify/require"
+ 	"go.flipt.io/flipt/rpc/flipt"
++	"google.golang.org/grpc/codes"
++	"google.golang.org/grpc/status"
+ )
+ 
+ var (
+@@ -1258,6 +1261,67 @@ func TestImport_Namespaces_Mix_And_Match(t *testing.T) {
+ 	}
+ }
+ 
++func TestImport_NestedMetadataAndJSONHeader(t *testing.T) {
++	const yamlInput = `namespace:
++  key: team
++  name: Team
++  description: Team flags
++flags:
++  - key: feature
++    enabled: true
++    metadata:
++      owner:
++        name: Alice
++        groups:
++          - ops
++          - dev
++      settings:
++        - active: true
++    variants:
++      - key: control
++        attachment:
++          nested:
++            - value: 1
++`
++	const jsonInput = `{"namespace":{"key":"team","name":"Team","description":"Team flags"},"flags":[{"key":"feature","enabled":true,"metadata":{"owner":{"name":"Alice","groups":["ops","dev"]},"settings":[{"active":true}]},"variants":[{"key":"control","attachment":{"nested":[{"value":1}]}}]}]}`
++
++	for _, tc := range []struct {
++		name  string
++		enc   Encoding
++		input string
++	}{
++		{"yaml", EncodingYAML, yamlInput},
++		{"json", EncodingJSON, jsonInput},
++		{"json with export header", EncodingJSON, "# exported by Flipt\n\n" + jsonInput},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			creator := &mockCreator{getNSErr: status.Error(codes.NotFound, "not found")}
++			err := NewImporter(creator).Import(context.Background(), tc.enc, bytes.NewBufferString(tc.input), false)
++			require.NoError(t, err)
++			require.Len(t, creator.createNSReqs, 1)
++			assert.Equal(t, &flipt.CreateNamespaceRequest{Key: "team", Name: "Team", Description: "Team flags"}, creator.createNSReqs[0])
++			require.Len(t, creator.createflagReqs, 1)
++			assert.Equal(t, "team", creator.createflagReqs[0].NamespaceKey)
++			assert.Equal(t, map[string]any{
++				"owner":    map[string]any{"name": "Alice", "groups": []any{"ops", "dev"}},
++				"settings": []any{map[string]any{"active": true}},
++			}, creator.createflagReqs[0].Metadata.AsMap())
++			require.Len(t, creator.variantReqs, 1)
++			assert.JSONEq(t, `{"nested":[{"value":1}]}`, creator.variantReqs[0].Attachment)
++		})
++	}
++}
++
++func TestImport_JSONHeaderOnlyOnFirstLine(t *testing.T) {
++	for _, input := range []string{
++		" # header\n{}",
++		"# first header\n# second header\n{}",
++	} {
++		err := NewImporter(&mockCreator{}).Import(context.Background(), EncodingJSON, bytes.NewBufferString(input), false)
++		require.ErrorContains(t, err, "unmarshalling document")
++	}
++}
++
+ //nolint:unparam
+ func compact(t *testing.T, v string) string {
+ 	t.Helper()

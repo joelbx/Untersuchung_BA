@@ -1,0 +1,3 @@
+Raised the controller minimum to Python 3.12 in the CLI guard, ansible-test entry point, package metadata, and test configuration. Both entry points now show the same error on Python 3.11. Removed the collection TarFile cache workaround; `_extract_tar_dir` now passes `dirname` unchanged to `getmember()` and raises the required `AnsibleError` when the member is missing. Updated the changelog and simplified related controller compatibility code.
+
+**Verification:** 73 relevant tests passed and 1 was skipped. The role install test could not collect because this host runs Python 3.11, which the new guard rejects. No delegation was used.

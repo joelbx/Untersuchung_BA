@@ -1,0 +1,3 @@
+Added date based module deprecations across Python module output, argument specs, display, validation, and C# `AnsibleModule`. Date entries use `YYYY-MM-DD`; C# alias validation now reports the requested errors. Documentation and focused tests were updated.
+
+**Verification:** 132 relevant Python tests passed. Python syntax and diff checks passed. The validator tests could not collect because `voluptuous` is unavailable locally; the Windows tests could not run because this environment has no PowerShell or C# runner.

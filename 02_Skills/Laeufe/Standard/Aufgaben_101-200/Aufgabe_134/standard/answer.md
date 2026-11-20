@@ -1,0 +1,3 @@
+Implemented Project Runeberg support in the work search document and book provider. Every work document now exposes `id_project_runeberg` as an array, including `[]` when absent, while existing identifier fields retain their values. Added the provider, acquisition link, and read and download templates.
+
+All 85 relevant tests passed. The download links use format-specific `download.pl` parameters; those external URLs could not be verified under the repository’s research restriction.

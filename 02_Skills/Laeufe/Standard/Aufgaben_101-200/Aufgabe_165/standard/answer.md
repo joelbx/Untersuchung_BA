@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` support for new rooms. The shared policy helper gives server policy precedence when settings conflict; the creation dialog shows the enforced encryption state, keeps the toggle disabled while the decision is pending, and submits the state it shows.
+
+The focused tests passed (29 tests), as did ESLint and formatting checks. The full TypeScript check remains blocked by an unrelated existing error in `src/Unread.ts:167`; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

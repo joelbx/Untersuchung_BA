@@ -1,0 +1,3 @@
+Updated `SocketPosts.getUpvoters` to require `topics:read` on **every** requested post’s category for non-administrators. It rejects unreadable requests with `[[error:no-privileges]]` before returning upvoter data; administrators retain access. The method now deduplicates visible UIDs for username lookup and returns a cutoff of 6. The tooltip uses that cutoff and supports HTML.
+
+Added integration tests. Verification passed: 127 post tests, ESLint, and `git diff --check`.

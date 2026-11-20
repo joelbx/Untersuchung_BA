@@ -1,0 +1,3 @@
+Added `isoneof` and `isnotoneof` for string and number constraints, including JSON array type checks and the 100 item limit on create and update requests. Added focused evaluator and validation tests.
+
+Verification: `GOPROXY=off go test -count=1 ./rpc/flipt ./internal/server/evaluation` passed, and `git diff --check` found no issues. The results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

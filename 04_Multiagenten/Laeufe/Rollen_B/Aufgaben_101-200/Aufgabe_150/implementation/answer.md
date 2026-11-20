@@ -1,0 +1,3 @@
+Updated collection manifest handling. An omitted `manifest` now uses `Sentinel`, so `_build_files_manifest` applies `build_ignore` and produces a format-1 file list. An explicit `{}` selects the manifest directive defaults; `null` uses the normal file walk. The walker now excludes file symlinks whose targets are outside the collection, while retaining internal links once.
+
+Added tests for those cases. **All 215 Galaxy unit tests pass**, and `git diff --check` is clean.

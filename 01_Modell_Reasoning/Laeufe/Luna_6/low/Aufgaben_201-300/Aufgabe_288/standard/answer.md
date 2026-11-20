@@ -1,0 +1,3 @@
+Updated move-out decisions to validate the active ID against the mailbox’s `elementIDs`, and defer evaluation while those elements are loading. Both views receive the mailbox IDs and loading state; conversation view selects `messageID` for always-message labels and `conversationID` otherwise. Updated the existing conversation view test props.
+
+The type check and focused test did not finish: both commands remained silent while running, so I stopped them. `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated `module_common` to resolve `module_utils` dependencies through a queue, with separate legacy and collection locators. The payload now includes redirect shims and missing package initializers, and package `__init__.py` relative imports resolve at the correct level. Lookup errors report attempted names and missing collection context.
+
+Added focused tests and updated payload expectations. **All 51 executor `module_common` tests pass**, and the edited module compiles.

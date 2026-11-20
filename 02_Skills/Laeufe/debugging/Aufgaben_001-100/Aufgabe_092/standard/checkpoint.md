@@ -1,0 +1,5 @@
+# Checkpoint
+
+Implemented `ansible-galaxy collection install -U/--upgrade` and passed it through `install_collections`, `_resolve_depenency_map`, and the dependency provider. Root cause: `install_collections` returned early for an installed direct requirement, and the provider always prioritized installed candidates. Upgrade mode now resolves direct requests against available versions, retains installed dependencies when compatible, replaces them when their constraints require it, and skips reinstalling an already selected version. Added unit tests and `test/integration/targets/ansible-galaxy-collection/tasks/upgrade.yml`.
+
+Verification: `PYTHONPATH=lib pytest -q --reruns 0 test/units/galaxy/test_collection_install.py test/units/galaxy/test_collection.py test/units/cli/galaxy` passed (104 tests). YAML parsing of the new upgrade task and main task passed. `git diff --check` passed. The service-backed integration target was not executed locally; its Galaxy/Pulp services were not started for this check, so end-to-end integration behavior remains to be confirmed by CI. `rg` was unavailable; `grep` was used for repository search.

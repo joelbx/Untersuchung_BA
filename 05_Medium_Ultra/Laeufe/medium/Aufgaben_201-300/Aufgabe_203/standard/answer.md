@@ -1,0 +1,3 @@
+Added [ExternalLink](/app/src/components/views/elements/ExternalLink.tsx) with a decorative icon, a screen reader cue, and secure new-tab defaults. Settings links that open new tabs now use it, including the hosting signup link, which no longer has a separate icon-only link. Share dialog URLs now have localized, context-specific titles.
+
+The new component test and existing link tests pass (24 tests total). ESLint and Stylelint pass. The full TypeScript check still reports six errors in untouched ThreadEvent code; the Room Settings suite ran, but all eight tests were skipped.

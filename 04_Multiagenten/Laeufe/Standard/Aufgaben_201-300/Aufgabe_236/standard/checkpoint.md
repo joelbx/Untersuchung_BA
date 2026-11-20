@@ -1,0 +1,2 @@
+Task: Deprecate safe_eval entry points and replace check_type_dict evaluation with deterministic parsing.
+Status: Complete. Deprecated both safe_eval entry points through the shared Ansible deprecation signal (2.21), replaced check_type_dict's safe_eval fallback with JSON/literal/key=value parsing, and added a changelog fragment and focused coverage. Relevant validation, parameters, and safe_eval tests: 118 passed. git diff --check passed.

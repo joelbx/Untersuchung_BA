@@ -1,0 +1,3 @@
+Implemented the package lookup fix in `/app`. Debian and Red Hat post-scan now use shared `pkgPs` logic to associate processes with packages by file ownership, avoiding spurious `FindByFQPN` warnings when multiple versions or architectures are installed. RPM ownership parsing skips the three specified file errors and rejects other malformed lines.
+
+Regression tests and `go test ./...` passed. The test build emitted a compiler warning from the existing `go-sqlite3` dependency.

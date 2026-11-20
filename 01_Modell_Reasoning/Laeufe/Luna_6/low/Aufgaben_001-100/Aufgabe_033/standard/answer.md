@@ -1,0 +1,3 @@
+Implemented multi-device U2F challenges in [auth.go](/app/lib/auth/auth.go). The new `U2FAuthenticateChallenge` keeps the legacy challenge fields and includes a `challenges` list. The server generates challenges for all registered U2F devices, and the `tsh` U2F login flow can use any of them. `tsh mfa` device management commands are hidden as requested.
+
+The affected packages compile, focused U2F tests pass, and `git diff --check` is clean. A full auth package run hit the timing-sensitive `PasswordSuite.TestTiming` threshold by 0.20 percentage points. The browser frontend source is absent from this checkout, so its bundled assets were not updated. Details are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

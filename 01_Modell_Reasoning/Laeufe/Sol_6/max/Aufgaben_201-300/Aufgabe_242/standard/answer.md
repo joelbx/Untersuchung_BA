@@ -1,0 +1,3 @@
+Voice broadcast liveness now comes from the broadcast info state through [determineVoiceBroadcastLiveness.ts](/app/src/voice-broadcast/utils/determineVoiceBroadcastLiveness.ts). [VoiceBroadcastPlayback.ts](/app/src/voice-broadcast/models/VoiceBroadcastPlayback.ts) updates it only when the info state changes, including for unknown or missing states. Playback controls and chunk arrival no longer change it independently.
+
+All 29 voice broadcast test suites passed (282 tests). ESLint and Prettier passed. The repository-wide TypeScript check still reports five unrelated `MatrixClient` type errors outside the changed files.

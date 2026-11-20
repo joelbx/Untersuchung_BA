@@ -1,0 +1,3 @@
+Updated registration to accept an invitation token without an email. The form reads the token from the URL, and the backend uses token keyed invitation metadata to verify the invite, add the user to its groups, confirm the email when it matches, and clean up invitation records. I also updated the existing invitation tests for the new storage keys.
+
+ESLint passed. The invitation tests could not run because Redis at `127.0.0.1:6379` refused the connection.

@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py:551) to select the first eligible number in path, query, anchor, then host, following the issue’s explicit selection-order rule. It skips percent-encoded triplets, preserves encoded components during edits, never changes ports, validates `count` and the operation, and rejects decrements below zero. I updated and added [unit tests](/app/tests/unit/utils/test_urlutils.py:618).
+
+The focused suite passed: **167 tests**. `git diff --check` passed. The full URL utility suite aborted while creating an unrelated Qt application fixture. QUrl normalizes some escapes when the input URL is constructed, so the function cannot recover spellings already lost at that point.

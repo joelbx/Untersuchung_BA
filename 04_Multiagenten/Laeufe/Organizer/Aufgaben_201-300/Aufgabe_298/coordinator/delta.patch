@@ -1,0 +1,181 @@
+diff --git a/utils/cache/simple_cache.go b/utils/cache/simple_cache.go
+index b416fd2..9773d30 100644
+--- a/utils/cache/simple_cache.go
++++ b/utils/cache/simple_cache.go
+@@ -2,6 +2,7 @@ package cache
+ 
+ import (
+ 	"errors"
++	"sync/atomic"
+ 	"time"
+ 
+ 	"github.com/jellydator/ttlcache/v3"
+@@ -13,6 +14,7 @@ type SimpleCache[K comparable, V any] interface {
+ 	Get(key K) (V, error)
+ 	GetWithLoader(key K, loader func(key K) (V, time.Duration, error)) (V, error)
+ 	Keys() []K
++	Values() []V
+ }
+ 
+ type Options struct {
+@@ -35,13 +37,37 @@ func NewSimpleCache[K comparable, V any](options ...Options) SimpleCache[K, V] {
+ 	}
+ 
+ 	c := ttlcache.New[K, V](opts...)
++	var sizeLimit uint64
++	if len(options) > 0 {
++		sizeLimit = options[0].SizeLimit
++	}
+ 	return &simpleCache[K, V]{
+-		data: c,
++		data:      c,
++		sizeLimit: sizeLimit,
+ 	}
+ }
+ 
+ type simpleCache[K comparable, V any] struct {
+-	data *ttlcache.Cache[K, V]
++	data             *ttlcache.Cache[K, V]
++	sizeLimit        uint64
++	evictionDeadline atomic.Pointer[time.Time]
++}
++
++// evictExpired limits full expiration sweeps when the cache is accessed often.
++// Individual reads still check expiration between sweeps.
++func (c *simpleCache[K, V]) evictExpired() {
++	for {
++		now := time.Now()
++		deadline := c.evictionDeadline.Load()
++		if deadline != nil && now.Before(*deadline) {
++			return
++		}
++		next := now.Add(10 * time.Millisecond)
++		if c.evictionDeadline.CompareAndSwap(deadline, &next) {
++			c.data.DeleteExpired()
++			return
++		}
++	}
+ }
+ 
+ func (c *simpleCache[K, V]) Add(key K, value V) error {
+@@ -49,6 +75,10 @@ func (c *simpleCache[K, V]) Add(key K, value V) error {
+ }
+ 
+ func (c *simpleCache[K, V]) AddWithTTL(key K, value V, ttl time.Duration) error {
++	c.evictExpired()
++	if c.sizeLimit > 0 && uint64(c.data.Len()) >= c.sizeLimit {
++		c.data.DeleteExpired()
++	}
+ 	item := c.data.Set(key, value, ttl)
+ 	if item == nil {
+ 		return errors.New("failed to add item")
+@@ -57,6 +87,7 @@ func (c *simpleCache[K, V]) AddWithTTL(key K, value V, ttl time.Duration) error
+ }
+ 
+ func (c *simpleCache[K, V]) Get(key K) (V, error) {
++	c.evictExpired()
+ 	item := c.data.Get(key)
+ 	if item == nil {
+ 		var zero V
+@@ -66,12 +97,17 @@ func (c *simpleCache[K, V]) Get(key K) (V, error) {
+ }
+ 
+ func (c *simpleCache[K, V]) GetWithLoader(key K, loader func(key K) (V, time.Duration, error)) (V, error) {
++	c.evictExpired()
+ 	loaderWrapper := ttlcache.LoaderFunc[K, V](
+ 		func(t *ttlcache.Cache[K, V], key K) *ttlcache.Item[K, V] {
+ 			value, ttl, err := loader(key)
+ 			if err != nil {
+ 				return nil
+ 			}
++			c.evictExpired()
++			if c.sizeLimit > 0 && uint64(t.Len()) >= c.sizeLimit {
++				t.DeleteExpired()
++			}
+ 			return t.Set(key, value, ttl)
+ 		},
+ 	)
+@@ -84,5 +120,25 @@ func (c *simpleCache[K, V]) GetWithLoader(key K, loader func(key K) (V, time.Dur
+ }
+ 
+ func (c *simpleCache[K, V]) Keys() []K {
+-	return c.data.Keys()
++	c.evictExpired()
++	items := c.data.Items()
++	keys := make([]K, 0, len(items))
++	for key, item := range items {
++		if !item.IsExpired() {
++			keys = append(keys, key)
++		}
++	}
++	return keys
++}
++
++func (c *simpleCache[K, V]) Values() []V {
++	c.evictExpired()
++	items := c.data.Items()
++	values := make([]V, 0, len(items))
++	for _, item := range items {
++		if !item.IsExpired() {
++			values = append(values, item.Value())
++		}
++	}
++	return values
+ }
+diff --git a/utils/cache/simple_cache_test.go b/utils/cache/simple_cache_test.go
+index 3b25d30..67e40f6 100644
+--- a/utils/cache/simple_cache_test.go
++++ b/utils/cache/simple_cache_test.go
+@@ -69,6 +69,22 @@ var _ = Describe("SimpleCache", func() {
+ 			_, err := cache.GetWithLoader("key", loader)
+ 			Expect(err).To(HaveOccurred())
+ 		})
++
++		It("should expose loaded values only until their TTL expires", func() {
++			loader := func(key string) (string, time.Duration, error) {
++				return key + "=value", 10 * time.Millisecond, nil
++			}
++			value, err := cache.GetWithLoader("key", loader)
++			Expect(err).NotTo(HaveOccurred())
++			Expect(value).To(Equal("key=value"))
++			Expect(cache.Values()).To(ConsistOf("key=value"))
++
++			time.Sleep(50 * time.Millisecond)
++			Expect(cache.Keys()).To(BeEmpty())
++			Expect(cache.Values()).To(BeEmpty())
++			_, err = cache.Get("key")
++			Expect(err).To(HaveOccurred())
++		})
+ 	})
+ 
+ 	Describe("Keys", func() {
+@@ -82,6 +98,14 @@ var _ = Describe("SimpleCache", func() {
+ 			keys := cache.Keys()
+ 			Expect(keys).To(ConsistOf("key1", "key2"))
+ 		})
++
++		It("should omit expired keys and values", func() {
++			Expect(cache.Add("active", "current")).To(Succeed())
++			Expect(cache.AddWithTTL("expired", "stale", 10*time.Millisecond)).To(Succeed())
++			time.Sleep(50 * time.Millisecond)
++			Expect(cache.Keys()).To(ConsistOf("active"))
++			Expect(cache.Values()).To(ConsistOf("current"))
++		})
+ 	})
+ 
+ 	Describe("Options", func() {
+@@ -100,6 +124,14 @@ var _ = Describe("SimpleCache", func() {
+ 
+ 				Expect(cache.Keys()).To(ConsistOf("key2", "key3"))
+ 			})
++
++			It("should remove expired items before evicting active ones", func() {
++				Expect(cache.AddWithTTL("expired", "stale", time.Millisecond)).To(Succeed())
++				Expect(cache.Add("active", "current")).To(Succeed())
++				time.Sleep(2 * time.Millisecond)
++				Expect(cache.Add("new", "latest")).To(Succeed())
++				Expect(cache.Keys()).To(ConsistOf("active", "new"))
++			})
+ 		})
+ 
+ 		Context("when default TTL is set", func() {

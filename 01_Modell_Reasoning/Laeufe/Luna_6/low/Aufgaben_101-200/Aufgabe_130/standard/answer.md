@@ -1,0 +1,3 @@
+Implemented the device limit handling. `RunAdmin` now returns the registered device on enrollment errors, marks it as registered when the device limit is reached, and preserves the limit message. The fake service exposes `SetDevicesLimitReached`, and `printEnrollOutcome` handles a nil device safely. Added a regression test for the limit scenario.
+
+The `enroll` and `testenv` packages passed. The broader test run could not complete because the environment lacks required system headers and hit C compilation errors; `tool/tsh/common` did not finish. `git diff --check` passed.

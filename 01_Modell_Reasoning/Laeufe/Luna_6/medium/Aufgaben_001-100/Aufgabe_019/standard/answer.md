@@ -1,0 +1,3 @@
+Updated [roles.go](/app/roles.go) so `Roles.Check` rejects duplicate and invalid roles, while accepting empty lists. `Roles.Equals` now compares distinct-role sets, ignoring order and duplicates and treating nil and empty lists as equal. `RoleRemoteProxy` is also accepted as a valid declared role.
+
+`gofmt` and `git diff --check` passed. `go test ./lib/utils` had 50 passing tests and one unrelated failure: `TestRejectsSelfSignedCertificate` expects an unknown authority error, but its test certificate expired in 2021. The checkpoint is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

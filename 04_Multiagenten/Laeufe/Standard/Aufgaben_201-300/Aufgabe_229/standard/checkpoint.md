@@ -1,0 +1,1 @@
+Completed local image cleanup for group covers, user covers and avatars, and account deletion. Added disk cleanup assertions and variant tests. Verified: 336 user/group tests passed; ESLint and git diff --check passed.

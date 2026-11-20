@@ -1,0 +1,3 @@
+Implemented ZIP based cover archival with zero-padded paths, per-batch locking, upload verification before finalization, and database flags for failed and uploaded covers. Retrieval now follows stored remote URLs while preserving access to legacy remote tar covers. The path schema and workflow are documented in [README.md](/app/openlibrary/coverstore/README.md); verification details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+Coverstore tests passed: 30 passed, 7 skipped. The broader suite passed with one network-dependent test excluded: 1,556 passed. That test could not be collected because its schema fetch hit a proxy error.

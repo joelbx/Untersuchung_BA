@@ -1,0 +1,3 @@
+Implemented Redis TLS configuration with custom CA paths or inline certificate data, optional certificate verification skipping, and TLS 1.2 minimum. The Redis client is wired into server cache setup, configuration validation rejects simultaneous CA options, and the YAML fixtures and `api/cachetls` CI matrix entry are added.
+
+Verification passed: `go test -p 2 ./internal/config ./internal/cache/redis ./internal/cmd -short` and `git diff --check`. Redis integration tests requiring Docker could not run because the Docker daemon is unavailable.

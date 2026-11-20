@@ -1,0 +1,3 @@
+Collection name validation now returns a boolean and rejects Python keywords or invalid identifiers in either segment. Galaxy requirement inference uses that validator; the legacy helpers and their Python 2 compatibility code are removed. Regression tests cover the reported names and leading digits.
+
+The loader tests passed (71/71), and the Galaxy tests passed when run separately (37/37). A combined run encountered a collection-finder setup conflict between the test modules.

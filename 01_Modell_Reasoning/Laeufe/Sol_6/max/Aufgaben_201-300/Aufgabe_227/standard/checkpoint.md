@@ -1,0 +1,3 @@
+Task: Gate the MIME suffix workaround using only runtime Qt.
+Completed: Both workaround bounds call version_check(..., compiled=False). The version_check docstring explains runtime and compiled checks, and compiled=True with exact=True raises RuntimeError. Added tests for mismatched runtime, compiled Qt, and PyQt versions at both bounds.
+Verification: QT_QPA_PLATFORM=offscreen pytest -q tests/unit/utils/test_qtutils.py::test_version_check tests/unit/utils/test_qtutils.py::test_version_check_compiled_and_exact tests/unit/utils/test_qtutils.py::test_version_check_runtime_only tests/unit/browser/webengine/test_webview.py (43 passed). git diff --check passed.

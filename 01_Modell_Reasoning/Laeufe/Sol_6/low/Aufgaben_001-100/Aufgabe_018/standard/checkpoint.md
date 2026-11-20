@@ -1,0 +1,1 @@
+Implemented whitespace splitting for scalar string values decoded into []string, including empty strings. Enabled empty environment values in Viper so ENV and YAML match. Updated the advanced fixture and added YAML/ENV and sequence regression tests. Verified with go test ./internal/config (passes).

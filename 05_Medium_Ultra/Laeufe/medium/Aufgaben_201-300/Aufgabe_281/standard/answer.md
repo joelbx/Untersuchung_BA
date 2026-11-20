@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` for [MongoDB](/app/src/database/mongo/hash.js) and [Redis](/app/src/database/redis/hash.js). Both accept tuple arrays, validate safe integer increments and field names, create missing objects and fields, apply each key’s fields atomically, and invalidate cache entries for successful writes. Redis pipelines atomic per-key scripts that use `HINCRBY`.
+
+Added [bulk increment tests](/app/test/database/hash.js). The Redis hash suite, ESLint, and `git diff --check` pass. MongoDB integration tests could not run because `mongod` is unavailable locally.

@@ -1,0 +1,5 @@
+Implemented reusable payment verification with `getDefaultVerifyPayment` and `getCreatePaymentToken`. Updated the five requested components and the additional single-signup consumer. Chargeable tokens return immediately, pending tokens use the injected verifier, and terminal creation failures reject. Verification polling now supports configurable timer intervals and cleans up on completion or cancellation.
+
+Validation: component and account type checks pass; `PaymentStep` tests pass (2/2); formatting and `git diff --check` pass. The broader component run passed 34/36 tests. Two existing CreditsModal assertions expect `PaymentMethodID` in the outgoing request, which the previous helper also did not return.
+
+Key changes: [paymentTokenHelper.tsx](/app/packages/components/containers/payments/paymentTokenHelper.tsx), [PaymentStep.tsx](/app/applications/account/src/app/signup/PaymentStep.tsx), [single-signup Step1.tsx](/app/applications/account/src/app/single-signup/Step1.tsx).

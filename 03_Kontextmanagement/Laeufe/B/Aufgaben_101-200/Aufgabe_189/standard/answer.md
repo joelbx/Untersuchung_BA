@@ -1,0 +1,3 @@
+Moved `extra_suffixes_workaround` to module scope and updated `WebEnginePage.chooseFiles` to pass a deduplicated suffix list through its single superclass call. The existing external picker path remains intact.
+
+The focused tests passed (**25 passed**) with Qt offscreen, and `git diff --check` passed. Changes are in [webview.py](/app/qutebrowser/browser/webengine/webview.py) and [test_webview.py](/app/tests/unit/browser/webengine/test_webview.py).

@@ -1,0 +1,4 @@
+Issue resolved: parent-domain host blocking, whitelist priority, per-URL toggle, URL hosts, and trailing-dot equivalence.
+Changes: qutebrowser/utils/urlutils.py exposes widened_hostnames(Optional[str]); hostblock checks the toggle, then whitelist, then each widened request host in both runtime/config sets. Loaded host entries and request hosts strip trailing dots. Focused tests cover both sets, subdomains, full URLs, trailing dots, whitelist, and toggle.
+Verification: QT_QPA_PLATFORM=offscreen python -m pytest -q tests/unit/components/test_hostblock.py tests/unit/utils/test_urlutils.py tests/unit/config/test_configutils.py -k 'not benchmark' => 423 passed, 1 skipped, 5 deselected. git diff --check clean.
+Constraints observed: no git history/index/harness changes; no external research or downloads.

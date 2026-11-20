@@ -1,0 +1,3 @@
+Updated the controller minimum to **Python 3.12** in the CLI, ansible-test, and package metadata, with consistent rejection messages. Collection extraction now passes `dirname` unchanged to `tar.getmember()` and no longer uses the private TarFile cache. I also removed obsolete controller compatibility paths and added a [changelog fragment](/app/changelogs/fragments/controller-python-3.12.yml).
+
+Verification: 159 relevant tests passed, 1 skipped; syntax and diff checks passed. Both entry points correctly reject the available Python 3.11 runtime. The tests used a narrow import-gate workaround, so execution on Python 3.12 remains unverified locally.

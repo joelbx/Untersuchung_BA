@@ -1,0 +1,3 @@
+Added `storage.readOnly` to backend configuration and frontend types. Explicit values are validated, including `false` on non-database storage, and database values load from YAML or the environment. The UI now derives read-only mode from configuration and shows a “Read-Only” badge with the active backend’s icon; the header also shows the backend icon when writable. Authentication bootstrap skips database connections for non-database storage when authentication is disabled.
+
+`go test ./internal/config ./internal/cmd` and `git diff --check` passed. UI checks could not run because dependencies are absent from the checkout. No delegation was used.

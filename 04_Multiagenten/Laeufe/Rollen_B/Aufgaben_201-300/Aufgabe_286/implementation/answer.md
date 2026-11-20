@@ -1,0 +1,3 @@
+Implemented release detection and update checking in [internal/release/check.go](/app/internal/release/check.go). Startup now treats `-rc`, snapshot, dev, and other prerelease versions as non-releases, uses `release.Info` for update messages and metadata, and disables telemetry for non-release builds and CI. Failed update checks log `"checking for updates"` with the error and let startup continue.
+
+Added focused release tests. `go test ./internal/release ./cmd/flipt` and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Centralized `add_db_name` in [catalog utils](/app/openlibrary/catalog/utils/__init__.py). Record expansion now generates an identifier for every author, using the name alone when no dates are available. Existing editions pass author names and birth/death dates into expansion, and the duplicate generators were removed.
+
+The catalog test suites passed: **104 passed, 1 skipped, 2 expected failures, 1 unexpected pass**. A lint check found one pre-existing duplicate import in `test_add_book.py`; the other changed files passed lint.

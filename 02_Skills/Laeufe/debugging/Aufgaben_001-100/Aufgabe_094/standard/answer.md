@@ -1,0 +1,3 @@
+Added `Diag` and `DiagResult` in [api.go](/app/lib/auth/touchid/api.go). On macOS, availability now checks the code signature, required entitlements, biometric policy, and Secure Enclave key creation before reporting Touch ID as usable. The existing registration and login response path remains intact.
+
+The Touch ID tests pass for both allowed-credential and passwordless login, including JSON parsing and WebAuthn validation. The WebAuthn package tests also pass. Native macOS compilation and hardware behavior remain unverified: this Linux host’s GCC rejected the Darwin `-arch` flag.

@@ -1,0 +1,267 @@
+diff --git a/conf/configuration.go b/conf/configuration.go
+index 5e3f55c..22c6a3e 100644
+--- a/conf/configuration.go
++++ b/conf/configuration.go
+@@ -50,6 +50,8 @@ type configOptions struct {
+ 	EnableLogRedacting     bool
+ 	AuthRequestLimit       int
+ 	AuthWindowLength       time.Duration
++	ReverseProxyWhitelist  string
++	ReverseProxyUserHeader string
+ 
+ 	Scanner scannerOptions
+ 
+@@ -200,6 +202,8 @@ func init() {
+ 	viper.SetDefault("enablelogredacting", true)
+ 	viper.SetDefault("authrequestlimit", 5)
+ 	viper.SetDefault("authwindowlength", 20*time.Second)
++	viper.SetDefault("reverseproxyuserheader", "Remote-User")
++	viper.SetDefault("reverseproxywhitelist", "")
+ 
+ 	viper.SetDefault("scanner.extractor", "taglib")
+ 	viper.SetDefault("agents", "lastfm,spotify")
+diff --git a/log/redactrus.go b/log/redactrus.go
+index 8c0d2ac..71e2606 100755
+--- a/log/redactrus.go
++++ b/log/redactrus.go
+@@ -4,6 +4,7 @@ package log
+ // Copyright (c) 2018 William Huang
+ 
+ import (
++	"fmt"
+ 	"reflect"
+ 	"regexp"
+ 
+@@ -41,13 +42,7 @@ func (h *Hook) Fire(e *logrus.Entry) error {
+ 				e.Data[k] = "[REDACTED]"
+ 				continue
+ 			}
+-
+-			// Redact based on value matching in Data fields
+-			switch reflect.TypeOf(v).Kind() {
+-			case reflect.String:
+-				e.Data[k] = re.ReplaceAllString(v.(string), "$1[REDACTED]$2")
+-				continue
+-			}
++			e.Data[k] = redactValue(v, re)
+ 		}
+ 
+ 		// Redact based on text matching in the Message field
+@@ -57,6 +52,42 @@ func (h *Hook) Fire(e *logrus.Entry) error {
+ 	return nil
+ }
+ 
++func redactValue(value interface{}, re *regexp.Regexp) interface{} {
++	if value == nil {
++		return nil
++	}
++	rv := reflect.ValueOf(value)
++	if rv.Kind() == reflect.Map && rv.Type().Key().Kind() == reflect.String {
++		result := reflect.MakeMap(rv.Type())
++		iter := rv.MapRange()
++		for iter.Next() {
++			key := iter.Key()
++			v := iter.Value().Interface()
++			if re.MatchString(key.String()) {
++				v = "[REDACTED]"
++			} else {
++				v = redactValue(v, re)
++			}
++			converted := reflect.ValueOf(v)
++			if !converted.IsValid() {
++				converted = reflect.Zero(rv.Type().Elem())
++			} else if !converted.Type().AssignableTo(rv.Type().Elem()) {
++				converted = reflect.ValueOf(re.ReplaceAllString(fmt.Sprint(v), "$1[REDACTED]$2"))
++			}
++			if converted.Type().AssignableTo(rv.Type().Elem()) {
++				result.SetMapIndex(key, converted)
++			} else {
++				return re.ReplaceAllString(fmt.Sprint(value), "$1[REDACTED]$2")
++			}
++		}
++		return result.Interface()
++	}
++	if rv.Kind() == reflect.String {
++		return re.ReplaceAllString(rv.String(), "$1[REDACTED]$2")
++	}
++	return re.ReplaceAllString(fmt.Sprint(value), "$1[REDACTED]$2")
++}
++
+ func (h *Hook) initRedaction() error {
+ 	if len(h.redactionKeys) == 0 {
+ 		for _, redactionKey := range h.RedactionList {
+diff --git a/server/app/serve_index.go b/server/app/serve_index.go
+index 8d35af2..e3d57b1 100644
+--- a/server/app/serve_index.go
++++ b/server/app/serve_index.go
+@@ -1,17 +1,23 @@
+ package app
+ 
+ import (
++	"crypto/md5"
++	"encoding/hex"
+ 	"encoding/json"
+ 	"html/template"
+ 	"io/fs"
+ 	"io/ioutil"
++	"net"
+ 	"net/http"
+ 	"path"
+ 	"strings"
++	"time"
+ 
++	"github.com/google/uuid"
+ 	"github.com/microcosm-cc/bluemonday"
+ 	"github.com/navidrome/navidrome/conf"
+ 	"github.com/navidrome/navidrome/consts"
++	"github.com/navidrome/navidrome/core/auth"
+ 	"github.com/navidrome/navidrome/log"
+ 	"github.com/navidrome/navidrome/model"
+ )
+@@ -51,6 +57,9 @@ func serveIndex(ds model.DataStore, fs fs.FS) http.HandlerFunc {
+ 			"enableUserEditing":       conf.Server.EnableUserEditing,
+ 			"devEnableShare":          conf.Server.DevEnableShare,
+ 		}
++		if authData := handleLoginFromHeaders(ds, r); authData != nil {
++			appConfig["auth"] = authData
++		}
+ 		j, err := json.Marshal(appConfig)
+ 		if err != nil {
+ 			log.Error(r, "Error converting config to JSON", "config", appConfig, err)
+@@ -74,6 +83,109 @@ func serveIndex(ds model.DataStore, fs fs.FS) http.HandlerFunc {
+ 	}
+ }
+ 
++// handleLoginFromHeaders authenticates requests from explicitly trusted proxies.
++func handleLoginFromHeaders(ds model.DataStore, r *http.Request) map[string]interface{} {
++	if !validateIPAgainstList(r.RemoteAddr, conf.Server.ReverseProxyWhitelist) {
++		return nil
++	}
++	username := strings.TrimSpace(r.Header.Get(conf.Server.ReverseProxyUserHeader))
++	if username == "" {
++		return nil
++	}
++
++	auth.Init(ds)
++	users := ds.User(r.Context())
++	user, err := users.FindByUsername(username)
++	if err == model.ErrNotFound {
++		count, countErr := users.CountAll()
++		if countErr != nil {
++			log.Error(r, "Could not count users during reverse proxy login", countErr)
++			return nil
++		}
++		now := time.Now()
++		user = &model.User{
++			ID:          uuid.NewString(),
++			UserName:    username,
++			Name:        strings.Title(username),
++			IsAdmin:     count == 0,
++			LastLoginAt: &now,
++		}
++		if err = users.Put(user); err != nil {
++			log.Error(r, "Could not create reverse proxy user", "username", username, err)
++			return nil
++		}
++	} else if err != nil {
++		log.Error(r, "Could not find reverse proxy user", "username", username, err)
++		return nil
++	} else {
++		now := time.Now()
++		user.LastLoginAt = &now
++		if err = users.UpdateLastLoginAt(user.ID); err != nil {
++			log.Error(r, "Could not update LastLoginAt", "user", username, err)
++		}
++	}
++
++	token, err := auth.CreateToken(user)
++	if err != nil {
++		log.Error(r, "Could not create reverse proxy token", "username", username, err)
++		return nil
++	}
++	salt := uuid.NewString()[:6]
++	subsonicToken := md5.Sum([]byte(user.Password + salt))
++	return map[string]interface{}{
++		"id":            user.ID,
++		"isAdmin":       user.IsAdmin,
++		"name":          user.Name,
++		"username":      user.UserName,
++		"token":         token,
++		"subsonicSalt":  salt,
++		"subsonicToken": hex.EncodeToString(subsonicToken[:]),
++	}
++}
++
++func validateIPAgainstList(remoteAddr, whitelist string) bool {
++	if strings.TrimSpace(whitelist) == "" {
++		return false
++	}
++	remoteHost := remoteAddr
++	if host, _, err := net.SplitHostPort(remoteAddr); err == nil {
++		remoteHost = host
++	}
++	if remoteHost == "@" {
++		for _, entry := range strings.Split(whitelist, ",") {
++			if strings.TrimSpace(entry) == "@" {
++				return true
++			}
++		}
++		return false
++	}
++	remoteIP := net.ParseIP(strings.Trim(remoteHost, "[]"))
++	if remoteIP == nil {
++		return false
++	}
++	for _, entry := range strings.Split(whitelist, ",") {
++		entry = strings.TrimSpace(entry)
++		if entry == "" || entry == "@" {
++			continue
++		}
++		candidate := entry
++		if host, _, err := net.SplitHostPort(entry); err == nil {
++			candidate = host
++		}
++		if ip := net.ParseIP(strings.Trim(candidate, "[]")); ip != nil {
++			if ip.Equal(remoteIP) {
++				return true
++			}
++			continue
++		}
++		_, network, err := net.ParseCIDR(candidate)
++		if err == nil && network.Contains(remoteIP) {
++			return true
++		}
++	}
++	return false
++}
++
+ func getIndexTemplate(r *http.Request, fs fs.FS) (*template.Template, error) {
+ 	t := template.New("initial state")
+ 	indexHtml, err := fs.Open("index.html")
+diff --git a/ui/src/authProvider.js b/ui/src/authProvider.js
+index a22cbcf..d931a3f 100644
+--- a/ui/src/authProvider.js
++++ b/ui/src/authProvider.js
+@@ -94,6 +94,22 @@ const authProvider = {
+   },
+ }
+ 
++// A trusted reverse proxy can provide the initial session in the page config.
++if (config.auth) {
++  storeAuthentication(config.auth)
++}
++
++function storeAuthentication(response) {
++  jwtDecode(response.token)
++  localStorage.setItem('token', response.token)
++  localStorage.setItem('userId', response.id)
++  localStorage.setItem('name', response.name)
++  localStorage.setItem('username', response.username)
++  localStorage.setItem('role', response.isAdmin ? 'admin' : 'regular')
++  localStorage.setItem('subsonic-salt', response.subsonicSalt)
++  localStorage.setItem('subsonic-token', response.subsonicToken)
++}
++
+ const removeItems = () => {
+   localStorage.removeItem('token')
+   localStorage.removeItem('userId')

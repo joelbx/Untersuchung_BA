@@ -1,0 +1,3 @@
+Updated collection manifest handling so an absent `manifest` uses `Sentinel`, while explicit `manifest: {}` and `manifest: null` select the default manifest directives. The legacy file walk still applies `build_ignore` and now excludes file symlinks pointing outside the collection.
+
+**Verification:** 213 Galaxy unit tests passed. The real directive processor could not be tested because `distlib` is not installed; routing for `{}` and `null` is covered by mocked tests.

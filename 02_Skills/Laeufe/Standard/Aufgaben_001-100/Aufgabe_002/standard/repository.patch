@@ -1,0 +1,228 @@
+diff --git a/lib/service/cfg.go b/lib/service/cfg.go
+index 7285e1e..c5e00e6 100644
+--- a/lib/service/cfg.go
++++ b/lib/service/cfg.go
+@@ -19,9 +19,12 @@ package service
+ import (
+ 	"fmt"
+ 	"io"
++	"net"
+ 	"os"
+ 	"path/filepath"
+ 	"sort"
++	"strconv"
++	"strings"
+ 	"time"
+ 
+ 	"golang.org/x/crypto/ssh"
+@@ -347,6 +350,37 @@ type ProxyConfig struct {
+ 	Kube KubeProxyConfig
+ }
+ 
++// KubeAddr returns the public HTTPS address of the Kubernetes proxy.
++func (c ProxyConfig) KubeAddr() (string, error) {
++	if !c.Kube.Enabled {
++		return "", trace.BadParameter("Kubernetes proxy is disabled")
++	}
++
++	addrs := c.Kube.PublicAddrs
++	if len(addrs) == 0 {
++		addrs = c.PublicAddrs
++	}
++	if len(addrs) == 0 {
++		return "", trace.BadParameter("no public proxy address configured")
++	}
++	addr := addrs[0]
++	host, err := utils.Host(addr.Addr)
++	if err != nil || host == "" || strings.ContainsAny(host, "/@?# \t\r\n[]") {
++		return "", trace.BadParameter("invalid Kubernetes proxy address %q", addr.Addr)
++	}
++	if host != addr.Addr && net.ParseIP(addr.Addr) == nil {
++		_, port, err := net.SplitHostPort(addr.Addr)
++		if err != nil {
++			return "", trace.BadParameter("invalid Kubernetes proxy address %q", addr.Addr)
++		}
++		n, err := strconv.Atoi(port)
++		if err != nil || n < 1 || n > 65535 {
++			return "", trace.BadParameter("invalid Kubernetes proxy address %q", addr.Addr)
++		}
++	}
++	return "https://" + net.JoinHostPort(host, strconv.Itoa(defaults.KubeProxyListenPort)), nil
++}
++
+ // KubeProxyConfig specifies configuration for proxy service
+ type KubeProxyConfig struct {
+ 	// Enabled turns kubernetes proxy role on or off for this process
+diff --git a/lib/service/cfg_test.go b/lib/service/cfg_test.go
+index df88cd0..4bf0ca7 100644
+--- a/lib/service/cfg_test.go
++++ b/lib/service/cfg_test.go
+@@ -31,6 +31,31 @@ import (
+ 
+ func TestConfig(t *testing.T) { check.TestingT(t) }
+ 
++func TestProxyConfigKubeAddr(t *testing.T) {
++	tests := []struct {
++		name string
++		cfg  ProxyConfig
++		want string
++	}{
++		{"kubernetes public address", ProxyConfig{Kube: KubeProxyConfig{Enabled: true, PublicAddrs: []utils.NetAddr{{Addr: "kube.example.com:4000"}}}, PublicAddrs: []utils.NetAddr{{Addr: "web.example.com:3080"}}}, "https://kube.example.com:3026"},
++		{"web public address fallback", ProxyConfig{Kube: KubeProxyConfig{Enabled: true}, PublicAddrs: []utils.NetAddr{{Addr: "web.example.com:3080"}}}, "https://web.example.com:3026"},
++		{"IPv6", ProxyConfig{Kube: KubeProxyConfig{Enabled: true, PublicAddrs: []utils.NetAddr{{Addr: "[::1]:4000"}}}}, "https://[::1]:3026"},
++	}
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			got, err := tt.cfg.KubeAddr()
++			if err != nil || got != tt.want {
++				t.Fatalf("KubeAddr() = %q, %v; want %q", got, err, tt.want)
++			}
++		})
++	}
++	for _, cfg := range []ProxyConfig{{}, {Kube: KubeProxyConfig{Enabled: true}}} {
++		if _, err := cfg.KubeAddr(); err == nil {
++			t.Fatalf("KubeAddr() succeeded for %+v", cfg)
++		}
++	}
++}
++
+ type ConfigSuite struct {
+ }
+ 
+diff --git a/tool/tctl/common/auth_command.go b/tool/tctl/common/auth_command.go
+index 0aa2d4e..31b567e 100644
+--- a/tool/tctl/common/auth_command.go
++++ b/tool/tctl/common/auth_command.go
+@@ -4,7 +4,9 @@ import (
+ 	"context"
+ 	"fmt"
+ 	"io/ioutil"
++	"net"
+ 	"os"
++	"strconv"
+ 	"strings"
+ 	"time"
+ 
+@@ -399,10 +401,13 @@ func (a *AuthCommand) checkProxyAddr(clusterAPI auth.ClientI) error {
+ 
+ 	// User didn't specify --proxy for kubeconfig. Let's try to guess it.
+ 	//
+-	// Is the auth server also a proxy?
+-	if len(a.config.Proxy.PublicAddrs) > 0 {
+-		a.proxyAddr = a.config.Proxy.PublicAddrs[0].String()
+-		return nil
++	// Is the auth server also a Kubernetes proxy?
++	if a.config != nil && a.config.Proxy.Kube.Enabled {
++		addr, err := a.config.Proxy.KubeAddr()
++		if err == nil {
++			a.proxyAddr = addr
++			return nil
++		}
+ 	}
+ 	// Fetch proxies known to auth server and try to find a public address.
+ 	proxies, err := clusterAPI.GetProxies()
+@@ -410,7 +415,7 @@ func (a *AuthCommand) checkProxyAddr(clusterAPI auth.ClientI) error {
+ 		return trace.WrapWithMessage(err, "couldn't load registered proxies, try setting --proxy manually")
+ 	}
+ 	for _, p := range proxies {
+-		if addr := p.GetPublicAddr(); addr != "" {
++		if addr, err := kubeAddrFromPublicAddr(p.GetPublicAddr()); err == nil {
+ 			a.proxyAddr = addr
+ 			return nil
+ 		}
+@@ -419,6 +424,30 @@ func (a *AuthCommand) checkProxyAddr(clusterAPI auth.ClientI) error {
+ 	return trace.BadParameter("couldn't find registered public proxies, specify --proxy when using --format=%q", identityfile.FormatKubernetes)
+ }
+ 
++// kubeAddrFromPublicAddr replaces a registered proxy's HTTP port with the
++// Kubernetes proxy port. Malformed addresses are ignored by the caller.
++func kubeAddrFromPublicAddr(publicAddr string) (string, error) {
++	addr, err := utils.ParseAddr(publicAddr)
++	if err != nil || addr.AddrNetwork == "unix" || addr.Path != "" {
++		return "", trace.BadParameter("invalid proxy public address %q", publicAddr)
++	}
++	host, err := utils.Host(addr.Addr)
++	if err != nil || host == "" || strings.ContainsAny(host, "/@?# \t\r\n[]") {
++		return "", trace.BadParameter("invalid proxy public address %q", publicAddr)
++	}
++	if host != addr.Addr && net.ParseIP(addr.Addr) == nil {
++		_, port, err := net.SplitHostPort(addr.Addr)
++		if err != nil {
++			return "", trace.BadParameter("invalid proxy public address %q", publicAddr)
++		}
++		n, err := strconv.Atoi(port)
++		if err != nil || n < 1 || n > 65535 {
++			return "", trace.BadParameter("invalid proxy public address %q", publicAddr)
++		}
++	}
++	return "https://" + net.JoinHostPort(host, strconv.Itoa(defaults.KubeProxyListenPort)), nil
++}
++
+ // userCAFormat returns the certificate authority public key exported as a single
+ // line that can be placed in ~/.ssh/authorized_keys file. The format adheres to the
+ // man sshd (8) authorized_keys format, a space-separated list of: options, keytype,
+diff --git a/tool/tctl/common/auth_command_test.go b/tool/tctl/common/auth_command_test.go
+index 4e02a90..833a2f8 100644
+--- a/tool/tctl/common/auth_command_test.go
++++ b/tool/tctl/common/auth_command_test.go
+@@ -12,7 +12,9 @@ import (
+ 	"github.com/gravitational/teleport/lib/auth/proto"
+ 	"github.com/gravitational/teleport/lib/client/identityfile"
+ 	"github.com/gravitational/teleport/lib/kube/kubeconfig"
++	"github.com/gravitational/teleport/lib/service"
+ 	"github.com/gravitational/teleport/lib/services"
++	"github.com/gravitational/teleport/lib/utils"
+ )
+ 
+ func TestAuthSignKubeconfig(t *testing.T) {
+@@ -78,14 +80,50 @@ func TestAuthSignKubeconfig(t *testing.T) {
+ 	}
+ }
+ 
++func TestAuthSignKubeProxyAddress(t *testing.T) {
++	proxy := func(addr string) services.Server {
++		p := &services.ServerV2{}
++		p.SetPublicAddr(addr)
++		return p
++	}
++	tests := []struct {
++		name    string
++		config  *service.Config
++		proxies []services.Server
++		flag    string
++		want    string
++		wantErr bool
++	}{
++		{"local Kubernetes address", &service.Config{Proxy: service.ProxyConfig{Kube: service.KubeProxyConfig{Enabled: true, PublicAddrs: []utils.NetAddr{{Addr: "kube.example.com:4000"}}}, PublicAddrs: []utils.NetAddr{{Addr: "web.example.com:3080"}}}}, nil, "", "https://kube.example.com:3026", false},
++		{"local web address fallback", &service.Config{Proxy: service.ProxyConfig{Kube: service.KubeProxyConfig{Enabled: true}, PublicAddrs: []utils.NetAddr{{Addr: "web.example.com:3080"}}}}, nil, "", "https://web.example.com:3026", false},
++		{"invalid local address", &service.Config{Proxy: service.ProxyConfig{Kube: service.KubeProxyConfig{Enabled: true, PublicAddrs: []utils.NetAddr{{Addr: "bad.example.com:invalid"}}}}}, []services.Server{proxy("good.example.com:3080")}, "", "https://good.example.com:3026", false},
++		{"registered proxy", &service.Config{}, []services.Server{proxy("web.example.com:3080")}, "", "https://web.example.com:3026", false},
++		{"skip invalid proxy", &service.Config{}, []services.Server{proxy("bad.example.com:invalid"), proxy("good.example.com:3080")}, "", "https://good.example.com:3026", false},
++		{"invalid proxies", &service.Config{}, []services.Server{proxy("bad.example.com:invalid")}, "", "", true},
++		{"explicit flag", &service.Config{}, nil, "https://custom.example.com:1234", "https://custom.example.com:1234", false},
++	}
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			a := &AuthCommand{config: tt.config, outputFormat: identityfile.FormatKubernetes, proxyAddr: tt.flag}
++			err := a.checkProxyAddr(mockClient{proxies: tt.proxies})
++			if (err != nil) != tt.wantErr || (!tt.wantErr && a.proxyAddr != tt.want) {
++				t.Fatalf("checkProxyAddr() = %q, %v; want %q, error=%v", a.proxyAddr, err, tt.want, tt.wantErr)
++			}
++		})
++	}
++}
++
+ type mockClient struct {
+ 	auth.ClientI
+ 
+ 	clusterName services.ClusterName
+ 	userCerts   *proto.Certs
+ 	cas         []services.CertAuthority
++	proxies     []services.Server
+ }
+ 
++func (c mockClient) GetProxies() ([]services.Server, error) { return c.proxies, nil }
++
+ func (c mockClient) GetClusterName(...services.MarshalOption) (services.ClusterName, error) {
+ 	return c.clusterName, nil
+ }

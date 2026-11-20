@@ -1,0 +1,138 @@
+diff --git a/lib/ansible/plugins/shell/powershell.py b/lib/ansible/plugins/shell/powershell.py
+index 405211a..1a3aa2b 100644
+--- a/lib/ansible/plugins/shell/powershell.py
++++ b/lib/ansible/plugins/shell/powershell.py
+@@ -22,14 +22,56 @@ import pkgutil
+ import xml.etree.ElementTree as ET
+ import ntpath
+ 
+-from ansible.module_utils.common.text.converters import to_bytes, to_text
++from ansible.module_utils.common.text.converters import to_text
+ from ansible.plugins.shell import ShellBase
+ 
+ 
+ _common_args = ['PowerShell', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Unrestricted']
+ 
+ 
+-def _parse_clixml(data, stream="Error"):
++def _decode_clixml_text(value: str) -> str:
++    """Decode PowerShell's escaped UTF-16 code units in a CLIXML string."""
++    escape_re = re.compile(r'_x([0-9a-f]{4})_', re.IGNORECASE)
++    matches = list(escape_re.finditer(value))
++    decoded = []
++    index = 0
++    cursor = 0
++
++    while index < len(matches):
++        match = matches[index]
++        unit = int(match.group(1), 16)
++        decoded.append(value[cursor:match.start()])
++
++        # PowerShell uses an escaped underscore to protect the following
++        # escape. A standalone escaped underscore is literal CLIXML text.
++        if unit == 0x005F:
++            if match.group(0) == '_x005F_' and not (
++                index + 1 < len(matches) and matches[index + 1].start() == match.end()
++            ):
++                decoded.append(match.group(0))
++            else:
++                decoded.append('_')
++            cursor = match.end()
++            index += 1
++            continue
++
++        if 0xD800 <= unit <= 0xDBFF and index + 1 < len(matches):
++            next_match = matches[index + 1]
++            next_unit = int(next_match.group(1), 16)
++            if next_match.start() == match.end() and 0xDC00 <= next_unit <= 0xDFFF:
++                decoded.append(chr(0x10000 + ((unit - 0xD800) << 10) + next_unit - 0xDC00))
++                cursor = next_match.end()
++                index += 2
++                continue
++        decoded.append(chr(unit))
++        cursor = match.end()
++        index += 1
++
++    decoded.append(value[cursor:])
++    return ''.join(decoded)
++
++
++def _parse_clixml(data: bytes, stream: str = "Error") -> bytes:
+     """
+     Takes a byte string like '#< CLIXML\r\n<Objs...' and extracts the stream
+     message encoded in the XML data. CLIXML is used by PowerShell to encode
+@@ -41,19 +83,21 @@ def _parse_clixml(data, stream="Error"):
+     # '<# CLIXML\r\n<# CLIXML\r\n<Objs>...</Objs><Objs>...</Objs>'.
+     # Parse each individual <Objs> element and add the error strings to our stderr list.
+     # https://github.com/ansible/ansible/issues/69550
+-    while data:
+-        end_idx = data.find(b"</Objs>") + 7
+-        current_element = data[data.find(b"<Objs "):end_idx]
+-        data = data[end_idx:]
+-
+-        clixml = ET.fromstring(current_element)
++    objs_re = re.compile(rb'<Objs(?:\s[^>]*)?>.*?</Objs>', re.DOTALL)
++    for match in objs_re.finditer(data):
++        clixml = ET.fromstring(match.group(0))
+         namespace_match = re.match(r'{(.*)}', clixml.tag)
+         namespace = "{%s}" % namespace_match.group(1) if namespace_match else ""
+ 
+         strings = clixml.findall("./%sS" % namespace)
+-        lines.extend([e.text.replace('_x000D__x000A_', '') for e in strings if e.attrib.get('S') == stream])
+-
+-    return to_bytes('\r\n'.join(lines))
++        block_text = ''.join(
++            _decode_clixml_text(element.text or '')
++            for element in strings if element.attrib.get('S') == stream
++        )
++        if block_text:
++            lines.append(block_text)
++
++    return '\r\n'.join(lines).encode('utf-8', 'surrogatepass')
+ 
+ 
+ class ShellModule(ShellBase):
+diff --git a/test/units/plugins/shell/test_powershell.py b/test/units/plugins/shell/test_powershell.py
+index 90ee008..f4442f4 100644
+--- a/test/units/plugins/shell/test_powershell.py
++++ b/test/units/plugins/shell/test_powershell.py
+@@ -35,7 +35,7 @@ def test_parse_clixml_single_stream():
+                b"+ fake cmdlet\r\n" \
+                b"+ ~~~~\r\n" \
+                b"    + CategoryInfo          : ObjectNotFound: (fake:String) [], CommandNotFoundException\r\n" \
+-               b"    + FullyQualifiedErrorId : CommandNotFoundException\r\n "
++               b"    + FullyQualifiedErrorId : CommandNotFoundException\r\n \r\n"
+     actual = _parse_clixml(single_stream)
+     assert actual == expected
+ 
+@@ -74,6 +74,30 @@ def test_parse_clixml_multiple_elements():
+     assert actual == expected
+ 
+ 
++def test_parse_clixml_decodes_utf16_escapes():
++    clixml = b'<Objs><S S="Error">_x263A__xD83D__xDE00__x000D__x000A_</S></Objs>'
++    assert _parse_clixml(clixml) == '\u263a\U0001f600\r\n'.encode()
++
++
++def test_parse_clixml_preserves_invalid_and_unpaired_escapes():
++    clixml = b'<Objs><S S="Error">_x005G_ _xD800_</S></Objs>'
++    assert _parse_clixml(clixml) == '_x005G_ \ud800'.encode('utf-8', 'surrogatepass')
++
++
++def test_parse_clixml_underscore_escapes():
++    clixml = b'<Objs><S S="Error">_x005F_ _x005F__x000A_ _x005f_</S></Objs>'
++    assert _parse_clixml(clixml) == b'_x005F_ _\n _'
++
++
++def test_parse_clixml_empty_and_multiple_blocks():
++    clixml = b'<Objs><S S="Error" /></Objs><Objs><S S="Info">ignored</S>' \
++             b'<S S="Error">first</S><S S="Error" /></Objs>' \
++             b'<Objs><S S="Error">second</S></Objs>'
++    assert _parse_clixml(clixml) == b'first\r\nsecond'
++    assert _parse_clixml(b'<Objs><S S="Error" /></Objs>') == b''
++    assert _parse_clixml(b'<Objs><S S="Info">ignored</S></Objs>') == b''
++
++
+ def test_join_path_unc():
+     pwsh = ShellModule()
+     unc_path_parts = ['\\\\host\\share\\dir1\\\\dir2\\', '\\dir3/dir4', 'dir5', 'dir6\\']

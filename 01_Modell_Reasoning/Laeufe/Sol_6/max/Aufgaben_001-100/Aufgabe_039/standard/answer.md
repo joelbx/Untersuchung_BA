@@ -1,0 +1,3 @@
+Fixed [Booknotes.update_work_id](/app/openlibrary/core/booknotes.py) so a destination with existing booknotes leaves every record unchanged and returns `{"rows_changed": 0, "rows_deleted": 0, "failed_deletes": 1}`. The [admin caller](/app/openlibrary/plugins/admin/code.py) now preserves that dictionary.
+
+The regression tests pass: **8 passed**. Flake8 and `git diff --check` also pass. Tests used SQLite; PostgreSQL was not exercised.

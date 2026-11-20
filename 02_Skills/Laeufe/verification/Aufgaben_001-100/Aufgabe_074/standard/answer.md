@@ -1,0 +1,3 @@
+Updated [FnToCLI](/app/scripts/solr_builder/solr_builder/fn_to_cli.py) to parse `Path` and typed lists, use positional values for required lists and `--<parameter_name>` for optional lists, accept `parse_args(args)`, and return results from synchronous and asynchronous functions.
+
+Verification: 13 focused tests passed; Ruff and `git diff --check` passed. Black could not run because it is not installed. The check and limitation are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

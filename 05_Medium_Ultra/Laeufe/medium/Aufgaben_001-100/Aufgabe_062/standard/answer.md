@@ -1,0 +1,3 @@
+Updated `ContextReader` to restore terminal state when a password read is canceled or the reader closes. Canceled reads return to a clean state, deadline expiry returns an empty result with `context.DeadlineExceeded`, and `Close` reports restoration errors. Added `NotifyExit` and called it when `tsh` finishes running.
+
+The prompt package tests pass, including new regression tests. `git diff --check` passes. The broader `tsh` test command was stopped during lengthy dependency compilation, so that package remains unverified.

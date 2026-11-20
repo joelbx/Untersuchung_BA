@@ -1,0 +1,3 @@
+Centralized storage units in [size.ts](/app/packages/shared/lib/helpers/size.ts) and updated member allocation, CSV import, organization setup, bonus storage, and other storage limits to use it. Drive Pro and Drive Business now start at **1 TB**.
+
+The CSV suite passed (64 tests), the new selector suite passed (4 tests), and `git diff --check` passed. Package type checks still fail on an unrelated OpenPGP type mismatch in [api.ts](/app/packages/crypto/lib/worker/api.ts:579); they report no errors in the changed files.

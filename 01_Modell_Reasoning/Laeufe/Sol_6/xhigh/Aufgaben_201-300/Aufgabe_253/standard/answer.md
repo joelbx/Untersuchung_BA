@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) to show stdout and stderr live and publish a final summary for each nonempty stream. Stdout summaries are informational; stderr summaries are errors; stdout appears first when both have output. Updated the [tests](/app/tests/unit/misc/test_guiprocess.py) to check live delivery and final ordering.
+
+All 42 relevant tests pass, and `git diff --check` is clean. Flake8 was unavailable in the environment.

@@ -1,0 +1,3 @@
+Updated the message composer so replaced rooms show their status and continuation link in paragraphs. Added a reusable, labeled `CancelButton` for reply and search controls; the reply preview now names the sender. Sender profiles can also render as spans where the surrounding markup calls for one.
+
+The MessageComposer tests passed (3), as did the SearchBar tests (4), changed-file lint checks, and `git diff --check`. Type checking still reports errors in untouched SDK and room settings files. No delegation was used.

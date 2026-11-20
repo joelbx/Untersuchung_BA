@@ -1,0 +1,3 @@
+QtWebEngine arguments now combine features from CLI flags, CLI arguments with values, and `qt.args` into one `--enable-features=` entry. QtWebKit arguments remain unchanged. Regression tests cover merging, the overlay scrollbar feature, and empty flags.
+
+Verification: 81 relevant tests passed, and `git diff --check` passed. The full test module could not complete because its existing Chromium version test segfaults in this environment.

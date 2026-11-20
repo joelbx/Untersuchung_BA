@@ -1,0 +1,564 @@
+diff --git a/models/packages.go b/models/packages.go
+index 4c90442..8716a43 100644
+--- a/models/packages.go
++++ b/models/packages.go
+@@ -3,7 +3,9 @@ package models
+ import (
+ 	"bytes"
+ 	"fmt"
++	"net"
+ 	"regexp"
++	"strconv"
+ 	"strings"
+ 
+ 	"golang.org/x/xerrors"
+@@ -174,23 +176,44 @@ type Changelog struct {
+ 
+ // AffectedProcess keep a processes information affected by software update
+ type AffectedProcess struct {
+-	PID         string       `json:"pid,omitempty"`
+-	Name        string       `json:"name,omitempty"`
+-	ListenPorts []ListenPort `json:"listenPorts,omitempty"`
++	PID             string     `json:"pid,omitempty"`
++	Name            string     `json:"name,omitempty"`
++	ListenPorts     []string   `json:"listenPorts,omitempty"`
++	ListenPortStats []PortStat `json:"listenPortStats,omitempty"`
+ }
+ 
+-// ListenPort has the result of parsing the port information to the address and port.
+-type ListenPort struct {
+-	Address           string   `json:"address"`
+-	Port              string   `json:"port"`
+-	PortScanSuccessOn []string `json:"portScanSuccessOn"`
++// PortStat describes a listening port and the addresses where it was reachable.
++type PortStat struct {
++	BindAddress     string   `json:"bindAddress"`
++	Port            string   `json:"port"`
++	PortReachableTo []string `json:"portReachableTo"`
+ }
+ 
+-// HasPortScanSuccessOn checks if Package.AffectedProcs has PortScanSuccessOn
+-func (p Package) HasPortScanSuccessOn() bool {
++// NewPortStat parses a listening address and port.
++func NewPortStat(ipPort string) (*PortStat, error) {
++	stat := &PortStat{}
++	if ipPort == "" {
++		return stat, nil
++	}
++	address, port, err := net.SplitHostPort(ipPort)
++	portNumber, portErr := strconv.Atoi(port)
++	if err != nil || portErr != nil || portNumber < 1 || portNumber > 65535 || strings.ContainsAny(address, "[]") || (address != "*" && net.ParseIP(address) == nil) {
++		return nil, xerrors.Errorf("Invalid listening port: %s", ipPort)
++	}
++	// SplitHostPort accepts unbracketed hostnames and IPv4 addresses, and
++	// bracketed IPv6 addresses. Preserve the brackets used in scan output.
++	if strings.HasPrefix(ipPort, "[") {
++		address = "[" + address + "]"
++	}
++	stat.BindAddress, stat.Port = address, port
++	return stat, nil
++}
++
++// HasReachablePort reports whether a listening port was reachable.
++func (p Package) HasReachablePort() bool {
+ 	for _, ap := range p.AffectedProcs {
+-		for _, lp := range ap.ListenPorts {
+-			if len(lp.PortScanSuccessOn) > 0 {
++		for _, lp := range ap.ListenPortStats {
++			if len(lp.PortReachableTo) > 0 {
+ 				return true
+ 			}
+ 		}
+diff --git a/models/packages_port_test.go b/models/packages_port_test.go
+new file mode 100644
+index 0000000..b443fca
+--- /dev/null
++++ b/models/packages_port_test.go
+@@ -0,0 +1,36 @@
++package models
++
++import (
++	"encoding/json"
++	"reflect"
++	"testing"
++)
++
++func TestLegacyListenPortsJSON(t *testing.T) {
++	var result struct {
++		Packages Packages `json:"packages"`
++	}
++	data := []byte(`{"packages":{"sshd":{"AffectedProcs":[{"pid":"12","listenPorts":["127.0.0.1:22","*:22"]}]}}}`)
++	if err := json.Unmarshal(data, &result); err != nil {
++		t.Fatal(err)
++	}
++	proc := result.Packages["sshd"].AffectedProcs[0]
++	if !reflect.DeepEqual(proc.ListenPorts, []string{"127.0.0.1:22", "*:22"}) || proc.ListenPortStats != nil {
++		t.Fatalf("unexpected legacy ports: %+v", proc)
++	}
++	if result.Packages["sshd"].HasReachablePort() {
++		t.Fatal("legacy ports cannot indicate scan reachability")
++	}
++	proc.ListenPortStats = []PortStat{{BindAddress: "*", Port: "22", PortReachableTo: []string{"127.0.0.1"}}}
++	if !(Package{AffectedProcs: []AffectedProcess{proc}}).HasReachablePort() {
++		t.Fatal("reachable port was not detected")
++	}
++}
++
++func TestNewPortStatInvalid(t *testing.T) {
++	for _, input := range []string{"127.0.0.1", ":22", "127.0.0.1:", "127.0.0.1:abc", "127.0.0.1:65536", "::1:22", "[not-ip]:22"} {
++		if stat, err := NewPortStat(input); err == nil {
++			t.Errorf("NewPortStat(%q) = %+v without error", input, stat)
++		}
++	}
++}
+diff --git a/report/tui.go b/report/tui.go
+index 3d6e723..1666ea4 100644
+--- a/report/tui.go
++++ b/report/tui.go
+@@ -619,7 +619,7 @@ func summaryLines(r models.ScanResult) string {
+ 
+ 		av := vinfo.AttackVector()
+ 		for _, pname := range vinfo.AffectedPackages.Names() {
+-			if r.Packages[pname].HasPortScanSuccessOn() {
++			if r.Packages[pname].HasReachablePort() {
+ 				av = fmt.Sprintf("%s ◉", av)
+ 				break
+ 			}
+@@ -719,18 +719,21 @@ func setChangelogLayout(g *gocui.Gui) error {
+ 
+ 				if len(pack.AffectedProcs) != 0 {
+ 					for _, p := range pack.AffectedProcs {
+-						if len(p.ListenPorts) == 0 {
++						if len(p.ListenPorts) == 0 && len(p.ListenPortStats) == 0 {
+ 							lines = append(lines, fmt.Sprintf("  * PID: %s %s Port: []",
+ 								p.PID, p.Name))
+ 							continue
+ 						}
+ 
+-						var ports []string
+-						for _, pp := range p.ListenPorts {
+-							if len(pp.PortScanSuccessOn) == 0 {
+-								ports = append(ports, fmt.Sprintf("%s:%s", pp.Address, pp.Port))
++						ports := append([]string{}, p.ListenPorts...)
++						if len(p.ListenPortStats) > 0 {
++							ports = nil
++						}
++						for _, pp := range p.ListenPortStats {
++							if len(pp.PortReachableTo) == 0 {
++								ports = append(ports, fmt.Sprintf("%s:%s", pp.BindAddress, pp.Port))
+ 							} else {
+-								ports = append(ports, fmt.Sprintf("%s:%s(◉ Scannable: %s)", pp.Address, pp.Port, pp.PortScanSuccessOn))
++								ports = append(ports, fmt.Sprintf("%s:%s(◉ Scannable: %s)", pp.BindAddress, pp.Port, pp.PortReachableTo))
+ 							}
+ 						}
+ 
+diff --git a/report/util.go b/report/util.go
+index a76844c..368c902 100644
+--- a/report/util.go
++++ b/report/util.go
+@@ -262,17 +262,20 @@ No CVE-IDs are found in updatable packages.
+ 
+ 				if len(pack.AffectedProcs) != 0 {
+ 					for _, p := range pack.AffectedProcs {
+-						if len(p.ListenPorts) == 0 {
++						if len(p.ListenPorts) == 0 && len(p.ListenPortStats) == 0 {
+ 							data = append(data, []string{"",
+ 								fmt.Sprintf("  - PID: %s %s, Port: []", p.PID, p.Name)})
+ 						}
+ 
+-						var ports []string
+-						for _, pp := range p.ListenPorts {
+-							if len(pp.PortScanSuccessOn) == 0 {
+-								ports = append(ports, fmt.Sprintf("%s:%s", pp.Address, pp.Port))
++						ports := append([]string{}, p.ListenPorts...)
++						if len(p.ListenPortStats) > 0 {
++							ports = nil
++						}
++						for _, pp := range p.ListenPortStats {
++							if len(pp.PortReachableTo) == 0 {
++								ports = append(ports, fmt.Sprintf("%s:%s", pp.BindAddress, pp.Port))
+ 							} else {
+-								ports = append(ports, fmt.Sprintf("%s:%s(◉ Scannable: %s)", pp.Address, pp.Port, pp.PortScanSuccessOn))
++								ports = append(ports, fmt.Sprintf("%s:%s(◉ Scannable: %s)", pp.BindAddress, pp.Port, pp.PortReachableTo))
+ 							}
+ 						}
+ 
+diff --git a/scan/base.go b/scan/base.go
+index 0a993cc..50df8ba 100644
+--- a/scan/base.go
++++ b/scan/base.go
+@@ -748,11 +748,11 @@ func (l *base) detectScanDest() map[string][]string {
+ 			continue
+ 		}
+ 		for _, proc := range p.AffectedProcs {
+-			if proc.ListenPorts == nil {
++			if proc.ListenPortStats == nil {
+ 				continue
+ 			}
+-			for _, port := range proc.ListenPorts {
+-				scanIPPortsMap[port.Address] = append(scanIPPortsMap[port.Address], port.Port)
++			for _, port := range proc.ListenPortStats {
++				scanIPPortsMap[port.BindAddress] = append(scanIPPortsMap[port.BindAddress], port.Port)
+ 			}
+ 		}
+ 	}
+@@ -809,27 +809,29 @@ func (l *base) updatePortStatus(listenIPPorts []string) {
+ 			continue
+ 		}
+ 		for i, proc := range p.AffectedProcs {
+-			if proc.ListenPorts == nil {
++			if proc.ListenPortStats == nil {
+ 				continue
+ 			}
+-			for j, port := range proc.ListenPorts {
+-				l.osPackages.Packages[name].AffectedProcs[i].ListenPorts[j].PortScanSuccessOn = l.findPortScanSuccessOn(listenIPPorts, port)
++			for j, port := range proc.ListenPortStats {
++				l.osPackages.Packages[name].AffectedProcs[i].ListenPortStats[j].PortReachableTo = l.findPortReachableTo(listenIPPorts, port)
+ 			}
+ 		}
+ 	}
+ }
+ 
+-func (l *base) findPortScanSuccessOn(listenIPPorts []string, searchListenPort models.ListenPort) []string {
++func (l *base) findPortReachableTo(listenIPPorts []string, searchPort models.PortStat) []string {
+ 	addrs := []string{}
++	if searchPort.BindAddress == "" || searchPort.Port == "" {
++		return addrs
++	}
+ 
+ 	for _, ipPort := range listenIPPorts {
+-		ipPort := l.parseListenPorts(ipPort)
+-		if searchListenPort.Address == "*" {
+-			if searchListenPort.Port == ipPort.Port {
+-				addrs = append(addrs, ipPort.Address)
+-			}
+-		} else if searchListenPort.Address == ipPort.Address && searchListenPort.Port == ipPort.Port {
+-			addrs = append(addrs, ipPort.Address)
++		stat, err := models.NewPortStat(ipPort)
++		if err != nil {
++			continue
++		}
++		if searchPort.Port == stat.Port && (searchPort.BindAddress == "*" || searchPort.BindAddress == stat.BindAddress) {
++			addrs = append(addrs, stat.BindAddress)
+ 		}
+ 	}
+ 
+@@ -916,11 +918,3 @@ func (l *base) parseLsOf(stdout string) map[string][]string {
+ 	}
+ 	return portPids
+ }
+-
+-func (l *base) parseListenPorts(port string) models.ListenPort {
+-	sep := strings.LastIndex(port, ":")
+-	if sep == -1 {
+-		return models.ListenPort{}
+-	}
+-	return models.ListenPort{Address: port[:sep], Port: port[sep+1:]}
+-}
+diff --git a/scan/base_test.go b/scan/base_test.go
+index d7c19bc..50dfbe7 100644
+--- a/scan/base_test.go
++++ b/scan/base_test.go
+@@ -323,7 +323,7 @@ func Test_detectScanDest(t *testing.T) {
+ 					Version:    "1:2.8.4-3",
+ 					NewVersion: "1:2.8.4-3",
+ 					AffectedProcs: []models.AffectedProcess{
+-						{PID: "21", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "22"}}}, {PID: "10876", Name: "sshd"}},
++						{PID: "21", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "22"}}}, {PID: "10876", Name: "sshd"}},
+ 				},
+ 				}},
+ 			},
+@@ -337,7 +337,7 @@ func Test_detectScanDest(t *testing.T) {
+ 					Version:    "1:2.8.4-3",
+ 					NewVersion: "1:2.8.4-3",
+ 					AffectedProcs: []models.AffectedProcess{
+-						{PID: "21", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "22"}}}, {PID: "21", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "22"}}}},
++						{PID: "21", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "22"}}}, {PID: "21", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "22"}}}},
+ 				},
+ 				}},
+ 			},
+@@ -351,7 +351,7 @@ func Test_detectScanDest(t *testing.T) {
+ 					Version:    "1:2.8.4-3",
+ 					NewVersion: "1:2.8.4-3",
+ 					AffectedProcs: []models.AffectedProcess{
+-						{PID: "21", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "22"}}}, {PID: "21", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "192.168.1.1", Port: "22"}}}, {PID: "6261", Name: "nginx", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "80"}}}},
++						{PID: "21", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "22"}}}, {PID: "21", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "192.168.1.1", Port: "22"}}}, {PID: "6261", Name: "nginx", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "80"}}}},
+ 				},
+ 				}},
+ 			},
+@@ -366,7 +366,7 @@ func Test_detectScanDest(t *testing.T) {
+ 						Version:    "1:2.8.4-3",
+ 						NewVersion: "1:2.8.4-3",
+ 						AffectedProcs: []models.AffectedProcess{
+-							{PID: "21", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "*", Port: "22"}}}},
++							{PID: "21", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "*", Port: "22"}}}},
+ 					},
+ 					}},
+ 				ServerInfo: config.ServerInfo{
+@@ -384,6 +384,23 @@ func Test_detectScanDest(t *testing.T) {
+ 	}
+ }
+ 
++func Test_detectScanDestLegacyAndWildcardOverlap(t *testing.T) {
++	l := base{
++		ServerInfo: config.ServerInfo{IPv4Addrs: []string{"127.0.0.1", "192.168.1.1"}},
++		osPackages: osPackages{Packages: models.Packages{
++			"legacy": {AffectedProcs: []models.AffectedProcess{{ListenPorts: []string{"127.0.0.1:80"}}}},
++			"current": {AffectedProcs: []models.AffectedProcess{{ListenPortStats: []models.PortStat{
++				{BindAddress: "*", Port: "22"},
++				{BindAddress: "127.0.0.1", Port: "22"},
++			}}}},
++		}},
++	}
++	want := map[string][]string{"127.0.0.1": {"22"}, "192.168.1.1": {"22"}}
++	if got := l.detectScanDest(); !reflect.DeepEqual(got, want) {
++		t.Errorf("detectScanDest() = %v, want %v", got, want)
++	}
++}
++
+ func Test_updatePortStatus(t *testing.T) {
+ 	type args struct {
+ 		l             base
+@@ -411,45 +428,45 @@ func Test_updatePortStatus(t *testing.T) {
+ 		{name: "update_match_single_address",
+ 			args: args{
+ 				l: base{osPackages: osPackages{
+-					Packages: models.Packages{"libc6": models.Package{Name: "libc6", AffectedProcs: []models.AffectedProcess{{PID: "1", Name: "bash"}, {PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "22"}}}}}},
++					Packages: models.Packages{"libc6": models.Package{Name: "libc6", AffectedProcs: []models.AffectedProcess{{PID: "1", Name: "bash"}, {PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "22"}}}}}},
+ 				}},
+ 				listenIPPorts: []string{"127.0.0.1:22"}},
+-			expect: models.Packages{"libc6": models.Package{Name: "libc6", AffectedProcs: []models.AffectedProcess{{PID: "1", Name: "bash"}, {PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "22", PortScanSuccessOn: []string{"127.0.0.1"}}}}}}}},
++			expect: models.Packages{"libc6": models.Package{Name: "libc6", AffectedProcs: []models.AffectedProcess{{PID: "1", Name: "bash"}, {PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "22", PortReachableTo: []string{"127.0.0.1"}}}}}}}},
+ 		{name: "update_match_multi_address",
+ 			args: args{
+ 				l: base{osPackages: osPackages{
+-					Packages: models.Packages{"libc6": models.Package{Name: "libc6", AffectedProcs: []models.AffectedProcess{{PID: "1", Name: "bash"}, {PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "22"}, {Address: "192.168.1.1", Port: "22"}}}}}},
++					Packages: models.Packages{"libc6": models.Package{Name: "libc6", AffectedProcs: []models.AffectedProcess{{PID: "1", Name: "bash"}, {PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "22"}, {BindAddress: "192.168.1.1", Port: "22"}}}}}},
+ 				}},
+ 				listenIPPorts: []string{"127.0.0.1:22", "192.168.1.1:22"}},
+-			expect: models.Packages{"libc6": models.Package{Name: "libc6", AffectedProcs: []models.AffectedProcess{{PID: "1", Name: "bash"}, {PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{
+-				{Address: "127.0.0.1", Port: "22", PortScanSuccessOn: []string{"127.0.0.1"}},
+-				{Address: "192.168.1.1", Port: "22", PortScanSuccessOn: []string{"192.168.1.1"}},
++			expect: models.Packages{"libc6": models.Package{Name: "libc6", AffectedProcs: []models.AffectedProcess{{PID: "1", Name: "bash"}, {PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{
++				{BindAddress: "127.0.0.1", Port: "22", PortReachableTo: []string{"127.0.0.1"}},
++				{BindAddress: "192.168.1.1", Port: "22", PortReachableTo: []string{"192.168.1.1"}},
+ 			}}}}}},
+ 		{name: "update_match_asterisk",
+ 			args: args{
+ 				l: base{osPackages: osPackages{
+-					Packages: models.Packages{"libc6": models.Package{Name: "libc6", AffectedProcs: []models.AffectedProcess{{PID: "1", Name: "bash"}, {PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "*", Port: "22"}}}}}},
++					Packages: models.Packages{"libc6": models.Package{Name: "libc6", AffectedProcs: []models.AffectedProcess{{PID: "1", Name: "bash"}, {PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "*", Port: "22"}}}}}},
+ 				}},
+ 				listenIPPorts: []string{"127.0.0.1:22", "127.0.0.1:80", "192.168.1.1:22"}},
+-			expect: models.Packages{"libc6": models.Package{Name: "libc6", AffectedProcs: []models.AffectedProcess{{PID: "1", Name: "bash"}, {PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{
+-				{Address: "*", Port: "22", PortScanSuccessOn: []string{"127.0.0.1", "192.168.1.1"}},
++			expect: models.Packages{"libc6": models.Package{Name: "libc6", AffectedProcs: []models.AffectedProcess{{PID: "1", Name: "bash"}, {PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{
++				{BindAddress: "*", Port: "22", PortReachableTo: []string{"127.0.0.1", "192.168.1.1"}},
+ 			}}}}}},
+ 		{name: "update_multi_packages",
+ 			args: args{
+ 				l: base{osPackages: osPackages{
+ 					Packages: models.Packages{
+-						"packa": models.Package{Name: "packa", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "80"}}}}},
+-						"packb": models.Package{Name: "packb", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "22"}}}}},
+-						"packc": models.Package{Name: "packc", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "22"}, {Address: "192.168.1.1", Port: "22"}}}}},
+-						"packd": models.Package{Name: "packd", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "*", Port: "22"}}}}},
++						"packa": models.Package{Name: "packa", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "80"}}}}},
++						"packb": models.Package{Name: "packb", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "22"}}}}},
++						"packc": models.Package{Name: "packc", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "22"}, {BindAddress: "192.168.1.1", Port: "22"}}}}},
++						"packd": models.Package{Name: "packd", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "*", Port: "22"}}}}},
+ 					},
+ 				}},
+ 				listenIPPorts: []string{"127.0.0.1:22", "192.168.1.1:22"}},
+ 			expect: models.Packages{
+-				"packa": models.Package{Name: "packa", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "80", PortScanSuccessOn: []string{}}}}}},
+-				"packb": models.Package{Name: "packb", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "22", PortScanSuccessOn: []string{"127.0.0.1"}}}}}},
+-				"packc": models.Package{Name: "packc", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "127.0.0.1", Port: "22", PortScanSuccessOn: []string{"127.0.0.1"}}, {Address: "192.168.1.1", Port: "22", PortScanSuccessOn: []string{"192.168.1.1"}}}}}},
+-				"packd": models.Package{Name: "packd", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPorts: []models.ListenPort{{Address: "*", Port: "22", PortScanSuccessOn: []string{"127.0.0.1", "192.168.1.1"}}}}}},
++				"packa": models.Package{Name: "packa", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "80", PortReachableTo: []string{}}}}}},
++				"packb": models.Package{Name: "packb", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "22", PortReachableTo: []string{"127.0.0.1"}}}}}},
++				"packc": models.Package{Name: "packc", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "22", PortReachableTo: []string{"127.0.0.1"}}, {BindAddress: "192.168.1.1", Port: "22", PortReachableTo: []string{"192.168.1.1"}}}}}},
++				"packd": models.Package{Name: "packd", AffectedProcs: []models.AffectedProcess{{PID: "75", Name: "sshd", ListenPortStats: []models.PortStat{{BindAddress: "*", Port: "22", PortReachableTo: []string{"127.0.0.1", "192.168.1.1"}}}}}},
+ 			},
+ 		},
+ 	}
+@@ -467,26 +484,26 @@ func Test_updatePortStatus(t *testing.T) {
+ func Test_matchListenPorts(t *testing.T) {
+ 	type args struct {
+ 		listenIPPorts    []string
+-		searchListenPort models.ListenPort
++		searchListenPort models.PortStat
+ 	}
+ 	tests := []struct {
+ 		name   string
+ 		args   args
+ 		expect []string
+ 	}{
+-		{name: "open_empty", args: args{listenIPPorts: []string{}, searchListenPort: models.ListenPort{Address: "127.0.0.1", Port: "22"}}, expect: []string{}},
+-		{name: "port_empty", args: args{listenIPPorts: []string{"127.0.0.1:22"}, searchListenPort: models.ListenPort{}}, expect: []string{}},
+-		{name: "single_match", args: args{listenIPPorts: []string{"127.0.0.1:22"}, searchListenPort: models.ListenPort{Address: "127.0.0.1", Port: "22"}}, expect: []string{"127.0.0.1"}},
+-		{name: "no_match_address", args: args{listenIPPorts: []string{"127.0.0.1:22"}, searchListenPort: models.ListenPort{Address: "192.168.1.1", Port: "22"}}, expect: []string{}},
+-		{name: "no_match_port", args: args{listenIPPorts: []string{"127.0.0.1:22"}, searchListenPort: models.ListenPort{Address: "127.0.0.1", Port: "80"}}, expect: []string{}},
+-		{name: "asterisk_match", args: args{listenIPPorts: []string{"127.0.0.1:22", "127.0.0.1:80", "192.168.1.1:22"}, searchListenPort: models.ListenPort{Address: "*", Port: "22"}}, expect: []string{"127.0.0.1", "192.168.1.1"}},
++		{name: "open_empty", args: args{listenIPPorts: []string{}, searchListenPort: models.PortStat{BindAddress: "127.0.0.1", Port: "22"}}, expect: []string{}},
++		{name: "port_empty", args: args{listenIPPorts: []string{"127.0.0.1:22"}, searchListenPort: models.PortStat{}}, expect: []string{}},
++		{name: "single_match", args: args{listenIPPorts: []string{"127.0.0.1:22"}, searchListenPort: models.PortStat{BindAddress: "127.0.0.1", Port: "22"}}, expect: []string{"127.0.0.1"}},
++		{name: "no_match_address", args: args{listenIPPorts: []string{"127.0.0.1:22"}, searchListenPort: models.PortStat{BindAddress: "192.168.1.1", Port: "22"}}, expect: []string{}},
++		{name: "no_match_port", args: args{listenIPPorts: []string{"127.0.0.1:22"}, searchListenPort: models.PortStat{BindAddress: "127.0.0.1", Port: "80"}}, expect: []string{}},
++		{name: "asterisk_match", args: args{listenIPPorts: []string{"127.0.0.1:22", "127.0.0.1:80", "192.168.1.1:22"}, searchListenPort: models.PortStat{BindAddress: "*", Port: "22"}}, expect: []string{"127.0.0.1", "192.168.1.1"}},
+ 	}
+ 
+ 	l := base{}
+ 	for _, tt := range tests {
+ 		t.Run(tt.name, func(t *testing.T) {
+-			if match := l.findPortScanSuccessOn(tt.args.listenIPPorts, tt.args.searchListenPort); !reflect.DeepEqual(match, tt.expect) {
+-				t.Errorf("findPortScanSuccessOn() = %v, want %v", match, tt.expect)
++			if match := l.findPortReachableTo(tt.args.listenIPPorts, tt.args.searchListenPort); !reflect.DeepEqual(match, tt.expect) {
++				t.Errorf("findPortReachableTo() = %v, want %v", match, tt.expect)
+ 			}
+ 		})
+ 	}
+@@ -494,45 +511,18 @@ func Test_matchListenPorts(t *testing.T) {
+ 
+ func Test_base_parseListenPorts(t *testing.T) {
+ 	tests := []struct {
+-		name   string
+-		args   string
+-		expect models.ListenPort
+-	}{{
+-		name: "empty",
+-		args: "",
+-		expect: models.ListenPort{
+-			Address: "",
+-			Port:    "",
+-		},
+-	}, {
+-		name: "normal",
+-		args: "127.0.0.1:22",
+-		expect: models.ListenPort{
+-			Address: "127.0.0.1",
+-			Port:    "22",
+-		},
+-	}, {
+-		name: "asterisk",
+-		args: "*:22",
+-		expect: models.ListenPort{
+-			Address: "*",
+-			Port:    "22",
+-		},
+-	}, {
+-		name: "ipv6_loopback",
+-		args: "[::1]:22",
+-		expect: models.ListenPort{
+-			Address: "[::1]",
+-			Port:    "22",
+-		},
+-	}}
+-
+-	l := base{}
++		input string
++		want  models.PortStat
++	}{
++		{"", models.PortStat{}},
++		{"127.0.0.1:22", models.PortStat{BindAddress: "127.0.0.1", Port: "22"}},
++		{"*:22", models.PortStat{BindAddress: "*", Port: "22"}},
++		{"[::1]:22", models.PortStat{BindAddress: "[::1]", Port: "22"}},
++	}
+ 	for _, tt := range tests {
+-		t.Run(tt.name, func(t *testing.T) {
+-			if listenPort := l.parseListenPorts(tt.args); !reflect.DeepEqual(listenPort, tt.expect) {
+-				t.Errorf("base.parseListenPorts() = %v, want %v", listenPort, tt.expect)
+-			}
+-		})
++		got, err := models.NewPortStat(tt.input)
++		if err != nil || !reflect.DeepEqual(*got, tt.want) {
++			t.Errorf("NewPortStat(%q) = %v, %v; want %v", tt.input, got, err, tt.want)
++		}
+ 	}
+ }
+diff --git a/scan/debian.go b/scan/debian.go
+index 6183f26..c710351 100644
+--- a/scan/debian.go
++++ b/scan/debian.go
+@@ -1294,15 +1294,22 @@ func (o *debian) dpkgPs() error {
+ 		pidLoadedFiles[pid] = append(pidLoadedFiles[pid], ss...)
+ 	}
+ 
+-	pidListenPorts := map[string][]models.ListenPort{}
++	pidListenPorts := map[string][]string{}
++	pidPortStats := map[string][]models.PortStat{}
+ 	stdout, err = o.lsOfListen()
+ 	if err != nil {
+ 		return xerrors.Errorf("Failed to ls of: %w", err)
+ 	}
+ 	portPids := o.parseLsOf(stdout)
+ 	for port, pids := range portPids {
++		stat, err := models.NewPortStat(port)
++		if err != nil {
++			o.log.Debugf("Failed to parse listening port %q: %s", port, err)
++			continue
++		}
+ 		for _, pid := range pids {
+-			pidListenPorts[pid] = append(pidListenPorts[pid], o.parseListenPorts(port))
++			pidListenPorts[pid] = append(pidListenPorts[pid], port)
++			pidPortStats[pid] = append(pidPortStats[pid], *stat)
+ 		}
+ 	}
+ 
+@@ -1319,9 +1326,10 @@ func (o *debian) dpkgPs() error {
+ 			procName = pidNames[pid]
+ 		}
+ 		proc := models.AffectedProcess{
+-			PID:         pid,
+-			Name:        procName,
+-			ListenPorts: pidListenPorts[pid],
++			PID:             pid,
++			Name:            procName,
++			ListenPorts:     pidListenPorts[pid],
++			ListenPortStats: pidPortStats[pid],
+ 		}
+ 
+ 		for _, n := range pkgNames {
+diff --git a/scan/redhatbase.go b/scan/redhatbase.go
+index 854a2ed..a50ad08 100644
+--- a/scan/redhatbase.go
++++ b/scan/redhatbase.go
+@@ -491,15 +491,22 @@ func (o *redhatBase) yumPs() error {
+ 		pidLoadedFiles[pid] = append(pidLoadedFiles[pid], ss...)
+ 	}
+ 
+-	pidListenPorts := map[string][]models.ListenPort{}
++	pidListenPorts := map[string][]string{}
++	pidPortStats := map[string][]models.PortStat{}
+ 	stdout, err = o.lsOfListen()
+ 	if err != nil {
+ 		return xerrors.Errorf("Failed to ls of: %w", err)
+ 	}
+ 	portPids := o.parseLsOf(stdout)
+ 	for port, pids := range portPids {
++		stat, err := models.NewPortStat(port)
++		if err != nil {
++			o.log.Debugf("Failed to parse listening port %q: %s", port, err)
++			continue
++		}
+ 		for _, pid := range pids {
+-			pidListenPorts[pid] = append(pidListenPorts[pid], o.parseListenPorts(port))
++			pidListenPorts[pid] = append(pidListenPorts[pid], port)
++			pidPortStats[pid] = append(pidPortStats[pid], *stat)
+ 		}
+ 	}
+ 
+@@ -521,9 +528,10 @@ func (o *redhatBase) yumPs() error {
+ 			procName = pidNames[pid]
+ 		}
+ 		proc := models.AffectedProcess{
+-			PID:         pid,
+-			Name:        procName,
+-			ListenPorts: pidListenPorts[pid],
++			PID:             pid,
++			Name:            procName,
++			ListenPorts:     pidListenPorts[pid],
++			ListenPortStats: pidPortStats[pid],
+ 		}
+ 
+ 		for fqpn := range uniq {

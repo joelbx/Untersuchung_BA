@@ -1,0 +1,3 @@
+Updated [config/os.go](/app/config/os.go) with the Fedora 37/38 dates, Fedora 40, SUSE Enterprise 13/14 dates, and macOS 11 ended status. Updated [scanner/windows.go](/app/scanner/windows.go) with the requested Windows rollups, using named struct fields and retaining existing entries.
+
+`git diff --check` passed. The relevant `go test ./config ./scanner` run had not produced a result before I wrapped up, so test success is unconfirmed.

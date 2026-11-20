@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` for [MongoDB](/app/src/database/mongo/hash.js) and [Redis](/app/src/database/redis/hash.js). It validates tuple input and safe integer increments, groups repeated keys for per-key atomic updates, creates missing objects and fields, and invalidates cache entries after successful writes.
+
+The hash tests pass **71/71**, and lint passes. The full suite has **995 passing, 1 failing** in `Admin Controllers → should load /admin/extend/plugins` at [controllers-admin.js](/app/test/controllers-admin.js:249). Live MongoDB verification was unavailable because `mongod` is not installed; a focused Mongo cache test passed.

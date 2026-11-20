@@ -1,0 +1,221 @@
+diff --git a/lib/backend/helpers.go b/lib/backend/helpers.go
+index c8b5af3..d76581f 100644
+--- a/lib/backend/helpers.go
++++ b/lib/backend/helpers.go
+@@ -29,6 +29,11 @@ import (
+ 
+ const locksPrefix = ".locks"
+ 
++// FlagKey builds a key in the internal flags namespace.
++func FlagKey(parts ...string) []byte {
++	return Key(append([]string{".flags"}, parts...)...)
++}
++
+ type Lock struct {
+ 	key []byte
+ 	id  []byte
+diff --git a/lib/events/dynamoevents/dynamoevents.go b/lib/events/dynamoevents/dynamoevents.go
+index 11ea93a..63f112d 100644
+--- a/lib/events/dynamoevents/dynamoevents.go
++++ b/lib/events/dynamoevents/dynamoevents.go
+@@ -25,6 +25,7 @@ import (
+ 	"fmt"
+ 	"math"
+ 	"net/url"
++	"reflect"
+ 	"sort"
+ 	"strings"
+ 	"sync"
+@@ -87,6 +88,7 @@ var tableSchema = []*dynamodb.AttributeDefinition{
+ }
+ 
+ const indexV2CreationLock = "dynamoEvents/indexV2Creation"
++const fieldsMigrationLock = "dynamoEvents/fieldsMapMigration"
+ const rfd24MigrationLock = "dynamoEvents/rfd24Migration"
+ const rfd24MigrationLockTTL = 5 * time.Minute
+ 
+@@ -190,8 +192,9 @@ type event struct {
+ 	EventIndex     int64
+ 	EventType      string
+ 	CreatedAt      int64
+-	Expires        *int64 `json:"Expires,omitempty"`
+-	Fields         string
++	Expires        *int64                 `json:"Expires,omitempty"`
++	Fields         string                 `dynamodbav:"Fields,omitempty"`
++	FieldsMap      map[string]interface{} `dynamodbav:"FieldsMap,omitempty"`
+ 	EventNamespace string
+ 	CreatedAtDate  string
+ }
+@@ -297,6 +300,7 @@ func New(ctx context.Context, cfg Config, backend backend.Backend) (*Log, error)
+ 
+ 	// Migrate the table according to RFD 24 if it still has the old schema.
+ 	go b.migrateRFD24WithRetry(ctx)
++	go b.migrateFieldsWithRetry(ctx)
+ 
+ 	// Enable continuous backups if requested.
+ 	if b.Config.EnableContinuousBackups {
+@@ -442,6 +446,96 @@ func (l *Log) migrateRFD24(ctx context.Context) error {
+ 	return nil
+ }
+ 
++// fieldsMap preserves the JSON representation used by the event writers.
++func fieldsMap(data []byte) map[string]interface{} {
++	var fields map[string]interface{}
++	_ = json.Unmarshal(data, &fields) // data was just marshaled from an event
++	return fields
++}
++
++func (e event) decodeFields(fields *events.EventFields) error {
++	if e.FieldsMap != nil {
++		data, err := json.Marshal(e.FieldsMap)
++		if err != nil {
++			return trace.Wrap(err)
++		}
++		return trace.Wrap(json.Unmarshal(data, fields))
++	}
++	return trace.Wrap(json.Unmarshal([]byte(e.Fields), fields))
++}
++
++// migrateFieldsWithRetry runs the resumable conversion under a distributed lock.
++func (l *Log) migrateFieldsWithRetry(ctx context.Context) {
++	for ctx.Err() == nil {
++		err := backend.RunWhileLocked(ctx, l.backend, fieldsMigrationLock, rfd24MigrationLockTTL, l.migrateFields)
++		if err == nil || ctx.Err() != nil {
++			return
++		}
++		l.WithError(err).Error("FieldsMap migration failed; retrying")
++		select {
++		case <-time.After(time.Minute):
++		case <-ctx.Done():
++		}
++	}
++}
++
++// migrateFields scans legacy rows in bounded pages. Each successful batch is durable,
++// so restarting the scan after an interruption resumes without rewriting converted rows.
++func (l *Log) migrateFields(ctx context.Context) error {
++	var startKey map[string]*dynamodb.AttributeValue
++	var migrated int
++	for {
++		if err := ctx.Err(); err != nil {
++			return trace.Wrap(err)
++		}
++		out, err := l.svc.ScanWithContext(ctx, &dynamodb.ScanInput{
++			TableName: aws.String(l.Tablename), ExclusiveStartKey: startKey,
++			ConsistentRead: aws.Bool(true), Limit: aws.Int64(DynamoBatchSize),
++			FilterExpression:         aws.String("attribute_exists(#fields) AND attribute_not_exists(#map)"),
++			ExpressionAttributeNames: map[string]*string{"#fields": aws.String("Fields"), "#map": aws.String("FieldsMap")},
++		})
++		if err != nil {
++			return trace.Wrap(convertError(err))
++		}
++		requests := make([]*dynamodb.WriteRequest, 0, len(out.Items))
++		for _, item := range out.Items {
++			legacy := item["Fields"]
++			if legacy == nil || legacy.S == nil {
++				return trace.BadParameter("event %v has invalid Fields attribute", item[keySessionID])
++			}
++			var fields map[string]interface{}
++			if err := json.Unmarshal([]byte(*legacy.S), &fields); err != nil || fields == nil {
++				return trace.BadParameter("event %v has invalid Fields JSON: %v", item[keySessionID], err)
++			}
++			mapped, err := dynamodbattribute.MarshalMap(fields)
++			if err != nil {
++				return trace.Wrap(err)
++			}
++			var restored map[string]interface{}
++			if err := dynamodbattribute.UnmarshalMap(mapped, &restored); err != nil {
++				return trace.Wrap(err)
++			}
++			if !reflect.DeepEqual(fields, restored) {
++				return trace.BadParameter("event %v FieldsMap conversion changed metadata", item[keySessionID])
++			}
++			item["FieldsMap"] = &dynamodb.AttributeValue{M: mapped}
++			delete(item, "Fields")
++			requests = append(requests, &dynamodb.WriteRequest{PutRequest: &dynamodb.PutRequest{Item: item}})
++		}
++		if len(requests) != 0 {
++			if err := l.uploadBatch(requests); err != nil {
++				return trace.Wrap(err)
++			}
++			migrated += len(requests)
++			l.Infof("Migrated %d events to FieldsMap", migrated)
++		}
++		startKey = out.LastEvaluatedKey
++		if startKey == nil {
++			return nil
++		}
++	}
++}
++
+ // EmitAuditEvent emits audit event
+ func (l *Log) EmitAuditEvent(ctx context.Context, in apievents.AuditEvent) error {
+ 	data, err := utils.FastMarshal(in)
+@@ -465,7 +559,7 @@ func (l *Log) EmitAuditEvent(ctx context.Context, in apievents.AuditEvent) error
+ 		EventType:      in.GetType(),
+ 		EventNamespace: apidefaults.Namespace,
+ 		CreatedAt:      in.GetTime().Unix(),
+-		Fields:         string(data),
++		FieldsMap:      fieldsMap(data),
+ 		CreatedAtDate:  in.GetTime().Format(iso8601DateFormat),
+ 	}
+ 	l.setExpiry(&e)
+@@ -512,7 +606,7 @@ func (l *Log) EmitAuditEventLegacy(ev events.Event, fields events.EventFields) e
+ 		EventType:      fields.GetString(events.EventType),
+ 		EventNamespace: apidefaults.Namespace,
+ 		CreatedAt:      created.Unix(),
+-		Fields:         string(data),
++		FieldsMap:      fieldsMap(data),
+ 		CreatedAtDate:  created.Format(iso8601DateFormat),
+ 	}
+ 	l.setExpiry(&e)
+@@ -564,7 +658,7 @@ func (l *Log) PostSessionSlice(slice events.SessionSlice) error {
+ 			EventType:      chunk.EventType,
+ 			EventIndex:     chunk.EventIndex,
+ 			CreatedAt:      timeAt.Unix(),
+-			Fields:         string(data),
++			FieldsMap:      fieldsMap(data),
+ 			CreatedAtDate:  timeAt.Format(iso8601DateFormat),
+ 		}
+ 		l.setExpiry(&event)
+@@ -642,8 +736,7 @@ func (l *Log) GetSessionEvents(namespace string, sid session.ID, after int, inlc
+ 			return nil, trace.BadParameter("failed to unmarshal event for session %q: %v", string(sid), err)
+ 		}
+ 		var fields events.EventFields
+-		data := []byte(e.Fields)
+-		if err := json.Unmarshal(data, &fields); err != nil {
++		if err := e.decodeFields(&fields); err != nil {
+ 			return nil, trace.BadParameter("failed to unmarshal event for session %q: %v", string(sid), err)
+ 		}
+ 		values = append(values, fields)
+@@ -701,7 +794,7 @@ func (l *Log) SearchEvents(fromUTC, toUTC time.Time, namespace string, eventType
+ 	eventArr := make([]apievents.AuditEvent, 0, len(rawEvents))
+ 	for _, rawEvent := range rawEvents {
+ 		var fields events.EventFields
+-		if err := utils.FastUnmarshal([]byte(rawEvent.Fields), &fields); err != nil {
++		if err := rawEvent.decodeFields(&fields); err != nil {
+ 			return nil, "", trace.Wrap(err)
+ 		}
+ 		event, err := events.FromEventFields(fields)
+@@ -887,8 +980,7 @@ dateLoop:
+ 					return nil, "", trace.WrapWithMessage(err, "failed to unmarshal event")
+ 				}
+ 				var fields events.EventFields
+-				data := []byte(e.Fields)
+-				if err := json.Unmarshal(data, &fields); err != nil {
++				if err := e.decodeFields(&fields); err != nil {
+ 					return nil, "", trace.BadParameter("failed to unmarshal event %v", err)
+ 				}
+ 
+@@ -905,6 +997,11 @@ dateLoop:
+ 					foundStart = true
+ 				}
+ 
++				data, err := json.Marshal(fields)
++				if err != nil {
++					return nil, "", trace.Wrap(err)
++				}
++
+ 				// Because this may break on non page boundaries an additional
+ 				// checkpoint is needed for sub-page breaks.
+ 				if totalSize+len(data) >= events.MaxEventBytesInResponse {

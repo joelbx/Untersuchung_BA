@@ -1,0 +1,1 @@
+Implemented collection -U/--upgrade, resolver candidate filtering, upgrade idempotency, and integration upgrade coverage. Unit tests: 31 passed. Integration YAML parsed; full integration target not run.

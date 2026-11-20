@@ -1,0 +1,3 @@
+Implemented `preview=true` for `/import` and `/ia_import`. Preview runs the import pipeline without saving records, uploading covers, or updating Archive.org metadata. Responses include `preview`, `edits`, cover acceptance, and UUID placeholder keys for new records. The change also adds case-insensitive cover-host validation and the requested author and edition conversion interfaces.
+
+Verification: 134 focused tests passed; Ruff and `git diff --check` passed. Black could not run because it is unavailable; the command and error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

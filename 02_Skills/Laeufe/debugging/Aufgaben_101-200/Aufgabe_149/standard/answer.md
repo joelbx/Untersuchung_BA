@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) to merge enabled features into one QtWebEngine argument and pass disabled feature flags through unchanged as separate arguments, whether they come from `--qt-flag` or `qt.args`. The module now exposes both requested prefix constants.
+
+The [regression tests](/app/tests/unit/config/test_qtargs.py) cover each source and a launch using both. All 86 `qtargs` tests pass, and `git diff --check` passes. Flake8 could not run because it is not installed; that limitation is recorded in the [checkpoint](/app/.codex-role-output/checkpoint.md).

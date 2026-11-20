@@ -1,0 +1,590 @@
+diff --git a/internal/cmd/grpc.go b/internal/cmd/grpc.go
+index 265404c..0e48200 100644
+--- a/internal/cmd/grpc.go
++++ b/internal/cmd/grpc.go
+@@ -6,6 +6,7 @@ import (
+ 	"database/sql"
+ 	"errors"
+ 	"fmt"
++	"io"
+ 	"net"
+ 	"net/url"
+ 	"strconv"
+@@ -150,6 +151,11 @@ func NewGRPCServer(
+ 		if err != nil {
+ 			return nil, err
+ 		}
++		if closer, ok := store.(io.Closer); ok {
++			server.onShutdown(func(context.Context) error {
++				return closer.Close()
++			})
++		}
+ 	}
+ 
+ 	logger.Debug("store enabled", zap.Stringer("store", store))
+diff --git a/internal/storage/fs/git/store.go b/internal/storage/fs/git/store.go
+index cb312cd..8fc3207 100644
+--- a/internal/storage/fs/git/store.go
++++ b/internal/storage/fs/git/store.go
+@@ -40,6 +40,7 @@ type SnapshotStore struct {
+ 	caBundle        []byte
+ 	insecureSkipTLS bool
+ 	pollOpts        []containers.Option[storagefs.Poller]
++	poller          *storagefs.Poller
+ }
+ 
+ // WithRef configures the target reference to be used when fetching
+@@ -126,14 +127,21 @@ func NewSnapshotStore(ctx context.Context, logger *zap.Logger, url string, opts
+ 	// if the reference is a static hash then it is immutable
+ 	// if we have already fetched it once, there is not point updating again
+ 	if store.hash == plumbing.ZeroHash {
+-		go storagefs.
+-			NewPoller(store.logger, store.pollOpts...).
+-			Poll(ctx, store.update)
++		store.poller = storagefs.NewPoller(ctx, store.logger, store.update, store.pollOpts...)
++		go store.poller.Poll()
+ 	}
+ 
+ 	return store, nil
+ }
+ 
++// Close stops polling and waits for the poller to exit.
++func (s *SnapshotStore) Close() error {
++	if s.poller == nil {
++		return nil
++	}
++	return s.poller.Close()
++}
++
+ // String returns an identifier string for the store type.
+ func (*SnapshotStore) String() string {
+ 	return "git"
+diff --git a/internal/storage/fs/git/store_test.go b/internal/storage/fs/git/store_test.go
+index ec3dfd6..4645ce5 100644
+--- a/internal/storage/fs/git/store_test.go
++++ b/internal/storage/fs/git/store_test.go
+@@ -178,6 +178,7 @@ func testStore(t *testing.T, opts ...containers.Option[SnapshotStore]) (*Snapsho
+ 			opts...)...,
+ 	)
+ 	require.NoError(t, err)
++	t.Cleanup(func() { require.NoError(t, source.Close()) })
+ 
+ 	return source, false
+ }
+diff --git a/internal/storage/fs/local/store.go b/internal/storage/fs/local/store.go
+index 62efe2b..d99a0c7 100644
+--- a/internal/storage/fs/local/store.go
++++ b/internal/storage/fs/local/store.go
+@@ -23,6 +23,7 @@ type SnapshotStore struct {
+ 	snap storage.ReadOnlyStore
+ 
+ 	pollOpts []containers.Option[storagefs.Poller]
++	poller   *storagefs.Poller
+ }
+ 
+ // NewSnapshotStore constructs a new SnapshotStore
+@@ -40,13 +41,20 @@ func NewSnapshotStore(ctx context.Context, logger *zap.Logger, dir string, opts
+ 		return nil, err
+ 	}
+ 
+-	go storagefs.
+-		NewPoller(logger, s.pollOpts...).
+-		Poll(ctx, s.update)
++	s.poller = storagefs.NewPoller(ctx, logger, s.update, s.pollOpts...)
++	go s.poller.Poll()
+ 
+ 	return s, nil
+ }
+ 
++// Close stops polling and waits for the poller to exit.
++func (s *SnapshotStore) Close() error {
++	if s.poller == nil {
++		return nil
++	}
++	return s.poller.Close()
++}
++
+ // WithPollOptions configures poller options on the store.
+ func WithPollOptions(opts ...containers.Option[storagefs.Poller]) containers.Option[SnapshotStore] {
+ 	return func(s *SnapshotStore) {
+diff --git a/internal/storage/fs/local/store_test.go b/internal/storage/fs/local/store_test.go
+index c98de6c..8f08ed4 100644
+--- a/internal/storage/fs/local/store_test.go
++++ b/internal/storage/fs/local/store_test.go
+@@ -8,6 +8,7 @@ import (
+ 	"time"
+ 
+ 	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
+ 	"go.flipt.io/flipt/internal/storage"
+ 	storagefs "go.flipt.io/flipt/internal/storage/fs"
+ 	"go.uber.org/zap"
+@@ -17,6 +18,21 @@ func Test_Store_String(t *testing.T) {
+ 	assert.Equal(t, "local", (&SnapshotStore{}).String())
+ }
+ 
++func Test_Store_Close(t *testing.T) {
++	s, err := NewSnapshotStore(context.Background(), zap.NewNop(), "testdata")
++	require.NoError(t, err)
++	closed := make(chan error, 1)
++	go func() { closed <- s.Close() }()
++	select {
++	case err := <-closed:
++		require.NoError(t, err)
++	case <-time.After(5 * time.Second):
++		t.Fatal("store close did not stop polling")
++	}
++	require.NoError(t, s.Close())
++	require.NoError(t, (&SnapshotStore{}).Close())
++}
++
+ func Test_Store(t *testing.T) {
+ 	ctx, cancel := context.WithCancel(context.Background())
+ 	t.Cleanup(cancel)
+@@ -33,7 +49,8 @@ func Test_Store(t *testing.T) {
+ 			}
+ 		}),
+ 	))
+-	assert.NoError(t, err)
++	require.NoError(t, err)
++	t.Cleanup(func() { assert.NoError(t, s.Close()) })
+ 
+ 	dir, err := os.Getwd()
+ 	assert.NoError(t, err)
+diff --git a/internal/storage/fs/object/azblob/store.go b/internal/storage/fs/object/azblob/store.go
+index 5bcc404..9578d4b 100644
+--- a/internal/storage/fs/object/azblob/store.go
++++ b/internal/storage/fs/object/azblob/store.go
+@@ -27,6 +27,7 @@ type SnapshotStore struct {
+ 	endpoint  string
+ 	container string
+ 	pollOpts  []containers.Option[storagefs.Poller]
++	poller    *storagefs.Poller
+ }
+ 
+ // View accepts a function which takes a *StoreSnapshot.
+@@ -66,11 +67,20 @@ func NewSnapshotStore(ctx context.Context, logger *zap.Logger, container string,
+ 		return nil, err
+ 	}
+ 
+-	go storagefs.NewPoller(s.logger, s.pollOpts...).Poll(ctx, s.update)
++	s.poller = storagefs.NewPoller(ctx, s.logger, s.update, s.pollOpts...)
++	go s.poller.Poll()
+ 
+ 	return s, nil
+ }
+ 
++// Close stops polling and waits for the poller to exit.
++func (s *SnapshotStore) Close() error {
++	if s.poller == nil {
++		return nil
++	}
++	return s.poller.Close()
++}
++
+ // WithEndpoint configures the endpoint
+ func WithEndpoint(endpoint string) containers.Option[SnapshotStore] {
+ 	return func(s *SnapshotStore) {
+diff --git a/internal/storage/fs/object/azblob/store_test.go b/internal/storage/fs/object/azblob/store_test.go
+index 85abd69..1968adf 100644
+--- a/internal/storage/fs/object/azblob/store_test.go
++++ b/internal/storage/fs/object/azblob/store_test.go
+@@ -113,5 +113,6 @@ func testStore(t *testing.T, opts ...containers.Option[SnapshotStore]) (*Snapsho
+ 			opts...)...,
+ 	)
+ 	require.NoError(t, err)
++	t.Cleanup(func() { require.NoError(t, source.Close()) })
+ 	return source, false
+ }
+diff --git a/internal/storage/fs/object/s3/store.go b/internal/storage/fs/object/s3/store.go
+index e1dd20d..d8098f5 100644
+--- a/internal/storage/fs/object/s3/store.go
++++ b/internal/storage/fs/object/s3/store.go
+@@ -31,6 +31,7 @@ type SnapshotStore struct {
+ 	prefix   string
+ 
+ 	pollOpts []containers.Option[storagefs.Poller]
++	poller   *storagefs.Poller
+ }
+ 
+ // View accepts a function which takes a *StoreSnapshot.
+@@ -76,11 +77,20 @@ func NewSnapshotStore(ctx context.Context, logger *zap.Logger, bucket string, op
+ 		return nil, err
+ 	}
+ 
+-	go storagefs.NewPoller(s.logger, s.pollOpts...).Poll(ctx, s.update)
++	s.poller = storagefs.NewPoller(ctx, s.logger, s.update, s.pollOpts...)
++	go s.poller.Poll()
+ 
+ 	return s, nil
+ }
+ 
++// Close stops polling and waits for the poller to exit.
++func (s *SnapshotStore) Close() error {
++	if s.poller == nil {
++		return nil
++	}
++	return s.poller.Close()
++}
++
+ // WithPrefix configures the prefix for s3
+ func WithPrefix(prefix string) containers.Option[SnapshotStore] {
+ 	return func(s *SnapshotStore) {
+diff --git a/internal/storage/fs/object/s3/store_test.go b/internal/storage/fs/object/s3/store_test.go
+index 4c2314b..049437b 100644
+--- a/internal/storage/fs/object/s3/store_test.go
++++ b/internal/storage/fs/object/s3/store_test.go
+@@ -117,6 +117,7 @@ func testStore(t *testing.T, opts ...containers.Option[SnapshotStore]) (*Snapsho
+ 			opts...)...,
+ 	)
+ 	require.NoError(t, err)
++	t.Cleanup(func() { require.NoError(t, source.Close()) })
+ 
+ 	return source, false
+ }
+diff --git a/internal/storage/fs/oci/store.go b/internal/storage/fs/oci/store.go
+index e99cce0..3ee8472 100644
+--- a/internal/storage/fs/oci/store.go
++++ b/internal/storage/fs/oci/store.go
+@@ -27,6 +27,7 @@ type SnapshotStore struct {
+ 	lastDigest digest.Digest
+ 
+ 	pollOpts []containers.Option[storagefs.Poller]
++	poller   *storagefs.Poller
+ }
+ 
+ // View accepts a function which takes a *StoreSnapshot.
+@@ -53,11 +54,20 @@ func NewSnapshotStore(ctx context.Context, logger *zap.Logger, store *oci.Store,
+ 		return nil, err
+ 	}
+ 
+-	go storagefs.NewPoller(logger, s.pollOpts...).Poll(ctx, s.update)
++	s.poller = storagefs.NewPoller(ctx, logger, s.update, s.pollOpts...)
++	go s.poller.Poll()
+ 
+ 	return s, nil
+ }
+ 
++// Close stops polling and waits for the poller to exit.
++func (s *SnapshotStore) Close() error {
++	if s.poller == nil {
++		return nil
++	}
++	return s.poller.Close()
++}
++
+ // WithPollOptions configures the options used periodically invoke the update procedure
+ func WithPollOptions(opts ...containers.Option[storagefs.Poller]) containers.Option[SnapshotStore] {
+ 	return func(s *SnapshotStore) {
+diff --git a/internal/storage/fs/oci/store_test.go b/internal/storage/fs/oci/store_test.go
+index 03810a0..c91324d 100644
+--- a/internal/storage/fs/oci/store_test.go
++++ b/internal/storage/fs/oci/store_test.go
+@@ -95,6 +95,7 @@ func testStore(t *testing.T, opts ...containers.Option[SnapshotStore]) (*Snapsho
+ 		ref,
+ 		opts...)
+ 	require.NoError(t, err)
++	t.Cleanup(func() { require.NoError(t, source.Close()) })
+ 
+ 	return source, target
+ }
+diff --git a/internal/storage/fs/poll.go b/internal/storage/fs/poll.go
+index 12c9147..22925f1 100644
+--- a/internal/storage/fs/poll.go
++++ b/internal/storage/fs/poll.go
+@@ -2,6 +2,8 @@ package fs
+ 
+ import (
+ 	"context"
++	"io"
++	"sync"
+ 	"testing"
+ 	"time"
+ 
+@@ -9,8 +11,21 @@ import (
+ 	"go.uber.org/zap"
+ )
+ 
++// UpdateFunc checks for changes and reports whether the snapshot was modified.
++type UpdateFunc func(context.Context) (bool, error)
++
++var _ io.Closer = (*Poller)(nil)
++
+ type Poller struct {
+ 	logger *zap.Logger
++	ctx    context.Context
++	cancel context.CancelFunc
++	update UpdateFunc
++
++	mu      sync.Mutex
++	started bool
++	closed  bool
++	done    chan struct{}
+ 
+ 	interval time.Duration
+ 	notify   func(modified bool)
+@@ -29,25 +44,45 @@ func WithNotify(t *testing.T, n func(modified bool)) containers.Option[Poller] {
+ 	}
+ }
+ 
+-func NewPoller(logger *zap.Logger, opts ...containers.Option[Poller]) *Poller {
++func NewPoller(ctx context.Context, logger *zap.Logger, update UpdateFunc, opts ...containers.Option[Poller]) *Poller {
++	ctx, cancel := context.WithCancel(ctx)
+ 	p := &Poller{
+ 		logger:   logger,
++		ctx:      ctx,
++		cancel:   cancel,
++		update:   update,
++		done:     make(chan struct{}),
+ 		interval: 30 * time.Second,
+ 	}
+ 	containers.ApplyAll(p, opts...)
+ 	return p
+ }
+ 
+-// Poll is a utility function for a common polling strategy used by lots of declarative
+-// store implementations.
+-func (p *Poller) Poll(ctx context.Context, update func(context.Context) (bool, error)) {
++// Poll runs the common polling strategy until the context is canceled.
++func (p *Poller) Poll() {
++	p.mu.Lock()
++	if p.started || p.closed {
++		p.mu.Unlock()
++		return
++	}
++	p.started = true
++	p.mu.Unlock()
++
++	defer close(p.done)
+ 	ticker := time.NewTicker(p.interval)
++	defer ticker.Stop()
+ 	for {
+ 		select {
+-		case <-ctx.Done():
++		case <-p.ctx.Done():
+ 			return
+ 		case <-ticker.C:
+-			modified, err := update(ctx)
++			if p.ctx.Err() != nil {
++				return
++			}
++			modified, err := p.update(p.ctx)
++			if p.ctx.Err() != nil {
++				return
++			}
+ 			if err != nil {
+ 				p.logger.Error("error getting file system from directory", zap.Error(err))
+ 				continue
+@@ -66,3 +101,18 @@ func (p *Poller) Poll(ctx context.Context, update func(context.Context) (bool, e
+ 		}
+ 	}
+ }
++
++// Close stops polling and waits for any in-flight update to finish.
++func (p *Poller) Close() error {
++	p.cancel()
++	p.mu.Lock()
++	if !p.closed {
++		p.closed = true
++		if !p.started {
++			close(p.done)
++		}
++	}
++	p.mu.Unlock()
++	<-p.done
++	return nil
++}
+diff --git a/internal/storage/fs/poll_test.go b/internal/storage/fs/poll_test.go
+new file mode 100644
+index 0000000..ac33b26
+--- /dev/null
++++ b/internal/storage/fs/poll_test.go
+@@ -0,0 +1,117 @@
++package fs
++
++import (
++	"context"
++	"testing"
++	"time"
++
++	"github.com/stretchr/testify/require"
++	"go.uber.org/zap"
++)
++
++func TestPollerCloseWaitsForUpdate(t *testing.T) {
++	started := make(chan context.Context, 1)
++	release := make(chan struct{})
++	poller := NewPoller(context.Background(), zap.NewNop(), func(ctx context.Context) (bool, error) {
++		started <- ctx
++		<-release
++		return false, nil
++	}, WithInterval(time.Millisecond))
++	t.Cleanup(func() {
++		select {
++		case <-release:
++		default:
++			close(release)
++		}
++		require.NoError(t, poller.Close())
++	})
++
++	stopped := make(chan struct{})
++	go func() {
++		poller.Poll()
++		close(stopped)
++	}()
++
++	var updateCtx context.Context
++	select {
++	case updateCtx = <-started:
++	case <-time.After(5 * time.Second):
++		t.Fatal("poller did not start an update")
++	}
++
++	closed := make(chan error, 2)
++	go func() { closed <- poller.Close() }()
++	go func() { closed <- poller.Close() }()
++
++	select {
++	case <-updateCtx.Done():
++	case <-time.After(5 * time.Second):
++		t.Fatal("close did not cancel the update context")
++	}
++
++	select {
++	case <-closed:
++		t.Fatal("close returned before the update finished")
++	default:
++	}
++
++	close(release)
++	for i := 0; i < 2; i++ {
++		select {
++		case err := <-closed:
++			require.NoError(t, err)
++		case <-time.After(5 * time.Second):
++			t.Fatal("close did not wait for the poller")
++		}
++	}
++	select {
++	case <-stopped:
++	case <-time.After(5 * time.Second):
++		t.Fatal("poller still running after close")
++	}
++}
++
++func TestPollerCloseBeforePoll(t *testing.T) {
++	called := make(chan struct{}, 1)
++	poller := NewPoller(context.Background(), zap.NewNop(), func(context.Context) (bool, error) {
++		called <- struct{}{}
++		return false, nil
++	})
++
++	closed := make(chan error, 1)
++	go func() { closed <- poller.Close() }()
++	select {
++	case err := <-closed:
++		require.NoError(t, err)
++	case <-time.After(5 * time.Second):
++		t.Fatal("close blocked before polling started")
++	}
++
++	poller.Poll()
++	require.NoError(t, poller.Close())
++	select {
++	case <-called:
++		t.Fatal("update called after close")
++	default:
++	}
++}
++
++func TestPollerStopsWithParentContext(t *testing.T) {
++	ctx, cancel := context.WithCancel(context.Background())
++	poller := NewPoller(ctx, zap.NewNop(), func(context.Context) (bool, error) {
++		return false, nil
++	})
++	stopped := make(chan struct{})
++	go func() {
++		poller.Poll()
++		close(stopped)
++	}()
++
++	cancel()
++	select {
++	case <-stopped:
++	case <-time.After(5 * time.Second):
++		t.Fatal("poller ignored parent cancellation")
++	}
++	require.NoError(t, poller.Close())
++}
+diff --git a/internal/storage/fs/store.go b/internal/storage/fs/store.go
+index 21358ba..773264e 100644
+--- a/internal/storage/fs/store.go
++++ b/internal/storage/fs/store.go
+@@ -19,14 +19,15 @@ var (
+ 	ErrNotImplemented = errors.New("not implemented")
+ )
+ 
+-// SnapshotStore is a type which has a single function View.
+-// View is a functional transaction interface for reading a snapshot
+-// during the lifetime of a supplied function.
++// SnapshotStore provides access to a snapshot and stops any background polling
++// when closed. View keeps the snapshot valid for the supplied function call.
+ type SnapshotStore interface {
+ 	// View accepts a function which takes a *StoreSnapshot.
+ 	// The SnapshotStore will supply a snapshot which is valid
+ 	// for the lifetime of the provided function call.
+ 	View(func(storage.ReadOnlyStore) error) error
++	// Close stops any active polling and waits for it to finish.
++	Close() error
+ 	fmt.Stringer
+ }
+ 
+@@ -40,6 +41,11 @@ func NewStore(viewer SnapshotStore) *Store {
+ 	return &Store{viewer: viewer}
+ }
+ 
++// Close stops any polling owned by the underlying snapshot store.
++func (s *Store) Close() error {
++	return s.viewer.Close()
++}
++
+ func (s *Store) String() string {
+ 	return path.Join("declarative", s.viewer.String())
+ }
+diff --git a/internal/storage/fs/store_test.go b/internal/storage/fs/store_test.go
+index 780ab60..508a458 100644
+--- a/internal/storage/fs/store_test.go
++++ b/internal/storage/fs/store_test.go
+@@ -11,6 +11,23 @@ import (
+ 	"go.flipt.io/flipt/rpc/flipt"
+ )
+ 
++func TestStoreClose(t *testing.T) {
++	viewer := &closableSnapshotStoreMock{snapshotStoreMock: newSnapshotStoreMock()}
++	require.NoError(t, NewStore(viewer).Close())
++	require.True(t, viewer.closed)
++	require.NoError(t, NewStore(newSnapshotStoreMock()).Close())
++}
++
++type closableSnapshotStoreMock struct {
++	snapshotStoreMock
++	closed bool
++}
++
++func (s *closableSnapshotStoreMock) Close() error {
++	s.closed = true
++	return nil
++}
++
+ func TestGetFlag(t *testing.T) {
+ 	storeMock := newSnapshotStoreMock()
+ 	ss := NewStore(storeMock)
+@@ -211,3 +228,7 @@ func (s snapshotStoreMock) View(fn func(storage.ReadOnlyStore) error) error {
+ func (s snapshotStoreMock) String() string {
+ 	return "mock"
+ }
++
++func (s snapshotStoreMock) Close() error {
++	return nil
++}

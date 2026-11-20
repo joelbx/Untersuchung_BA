@@ -1,0 +1,3 @@
+Correction round started. Inspecting current patch and reviewer findings; will rerun flagged tests after any fixes.
+Inspected patch: requested size constants and imports are in place. Shared Karma configuration points to Playwright Chromium; no local Chromium binary found. Checking flagged commands now.
+Verification: component command passed (68 tests, 5 snapshots). Shared humanSize command bundled but could not launch: Playwright Chromium missing at /root/.cache/ms-playwright/chromium-1124/chrome-linux/chrome. Shared check-types failed at crypto worker/api.ts:579: root openpgp 6.0.0-beta.2 versus pmcrypto nested openpgp 5.11.2-0. No storage patch defect found; no code changes made in correction round. git diff --check passed.

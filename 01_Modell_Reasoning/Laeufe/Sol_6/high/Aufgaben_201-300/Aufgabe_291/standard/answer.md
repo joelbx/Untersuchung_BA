@@ -1,0 +1,3 @@
+NVD CVSS v4.0 metrics are now converted into source-associated `CveContent` entries, and `Cvss40Scores()` returns available MITRE entries followed by NVD entries. The three model fields already existed. I updated the dependency pin to a locally cached version that exposes `Nvd.Cvss40` and added regression tests.
+
+The focused tests and full `models` suite passed. Detector and reporter tests did not complete; I stopped that run during dependency compilation.

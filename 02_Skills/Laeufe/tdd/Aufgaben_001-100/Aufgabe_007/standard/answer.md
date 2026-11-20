@@ -1,0 +1,3 @@
+Added `ansible_winrm_kinit_args` to the [WinRM connection plugin](/app/lib/ansible/plugins/connection/winrm.py). Its string is split into command arguments and placed between the kinit executable and Kerberos principal in both execution paths. When set, it replaces the default arguments, including the delegation `-f` flag.
+
+The [regression tests](/app/test/units/plugins/connection/test_winrm.py) cover both paths and delegation precedence. All 62 connection plugin tests pass. The broader unit suite did not complete: unrelated CLI tests failed with missing `context.CLIARGS` keys and an `ansible.cli` import error.

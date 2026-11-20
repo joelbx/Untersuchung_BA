@@ -1,0 +1,3 @@
+Added `flipt.is_auth_method(input, "jwt")` to the Rego authorization engines. It accepts the seven requested labels, maps them to the `auth.proto` method codes, returns false for a mismatch, and reports errors for missing authentication or unsupported labels.
+
+Tests cover every label, the `k8s` alias, mismatches, and both error cases. `go test ./internal/server/authz/engine/... ./internal/server/authz/middleware/grpc` passes.

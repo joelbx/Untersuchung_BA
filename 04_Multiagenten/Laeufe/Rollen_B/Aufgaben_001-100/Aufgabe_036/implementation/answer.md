@@ -1,0 +1,3 @@
+Updated [config/config.go](/app/config/config.go) so `Load` reads the three database pool options and `meta.check_for_updates`. An absent update flag now defaults to `false`, while the default and deprecated fixtures still load exactly as `Default()`. Added fixtures and tests for explicit pool values and both update flag values.
+
+Verification passed: `go test ./config`, `GOPROXY=off go test ./cmd/flipt`, and `git diff --check`.

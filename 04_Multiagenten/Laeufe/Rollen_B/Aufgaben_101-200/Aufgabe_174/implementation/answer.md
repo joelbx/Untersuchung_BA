@@ -1,0 +1,3 @@
+Implemented queue based display delivery from forked workers. Workers send `DisplaySend` events through `FinalQueue`; the parent replays them under a display lock. I removed the late stream redirection, wait for workers before ending queue processing, and flush stdout and stderr during cleanup.
+
+Verification: 9 focused tests passed, including a real fork transport test. The strategy tests were skipped by the repository.

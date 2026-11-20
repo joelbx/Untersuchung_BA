@@ -1,0 +1,3 @@
+Implemented `ansible_winrm_kinit_args` in [winrm.py](/app/lib/ansible/plugins/connection/winrm.py:81). Arguments are split into tokens and passed after the configured executable, followed by the principal. Explicit arguments take precedence over automatic delegation; without them, delegation still adds `-f`. Both execution paths use the same command arguments, and the existing per-attempt credential cache remains in use.
+
+Validation passed: `python -m pytest -q test/units/plugins/connection/test_winrm.py` (26 tests) and `git diff --check`.

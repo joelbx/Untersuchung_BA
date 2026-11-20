@@ -1,0 +1,3 @@
+Exported `NamespaceEnv` and `ReleaseNameEnv` and updated the Kubernetes backend to use them when reading environment variables. `NewWithClient()` validates the namespace and replica name before building its configuration. The regression tests now set those variables explicitly, including empty values.
+
+The Kubernetes backend suite passed. The repository-wide run encountered a missing system header, `linux/hidraw.h`, while compiling `github.com/flynn/hid`; it was interrupted after that blocker, so the full suite remains unverified. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

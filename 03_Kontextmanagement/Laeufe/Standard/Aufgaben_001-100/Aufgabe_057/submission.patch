@@ -1,0 +1,448 @@
+diff --git a/internal/ext/common.go b/internal/ext/common.go
+new file mode 100644
+index 0000000..de56bb7
+--- /dev/null
++++ b/internal/ext/common.go
+@@ -0,0 +1,49 @@
++package ext
++
++// Document is the portable representation of flags and segments.
++type Document struct {
++	Flags    []*Flag    `yaml:"flags,omitempty"`
++	Segments []*Segment `yaml:"segments,omitempty"`
++}
++
++type Flag struct {
++	Key         string     `yaml:"key"`
++	Name        string     `yaml:"name"`
++	Description string     `yaml:"description,omitempty"`
++	Enabled     bool       `yaml:"enabled"`
++	Variants    []*Variant `yaml:"variants,omitempty"`
++	Rules       []*Rule    `yaml:"rules,omitempty"`
++}
++
++type Variant struct {
++	Key         string      `yaml:"key"`
++	Name        string      `yaml:"name,omitempty"`
++	Description string      `yaml:"description,omitempty"`
++	Attachment  interface{} `yaml:"attachment,omitempty"`
++}
++
++type Rule struct {
++	SegmentKey    string          `yaml:"segment_key"`
++	Rank          uint            `yaml:"rank"`
++	Distributions []*Distribution `yaml:"distributions,omitempty"`
++}
++
++type Distribution struct {
++	VariantKey string  `yaml:"variant_key"`
++	Rollout    float32 `yaml:"rollout"`
++}
++
++type Segment struct {
++	Key         string        `yaml:"key"`
++	Name        string        `yaml:"name"`
++	Description string        `yaml:"description,omitempty"`
++	MatchType   string        `yaml:"match_type,omitempty"`
++	Constraints []*Constraint `yaml:"constraints,omitempty"`
++}
++
++type Constraint struct {
++	Type     string `yaml:"type"`
++	Property string `yaml:"property"`
++	Operator string `yaml:"operator"`
++	Value    string `yaml:"value,omitempty"`
++}
+diff --git a/internal/ext/exporter.go b/internal/ext/exporter.go
+new file mode 100644
+index 0000000..e3a9356
+--- /dev/null
++++ b/internal/ext/exporter.go
+@@ -0,0 +1,97 @@
++package ext
++
++import (
++	"context"
++	"encoding/json"
++	"fmt"
++	"io"
++
++	flipt "github.com/markphelps/flipt/rpc/flipt"
++	"github.com/markphelps/flipt/storage"
++	"gopkg.in/yaml.v2"
++)
++
++type lister interface {
++	ListFlags(context.Context, ...storage.QueryOption) ([]*flipt.Flag, error)
++	ListSegments(context.Context, ...storage.QueryOption) ([]*flipt.Segment, error)
++	ListRules(context.Context, string, ...storage.QueryOption) ([]*flipt.Rule, error)
++}
++
++type Exporter struct {
++	store     lister
++	batchSize uint64
++}
++
++func NewExporter(store lister) *Exporter { return &Exporter{store: store, batchSize: 100} }
++
++func (e *Exporter) Export(ctx context.Context, w io.Writer) error {
++	doc := Document{}
++	batch := e.batchSize
++	if batch == 0 {
++		batch = 100
++	}
++	for offset := uint64(0); ; offset += batch {
++		flags, err := e.store.ListFlags(ctx, storage.WithLimit(batch), storage.WithOffset(offset))
++		if err != nil {
++			return fmt.Errorf("list flags: %w", err)
++		}
++		for _, f := range flags {
++			flag := &Flag{Key: f.Key, Name: f.Name, Description: f.Description, Enabled: f.Enabled}
++			variantKeys := make(map[string]string, len(f.Variants))
++			for _, v := range f.Variants {
++				variant := &Variant{Key: v.Key, Name: v.Name, Description: v.Description}
++				if v.Attachment != "" {
++					if err := json.Unmarshal([]byte(v.Attachment), &variant.Attachment); err != nil {
++						return fmt.Errorf("variant %q attachment: %w", v.Key, err)
++					}
++				}
++				variantKeys[v.Id] = v.Key
++				flag.Variants = append(flag.Variants, variant)
++			}
++			for ruleOffset := uint64(0); ; ruleOffset += batch {
++				rules, err := e.store.ListRules(ctx, f.Key, storage.WithLimit(batch), storage.WithOffset(ruleOffset))
++				if err != nil {
++					return fmt.Errorf("list rules for flag %q: %w", f.Key, err)
++				}
++				for _, r := range rules {
++					rule := &Rule{SegmentKey: r.SegmentKey, Rank: uint(r.Rank)}
++					for _, d := range r.Distributions {
++						key, ok := variantKeys[d.VariantId]
++						if !ok {
++							return fmt.Errorf("distribution references unknown variant %q", d.VariantId)
++						}
++						rule.Distributions = append(rule.Distributions, &Distribution{VariantKey: key, Rollout: d.Rollout})
++					}
++					flag.Rules = append(flag.Rules, rule)
++				}
++				if uint64(len(rules)) < batch {
++					break
++				}
++			}
++			doc.Flags = append(doc.Flags, flag)
++		}
++		if uint64(len(flags)) < batch {
++			break
++		}
++	}
++	for offset := uint64(0); ; offset += batch {
++		segments, err := e.store.ListSegments(ctx, storage.WithLimit(batch), storage.WithOffset(offset))
++		if err != nil {
++			return fmt.Errorf("list segments: %w", err)
++		}
++		for _, s := range segments {
++			segment := &Segment{Key: s.Key, Name: s.Name, Description: s.Description}
++			if s.MatchType != flipt.MatchType_ALL_MATCH_TYPE {
++				segment.MatchType = s.MatchType.String()
++			}
++			for _, c := range s.Constraints {
++				segment.Constraints = append(segment.Constraints, &Constraint{Type: c.Type.String(), Property: c.Property, Operator: c.Operator, Value: c.Value})
++			}
++			doc.Segments = append(doc.Segments, segment)
++		}
++		if uint64(len(segments)) < batch {
++			break
++		}
++	}
++	return yaml.NewEncoder(w).Encode(&doc)
++}
+diff --git a/internal/ext/ext_test.go b/internal/ext/ext_test.go
+new file mode 100644
+index 0000000..b51c85b
+--- /dev/null
++++ b/internal/ext/ext_test.go
+@@ -0,0 +1,136 @@
++package ext
++
++import (
++	"bytes"
++	"context"
++	"encoding/json"
++	"reflect"
++	"testing"
++
++	flipt "github.com/markphelps/flipt/rpc/flipt"
++	"github.com/markphelps/flipt/storage"
++	"gopkg.in/yaml.v2"
++)
++
++type memoryStore struct {
++	flags    []*flipt.Flag
++	segments []*flipt.Segment
++	rules    map[string][]*flipt.Rule
++}
++
++func (s *memoryStore) ListFlags(_ context.Context, _ ...storage.QueryOption) ([]*flipt.Flag, error) {
++	return s.flags, nil
++}
++func (s *memoryStore) ListSegments(_ context.Context, _ ...storage.QueryOption) ([]*flipt.Segment, error) {
++	return s.segments, nil
++}
++func (s *memoryStore) ListRules(_ context.Context, key string, _ ...storage.QueryOption) ([]*flipt.Rule, error) {
++	return s.rules[key], nil
++}
++func (s *memoryStore) CreateFlag(_ context.Context, r *flipt.CreateFlagRequest) (*flipt.Flag, error) {
++	f := &flipt.Flag{Key: r.Key, Name: r.Name, Description: r.Description, Enabled: r.Enabled}
++	s.flags = append(s.flags, f)
++	return f, nil
++}
++func (s *memoryStore) CreateVariant(_ context.Context, r *flipt.CreateVariantRequest) (*flipt.Variant, error) {
++	v := &flipt.Variant{Id: r.Key + "-id", FlagKey: r.FlagKey, Key: r.Key, Name: r.Name, Description: r.Description, Attachment: r.Attachment}
++	for _, f := range s.flags {
++		if f.Key == r.FlagKey {
++			f.Variants = append(f.Variants, v)
++		}
++	}
++	return v, nil
++}
++func (s *memoryStore) CreateSegment(_ context.Context, r *flipt.CreateSegmentRequest) (*flipt.Segment, error) {
++	v := &flipt.Segment{Key: r.Key, Name: r.Name, Description: r.Description}
++	s.segments = append(s.segments, v)
++	return v, nil
++}
++func (s *memoryStore) CreateConstraint(_ context.Context, r *flipt.CreateConstraintRequest) (*flipt.Constraint, error) {
++	v := &flipt.Constraint{SegmentKey: r.SegmentKey, Type: r.Type, Property: r.Property, Operator: r.Operator, Value: r.Value}
++	for _, segment := range s.segments {
++		if segment.Key == r.SegmentKey {
++			segment.Constraints = append(segment.Constraints, v)
++		}
++	}
++	return v, nil
++}
++func (s *memoryStore) CreateRule(_ context.Context, r *flipt.CreateRuleRequest) (*flipt.Rule, error) {
++	v := &flipt.Rule{Id: "rule-id", FlagKey: r.FlagKey, SegmentKey: r.SegmentKey, Rank: r.Rank}
++	s.rules[r.FlagKey] = append(s.rules[r.FlagKey], v)
++	return v, nil
++}
++func (s *memoryStore) CreateDistribution(_ context.Context, r *flipt.CreateDistributionRequest) (*flipt.Distribution, error) {
++	v := &flipt.Distribution{RuleId: r.RuleId, VariantId: r.VariantId, Rollout: r.Rollout}
++	for _, rules := range s.rules {
++		for _, rule := range rules {
++			if rule.Id == r.RuleId {
++				rule.Distributions = append(rule.Distributions, v)
++			}
++		}
++	}
++	return v, nil
++}
++
++func TestImportExportAttachments(t *testing.T) {
++	input := `flags:
++- key: feature
++  name: Feature
++  enabled: true
++  variants:
++  - key: rich
++    attachment:
++      nested:
++      - null
++      - true
++      - count: 3
++      items: [one, 2, false]
++  - key: empty
++  rules:
++  - segment_key: audience
++    rank: 1
++    distributions:
++    - variant_key: rich
++      rollout: 100
++segments:
++- key: audience
++  name: Audience
++  constraints:
++  - type: STRING_COMPARISON_TYPE
++    property: country
++    operator: eq
++    value: US
++`
++	store := &memoryStore{rules: map[string][]*flipt.Rule{}}
++	if err := NewImporter(store).Import(context.Background(), bytes.NewBufferString(input)); err != nil {
++		t.Fatal(err)
++	}
++	if got := store.flags[0].Variants[1].Attachment; got != "" {
++		t.Fatalf("missing attachment: %q", got)
++	}
++	var got interface{}
++	if err := json.Unmarshal([]byte(store.flags[0].Variants[0].Attachment), &got); err != nil {
++		t.Fatal(err)
++	}
++	want := map[string]interface{}{"nested": []interface{}{nil, true, map[string]interface{}{"count": float64(3)}}, "items": []interface{}{"one", float64(2), false}}
++	if !reflect.DeepEqual(got, want) {
++		t.Fatalf("attachment = %#v", got)
++	}
++	var out bytes.Buffer
++	if err := NewExporter(store).Export(context.Background(), &out); err != nil {
++		t.Fatal(err)
++	}
++	var doc Document
++	if err := yaml.Unmarshal(out.Bytes(), &doc); err != nil {
++		t.Fatal(err)
++	}
++	if len(doc.Flags) != 1 || len(doc.Segments) != 1 || len(doc.Flags[0].Rules) != 1 || len(doc.Flags[0].Rules[0].Distributions) != 1 {
++		t.Fatalf("incomplete export: %s", out.String())
++	}
++	if _, ok := doc.Flags[0].Variants[0].Attachment.(map[interface{}]interface{}); !ok {
++		t.Fatalf("attachment not YAML map: %s", out.String())
++	}
++	if doc.Flags[0].Rules[0].Distributions[0].VariantKey != "rich" {
++		t.Fatalf("wrong variant key: %s", out.String())
++	}
++}
+diff --git a/internal/ext/importer.go b/internal/ext/importer.go
+new file mode 100644
+index 0000000..cc8bf29
+--- /dev/null
++++ b/internal/ext/importer.go
+@@ -0,0 +1,142 @@
++package ext
++
++import (
++	"context"
++	"encoding/json"
++	"fmt"
++	"io"
++
++	flipt "github.com/markphelps/flipt/rpc/flipt"
++	"gopkg.in/yaml.v2"
++)
++
++type creator interface {
++	CreateFlag(context.Context, *flipt.CreateFlagRequest) (*flipt.Flag, error)
++	CreateVariant(context.Context, *flipt.CreateVariantRequest) (*flipt.Variant, error)
++	CreateSegment(context.Context, *flipt.CreateSegmentRequest) (*flipt.Segment, error)
++	CreateConstraint(context.Context, *flipt.CreateConstraintRequest) (*flipt.Constraint, error)
++	CreateRule(context.Context, *flipt.CreateRuleRequest) (*flipt.Rule, error)
++	CreateDistribution(context.Context, *flipt.CreateDistributionRequest) (*flipt.Distribution, error)
++}
++
++type Importer struct{ store creator }
++
++func NewImporter(store creator) *Importer { return &Importer{store: store} }
++
++// convert recursively changes YAML's interface-keyed maps to JSON-compatible maps.
++func convert(value interface{}) interface{} {
++	switch v := value.(type) {
++	case map[interface{}]interface{}:
++		m := make(map[string]interface{}, len(v))
++		for key, item := range v {
++			m[fmt.Sprint(key)] = convert(item)
++		}
++		return m
++	case map[string]interface{}:
++		m := make(map[string]interface{}, len(v))
++		for key, item := range v {
++			m[key] = convert(item)
++		}
++		return m
++	case []interface{}:
++		items := make([]interface{}, len(v))
++		for i, item := range v {
++			items[i] = convert(item)
++		}
++		return items
++	default:
++		return value
++	}
++}
++
++func (i *Importer) Import(ctx context.Context, r io.Reader) error {
++	var doc Document
++	if err := yaml.NewDecoder(r).Decode(&doc); err != nil {
++		return fmt.Errorf("decode YAML: %w", err)
++	}
++	for _, s := range doc.Segments {
++		if s == nil {
++			return fmt.Errorf("nil segment")
++		}
++		matchType := flipt.MatchType_ALL_MATCH_TYPE
++		if s.MatchType != "" {
++			value, ok := flipt.MatchType_value[s.MatchType]
++			if !ok {
++				return fmt.Errorf("unknown match type %q", s.MatchType)
++			}
++			matchType = flipt.MatchType(value)
++		}
++		if _, err := i.store.CreateSegment(ctx, &flipt.CreateSegmentRequest{Key: s.Key, Name: s.Name, Description: s.Description, MatchType: matchType}); err != nil {
++			return fmt.Errorf("create segment %q: %w", s.Key, err)
++		}
++		for _, c := range s.Constraints {
++			if c == nil {
++				return fmt.Errorf("nil constraint in segment %q", s.Key)
++			}
++			comparison, ok := flipt.ComparisonType_value[c.Type]
++			if !ok {
++				return fmt.Errorf("unknown comparison type %q", c.Type)
++			}
++			if _, err := i.store.CreateConstraint(ctx, &flipt.CreateConstraintRequest{SegmentKey: s.Key, Type: flipt.ComparisonType(comparison), Property: c.Property, Operator: c.Operator, Value: c.Value}); err != nil {
++				return fmt.Errorf("create constraint in segment %q: %w", s.Key, err)
++			}
++		}
++	}
++	for _, f := range doc.Flags {
++		if f == nil {
++			return fmt.Errorf("nil flag")
++		}
++		if _, err := i.store.CreateFlag(ctx, &flipt.CreateFlagRequest{Key: f.Key, Name: f.Name, Description: f.Description, Enabled: f.Enabled}); err != nil {
++			return fmt.Errorf("create flag %q: %w", f.Key, err)
++		}
++		variantIDs := make(map[string]string, len(f.Variants))
++		for _, v := range f.Variants {
++			if v == nil {
++				return fmt.Errorf("nil variant in flag %q", f.Key)
++			}
++			attachment := ""
++			if v.Attachment != nil {
++				value := convert(v.Attachment)
++				// Existing documents may contain an attachment as a JSON string.
++				if raw, ok := value.(string); ok && json.Valid([]byte(raw)) {
++					var decoded interface{}
++					if err := json.Unmarshal([]byte(raw), &decoded); err == nil {
++						value = decoded
++					}
++				}
++				encoded, err := json.Marshal(value)
++				if err != nil {
++					return fmt.Errorf("encode variant %q attachment: %w", v.Key, err)
++				}
++				attachment = string(encoded)
++			}
++			created, err := i.store.CreateVariant(ctx, &flipt.CreateVariantRequest{FlagKey: f.Key, Key: v.Key, Name: v.Name, Description: v.Description, Attachment: attachment})
++			if err != nil {
++				return fmt.Errorf("create variant %q: %w", v.Key, err)
++			}
++			variantIDs[v.Key] = created.Id
++		}
++		for _, rule := range f.Rules {
++			if rule == nil {
++				return fmt.Errorf("nil rule in flag %q", f.Key)
++			}
++			created, err := i.store.CreateRule(ctx, &flipt.CreateRuleRequest{FlagKey: f.Key, SegmentKey: rule.SegmentKey, Rank: int32(rule.Rank)})
++			if err != nil {
++				return fmt.Errorf("create rule in flag %q: %w", f.Key, err)
++			}
++			for _, d := range rule.Distributions {
++				if d == nil {
++					return fmt.Errorf("nil distribution in flag %q", f.Key)
++				}
++				id, ok := variantIDs[d.VariantKey]
++				if !ok {
++					return fmt.Errorf("unknown variant %q in flag %q", d.VariantKey, f.Key)
++				}
++				if _, err := i.store.CreateDistribution(ctx, &flipt.CreateDistributionRequest{FlagKey: f.Key, RuleId: created.Id, VariantId: id, Rollout: d.Rollout}); err != nil {
++					return fmt.Errorf("create distribution in flag %q: %w", f.Key, err)
++				}
++			}
++		}
++	}
++	return nil
++}

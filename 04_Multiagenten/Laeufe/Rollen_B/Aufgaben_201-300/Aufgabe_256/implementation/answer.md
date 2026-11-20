@@ -1,0 +1,3 @@
+Fixed the unexpected exception for invalid `hosts` values. `Play.load` no longer derives or changes `name`; `get_name` derives it when needed, and `_validate_hosts` raises the requested `AnsibleParserError` messages for present, invalid `hosts` values. I also updated the integration assertion and added unit coverage.
+
+Verification: all 247 playbook unit tests passed, and `git diff --check` was clean.

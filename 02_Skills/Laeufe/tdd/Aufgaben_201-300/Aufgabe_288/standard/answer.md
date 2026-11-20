@@ -1,0 +1,3 @@
+Move-out now depends on whether the active element ID appears in the mailbox’s ID list. The hook waits while elements load, then calls `onBack` for a missing or invalid ID. `MailboxContainer` supplies the list and loading state to both views; `ConversationView` uses the message ID for message-level labels.
+
+Verification: TypeScript and changed-file lint passed. The full mail suite passed: 92 suites, 832 tests passed, one skipped. Existing tests emitted React, jsdom, and crypto warnings.

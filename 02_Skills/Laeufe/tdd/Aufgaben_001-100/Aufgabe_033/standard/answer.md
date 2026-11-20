@@ -1,0 +1,3 @@
+U2F sign requests now include a challenge for every registered token. The response keeps the legacy top-level challenge fields, while the CLI can use either the new challenge list or an older single-challenge response. Web auth passes through the new response, and MFA management is hidden from `tsh` help.
+
+Tests for the changed auth, web, client, and CLI packages pass. The full `go test ./...` run failed: integration `TestForward` timed out, and visible failures included `TestProxyReverseTunnel`, `TestRejectsSelfSignedCertificate` (an expired fixture), and `TestSlowOperation`. The full output was truncated; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

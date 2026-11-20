@@ -1,0 +1,3 @@
+Updated the checked-out repository so tsh can receive a mocked SSO login handler, `Run` and its command handlers return errors to callers, and Auth and Proxy components use addresses assigned by their listeners when binding to `:0`.
+
+Added regression tests for SSO callback dispatch, runtime CLI options and handler errors, and Auth address propagation. `go test ./tool/tsh ./lib/client ./lib/service` and `git diff --check` pass.

@@ -1,0 +1,3 @@
+Implemented language normalization and first occurrence deduplication in [catalog/utils](/app/openlibrary/catalog/utils/__init__.py), with regression coverage in [test_utils.py](/app/openlibrary/tests/catalog/test_utils.py). ISO codes and English names use the existing MARC mapper; native names resolve through language records when a site is available, with `Deutsch` handled locally.
+
+Verification: `pytest -q openlibrary/tests/catalog/test_utils.py` passed (97 tests); `git diff --check` passed.

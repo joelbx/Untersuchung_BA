@@ -1,0 +1,3 @@
+Implemented the `0600` default and atomic move warning tracking in [basic.py](/app/lib/ansible/module_utils/basic.py) and [file.py](/app/lib/ansible/module_utils/common/file.py). Explicit mode handling clears tracked paths; result formatting emits the requested warning for remaining paths.
+
+`git diff --check` passed. The relevant existing tests passed: **63 passed** across atomic move, mode handling, and result formatting.

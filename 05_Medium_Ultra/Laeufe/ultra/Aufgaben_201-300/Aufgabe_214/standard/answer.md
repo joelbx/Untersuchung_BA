@@ -1,0 +1,3 @@
+Implemented per-server nmap scanning. A `scannerBinPath` in the loaded TOML selects the external scanner; servers without one continue using the native scanner. The configuration now validates scan techniques, privileges, source ports, scanner paths, and required capabilities. The [discover.go](/app/subcmds/discover.go:222) template includes a commented `portscan` example.
+
+Delegated the configuration, scanner, and template edits to three subagents, then integrated and reviewed them. `GOPROXY=off GOSUMDB=off go test ./config ./scanner ./subcmds -count=1` and `git diff --check` passed. Nmap is not installed locally, so execution tests used a fake local scanner to verify arguments and XML parsing.

@@ -1,0 +1,5 @@
+The failure is in [winrm.py](/app/lib/ansible/plugins/connection/winrm.py:294): `_kerb_auth` passes the entire `ansible_winrm_kinit_cmd` string as one executable, so a path followed by flags produces the reported “not found” error. The plugin has no `kinit_args` option.
+
+The fix belongs in the option declaration and `_kerb_auth`: parse `ansible_winrm_kinit_args` into separate tokens, build executable + custom arguments + principal, and add the default delegation `-f` only when custom arguments are absent. Both subprocess and pexpect must receive that same command content. The per-attempt credential cache is already created there.
+
+All 26 existing [WinRM unit tests](/app/test/units/plugins/connection/test_winrm.py:223) pass, but they do not cover custom arguments or precedence over delegation. I made no source or test edits because this run is restricted to fault localization.

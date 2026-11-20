@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py:532) to skip percent-encoded triplets, preserve encoded URL components, reject invalid counts and decrements below zero, and leave ports untouched. It now defaults to the path and follows the issue’s final selection rule: the first eligible number in path, query, anchor, then host. I updated and expanded the [tests](/app/tests/unit/utils/test_urlutils.py:617).
+
+The URL utility test file passed: **376 passed, 1 skipped**. The navigation end-to-end check could not start because the installed pytest-qt lacks `SignalBlocker`; the exact command and error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

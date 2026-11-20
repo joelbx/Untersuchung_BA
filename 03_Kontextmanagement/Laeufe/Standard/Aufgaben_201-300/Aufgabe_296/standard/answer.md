@@ -1,0 +1,3 @@
+Token-only invitation registration is implemented. The form copies the URL token into its hidden field; the backend validates invitations by token, skips the email entry step for token registrations, joins invited groups, confirms the email when it matches the invitation, and cleans up token and inviter records.
+
+The invite suite passes **31 tests**, and lint passes. The full user test file has **179 passing tests** but fails in an existing email confirmation test outside the invite flow.

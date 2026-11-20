@@ -1,0 +1,3 @@
+Implemented contextual plugin errors and a `get_with_context` result that exposes resolution metadata. Tombstones now raise `AnsiblePluginRemovedError`; deprecation and removal messages use `Display.get_deprecation_message`. The task executor, action plugin, and Jinja filter paths use the updated behavior.
+
+The focused test suite passed **50 tests**, and `git diff --check` passed. A broader run passed 166 tests and had 11 failures in template and connection tests, including failures involving missing `kinit` and SSH module import assumptions.

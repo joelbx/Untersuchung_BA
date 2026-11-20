@@ -1,0 +1,3 @@
+RemoteCluster status and heartbeat are now persisted through `Presence.UpdateRemoteCluster`. Status reads keep the latest recorded heartbeat in UTC, remain Online when another active tunnel remains, and switch to Offline after the final tunnel is removed without clearing the heartbeat. The update is also wired through the auth client and API.
+
+Focused RemoteCluster, tunnel CRUD, and cache tests pass.

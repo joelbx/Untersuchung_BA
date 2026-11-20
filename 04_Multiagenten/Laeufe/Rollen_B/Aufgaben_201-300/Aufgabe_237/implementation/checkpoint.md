@@ -1,0 +1,3 @@
+Implementer progress: Started verifying the chat edit requirements against local source. The DirectedGraph description conflicts with the concrete chat requirements; proceeding with the specified chat changes.
+Verified: v3 edit controller is a stub; route is disabled; client edit uses socket. Existing messaging edit lacks existence check and socket edit lacks mid validation. Implementing these paths and preserving room scoping.
+Implemented v3 chat edit, message existence check, room scoping, client PUT migration, socket warning/validation, and tests. Full test/messaging.js passes (77 tests). Changed-file targeted ESLint passes for messaging/index.js, messaging/edit.js, client messages.js, and test/messaging.js; other touched server files have pre-existing lint errors.

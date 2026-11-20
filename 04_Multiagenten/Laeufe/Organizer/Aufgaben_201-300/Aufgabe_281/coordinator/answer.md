@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` for Mongo and Redis. Both validate tuple input and safe integer increments, create missing objects and fields, and invalidate cache entries for successful keys. Mongo uses atomic `$inc` updates per key; Redis pipelines per-key scripts that check all fields before applying `HINCRBY`.
+
+Verification: 67 Redis-backed hash tests passed, including the new bulk cases. ESLint, `git diff --check`, and a Mongo method smoke test passed. A MongoDB integration test was unavailable locally. No delegation was used.

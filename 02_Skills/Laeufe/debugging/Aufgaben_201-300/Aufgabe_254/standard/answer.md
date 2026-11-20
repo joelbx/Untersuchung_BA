@@ -1,0 +1,3 @@
+Updated [ec2.go](/app/lib/utils/ec2.go) so availability checks retrieve `instance-id` through the IMDS client with a 250 ms timeout and accept only valid EC2 instance IDs. The constructor now accepts functional options, including `WithIMDSClient` for injecting a custom client.
+
+Added regression tests for valid IDs, captive portal HTML, malformed IDs, option errors, and timeouts. The `lib/utils` and `lib/labels/ec2` test suites pass; `git diff --check` also passes.

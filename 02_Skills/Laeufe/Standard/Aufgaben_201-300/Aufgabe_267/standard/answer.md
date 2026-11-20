@@ -1,0 +1,3 @@
+Updated `RoomView` to dispatch `{ action: Action.RoomLoaded }` when a room loads and to fall back to its current initial event ID when the store returns null or undefined. `RoomViewStore` now recomputes widget buttons on `RoomLoaded`, independently of room navigation.
+
+Focused tests, ESLint, Prettier, and `git diff --check` passed. The full TypeScript check remains failing on errors in files outside this change; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated [MerakiModule.request](/app/lib/ansible/module_utils/network/meraki/meraki.py:354) to retry HTTP 429, 500, and 502 up to three times, then raise the appropriate new exception. Other HTTP errors now raise `HTTPError` immediately. The public `status` tracks the latest response, and rate limit retries appear in task warnings and failure messages.
+
+Added [unit coverage](/app/test/units/module_utils/network/meraki/test_meraki.py) and a [changelog fragment](/app/changelogs/fragments/meraki-http-retries.yml). Verification: 17 Meraki unit tests passed; `git diff --check` passed.

@@ -1,0 +1,3 @@
+Added `parse_duration` to accept decimal hour, minute, and second components, including whitespace between units. Bare digits still mean milliseconds, and invalid durations raise `ValueError`. The `:later` command now uses the parser and reports invalid input as a command error.
+
+All 29 focused unit tests passed. The end to end test could not start because PyQt5.QtWebKit is unavailable in this environment.

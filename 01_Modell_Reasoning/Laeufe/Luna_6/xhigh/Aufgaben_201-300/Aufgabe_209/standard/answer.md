@@ -1,0 +1,5 @@
+Implemented calendar URL validation using `MAX_LENGTHS_API.CALENDAR_URL`, with prioritized warnings, trimmed input, and a shared submit guard. Removed the character counter and `maxLength` prop. Centralized ResizeObserver mocks in Jest setup and removed per-test replacements. The calendar test now mocks `useGetCalendarSetup` as an ES module default.
+
+**Verification:** Focused components, calendar, and mail test suites passed; components type checking, Prettier, and `git diff --check` passed. Calendar tests still print existing React `act(...)` and Router warnings. There was no existing dedicated `SubscribeCalendarModal` test.
+
+Key files: [SubscribeCalendarModal.tsx](/app/packages/components/containers/calendar/subscribeCalendarModal/SubscribeCalendarModal.tsx), [calendar constants](/app/packages/shared/lib/calendar/constants.ts), [calendar Jest setup](/app/applications/calendar/jest.setup.js), [components Jest setup](/app/packages/components/jest.setup.js).

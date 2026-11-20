@@ -1,0 +1,4 @@
+Correction round: inspecting the existing SQL Server pinger patch and reviewer finding. The reviewer reports upstream login failures are forwarded as SQL Server error 28353 and currently become UNKNOWN_ERROR. I will fix classification and rerun the flagged tests.
+Found the SQL Server agent's WriteErrorResponse replaces all upstream mssql.Error numbers with 28353. Updated it to preserve upstream numbers, while agent-originated errors retain 28353. Added a wire-response test for wrapped login and database errors. Local tests are running.
+Protocol packet test now passes. The review's exact diagnostic package tests are still compiling locally. The first combined run exposed a Go int/int32 mismatch, which is fixed.
+Final verification: go test ./lib/srv/db/sqlserver/protocol passed; exact reviewer tests go test ./lib/client/conntest/database ./lib/client/conntest passed. git diff --check passed. No remaining test failures.

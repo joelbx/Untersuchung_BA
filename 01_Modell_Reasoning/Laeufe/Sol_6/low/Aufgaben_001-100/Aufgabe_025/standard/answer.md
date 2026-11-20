@@ -1,0 +1,3 @@
+YAML values that exactly match `${VARIABLE_NAME}` now resolve from the environment during parsing, before the other decode hooks. Missing variables, non-string values, and values that do not match the exact pattern remain unchanged. Existing `FLIPT_` environment overrides still take precedence.
+
+Added tests for multiple substitutions, integer and string values, unchanged values, and overrides. `go test ./internal/config -count=1` passes.

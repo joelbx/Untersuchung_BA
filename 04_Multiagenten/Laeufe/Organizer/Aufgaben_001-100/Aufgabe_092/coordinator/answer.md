@@ -1,0 +1,3 @@
+Implemented `ansible-galaxy collection install --upgrade` (`-U`). It selects the latest version allowed by each constraint, keeps compatible installed dependencies, updates dependencies when required, and skips reinstalling collections already at the selected version. Pre-releases remain opt-in with `--pre`. The option also applies to collections in a requirements file.
+
+Added unit coverage and [upgrade.yml](/app/test/integration/targets/ansible-galaxy-collection/tasks/upgrade.yml). **Verification:** 192 relevant unit tests passed; the integration task YAML parsed successfully. The integration tasks were not run because they require configured Galaxy services. No delegation was used.

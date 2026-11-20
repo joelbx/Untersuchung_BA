@@ -1,0 +1,3 @@
+Implemented the unified `Rule.segment` field in [common.go](/app/internal/ext/common.go). It accepts a string or a `{keys, operator}` object, rejects invalid structures, and applies OR when the object has one key. Import/export, snapshots, SQL rule and rollout persistence, CLI validation, the fixture generator, and the requested fixtures are updated. Rule exports now use the object form.
+
+I delegated the import/export, storage, fixture, and validator changes and a read-only review, then integrated the patch. The combined Go test suite for the affected packages and `git diff --check` passed. The readonly package compiled; its full integration test requires a running server and was not run.

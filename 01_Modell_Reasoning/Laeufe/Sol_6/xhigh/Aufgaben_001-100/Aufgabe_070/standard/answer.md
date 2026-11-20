@@ -1,0 +1,3 @@
+Updated [format_languages](/app/openlibrary/catalog/utils/__init__.py:448) to resolve two-letter ISO codes and English or native names to canonical MARC language keys. It now removes duplicates while preserving first occurrence and raises `InvalidLanguage` for unknown or ambiguous names.
+
+Added coverage in [test_utils.py](/app/openlibrary/tests/catalog/test_utils.py:429). **Verification:** 193 catalog and add-book tests passed; Ruff and `git diff --check` passed.

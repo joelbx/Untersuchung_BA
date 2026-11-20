@@ -1,0 +1,3 @@
+Implemented author import matching in `/app`: Open Library keys take priority, followed by external IDs, then name and date matching. Conflicting IDs raise `AuthorRemoteIdConflictError`; compatible IDs are merged and saved, and new authors retain their IDs. Matches with multiple candidates use a consistent tie-breaker. Wikisource records are also exempt from suspect-date removal.
+
+The `openlibrary` test suite passed: **2,260 passed**. The full repository run was not green: 77 errors came from external service and Infogami test setup. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

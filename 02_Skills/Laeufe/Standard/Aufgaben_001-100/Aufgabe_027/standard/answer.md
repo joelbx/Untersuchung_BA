@@ -1,0 +1,3 @@
+Updated the Drive session lookup to return `null` when no valid persisted ID is found while preserving `0` as a valid ID. It ignores keys without a numeric session suffix and does not change stored values. The [public bookmark view](/app/applications/drive/src/app/store/_views/useBookmarksPublicView.ts) now calls `resumeSession` only when an ID exists.
+
+All 14 focused tests pass, and formatting passes. The full Drive type check is still unverified: it fails in an unchanged crypto file because two installed `openpgp` type definitions conflict. The command and error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

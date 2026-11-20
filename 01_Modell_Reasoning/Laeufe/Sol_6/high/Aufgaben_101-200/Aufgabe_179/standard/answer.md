@@ -1,0 +1,3 @@
+RemoteCluster now stores its status and last heartbeat. When tunnels disappear, it reports Offline while retaining the newest recorded heartbeat; removing a newer tunnel cannot move that heartbeat backward. The local update also preserves cluster expiry.
+
+Regression tests passed for tunnel creation, updates, deletions, persistence, and expiry. The existing remote cluster and tunnel CRUD tests passed, and the cache and service packages compiled.

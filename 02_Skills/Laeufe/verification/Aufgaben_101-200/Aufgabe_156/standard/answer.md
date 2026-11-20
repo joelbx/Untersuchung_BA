@@ -1,0 +1,3 @@
+Updated `remove_values` to redact string values without changing keys or scalar values. Added iterative `sanitize_keys` with exact-key ignore rules, and wired it into `uri` when `no_log_values` is present.
+
+The focused tests pass: **28 passed**. Compilation and `git diff --check` also pass. The full `basic` test directory remains red because warning and deprecation messages accumulate across test files; the commands and failures are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Added [mailMetricsHelper.ts](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts) to return `custom` for user labels and folders, preserve built-in mailbox IDs, and normalize page sizes to `50`, `100`, or `200` with a `50` fallback. Added `@proton/metrics` to the [mail package manifest](/app/applications/mail/package.json) and [lockfile](/app/yarn.lock).
+
+Validation passed: 26 focused and existing label tests, the mail TypeScript check, ESLint, Prettier, and `git diff --check`. No delegation was used.

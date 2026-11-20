@@ -1,0 +1,3 @@
+Updated the mail bypass filter so optimistic mark-as actions carry their status. The reducer now adds an element’s ID when its new status needs to bypass the active filter and removes the ID when it matches the filter again, using conversation IDs in conversation mode.
+
+Added regression tests for both Read and Unread filters. All 13 relevant tests passed, along with the mail type check, ESLint, and Prettier checks.

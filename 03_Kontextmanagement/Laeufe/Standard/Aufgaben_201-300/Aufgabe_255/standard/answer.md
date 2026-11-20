@@ -1,0 +1,3 @@
+Fixed the password lookup parser in [password.py](/app/lib/ansible/plugins/lookup/password.py). It now loads plugin options before parsing each term, gives inline `key=value` values precedence, preserves list-valued `chars`, and applies `seed` for deterministic output. I updated the [unit tests](/app/test/units/plugins/lookup/test_password.py) to cover those behaviors.
+
+Verification: all 31 password lookup unit tests passed, and `git diff --check` passed.

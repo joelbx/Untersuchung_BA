@@ -1,0 +1,3 @@
+Updated `useMyCountry` to return a country code or `undefined`, starting at `undefined`, and changed all listed consumers to use the single value. PhoneInput now starts with no country when the default is missing or empty, adopts a later non-empty default once while its country is empty, and ignores later default changes.
+
+The relevant existing Jest suites pass: **17 tests**. Prettier and `git diff --check` also pass.

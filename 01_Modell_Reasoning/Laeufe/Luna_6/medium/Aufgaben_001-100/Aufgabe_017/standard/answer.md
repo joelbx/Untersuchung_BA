@@ -1,0 +1,3 @@
+Added SQL Server connection diagnostics. `getDatabaseConnTester` now selects `SQLServerPinger` for the SQL Server protocol, and the pinger validates parameters, uses context-aware connection testing, and categorizes refused connections, login failures, and unavailable databases.
+
+`git diff --check` passed. The relevant `go test` command produced no output and did not finish after several minutes, so I stopped it; the tests remain unverified.

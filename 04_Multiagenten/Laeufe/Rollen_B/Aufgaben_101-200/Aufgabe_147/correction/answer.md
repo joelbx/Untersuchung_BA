@@ -1,0 +1,3 @@
+Fixed the DeviceConfig migration cases identified in review. Loading now preserves legacy `_theme` as `_themeId` and converts array `_credentials` even when `_version` is missing or nonnumeric. Added regression tests that also check repeat initialization avoids unnecessary writes.
+
+`npm run types` passed, `npm run testclient` passed (3,093 assertions), and `git diff --check` passed. No remaining failures or test environment problems.

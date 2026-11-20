@@ -1,0 +1,3 @@
+Updated the notification dropdown, fork and move category selectors, and quick search behavior. Also fixed the hash field handling, outbound email sender format, install guard, post route error handling, and the requested dropdown and chat markup.
+
+The focused hash regression tests pass (3 tests), and ESLint and `git diff --check` pass. The full test suite stopped during setup because Redis refused the connection at `127.0.0.1:6379`; the remaining tests are unverified. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

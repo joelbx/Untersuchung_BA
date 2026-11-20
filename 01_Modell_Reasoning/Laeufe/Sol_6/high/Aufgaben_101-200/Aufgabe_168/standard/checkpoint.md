@@ -1,0 +1,3 @@
+Task: Prevent repeated Kick, Ban, and Mute actions in the user info panel.
+Status: Complete. Added a synchronous per-room/member lock shared by the three controls. Buttons become disabled and aria-disabled before confirmation and remain so through the request. Cancel, success, and failure release the lock; failures show one error dialog. Spinner count uses functional state updates.
+Verification: UserInfo Jest suite passes (71 tests); ESLint, Prettier, and git diff --check pass. Full TypeScript check still has existing errors elsewhere in the repository; no errors are reported in UserInfo.tsx or UserInfo-test.tsx.

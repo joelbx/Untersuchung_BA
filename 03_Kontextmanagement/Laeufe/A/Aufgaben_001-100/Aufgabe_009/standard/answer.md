@@ -1,0 +1,3 @@
+Added session renaming for both the current session and other sessions. The new [DeviceDetailHeading](/app/src/components/views/settings/devices/DeviceDetailHeading.tsx) supports save, cancel, empty names, a 100 character limit, a visibility notice, a saving indicator, and the required error message. [useOwnDevices](/app/src/components/views/settings/devices/useOwnDevices.ts) persists the name through the SDK and updates the session list immediately.
+
+All 52 relevant tests pass, and ESLint passes. TypeScript remains blocked by three existing `IRequest.abort` errors in `matrix-js-sdk`.

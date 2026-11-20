@@ -1,0 +1,3 @@
+Implemented `PrioritizedIdentifier` in [affiliate_server.py](/app/scripts/affiliate_server.py:116), with identifier-based equality and hashing, priority ordering, `stage_import`, and complete JSON-safe serialization. Kept `PrioritizedISBN` and `.isbn` for compatibility, and wired the staging flag through the lookup workflow while continuing to cache fetched products.
+
+Verification: `python -m pytest scripts/tests/test_affiliate_server.py` passed (16 tests); `git diff --check` passed. The checkpoint is recorded in `.codex-role-output/checkpoint.md`.

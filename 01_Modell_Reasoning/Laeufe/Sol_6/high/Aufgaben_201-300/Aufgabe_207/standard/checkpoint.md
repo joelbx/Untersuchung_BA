@@ -1,0 +1,2 @@
+Task: Consolidate QtWebEngine --enable-features arguments from CLI, qt.args, and qutebrowser configuration.
+Status: Complete. QtWebEngine feature flags are consolidated from CLI, qt.args, and configuration; WebKit argument behavior is unchanged. Relevant suite: 83 passed, 1 deselected. The deselected existing Chromium version probe segfaults in webenginesettings.init_user_agent in this environment. git diff --check passed; flake8 is unavailable in the environment.

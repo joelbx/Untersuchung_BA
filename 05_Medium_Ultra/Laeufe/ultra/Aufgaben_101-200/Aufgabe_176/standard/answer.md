@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py:550) to skip digits inside percent-encoded triplets, preserve the supplied QUrl’s encoded segments, reject invalid counts and decrement underflow, and leave ports unchanged. It uses the issue’s final, more specific selection rule: the first valid number in path, query, anchor, then host order. Regression tests are in [test_urlutils.py](/app/tests/unit/utils/test_urlutils.py:619).
+
+A delegated agent added the tests, and another checked QUrl encoding behavior. Final verification: **359 passed, 1 skipped** in the URL utility test file; `git diff --check` passed. Qt may normalize escapes when it first constructs a QUrl, before this function receives it.

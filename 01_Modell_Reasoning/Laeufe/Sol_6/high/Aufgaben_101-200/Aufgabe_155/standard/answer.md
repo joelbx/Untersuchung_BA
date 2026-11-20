@@ -1,0 +1,3 @@
+Digest based images are now supported through configuration, scanning, scan results, and report identifiers. Validation requires an image name and exactly one of tag or digest. Image detection keeps the per-image server name in `<image key>@<server name>` form.
+
+Tests passed for `config`, `models`, `scan`, and `report` with vet disabled and the database dependent `models.TestScan` skipped. The default test run also hits pre-existing vet warnings in `models/library.go`.

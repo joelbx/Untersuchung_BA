@@ -1,0 +1,3 @@
+Updated the repository so rule `segment` accepts a string or a validated keys/operator object. Import, export, snapshots, and SQL persistence now handle both forms; a single key resolves to `OR_SEGMENT_OPERATOR`, and exports use the object form. The requested fixtures and focused tests were updated.
+
+Verification: `GOTOOLCHAIN=local GOPROXY=off go test ./internal/ext ./internal/storage/fs ./internal/storage/sql` passed. `git diff --check` passed.

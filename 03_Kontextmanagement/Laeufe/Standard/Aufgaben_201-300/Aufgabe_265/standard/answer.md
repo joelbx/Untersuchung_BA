@@ -1,0 +1,3 @@
+Updated [QtColor](/app/qutebrowser/config/configtypes.py:990) so HSV and HSVA hue percentages scale to 359, while the other channels scale to 255. The parser now validates function names and component counts before conversion. Added regression cases in [test_configtypes.py](/app/tests/unit/config/test_configtypes.py:1235).
+
+All 53 focused color tests pass. The full configtypes suite has 60 failures outside the changed cases, chiefly from an existing Hypothesis fixture compatibility issue.

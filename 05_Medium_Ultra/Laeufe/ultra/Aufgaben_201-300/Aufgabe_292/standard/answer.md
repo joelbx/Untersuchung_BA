@@ -1,0 +1,3 @@
+Polling now has a managed lifecycle. The [Poller](/app/internal/storage/fs/poll.go) owns its context and update callback, and `Close()` cancels polling and waits for the goroutine to finish. Git, local, S3, Azure Blob, and OCI snapshot stores retain their pollers and expose `Close()`, which is safe when no polling is active. The [filesystem store](/app/internal/storage/fs/store.go) forwards closure, and [gRPC shutdown](/app/internal/cmd/grpc.go) invokes it.
+
+I delegated the poller, Git/local, and S3/Azure/OCI changes to three agents, then reviewed and verified the combined patch. Relevant storage and command package tests passed, as did a focused poller race test. S3 and Azure endpoint-backed integration tests were skipped because no endpoints were configured.

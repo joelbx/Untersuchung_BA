@@ -1,0 +1,3 @@
+Updated [Worksearch](/app/openlibrary/plugins/worksearch/code.py) to consume Solr JSON for search results, facets, spellcheck suggestions, and work documents. Queries now default to `wt=json` while honoring an explicit value. The facet processors handle flat JSON lists, including author and language values and the required `has_fulltext` order.
+
+Updated the [tests](/app/openlibrary/plugins/worksearch/tests/test_worksearch.py): **28 passed**. `git diff --check` and Python compilation passed. Black was unavailable locally, so automated formatting conformance remains unverified; this is recorded in the [checkpoint](/app/.codex-role-output/checkpoint.md).

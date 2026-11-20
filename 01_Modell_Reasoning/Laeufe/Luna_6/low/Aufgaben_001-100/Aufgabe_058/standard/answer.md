@@ -1,0 +1,3 @@
+Implemented the `PosthogAnalytics` privacy and state handling in [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts). It now validates PostHog configuration, tracks enabled and initialized states, honors DNT by forcing anonymous mode, hashes user and room IDs, and uses the current anonymity state for identification, event capture, and URL redaction. It also adds `isEnabled()`, `setAnonymity()`, `getAnonymity()`, and `logout()`.
+
+**Verification:** ESLint for the changed file and `git diff --check` passed. The focused Jest suite has 3 failures because its legacy tests call `init` without awaiting it and expect tracking to work without valid configuration; 10 tests passed. The full TypeScript check reports numerous existing dependency and repository errors.

@@ -1,0 +1,3 @@
+RemoteCluster now persists its status and last heartbeat through `Presence.UpdateRemoteCluster`, preserving the resource’s expiry. Status refreshes keep the newest recorded heartbeat when tunnels are removed, and switch the cluster to Offline after the final tunnel is deleted.
+
+The AuthSuite, local services tests, and services tests pass. The full auth suite had one unrelated failure in `PasswordSuite.TestTiming`; its timing difference exceeded the test’s 10% limit.

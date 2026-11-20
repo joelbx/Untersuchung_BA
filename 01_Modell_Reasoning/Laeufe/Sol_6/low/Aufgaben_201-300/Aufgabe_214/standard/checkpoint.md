@@ -1,0 +1,1 @@
+Implemented per-server nmap port scan configuration, validation, TOML example, and external XML scan execution with native fallback. Existing config and scanner tests pass; subcmds test running. git diff --check passes.

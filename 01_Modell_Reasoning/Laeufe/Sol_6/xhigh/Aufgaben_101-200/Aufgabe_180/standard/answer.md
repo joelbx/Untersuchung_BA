@@ -1,0 +1,3 @@
+Updated the EOL data in [config/os.go](/app/config/os.go) for Fedora 37, 38, and 40; macOS 11 and 15; and the specified SUSE and FreeBSD dates. Extended the Windows KB rollups in [scanner/windows.go](/app/scanner/windows.go), preserving existing entries and using named struct literals throughout the additions.
+
+Boundary and kernel-version detection tests pass. `go test ./config ./scanner` passes, and a compile check across all packages passes.

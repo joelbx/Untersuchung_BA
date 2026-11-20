@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to resolve its options through `get_option()`, including command arguments, transfer method, retries, and control path settings. Reset now checks the persistent connection with the effective SSH command before sending `stop`. I also removed the duplicate SSH settings from core configuration and updated the affected tests.
+
+The SSH and PlayContext tests pass: **24 passed**. The broader config manager suite could not complete because an existing fixture assigns `None` to `os.environ['ANSIBLE_CONFIG']` on Python 3.9.

@@ -1,0 +1,3 @@
+Added an OCI snapshot source with digest based caching, local directory reopening on each fetch, and polling that publishes snapshots only when the digest changes. OCI layer namespace annotations now feed into snapshots, and OCI storage is wired into the gRPC store setup. Updated `SnapshotSource.Get` and its callers to accept a context.
+
+Verification passed: `go test ./internal/oci ./internal/storage/fs/... ./internal/cmd`.

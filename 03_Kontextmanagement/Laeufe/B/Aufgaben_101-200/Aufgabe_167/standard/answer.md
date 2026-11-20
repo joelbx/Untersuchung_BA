@@ -1,0 +1,3 @@
+Implemented OCI feature flag storage support. The new [OCI source](/app/internal/storage/fs/oci/source.go) refreshes local layouts on fetch and publishes snapshots when the digest changes. I also updated the context-aware `Get` interface, layer handling, and OCI storage wiring.
+
+Relevant Go tests passed, including local refresh, subscription, and gzip layer tests. Remote registry fetching was not exercised.

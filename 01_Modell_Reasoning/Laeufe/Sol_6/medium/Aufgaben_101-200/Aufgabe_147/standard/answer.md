@@ -1,0 +1,3 @@
+Updated [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts) so loading an existing config preserves its settings and makes no storage write when the version and signup token are already present. Migration converts credential arrays to a userId-keyed object; credentials remain a Map in memory and are persisted with the required underscored keys. Initialization also recovers from invalid or unavailable storage.
+
+Added coverage in [DeviceConfigTest.ts](/app/test/client/misc/DeviceConfigTest.ts). Type checks passed, and the client suite passed all 3,077 assertions.

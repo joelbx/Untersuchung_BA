@@ -1,0 +1,3 @@
+Implemented selective SSE delivery. The UI now sends a per-window UUID on requests; server middleware stores it in an HttpOnly cookie and request context. The broker uses that ID and the authenticated username to send request events only to other sessions of the same user. Server-originated events still broadcast.
+
+Added regression tests. `go test ./...`, UI formatting, and the UI production build passed. The build required `NODE_OPTIONS=--openssl-legacy-provider` with the local Node 20 setup.

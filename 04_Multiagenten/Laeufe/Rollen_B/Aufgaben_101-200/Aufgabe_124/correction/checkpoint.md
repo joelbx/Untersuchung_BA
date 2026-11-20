@@ -1,0 +1,1 @@
+Progress: fixed tagged configure_test.go compilation by converting UUIDs to strings and accepting dynamodbiface.DynamoDBAPI in test helpers. The existing auto-scaling test remains explicitly provisioned. All three reviewer test commands pass, including the formerly failing tagged command. gofmt and git diff --check pass.

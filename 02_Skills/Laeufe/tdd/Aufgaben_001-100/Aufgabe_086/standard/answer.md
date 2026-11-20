@@ -1,0 +1,3 @@
+Added `destination_ports` to the iptables module. It accepts a list of ports or ranges, defaults to an empty list, and generates a single `-m multiport --dports` rule for tcp, udp, udplite, dccp, or sctp. Unsupported protocols are rejected.
+
+All 23 iptables tests pass. The broader modules suite has one unrelated `test_pip` failure; the project-wide run encountered unrelated collection errors and failures and was stopped. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

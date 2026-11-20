@@ -1,0 +1,3 @@
+Updated the MIME workaround to check only runtime Qt, using `compiled=False` at both version bounds. Documented the parameter and changed `version_check` to raise `RuntimeError` when `compiled=True` and `exact=True`.
+
+All 13 targeted version-check tests passed, and `git diff --check` passed. The webview test run aborted during Qt application initialization; the broader utility run also hit an unrelated Qt enum-count mismatch.

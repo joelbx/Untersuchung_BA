@@ -1,0 +1,3 @@
+Added source, level, and message glob filtering for JavaScript UI messages in [shared.py](/app/qutebrowser/browser/shared.py:162). The new `.excludes` setting and renamed `.levels` setting are defined in [configdata.yml](/app/qutebrowser/config/configdata.yml:943). Excluded messages still go to the standard logger.
+
+**Validation:** 52 focused tests passed. A broader config file run had one unrelated Python 3.11 failure: `test_nul_bytes` expects `ValueError`, but receives `SyntaxError`.

@@ -1,0 +1,3 @@
+Implemented token-only invitation registration. The form now puts the URL token in its hidden input, and registration can proceed without an email. Invitation metadata, group membership, email confirmation when the entered email matches, and cleanup now use the token.
+
+The focused invitation suite passes (31 tests), as do ESLint and `git diff --check`. The full user suite reached 176 passing tests, then failed in an unrelated email confirmation test (`NaN !== 1`).

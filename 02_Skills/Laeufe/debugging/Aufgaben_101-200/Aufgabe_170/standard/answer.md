@@ -1,0 +1,3 @@
+Edition matching now expands raw and existing records before scoring. The shared expansion handles missing titles and authors, combines ISBN variants, filters placeholder countries, and generates names for author and contributor comparisons. I added regression tests for raw records and threshold behavior.
+
+Verification: 130 tests passed; 2 existing tests remain marked xfail. Ruff and `git diff --check` passed.

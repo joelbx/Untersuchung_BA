@@ -1,0 +1,3 @@
+Added `drive_download_mechanism_success_rate_total` to the metrics client and schema. The download metrics hook now records terminal success or failure with retry and mechanism labels, using `meta.size` for stateful downloads and `link.size` for previews. The file saver exposes `selectMechanismForDownload(size)` for consistent selection.
+
+Verification: 20 focused tests passed; Drive and metrics type checks, Prettier, and `git diff --check` passed.

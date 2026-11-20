@@ -1,0 +1,3 @@
+Implemented square cover rendering for album grids. Square mode is passed through the artwork API and both cover art endpoints, included in resized image cache keys, and produces a centered square PNG. Non-square requests retain the source image’s shape and encoding.
+
+Verification passed: `go test ./core/artwork ./server/public ./server/subsonic`, frontend lint, and `git diff --check`. Lint reported only the existing outdated Browserslist database notice.

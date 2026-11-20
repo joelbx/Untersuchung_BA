@@ -1,0 +1,3 @@
+Updated `GUIProcess` to include the finished process’s PID in completion messages, name the signal when a process crashes, and report SIGTERM as a `terminated` state. SIGTERM now produces no completion message unless verbose mode is enabled. Unit tests and end-to-end message expectations were updated.
+
+Syntax compilation and `git diff --check` passed. The unit tests could not start because PyQt5 is missing; the exact error and remaining uncertainty are recorded in `.codex-role-output/checkpoint.md`.

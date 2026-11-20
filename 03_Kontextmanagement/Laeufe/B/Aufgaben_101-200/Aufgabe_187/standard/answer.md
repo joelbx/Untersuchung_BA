@@ -1,0 +1,3 @@
+Resolved the Kubernetes exec issue. The Kubernetes service now initializes the session uploader at startup. The forwarder uses request scoped cluster sessions, caches and serializes credential requests, keeps audit events independent of client disconnects, and records exec failures. I also clarified the config fields and added explicit HTTP routing delegation.
+
+`git diff --check` and `GOPROXY=off go test -mod=vendor ./lib/kube/proxy ./lib/service` passed. This work item is complete.

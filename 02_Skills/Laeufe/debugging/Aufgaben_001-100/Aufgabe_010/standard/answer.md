@@ -1,0 +1,3 @@
+Updated the composer’s room replacement notice to use paragraphs and a status region. The reply preview now names the sender and offers a labeled cancel button. A reusable, size configurable cancel button also replaces the icon-only controls in SearchBar and link previews.
+
+The relevant messaging suite passed: 29 tests across seven files. Lint, style checks, and diff checks passed. The full TypeScript check remains blocked by five errors in the local SDK and room settings code, outside the changed files.

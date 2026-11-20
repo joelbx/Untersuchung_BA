@@ -1,0 +1,3 @@
+Amazon imports now include language names from edition metadata. Serialization excludes “Original Language” entries, removes duplicates, preserves Amazon’s spelling and casing, and omits `languages` when the result is empty. Load cleanup now preserves the field.
+
+The relevant test file passed (36 tests), and lint and `git diff --check` passed. `ruff format --check` reported that it would reformat the two edited files.

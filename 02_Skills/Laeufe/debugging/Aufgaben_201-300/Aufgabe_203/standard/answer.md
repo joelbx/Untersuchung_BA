@@ -1,0 +1,3 @@
+Added a reusable [ExternalLink](/app/src/components/views/elements/ExternalLink.tsx) with secure new-tab defaults, an accessible new-tab cue, and a decorative icon. Settings external links now use it, and the Share dialog gives its permalink a descriptive, localized title.
+
+The focused tests, ESLint, Stylelint, and localization JSON check pass. Full type checking remains blocked by six errors in untouched thread notification files; it reported no errors in the edited files.

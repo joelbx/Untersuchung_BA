@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) to recognize both feature prefixes. Enabled features are combined into one `--enable-features=` argument; each `--disable-features=` argument is passed through unchanged, whether supplied by command line or configuration.
+
+Added coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py). All 88 tests in that file pass, and `git diff --check` is clean.

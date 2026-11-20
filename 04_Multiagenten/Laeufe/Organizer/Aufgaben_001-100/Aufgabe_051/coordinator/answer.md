@@ -1,0 +1,3 @@
+`tsh` now reads `TELEPORT_KUBE_CLUSTER` into `KubernetesCluster` when no Kubernetes cluster was specified on the CLI. The existing `TELEPORT_CLUSTER`/`TELEPORT_SITE` precedence and `TELEPORT_HOME` override already matched the requirements; I added focused coverage for the Kubernetes cluster and home cases in [tsh_test.go](/app/tool/tsh/tsh_test.go).
+
+The focused tests passed, and `git diff --check` found no formatting issues. I solved this directly without delegation.

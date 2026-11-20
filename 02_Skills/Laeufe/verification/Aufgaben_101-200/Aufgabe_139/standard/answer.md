@@ -1,0 +1,3 @@
+Incomplete promise imports now use ISBN-10 first, then a B-prefixed ASIN, to backfill missing metadata from staged items before validation. Existing non-empty fields are preserved. Validation accepts either complete descriptive metadata or a title with a strong identifier, and batch staging records total and incomplete gauges while continuing after lookup failures.
+
+Verification: **111 tests passed**; `ruff check` and `git diff --check` passed. The [checkpoint](/app/.codex-role-output/checkpoint.md) records the checks and earlier failures.

@@ -1,0 +1,3 @@
+Updated [Load](/app/internal/config/config.go) to return a `Result` with separate `Config` and `Warnings` fields. Deprecation warnings now depend on keys explicitly present in the configuration file, including `ui.enabled`; the CLI logs warnings from the result.
+
+The focused config tests pass. The full suite could not pass because three Redis tests require a Docker daemon that is unavailable at `/var/run/docker.sock`. That limitation is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

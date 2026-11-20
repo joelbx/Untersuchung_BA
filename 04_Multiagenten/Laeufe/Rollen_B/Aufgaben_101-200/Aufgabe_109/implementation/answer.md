@@ -1,0 +1,3 @@
+Added a “Polls history” button to the RoomSummaryCard, shown only when the new `feature_poll_history` Labs setting is enabled. Clicking it opens the new named `PollHistoryDialog` with the current room’s `roomId`. The dialog currently provides the specified titled shell; poll history content was not specified.
+
+The RightPanel tests pass (4/4), and ESLint, Prettier, and `git diff --check` pass. The full TypeScript check remains blocked by an error in untouched `RoomCreate.tsx` concerning `RoomState.findPredecessor`.

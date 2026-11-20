@@ -1,0 +1,3 @@
+Implemented share-scoped invitation and member stores, so updates for one share preserve other shares’ data. The Zustand member view now reads and updates data by the resolved share ID, and the new [getExistingEmails.ts](/app/applications/drive/src/app/store/_shares/getExistingEmails.ts) helper combines emails from members and both invitation types.
+
+Added tests for share isolation and empty results. Both focused store tests passed. `git diff --check` passed. The Drive type check did not complete in the available time.

@@ -1,0 +1,5 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py) to change the first eligible number in the first selected segment, in path → query → anchor → host order. It now skips digits in retained percent-encoded triplets, leaves ports alone, preserves encoded components when updating a URL, validates the operation and count, rejects decrements below zero, and preserves leading-zero width. The default scope is path only.
+
+Updated the [existing tests](/app/tests/unit/utils/test_urlutils.py) for those rules. **131 incdec tests passed**, and `git diff --check` passed. The full URL utility test file reached 93% before a Qt fixture aborted in this environment, so that run did not complete. Qt normalizes some encodings, such as `%33`, before `incdec_number` receives the `QUrl`; the function cannot recover their original spelling.
+
+No delegation was used.

@@ -1,0 +1,6 @@
+Issue: assistant upsell uses a duplicate plan-to-Scribe mapping and internal SelectedPlan imports.
+Findings: centralized getScribeAddonNameByPlan already exists in payments/core/subscription/helpers.ts; core index does not export it or SelectedPlan. Relevant existing tests are in packages/components/hooks/assistant/assistantUpsellConfig.test.ts.
+Plan: export both symbols from payments/core; make paid upsell helpers build planIDs before returning and accept optional addon names; use centralized resolver and public imports; run relevant existing tests.
+Changes: core exports SelectedPlan and getScribeAddonNameByPlan; assistant upsell resolves addons through the shared helper for free and paid paths, constructs planIDs objects conditionally, and removes the duplicate resolver. External SelectedPlan imports now use the core entrypoint. Added tests for plans with no Scribe addon.
+Verification: assistant upsell and selected plan Jest suites passed (50 tests). Components TypeScript check is running.
+Verification complete: focused Jest suites passed (50 tests); Prettier check and targeted ESLint passed; git diff --check passed. Components tsc --noEmit failed on an unrelated existing type mismatch in packages/crypto/lib/worker/api.ts:577 between openpgp and pmcrypto's nested openpgp PartialConfig types. No type errors were reported in edited files.

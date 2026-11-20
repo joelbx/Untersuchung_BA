@@ -1,0 +1,3 @@
+InteractiveAuth now supports both stable and unstable registration token stages. The new [token entry view](/app/src/components/views/auth/InteractiveAuthEntryComponents.tsx) provides the required label, help text, focus, busy and error states, and button or Enter submission. It sends the advertised stage type and token; the upper flow adds the session.
+
+The [new tests](/app/test/components/structures/InteractiveAuth-test.tsx) and existing dialog test pass. ESLint and formatting checks pass. The full TypeScript check remains blocked by existing errors in unrelated Sliding Sync files.

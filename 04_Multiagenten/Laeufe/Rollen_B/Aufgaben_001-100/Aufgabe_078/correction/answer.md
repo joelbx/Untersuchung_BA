@@ -1,0 +1,3 @@
+Fixed the seek transition: when `skipTo()` starts another chunk, playback now enters `Playing` and updates liveness. Added tests for seeks from paused and buffering states.
+
+Removed the obsolete third argument to `sendReadReceipt` and updated its test assertions. The reviewer’s five suites pass (67 tests, 7 snapshots), the notification suite passes (11 tests), and `tsc --noEmit --jsx react` passes.

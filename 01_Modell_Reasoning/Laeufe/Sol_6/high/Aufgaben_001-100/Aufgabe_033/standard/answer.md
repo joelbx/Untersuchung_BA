@@ -1,0 +1,3 @@
+U2F login now generates challenges for every registered U2F device, and the CLI can authenticate with any of them. The response retains the legacy single challenge fields for older clients and adds a `challenges` list for newer clients. Web login supports the response, and the MFA management command remains hidden.
+
+The new tests cover both response formats and web login with a device omitted from the legacy challenge. `go test ./lib/auth ./lib/client ./lib/web ./tool/tsh` passes.

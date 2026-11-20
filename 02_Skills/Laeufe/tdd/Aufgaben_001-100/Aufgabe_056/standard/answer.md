@@ -1,0 +1,3 @@
+Added HEIC and JXL image support for macOS and iOS Safari 17+. JXL now has a MIME type and extension mapping, and both Drive upload parsers prefer the file’s declared type before checking its extension. The parsers no longer use `ChunkFileReader`.
+
+The 12 new focused tests pass. The full drive-store run had 56 passing suites and four suites blocked by a missing `config` module. Shared tests could not start because the Chromium binary is absent; type checks reported errors outside the edited files. These limits are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

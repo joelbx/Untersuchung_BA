@@ -1,0 +1,3 @@
+Updated both photos recovery hook copies to load and wait for regular and trashed items, recover photos from the restored shares, track move failures, and mark success only when no targeted photos remain. Persisted in-progress recovery still resumes on initialization.
+
+Both focused suites pass (11 tests each), and `git diff --check` passes. The shared package type check remains blocked by an existing `openpgp`/`pmcrypto` mismatch in `packages/crypto/lib/worker/api.ts`; it reported no recovery hook errors.

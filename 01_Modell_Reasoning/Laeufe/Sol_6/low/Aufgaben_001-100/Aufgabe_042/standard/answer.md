@@ -1,0 +1,3 @@
+Implemented `/.well-known/webfinger` in [the controller](/app/src/controllers/well-known.js) and [route](/app/src/routes/well-known.js), and mounted it at startup. It validates the `acct:` resource and configured hostname, checks `groups:view:users` for the requester or Guest role, resolves the user, and returns WebFinger JSON with UID and profile aliases plus an HTML profile link.
+
+ESLint and `git diff --check` pass. The existing controller tests could not run because Redis at `127.0.0.1:6379` refused the connection.

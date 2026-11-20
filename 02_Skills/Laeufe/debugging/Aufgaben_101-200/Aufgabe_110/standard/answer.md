@@ -1,0 +1,3 @@
+Added the mechanism-segmented download metric to Drive’s existing metrics infrastructure. Terminal download reports now record success or failure, retry status, and the selected `memory`, `sw`, or `memory_fallback` mechanism. Stateful reports use `meta.size`; preview reports pass the link size. The selector is shared with the file saver, and the new metric has a typed schema.
+
+Verification passed: 21 focused Jest tests, Drive and metrics TypeScript checks, ESLint, Prettier, and `git diff --check`.

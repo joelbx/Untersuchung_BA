@@ -1,0 +1,3 @@
+Fixed XHR Accept-Language handling. [custom_headers](/app/qutebrowser/browser/shared.py:29) now omits the global header for XHR when no matching domain override exists, allowing a JavaScript supplied header to pass through. [interceptRequest](/app/qutebrowser/browser/webengine/interceptor.py:190) keeps the global fallback for other request types.
+
+I delegated code review and regression tests to two subagents, then reviewed the combined patch. The focused shared, WebEngine, and WebKit tests passed: **28 passed**. `git diff --check` was clean.

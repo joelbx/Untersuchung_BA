@@ -1,0 +1,3 @@
+Implemented the chat message editing changes: the API validates content, checks edit permission, applies edits, and returns updated message data. The PUT route is enabled, missing message IDs are rejected, the client uses POST/PUT requests, and the legacy socket edit path warns and validates input.
+
+Validation: `git diff --check` passes. The existing test suite could not start because Redis was unavailable at `127.0.0.1:6379`. Lint reports existing unused placeholders/imports and long commented route declarations in touched files. The test attempt also left an untracked `appendonly.aof` artifact.

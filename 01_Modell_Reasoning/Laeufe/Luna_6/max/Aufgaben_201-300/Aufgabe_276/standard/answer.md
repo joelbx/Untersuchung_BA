@@ -1,0 +1,3 @@
+Added startup validation for enabled GitHub authentication and each configured OIDC provider. Missing fields now report the provider and field; GitHub’s `read:org` error includes the required provider and field format. Provider validation runs before session checks so those errors are reported directly.
+
+Updated the existing GitHub scope fixture and expectation in [config_test.go](/app/internal/config/config_test.go:448). `go test ./internal/config` passed.

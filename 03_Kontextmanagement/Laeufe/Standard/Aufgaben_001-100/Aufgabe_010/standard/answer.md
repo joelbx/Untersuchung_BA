@@ -1,0 +1,3 @@
+Updated the message composer so replaced-room notices use paragraphs and explicitly say the room is no longer active. Added a reusable, accessible [CancelButton](/app/src/components/views/buttons/Cancel.tsx) and applied it to the reply preview and search controls. The reply preview now identifies the sender inline and gives its cancel action a clear label.
+
+All 5 relevant tests pass, and lint and style checks pass. The full TypeScript check still reports existing errors in `matrix-js-sdk` and room alias settings; it reports none in the changed files.

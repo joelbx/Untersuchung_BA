@@ -1,0 +1,3 @@
+Moved evaluation into [EvaluatorStorage](/app/storage/evaluator.go) and removed it from `RuleStore`. [Server.Evaluate](/app/server/evaluator.go) now delegates through the new `Evaluator` interface while validating required fields, generating a UUIDv4 request ID, and recording duration. Added tests for rule rank, typed comparisons, rollout boundaries, and response metadata.
+
+`go test ./...` and `git diff --check` pass.

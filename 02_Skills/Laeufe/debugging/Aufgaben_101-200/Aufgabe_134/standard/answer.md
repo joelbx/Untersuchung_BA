@@ -1,0 +1,3 @@
+Work search results now include `id_project_runeberg` as an array, including `[]` when a work has no Runeberg identifier. Other identifier fields retain their existing values and shape. I also added the `ProjectRunebergProvider` and its read and download templates.
+
+The relevant tests passed: **54 passed**. Ruff and `git diff --check` also passed. The external Runeberg download URLs could not be verified because external research is blocked.

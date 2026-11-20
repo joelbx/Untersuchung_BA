@@ -1,0 +1,3 @@
+Implemented IDN URL handling in the checked-out repository. The [URL helpers](/app/packages/components/helpers/url.ts) now extract domain labels and convert Unicode hostnames to Punycode while preserving the URL path, query, and fragment. The [link handler](/app/packages/components/hooks/useLinkHandler.tsx) applies conversion to external links and shows an error notification when it cannot extract or process a URL. The confirmation modal now recognizes Punycode labels after `www`.
+
+Validation passed: 15 URL helper tests, component type check, targeted ESLint, Prettier, and `git diff --check`.

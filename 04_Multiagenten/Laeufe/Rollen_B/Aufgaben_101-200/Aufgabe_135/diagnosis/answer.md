@@ -1,0 +1,5 @@
+The fault is in [mathstuff.py](/app/lib/ansible/plugins/filter/mathstuff.py:126): `min` and `max` accept only the sequence and call Python’s built-ins. A Jinja template using either filter with `attribute='size'` raises `TypeError`. The installed Jinja 2.11.2 provides `do_min` and `do_max` with `attribute` and `case_sensitive` support.
+
+The fix belongs in those two functions: add `@environmentfilter`, forward the environment, value, and all keyword arguments to Jinja when its enhanced functions are available, and use the specified `AnsibleFilterError` for keyword arguments when they are unavailable. Keep the built-in fallback for calls without keyword arguments. Existing [tests](/app/test/units/plugins/filter/test_mathstuff.py:65) cover only simple positional calls; both pass. The remaining uncertainty is behavior with older Jinja versions, which the current environment cannot exercise.
+
+I recorded the diagnosis in `.codex-role-output/checkpoint.md`. The repository instructions for this run restrict me to fault localization, so I did not edit project source or tests.

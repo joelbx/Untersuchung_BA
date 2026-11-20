@@ -1,0 +1,3 @@
+Added the disabled-by-default `feature_qr_signin_reciprocate_show` experimental setting with a description of the MSC3882 and MSC3886 homeserver requirements. [LoginWithQRSection](/app/src/components/views/settings/devices/LoginWithQRSection.tsx), [SecurityUserSettingsTab](/app/src/components/views/settings/tabs/user/SecurityUserSettingsTab.tsx), and [SessionManagerTab](/app/src/components/views/settings/tabs/user/SessionManagerTab.tsx) now gate QR sign-in on the setting.
+
+All 60 relevant tests pass. Prettier, ESLint, and diff checks pass. The full TypeScript check remains blocked by an unrelated, pre-existing missing `eventId` in [RoomView-test.tsx](/app/test/components/structures/RoomView-test.tsx:178).

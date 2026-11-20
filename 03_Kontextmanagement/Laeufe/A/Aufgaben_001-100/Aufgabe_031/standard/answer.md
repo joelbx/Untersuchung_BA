@@ -1,0 +1,3 @@
+Fixed the default configuration path. `config.Load("")` now applies `FLIPT_` environment overrides to defaults, and CLI startup calls `config.Load` even when no file is found. File values remain the base when a path is provided, with environment values taking precedence.
+
+Added tests for log level and HTTP port overrides, unchanged defaults, and file precedence. The config tests pass; the CLI package compiles.

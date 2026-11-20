@@ -1,0 +1,3 @@
+Implemented value-only `remove_values`, iterative `sanitize_keys`, and URI response key sanitization using `NO_MODIFY_KEYS`.
+
+`py_compile`, `git diff --check`, and manual checks passed, including a 12,000-level structure. The existing `test_no_log.py` has three failures because it expects the prior behavior: sentinel replacement for values, key sanitization in `remove_values`, and a `TypeError` for unknown objects. Those expectations conflict with the issue’s requirements.

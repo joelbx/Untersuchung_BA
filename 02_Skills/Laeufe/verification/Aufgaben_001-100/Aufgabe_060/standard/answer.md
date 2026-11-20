@@ -1,0 +1,3 @@
+Author imports now match in priority order: Open Library key, external identifiers, then name and dates. Matching authors gain nonconflicting identifiers; conflicting values raise `AuthorRemoteIdConflictError`. New authors retain their supplied identifiers, and multiple identifier matches use a consistent tie break. I also added `SUSPECT_DATE_EXEMPT_SOURCES = ["wikisource"]`.
+
+Verification: 181 relevant tests passed, including an import test confirming merged identifiers are saved. `git diff --check` passed. Results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

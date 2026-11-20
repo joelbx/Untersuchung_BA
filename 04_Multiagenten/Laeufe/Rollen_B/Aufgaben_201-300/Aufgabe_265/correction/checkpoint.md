@@ -1,0 +1,1 @@
+Correction complete: added targeted Hypothesis function_scoped_fixture suppression to generic TestAll color run. Exact reviewer reruns: default command remains blocked by pytest.ini deprecated --strict (TEST_ENVIRONMENT_PROBLEM); addopts override broader selection 75 passed; focused classes 55 passed. Harness configuration unchanged.

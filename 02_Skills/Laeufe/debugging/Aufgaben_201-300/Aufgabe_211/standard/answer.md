@@ -1,0 +1,3 @@
+Post purge now deletes uploaded files and resized copies when no other post references them. Administrators can retain orphaned uploads with the new **Keep uploaded files after their last post is purged** ACP setting. The new `Posts.uploads.deleteFromDisk` accepts a path or a list, rejects other input types, and ignores paths outside the uploads directory.
+
+Verification passed: 55 upload and thumbnail tests, 21 broader purge tests, ESLint, and `git diff --check`.

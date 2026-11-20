@@ -1,0 +1,3 @@
+Extracted role entry point documentation logic into [RoleMixin._build_doc](/app/lib/ansible/cli/doc.py:182). It returns `(fqcn, doc)`, preserves input specifications, and returns `(fqcn, None)` when no entry point matches. `_create_role_doc` now uses it, and text rendering handles null specifications.
+
+Added focused tests in [test_doc.py](/app/test/units/cli/test_doc.py:39). **All 21 unit tests passed**, both role CLI fixtures passed, and `git diff --check` passed. I delegated consumer review and test additions, then reviewed and verified the final patch.

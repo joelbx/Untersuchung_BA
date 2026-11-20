@@ -1,0 +1,7 @@
+I traced the issue and recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). I did not edit project source or tests because this pass was limited to fault localization.
+
+- [useElements.ts](/app/applications/mail/src/app/hooks/mailbox/useElements.ts:99) calls the loading selector without the current page and params. Its load effect also has no guard for backend operations still in progress.
+- [elementsActions.ts](/app/applications/mail/src/app/logic/elements/elementsActions.ts:23) accepts every resolved query result. On failure it dispatches `retry` after two seconds, but [elementsSlice.ts](/app/applications/mail/src/app/logic/elements/elementsSlice.ts:72) has no retry case; a rejected load can leave `pendingRequest` true.
+- [elementQuery.ts](/app/applications/mail/src/app/logic/elements/helpers/elementQuery.ts:41) drops the API’s `Stale` flag, so [loadFulfilled](/app/applications/mail/src/app/logic/elements/elementsReducers.ts:51) can commit stale elements and totals.
+
+The fix needs to track overlapping backend operations, defer reloads until the count reaches zero, retry failures after two seconds, and retry `Stale === 1` responses after one second without committing them. I found no existing lifecycle dispatches for backend item operations; their integration points remain the main uncertainty.

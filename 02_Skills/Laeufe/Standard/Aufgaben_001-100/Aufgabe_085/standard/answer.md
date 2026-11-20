@@ -1,0 +1,3 @@
+Updated diff reports to mark newly detected CVEs with `+` and resolved CVEs with `-`. The diff accepts separate plus and minus booleans, and the report and TUI commands expose them as `-diff-plus` and `-diff-minus` (both enabled by default). Added the requested model types and methods, and sourced package details from the scan where each CVE appears.
+
+`go test ./models ./report ./subcmds` and `git diff --check` passed.

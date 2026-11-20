@@ -1,0 +1,3 @@
+Added bounded event polling to [usePollEvents.ts](/app/packages/components/payments/client-extensions/usePollEvents.ts). It calls the event manager every 5000 ms for up to 5 attempts, can stop early on a matching property and action, and unsubscribes when polling completes. The PayPal add flow now watches for a `PaymentMethods` create event.
+
+The components type check passed, and all 5 tests in `Payment.spec.tsx` passed.

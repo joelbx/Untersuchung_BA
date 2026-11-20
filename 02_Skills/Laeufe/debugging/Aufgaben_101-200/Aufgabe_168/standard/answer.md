@@ -1,0 +1,3 @@
+Fixed the user info panel’s Kick, Ban, and Mute controls. They now share a member-scoped lock that starts before confirmation, sets `disabled` and `aria-disabled="true"` on all three buttons, and releases after cancellation, success, or failure. A failed action shows one error message and re-enables the controls.
+
+The [regression tests](/app/test/components/views/right_panel/UserInfo-test.tsx) pass: 72/72. ESLint, Prettier, and `git diff --check` pass. The repository-wide TypeScript check still fails on existing SDK and OIDC errors; it reports no errors in the changed files.

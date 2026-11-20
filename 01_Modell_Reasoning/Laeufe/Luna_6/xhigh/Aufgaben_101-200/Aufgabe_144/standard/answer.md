@@ -1,0 +1,3 @@
+Implemented `expand_record()` in [catalog/utils/__init__.py](/app/openlibrary/catalog/utils/__init__.py:44), with title normalization, ISBN merging, optional field copying, and placeholder country filtering. Moved `build_titles()` alongside it, updated add-book callers and merge documentation, and migrated the existing tests.
+
+Verification: focused tests passed: **8 passed, 2 expected xfails**. `git diff --check` passed. No `build_marc` references remain in `openlibrary/`.

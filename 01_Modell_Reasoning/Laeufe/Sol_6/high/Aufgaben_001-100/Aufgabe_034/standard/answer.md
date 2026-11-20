@@ -1,0 +1,3 @@
+Updated `get_ia_record` to output separate `isbn_10` and `isbn_13` lists and to split publisher names from publication places. It omits those fields when the input has no usable values. The two public utilities are in [upstream/utils.py](/app/openlibrary/plugins/upstream/utils.py), and the importer uses them in [importapi/code.py](/app/openlibrary/plugins/importapi/code.py).
+
+Verification: 30 focused tests and all 18 import API tests passed. `git diff --check` passed.

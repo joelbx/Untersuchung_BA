@@ -1,0 +1,3 @@
+Implemented liveness as a direct mapping from broadcast info state in `determineVoiceBroadcastLiveness`. `setInfoState` is now the only path that updates liveness, and lifecycle playback actions and chunk arrivals no longer change it independently. Initial liveness remains `"not-live"`.
+
+The playback and mapping tests pass: **2 suites, 46 tests**. Formatting and `git diff --check` pass. The full TypeScript check reports existing errors in unrelated files involving `MatrixClient` APIs.

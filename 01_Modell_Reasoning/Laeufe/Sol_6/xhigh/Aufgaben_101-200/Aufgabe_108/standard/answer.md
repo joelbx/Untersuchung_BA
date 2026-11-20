@@ -1,0 +1,3 @@
+Added [SimpleCache[V]](/app/utils/cache/simple_cache.go) and moved the three direct `ttlcache` users to it. Cache setup and TTL behavior now live in one place, callers retrieve typed values without assertions, and the HTTP cache keeps its 100-entry limit. The genre repository also returns loader errors without panicking.
+
+Added focused tests for expiration, active keys, and loader behavior. `go test ./utils/cache ./core/scrobbler ./scanner` and `git diff --check` pass.

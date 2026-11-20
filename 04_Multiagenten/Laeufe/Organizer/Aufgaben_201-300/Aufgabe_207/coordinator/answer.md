@@ -1,0 +1,3 @@
+QtWebEngine arguments now combine user features from the CLI and `qt.args` with configuration-required features in one `--enable-features=` entry. Other backends keep their arguments unchanged. I added regression tests in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+**Tests:** 79 passed. The remaining existing test, `test_new_chromium`, segfaults in Qt’s native Chromium version probe. No delegation was used.

@@ -1,0 +1,3 @@
+Promise imports now use ISBN-10 first, then a B ASIN, to fill missing metadata from staged items **before validation**. Existing non-empty fields are preserved. Batch staging runs only for incomplete records, logs lookup failures, and records total and incomplete gauges. The validator accepts either complete descriptive metadata or a title, source record, and strong identifier.
+
+Verification: **109 relevant tests passed**; Ruff and `git diff --check` passed. No delegation was used.

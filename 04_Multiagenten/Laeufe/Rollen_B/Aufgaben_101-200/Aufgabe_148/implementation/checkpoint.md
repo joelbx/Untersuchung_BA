@@ -1,0 +1,1 @@
+Verified issue and fix. Full local package tests pass: go test ./lib/multiplexer ./lib/sshutils -count=1. Added tests for prefixed SSH with/without ClientAddr, malformed JSON, standard SSH, and fragmented server parsing.

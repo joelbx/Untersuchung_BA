@@ -1,0 +1,3 @@
+Tracing setup now lives in [internal/tracing/tracing.go](/app/internal/tracing/tracing.go). The gRPC server uses `NewProvider` and `GetExporter` and shuts down the provider before the exporter, allowing pending spans to flush. Isolated tests cover resource attributes, sampling, exporter selection, endpoints, and repeated shutdown.
+
+Verification passed: `go test ./internal/tracing ./internal/cmd -count=1`.

@@ -1,0 +1,3 @@
+Updated [module_common.py](/app/lib/ansible/executor/module_common.py) to resolve `module_utils` dependencies with a queue and separate legacy and collection locators. The payload now includes redirect shims, handles relative imports in package initializers, synthesizes missing package files, normalizes `six` imports, and reports attempted paths when resolution fails.
+
+Added regression coverage and updated the base package assertions. **Validation:** all 51 executor `module_common` tests pass; `git diff --check` is clean.

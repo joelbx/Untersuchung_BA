@@ -1,0 +1,3 @@
+Implemented OCI storage configuration support in `/app`. The loader now reports the required errors for a missing repository and an unsupported scheme, parses the bundle directory, credentials, and poll interval, and passes them into the OCI backend. `NewStore` uses its directory argument, `DefaultBundleDir` creates the default bundle directory, and `fs/oci` is registered in the integration suite and CI matrix.
+
+The affected Go package tests pass, and the local OCI bundle seed command succeeded. The full Dagger integration matrix was not run.

@@ -1,0 +1,3 @@
+Implemented `guessDateFromText` and wired it into CSV and vCard contact date parsing. Valid text dates become `Date` objects; unparseable text leaves the date unset. The new tests cover the requested formats and confirm that imported dates serialize to the intended vCard calendar day.
+
+Verification: 27 focused tests passed; type checking, ESLint, and Prettier passed. The full shared suite had 873 passes and 2 unrelated failures in `toBase64` and cookie expiry. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

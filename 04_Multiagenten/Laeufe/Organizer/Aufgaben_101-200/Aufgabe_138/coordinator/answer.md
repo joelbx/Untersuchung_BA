@@ -1,0 +1,3 @@
+Added `storage.oci.manifest_version` with supported values `"1.0"` and `"1.1"`. It defaults to `"1.1"`; unsupported values return the required validation error. Both OCI store creation paths now pass a configured 1.0 version through `WithManifestVersion`, and bundle creation uses the selected version.
+
+Config, schema, and manifest build tests passed, as did the relevant package tests. No delegation was used.

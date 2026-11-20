@@ -1,0 +1,1 @@
+Complete: The free user path now uses getScribeAddonNameByPlan(PLANS.MAIL) through the shared single user plan ID builder, which adds the addon only when the resolver returns one. SelectedPlan.planIDs returns a copy, so the multi user path does not mutate the selected plan. The exact reviewed test command passed: 2 suites, 50 tests. git diff --check passed.

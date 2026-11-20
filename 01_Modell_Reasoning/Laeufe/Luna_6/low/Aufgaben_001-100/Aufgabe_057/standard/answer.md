@@ -1,0 +1,3 @@
+Implemented YAML-native variant attachments in the existing CLI import/export workflow. Export parses stored JSON into YAML structures; import converts YAML attachment values back to JSON strings. Missing or null attachments remain empty.
+
+`go test ./cmd/flipt ./storage/...` passed. The requested `internal/ext` package and fixtures are absent from this checkout, so I updated the equivalent implementation in `cmd/flipt`.

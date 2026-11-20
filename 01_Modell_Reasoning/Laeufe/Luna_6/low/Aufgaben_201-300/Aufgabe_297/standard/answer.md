@@ -1,0 +1,3 @@
+Implemented reverse proxy authentication with configurable user header and IP whitelist, including CIDR, IP:port, IPv4/IPv6, and Unix socket `@` handling. Successful proxy logins create missing users, make the first user admin, update last login, and initialize the frontend session. Log redaction now handles nested map values while preserving keys.
+
+Relevant tests passed: `go test ./server/app ./log ./conf`. Subsonic credentials are generated from the stored user password; users without a password receive an empty digest.

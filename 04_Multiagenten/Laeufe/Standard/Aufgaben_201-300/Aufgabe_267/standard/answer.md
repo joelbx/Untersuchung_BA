@@ -1,0 +1,3 @@
+Updated `RoomView` to dispatch exactly `{ action: Action.RoomLoaded }` after loading a room. `RoomViewStore` now refreshes widget buttons on that action, including when no `ViewRoom` action came first, and navigation no longer recomputes them. `RoomView` also preserves the current initial event target when the store has none.
+
+Both focused test suites pass (64 tests), and ESLint and `git diff --check` pass. The full TypeScript check still fails on unrelated SDK, OIDC, and `TabbedView` errors; none reference the changed files.

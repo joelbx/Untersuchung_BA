@@ -1,0 +1,3 @@
+InteractiveAuth now supports both the stable and unstable registration token stages. The new view shows a focused token field, help text, an error alert, and a primary action that is disabled until a token is entered. Enter and click use the same submission logic, which sends the advertised stage type and token; the existing flow handles the session and completion callback.
+
+The [InteractiveAuth dialog tests](/app/test/components/views/dialogs/InteractiveAuthDialog-test.tsx) pass for both identifiers. Type checking still reports existing SlidingSync errors; it reports no remaining error in the changed component.

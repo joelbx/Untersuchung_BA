@@ -1,0 +1,7 @@
+I localized the issue to [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts:68). The instance uses a boolean privacy flag that defaults to pseudonymous behavior, returns early for DNT, and accepts any truthy `posthog` config. It has no `enabled` state or `logout()`, and `identifyUser()` can call PostHog without successful initialization.
+
+The tracking methods also fail to await the shared `capture()` call; that call silently returns before initialization. The pseudonymous path contains a misspelled enum member at [line 164](/app/src/PosthogAnalytics.ts:164). URL redaction follows the boolean flag, so privacy state needs to be unified there too.
+
+The fix should use `Anonymity` throughout, default to `Anonymous`, force that state under DNT while allowing valid initialization, require both config fields, gate capture on `enabled` and `initialised`, await capture, restrict identification and room events by mode, and reset PostHog on logout. One uncertainty is whether nonempty strings are required for the two config fields; the requirement says “valid” but does not define their format.
+
+The existing [test suite](/app/test/PosthogAnalytics-test.ts:32) has stale expectations: it does not await async `init()` and expects DNT to prevent initialization. Its targeted run produced **10 passes and 3 failures**. Per this run’s diagnosis-only restriction, I changed no project source or tests.

@@ -1,0 +1,3 @@
+The Drive member view now reads and updates members, internal invitations, and external invitations for the active `shareId`. Each store keeps shares separate, and setting members replaces only that share’s list. I also added `getExistingEmails` to combine email addresses from all three lists.
+
+Validation passed: 7 focused and existing tests, the Drive store TypeScript check, Prettier, and `git diff --check`. I solved this directly; no delegation was used.

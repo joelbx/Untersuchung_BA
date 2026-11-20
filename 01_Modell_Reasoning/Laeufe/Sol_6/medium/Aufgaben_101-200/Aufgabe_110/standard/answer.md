@@ -1,0 +1,3 @@
+Added the download mechanism metric to the existing metrics infrastructure. [useDownloadMetrics](/app/applications/drive/src/app/store/_downloads/DownloadProvider/useDownloadMetrics.ts) now records terminal outcomes with `status`, `retry`, and `mechanism` labels for stateful downloads and previews. The [file saver](/app/applications/drive/src/app/store/_downloads/fileSaver/fileSaver.ts) exposes `selectMechanismForDownload(size)`, and the new [schema](/app/packages/metrics/types/web_drive_download_mechanism_success_rate_total_v1.schema.d.ts) defines the allowed labels.
+
+Verification: 20 focused tests passed, and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) to emit consistent JSON for startup and error paths, write job records atomically, and include the same job ID and lifecycle fields in each record. Timeout results now include the child PID, and temporary directory cleanup follows the configured policy.
+
+Added regression coverage in [test_async_wrapper.py](/app/test/units/modules/test_async_wrapper.py). All 8 tests pass; syntax compilation and `git diff --check` also pass.

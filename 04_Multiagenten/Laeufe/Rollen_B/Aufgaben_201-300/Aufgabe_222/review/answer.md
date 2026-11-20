@@ -1,0 +1,5 @@
+VERDICT: FIX
+
+The extraction meets the requested `_build_doc` behavior, but it introduces a consumer regression. When an entry point’s input value is `None`, `_build_doc` preserves it; [get_role_man_text](/app/lib/ansible/cli/doc.py:1022) then calls `.get()` on it and raises `AttributeError`. A direct local reproduction confirmed the failure. Keep the source value in `_build_doc` and make the renderer handle `None` as an empty mapping.
+
+**Tests:** `PYTHONPATH=lib pytest -q test/units/cli/test_doc.py` passed (21 tests). The initial `pytest -q test/units/cli/test_doc.py` failed (6 failed, 15 passed) because it imported the installed Ansible package instead of `/app/lib`; that is a separate **TEST_ENVIRONMENT_PROBLEM**. `git diff --check` passed. I made no project code or test changes during this review.

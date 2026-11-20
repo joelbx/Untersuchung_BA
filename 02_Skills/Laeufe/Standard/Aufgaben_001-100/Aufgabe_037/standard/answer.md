@@ -1,0 +1,3 @@
+Fixed undefined variables in YAML filters. `AnsibleDumper` now triggers Jinja’s undefined-variable error; `to_yaml` and `to_nice_yaml` identify the failing filter and preserve the original exception. During templating, that failure surfaces as `AnsibleUndefinedVariable` with the missing variable’s name.
+
+The relevant suite passed: **145 tests**. One additional constructor test could not run because the local `mocker` fixture is unavailable; the command and error are recorded in `.codex-role-output/checkpoint.md`.

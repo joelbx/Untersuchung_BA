@@ -1,0 +1,3 @@
+Replaced `:buffer` with `:tab-select` in command registration, tab completion, help, the default `gt` binding, examples, and affected tests. The command retains numeric and `win_id/index` selection, URL and title matching, count precedence, and window focusing.
+
+Verification: 73 completion unit tests and 17 affected end-to-end tests passed; one end-to-end test was skipped. The QtWebKit backend was unavailable locally, so end-to-end tests ran with QtWebEngine. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated the controller minimum to Python 3.12 in the CLI checks, ansible-test, and package metadata. Removed the collection tar cache workaround; `_extract_tar_dir` now passes `dirname` unchanged to `getmember()` and raises the specified error when it is missing. Added a [changelog fragment](/app/changelogs/fragments/controller-python-312.yml).
+
+Relevant tests: 93 passed, 1 skipped. Both entry points displayed the same version error on this Python 3.11 host. A Python 3.12 runtime test was unavailable here.

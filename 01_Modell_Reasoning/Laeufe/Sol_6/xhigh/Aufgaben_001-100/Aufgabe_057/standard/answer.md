@@ -1,0 +1,3 @@
+Implemented YAML-native variant attachment import and export in [internal/ext](/app/internal/ext), and wired the CLI to use it. Export renders attachments as YAML structures; import converts them to JSON strings for storage and handles missing attachments.
+
+The regression tests and existing CLI, storage, and server tests pass. The referenced `internal/ext/testdata` fixtures are absent from this checkout, so I could not compare output against `export.yml` exactly.

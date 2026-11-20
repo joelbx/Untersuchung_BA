@@ -1,0 +1,3 @@
+Implemented optional audit sink reporting in [telemetry.go](/app/internal/telemetry/telemetry.go) and bumped telemetry schema version to `1.3`. The payload includes `audit.sinks` for enabled log and webhook sinks, and omits `audit` when neither is enabled. Existing telemetry fields retain their behavior.
+
+Added coverage for each sink combination in [telemetry_test.go](/app/internal/telemetry/telemetry_test.go). `go test ./internal/telemetry` and `git diff --check` pass.

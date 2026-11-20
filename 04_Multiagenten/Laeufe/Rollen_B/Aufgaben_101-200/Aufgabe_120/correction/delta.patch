@@ -1,0 +1,207 @@
+diff --git a/openlibrary/coverstore/README.md b/openlibrary/coverstore/README.md
+index 6730fbb..4fac53d 100644
+--- a/openlibrary/coverstore/README.md
++++ b/openlibrary/coverstore/README.md
+@@ -22,10 +22,11 @@ members, closes the zip files, then marks the covers `archived` and sets their
+ filenames to local zip members. Covers with missing source images are marked
+ `failed`. To upload and verify a batch, run
+ `archive.Batch(8, 81).process_pending(upload=True, finalize=True)`. Finalization
+-requires all four zip files to appear in their respective Internet Archive
+-items. It then sets `uploaded=true`, stores the remote URLs in every filename
++requires all four zip files to have matching MD5 checksums in their respective
++Internet Archive items. It then sets `uploaded=true`, stores the remote URLs in every filename
+ field, and removes the local zip files. An unsuccessful upload leaves the staged
+-zip files and records intact for retry. A shared lock under `items/` prevents
++zip files and records intact for retry. Once a batch contains uploaded covers,
++new covers cannot be staged into it. A shared lock under `items/` prevents
+ simultaneous local archive and finalization jobs.
+ 
+ Older tar archives and their index files remain readable for legacy covers.
+diff --git a/openlibrary/coverstore/archive.py b/openlibrary/coverstore/archive.py
+index 72d145e..fb8890e 100644
+--- a/openlibrary/coverstore/archive.py
++++ b/openlibrary/coverstore/archive.py
+@@ -5,6 +5,8 @@ item, and the next two name the 10,000-cover batch. Each size has its own item.
+ """
+ 
+ import fcntl
++import hashlib
++import json
+ import os
+ from contextlib import contextmanager
+ from datetime import datetime
+@@ -109,17 +111,17 @@ class Batch:
+                 if not os.path.isfile(path):
+                     continue
+                 item = self.item_name(self.item_id, size)
+-                if upload and not test and not uploader.is_uploaded(item, os.path.basename(path)):
++                if upload and not test and not uploader.is_uploaded(
++                    item, os.path.basename(path), filepath=path
++                ):
+                     uploader.upload(item, [path])
+             if finalize and not test:
+-                # A cover has all four sizes; publish it only after every zip
+-                # has been verified remotely. Missing local zips are allowed on
+-                # retries after a previously completed upload.
++                # Pending covers have four local zips. A remote filename alone
++                # cannot establish that the zip contains the staged covers.
+                 if all(
+-                    uploader.is_uploaded(
+-                        self.item_name(self.item_id, size),
+-                        os.path.basename(self.get_abspath(self.item_id, self.batch_id, size)),
+-                    )
++                    os.path.isfile(path := self.get_abspath(self.item_id, self.batch_id, size))
++                    and uploader.is_uploaded(self.item_name(self.item_id, size),
++                                             os.path.basename(path), filepath=path)
+                     for size in SIZES
+                 ):
+                     CoverDB.update_completed_batch(self.item_id, self.batch_id)
+@@ -196,11 +198,20 @@ class Uploader:
+                    check=True, capture_output=True, text=True)
+ 
+     @staticmethod
+-    def is_uploaded(item, zip_filename, verbose=False):
+-        result = run(['ia', 'list', item], check=True, capture_output=True, text=True)
+-        found = zip_filename in (line.strip() for line in result.stdout.splitlines())
++    def is_uploaded(item, zip_filename, verbose=False, filepath=None):
++        result = run(['ia', 'metadata', item], check=True, capture_output=True, text=True)
++        metadata = json.loads(result.stdout)
++        files = metadata.get('files', [])
++        remote = next((entry for entry in files if entry.get('name') == zip_filename), None)
++        found = remote is not None
++        if found and filepath is not None:
++            digest = hashlib.md5()
++            with open(filepath, 'rb') as source:
++                for chunk in iter(lambda: source.read(1024 * 1024), b''):
++                    digest.update(chunk)
++            found = remote.get('md5', '').lower() == digest.hexdigest()
+         if verbose:
+-            print(item, zip_filename, 'uploaded' if found else 'missing')
++            print(item, zip_filename, 'verified' if found else 'missing or mismatched')
+         return found
+ 
+ 
+@@ -216,6 +227,15 @@ class CoverDB:
+         return self.db.select('cover', where='archived=$f AND failed=$f',
+                               order='id', vars={'f': False}, limit=limit)
+ 
++    def batch_has_uploaded_cover(self, item_id, batch_id):
++        item_id, batch_id = Batch._norm_ids(item_id, batch_id)
++        start_id = int(item_id) * 1000000 + int(batch_id) * 10000
++        return bool(list(self.db.select(
++            'cover', what='id', where='id >= $start_id AND id < $end_id AND uploaded=$yes',
++            vars={'start_id': start_id,
++                  'end_id': self._get_batch_end_id(start_id), 'yes': True}, limit=1,
++        )))
++
+     @staticmethod
+     def update_completed_batch(item_id, batch_id, ext='jpg'):
+         item_id, batch_id = Batch._norm_ids(item_id, batch_id)
+@@ -249,9 +269,16 @@ def archive(test=False):
+         manager = ZipManager()
+         staged = []
+         connection = db.getdb()
++        cover_db = CoverDB()
++        checked_batches = set()
+         try:
+-            for row in CoverDB().get_unarchived():
++            for row in cover_db.get_unarchived():
+                 cover = Cover(row)
++                batch_ids = Cover.id_to_item_and_batch_id(cover.id)
++                if batch_ids not in checked_batches:
++                    if cover_db.batch_has_uploaded_cover(*batch_ids):
++                        raise RuntimeError(f'cannot archive into finalized batch {batch_ids}')
++                    checked_batches.add(batch_ids)
+                 files = list(cover.files())
+                 if len(files) != len(SIZES):
+                     if not test:
+diff --git a/openlibrary/coverstore/tests/test_archive_zip.py b/openlibrary/coverstore/tests/test_archive_zip.py
+index ef623b1..8462901 100644
+--- a/openlibrary/coverstore/tests/test_archive_zip.py
++++ b/openlibrary/coverstore/tests/test_archive_zip.py
+@@ -1,4 +1,8 @@
+ from datetime import datetime
++import hashlib
++import json
++from pathlib import Path
++from types import SimpleNamespace
+ from zipfile import ZipFile
+ 
+ import pytest
+@@ -53,7 +57,7 @@ def test_batch_finalizes_only_when_every_size_uploaded(tmp_path, monkeypatch):
+     class StubUploader:
+         available = set(archive.SIZES[:-1])
+ 
+-        def is_uploaded(self, item, filename):
++        def is_uploaded(self, item, filename, filepath=None):
+             return item[0] in self.available or (item == 'covers_0008' and '' in self.available)
+ 
+     uploader = StubUploader()
+@@ -63,3 +67,56 @@ def test_batch_finalizes_only_when_every_size_uploaded(tmp_path, monkeypatch):
+     uploader.available.add('l')
+     assert batch.process_pending(finalize=True, uploader=uploader) is True
+     assert completed == [('0008', '81')]
++
++
++def test_remote_zip_checksum_required_for_finalization(tmp_path, monkeypatch):
++    monkeypatch.setattr(config, 'data_root', str(tmp_path))
++    completed = []
++    monkeypatch.setattr(archive.CoverDB, 'update_completed_batch',
++                        staticmethod(lambda *args: completed.append(args)))
++    remote_md5 = {}
++    for size in archive.SIZES:
++        path = Path(archive.Batch.get_abspath(8, 81, size))
++        path.parent.mkdir(parents=True, exist_ok=True)
++        path.write_bytes(size.encode() or b'original')
++        remote_md5[archive.Batch.item_name(8, size)] = hashlib.md5(path.read_bytes()).hexdigest()
++    remote_md5['m_covers_0008'] = hashlib.md5(b'older zip').hexdigest()
++
++    def metadata(command, **kwargs):
++        item = command[-1]
++        name = Path(archive.Batch.get_abspath(8, 81, item[0] if item[1] == '_' else '')).name
++        return SimpleNamespace(stdout=json.dumps({'files': [{'name': name, 'md5': remote_md5[item]}]}))
++
++    monkeypatch.setattr(archive, 'run', metadata)
++    batch = archive.Batch(8, 81)
++    assert batch.process_pending(finalize=True) is False
++    assert completed == []
++    assert all(Path(archive.Batch.get_abspath(8, 81, size)).exists() for size in archive.SIZES)
++
++    medium = Path(archive.Batch.get_abspath(8, 81, 'm'))
++    medium.unlink()
++    assert batch.process_pending(finalize=True) is False
++    assert completed == []
++    medium.write_bytes(b'm')
++    remote_md5['m_covers_0008'] = hashlib.md5(medium.read_bytes()).hexdigest()
++    assert batch.process_pending(finalize=True) is True
++    assert completed == [('0008', '81')]
++    assert not medium.exists()
++
++
++def test_archive_rejects_new_covers_in_finalized_batch(tmp_path, monkeypatch):
++    monkeypatch.setattr(config, 'data_root', str(tmp_path))
++
++    class FakeCoverDB:
++        def get_unarchived(self):
++            return [{'id': 8810000}]
++
++        def batch_has_uploaded_cover(self, item_id, batch_id):
++            assert (item_id, batch_id) == ('0008', '81')
++            return True
++
++    monkeypatch.setattr(archive, 'CoverDB', FakeCoverDB)
++    monkeypatch.setattr(archive.db, 'getdb', lambda: object())
++    with pytest.raises(RuntimeError, match='finalized batch'):
++        archive.archive()
++    assert not Path(archive.Batch.get_abspath(8, 81)).exists()
+diff --git a/openlibrary/coverstore/tests/test_webapp.py b/openlibrary/coverstore/tests/test_webapp.py
+index 4cb2d3b..0ed86d3 100644
+--- a/openlibrary/coverstore/tests/test_webapp.py
++++ b/openlibrary/coverstore/tests/test_webapp.py
+@@ -207,5 +207,5 @@ class TestWebappWithDB(WebTestCase):
+ 
+         for f in files:
+             d = self.jsonget('/b/id/%d.json' % f.id)
+-            assert 'tar:' in d['filename']
++            assert '.zip/' in d['filename']
+             assert b.open('/b/id/%d.jpg' % f.id).read() == open(f.path).read()

@@ -1,0 +1,3 @@
+Updated [db.go](/app/detector/vuls2/db.go) to check the schema version before deciding whether to skip or download the database. A mismatch now forces a download when updates are allowed and returns an error when `SkipUpdate` is enabled. `newDBConnection` also validates metadata and includes the database path in connection and metadata errors.
+
+Added mismatch and connection lifecycle tests. The full `detector/vuls2` test package and `git diff --check` passed.

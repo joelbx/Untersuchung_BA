@@ -1,0 +1,3 @@
+Implemented a unified `Rule.segment` that accepts a string or a `keys` and `operator` object. Invalid segments are rejected, single-key segments use `OR_SEGMENT_OPERATOR`, and rule exports always use the object form. I updated importer, snapshot, SQL rule and rollout handling, and the requested fixtures.
+
+The relevant ext, filesystem snapshot, and SQL tests pass; `git diff --check` is clean. No delegation was used.

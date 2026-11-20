@@ -1,0 +1,5 @@
+**Diagnosis:** `:buffer` is still the registered command in [commands.py](/app/qutebrowser/browser/commands.py:919). Registration derives the user-visible name from the function name, so command completion and generated help continue to expose `buffer`. The implementation already supports count precedence, numeric and `win_id/index` references, title and URL matching, and foregrounding the selected window.
+
+A fix should register `tab-select`, update its completion and matching calls to `tabs`, and change `tab-take` to use `other_tabs` in [miscmodels.py](/app/qutebrowser/completion/models/miscmodels.py:165). It should also update the `gt` binding in [configdata.yml](/app/qutebrowser/config/configdata.yml:3318), regenerate the checked-in [command help](/app/doc/help/commands.asciidoc:232) and [settings help](/app/doc/help/settings.asciidoc:653), and revise existing tests that invoke `:buffer`.
+
+**Uncertainty:** I inspected the code and tests but did not run tests. I made no project source or test edits because this specialist assignment explicitly limits me to fault localization; the diagnosis is recorded in `.codex-role-output/checkpoint.md`.

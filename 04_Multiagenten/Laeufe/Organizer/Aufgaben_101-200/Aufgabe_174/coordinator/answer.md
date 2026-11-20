@@ -1,0 +1,3 @@
+Forked worker display calls now travel through `FinalQueue` and are rendered by the parent’s strategy results thread. Parent output is protected by a lock. I removed the worker’s shutdown redirection and added stdout/stderr flushing in `TaskQueueManager.cleanup`.
+
+The focused tests passed: **9 passed, 9 skipped**. `git diff --check` passed. I made no delegations, so there were no worker proposals to adopt.

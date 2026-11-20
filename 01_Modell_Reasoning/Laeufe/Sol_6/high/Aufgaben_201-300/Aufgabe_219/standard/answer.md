@@ -1,0 +1,3 @@
+Added `token` to the audit event checker, including wildcard expansion, so configurations can enable `token:created` and `token:deleted`. The [gRPC initialization](/app/internal/cmd/grpc.go) now uses the checker to determine whether `token:deleted` is enabled and passes that boolean to the [authentication server setup](/app/internal/cmd/auth.go).
+
+Added tests for token event selection and deletion logging when enabled or disabled. All affected Go package tests passed, and `git diff --check` passed.

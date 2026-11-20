@@ -1,0 +1,3 @@
+Updated image cleanup so removing a group cover, user cover, or uploaded avatar deletes its local files and clears the associated fields. Account deletion now removes cover and avatar files across `.png`, `.jpeg`, `.jpg`, and `.bmp`, including timestamped filenames. Missing files are handled without failing removal.
+
+Verification: **336 user and group tests passed**. ESLint and `git diff --check` passed.

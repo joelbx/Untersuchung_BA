@@ -1,0 +1,3 @@
+Added a reusable [ExternalLink](/app/src/components/views/elements/ExternalLink.tsx) with a decorative icon, a screen reader new-tab cue, secure navigation defaults, and support for anchor attributes and custom classes. Settings external links now use it, including the hosting signup link, which is no longer split into a text link and an icon-only link. Share-dialog links now have translated titles that follow whether the URL points to a room or a message.
+
+Four Jest suites passed, along with ESLint and Stylelint. The TypeScript check still reports six unrelated errors in existing thread code.

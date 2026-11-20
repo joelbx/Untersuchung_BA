@@ -1,0 +1,3 @@
+The MIME suffix workaround now uses **runtime Qt only** at both boundaries: `version_check("6.2.3", compiled=False)` and `version_check("6.7.0", compiled=False)`. I also clarified the `compiled` parameter in [qtutils.py](/app/qutebrowser/utils/qtutils.py) and made `compiled=True` with `exact=True` raise `RuntimeError`.
+
+The focused tests passed: **32 passed**. A broader run had 194 passes and two unrelated failures involving a Qt enum count and a QSaveFile warning. No delegation was used.

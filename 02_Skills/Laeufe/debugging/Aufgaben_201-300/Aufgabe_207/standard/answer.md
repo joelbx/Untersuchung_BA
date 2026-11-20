@@ -1,0 +1,3 @@
+QtWebEngine arguments now combine user features from CLI and `qt.args` with qutebrowser’s required features in a single `--enable-features=` entry. Other backends keep their existing arguments. I added regression tests in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+Verification: 82 relevant tests passed, and `git diff --check` passed. The full test file could not complete because the existing Chromium version probe segfaults inside QtWebEngine; the command and stack location are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

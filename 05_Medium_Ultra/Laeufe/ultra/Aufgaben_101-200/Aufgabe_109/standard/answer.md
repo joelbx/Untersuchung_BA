@@ -1,0 +1,3 @@
+Added a “Polls history” button to [RoomSummaryCard](/app/src/components/views/right_panel/RoomSummaryCard.tsx:342). It appears only when the new, disabled-by-default Labs flag is enabled and opens [PollHistoryDialog](/app/src/components/views/dialogs/polls/PollHistoryDialog.tsx:23) with the current `roomId`. I also added the Labs setting, English string, and button icon.
+
+I delegated the dialog and Labs setting work, then reviewed and integrated both. The relevant RightPanel and Labs settings tests passed (5 tests); ESLint, Prettier, Stylelint, and `git diff --check` passed. The full TypeScript check remains blocked by an error in untouched `RoomCreate.tsx:50` concerning `RoomState.findPredecessor`.

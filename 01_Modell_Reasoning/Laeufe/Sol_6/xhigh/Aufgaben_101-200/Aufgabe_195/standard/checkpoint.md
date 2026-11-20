@@ -1,0 +1,2 @@
+Task: Refactor configuration loading to return Config and Warnings separately, and warn when explicitly configured deprecated keys include ui.enabled.
+Status: Complete. Load returns Result with Config and Warnings; deprecations are checked against explicit file keys before defaults; ui.enabled warns; CLI logs Result.Warnings. Existing configuration tests and CLI package check pass (`go test ./internal/config ./cmd/flipt`).

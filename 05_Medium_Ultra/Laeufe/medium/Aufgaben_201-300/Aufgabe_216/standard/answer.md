@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to resolve its runtime options through `get_option()`, including transfer method and retries. Removed the SSH-specific core settings and changed reset to check the effective ControlPath before sending `stop`; when no socket exists, it logs a debug message and skips the command.
+
+Verification: 35 SSH, PlayContext, and TaskExecutor unit tests passed. `git diff --check` passed.

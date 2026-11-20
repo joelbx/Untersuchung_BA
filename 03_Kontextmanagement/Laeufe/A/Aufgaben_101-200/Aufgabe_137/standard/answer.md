@@ -1,0 +1,3 @@
+Added configurable trace sampling and all eight supported propagator options. The config now defaults to a sampling ratio of `1` and the `tracecontext` and `baggage` propagators, preserves configured values, and returns the specified validation errors. The tracing runtime uses the selected settings.
+
+Verification passed: `go test ./internal/config ./internal/tracing ./internal/cmd` and `git diff --check`.

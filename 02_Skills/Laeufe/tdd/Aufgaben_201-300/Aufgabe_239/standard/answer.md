@@ -1,0 +1,3 @@
+Updated `UserPropsRepository`, its SQL implementation, and the mock so every read and write takes an explicit `userId`. LastFM now passes that ID through session-key operations. Its callback uses a signed, short-lived state issued to the authenticated user, so a caller-supplied `uid` cannot link another user’s account.
+
+Regression tests cover user isolation and callback handling. The full Go suite and all 41 UI tests pass. The Go run emitted compiler warnings from SQLite and TagLib dependencies.

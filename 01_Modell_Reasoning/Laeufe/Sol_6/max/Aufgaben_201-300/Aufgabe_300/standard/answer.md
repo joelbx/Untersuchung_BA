@@ -1,0 +1,3 @@
+Implemented `override-validation=true` on the import POST endpoint. It now passes a boolean through `load()` to `validate_record()`, bypassing the publication-year, independent-publisher, and missing-ISBN checks while keeping required-field checks. Added the case-insensitive `is_promise_item()` utility.
+
+Verification: 149 tests passed, 1 expected failure. Diff checks passed. Ruff passed with one confirmed pre-existing warning excluded.

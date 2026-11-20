@@ -1,0 +1,3 @@
+Updated [`urlutils.py`](/app/qutebrowser/utils/urlutils.py) to validate the operation and positive integer count, default to the path segment, skip port numbers, ignore digits inside percent encoded triplets, and reject decrements that would go below zero. It searches path, query, anchor, then host, modifying the last eligible number in the first matching segment.
+
+The existing `incdec` tests ran with `pytest -o addopts= -q tests/unit/utils/test_urlutils.py -k incdec`: **77 passed, 106 failed**. Many failures reflect existing tests’ different assumptions about segment precedence and port handling. `git diff --check` passed.

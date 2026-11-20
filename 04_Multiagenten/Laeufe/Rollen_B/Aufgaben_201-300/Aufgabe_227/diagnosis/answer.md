@@ -1,0 +1,7 @@
+The fault is in [webview.py](/app/qutebrowser/browser/webengine/webview.py:142): both version checks use the default `compiled=True`. The gate should call `version_check("6.2.3", compiled=False)` and `version_check("6.7.0", compiled=False)`, so runtime Qt alone controls the ≥ 6.2.3 and < 6.7.0 range.
+
+[qtutils.py](/app/qutebrowser/utils/qtutils.py:78) already supports runtime-only checks with `compiled=False`, but its documentation should say explicitly that this excludes compiled Qt and PyQt versions. Its `compiled=True, exact=True` guard raises `ValueError`; the requirement calls for `RuntimeError`.
+
+There is one behavior conflict to resolve: [webview.py](/app/qutebrowser/browser/webengine/webview.py:145) currently *generates missing suffixes* from MIME types, and the [existing tests](/app/tests/unit/browser/webengine/test_webview.py:94) expect that behavior. Returning only dot-prefixed entries already in `upstream_mimetypes` would change it. The tests also have a single-argument version-check mock and a `ValueError` expectation that would need updating.
+
+I recorded the findings in `.codex-role-output/checkpoint.md`. No project source or tests were edited because this run’s specialist instructions restrict it to fault localization.

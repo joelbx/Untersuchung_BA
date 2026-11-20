@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard.tsx](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) to provide the localized verified and unverified copy. Current session now delegates to it, and [DeviceDetails.tsx](/app/src/components/views/settings/devices/DeviceDetails.tsx) shows the status immediately below the heading. I corrected the verified test fixture and updated the affected snapshots.
+
+The focused tests pass (7/7), as do ESLint and `git diff --check`. The full TypeScript check reports existing errors outside the changed files in `matrix-js-sdk` and other components.

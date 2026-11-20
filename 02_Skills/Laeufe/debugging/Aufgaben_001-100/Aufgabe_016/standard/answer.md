@@ -1,0 +1,3 @@
+Implemented host-scoped scheduling in `/app`. Monitoring now uses `OlAsyncIOScheduler`; jobs with the limiter inside `scheduled_job` register only when `HOSTNAME` matches an exact name, a prefix wildcard, or a short name within a fully qualified hostname. Job IDs default to function names. I also added the HAProxy CSV collector and its scheduled monitoring job.
+
+Verification: all 10 monitoring tests passed. Ruff and `git diff --check` passed.

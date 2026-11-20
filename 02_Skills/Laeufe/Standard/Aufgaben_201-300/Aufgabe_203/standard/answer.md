@@ -1,0 +1,3 @@
+Added a reusable [ExternalLink component](/app/src/components/views/elements/ExternalLink.tsx) with a decorative icon, an accessible new-tab cue, and secure navigation defaults. Settings links now use it, and Profile Settings no longer has a separate icon-only link. The [Share dialog](/app/src/components/views/dialogs/ShareDialog.tsx) now gives its permalink a translated, descriptive label.
+
+The new component tests and existing settings tests pass. ESLint, Stylelint, and localization JSON validation pass. The project-wide TypeScript check remains blocked by errors in unchanged thread event code; details are in the [checkpoint](/app/.codex-role-output/checkpoint.md).

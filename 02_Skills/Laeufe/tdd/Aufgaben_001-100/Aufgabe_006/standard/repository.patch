@@ -1,0 +1,383 @@
+diff --git a/fanoutbuffer/buffer.go b/fanoutbuffer/buffer.go
+new file mode 100644
+index 0000000..0a3b854
+--- /dev/null
++++ b/fanoutbuffer/buffer.go
+@@ -0,0 +1,257 @@
++// Package fanoutbuffer provides an ordered, concurrent buffer with independent cursors.
++package fanoutbuffer
++
++import (
++	"context"
++	"errors"
++	"sync"
++	"time"
++
++	"github.com/jonboulle/clockwork"
++)
++
++var (
++	ErrGracePeriodExceeded = errors.New("fanoutbuffer: grace period exceeded")
++	ErrUseOfClosedCursor   = errors.New("fanoutbuffer: use of closed cursor")
++	ErrBufferClosed        = errors.New("fanoutbuffer: buffer closed")
++)
++
++// Config controls storage and the time allowed for a cursor to lag behind the ring.
++type Config struct {
++	Capacity    uint64
++	GracePeriod time.Duration
++	Clock       clockwork.Clock
++}
++
++// SetDefaults fills unset configuration fields.
++func (c *Config) SetDefaults() {
++	if c.Capacity == 0 {
++		c.Capacity = 64
++	}
++	if c.GracePeriod == 0 {
++		c.GracePeriod = 5 * time.Minute
++	}
++	if c.Clock == nil {
++		c.Clock = clockwork.NewRealClock()
++	}
++}
++
++// Buffer stores the newest items in a fixed ring and older unread items in overflow.
++// All state, including cursor positions, is protected by mu.
++type Buffer[T any] struct {
++	mu            sync.Mutex
++	cfg           Config
++	ring          []T
++	start, end    uint64
++	ringClean     uint64
++	overflow      []T
++	overflowStart uint64
++	cursors       map[*Cursor[T]]struct{}
++	notify        chan struct{}
++	closed        bool
++}
++
++// NewBuffer creates an empty fanout buffer.
++func NewBuffer[T any](cfg Config) *Buffer[T] {
++	cfg.SetDefaults()
++	return &Buffer[T]{cfg: cfg, ring: make([]T, cfg.Capacity), cursors: make(map[*Cursor[T]]struct{}), notify: make(chan struct{})}
++}
++
++// Cursor tracks one consumer's position in a buffer.
++type Cursor[T any] struct {
++	buffer   *Buffer[T]
++	pos      uint64
++	deadline time.Time
++	closed   bool
++	expired  bool
++}
++
++// NewCursor starts a consumer at the current end of the buffer.
++func (b *Buffer[T]) NewCursor() *Cursor[T] {
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	c := &Cursor[T]{buffer: b, pos: b.end}
++	if !b.closed {
++		b.cursors[c] = struct{}{}
++	}
++	return c
++}
++
++func (b *Buffer[T]) signal() {
++	close(b.notify)
++	b.notify = make(chan struct{})
++}
++
++func (b *Buffer[T]) expire() {
++	now := b.cfg.Clock.Now()
++	for c := range b.cursors {
++		if !c.deadline.IsZero() && !now.Before(c.deadline) {
++			c.expired = true
++			delete(b.cursors, c)
++		}
++	}
++}
++
++func (b *Buffer[T]) cleanup() {
++	min := b.end
++	for c := range b.cursors {
++		if c.pos < min {
++			min = c.pos
++		}
++	}
++	if b.ringClean < b.start {
++		b.ringClean = b.start
++	}
++	var zero T
++	for b.ringClean < min {
++		b.ring[b.ringClean%uint64(len(b.ring))] = zero
++		b.ringClean++
++	}
++	if min > b.overflowStart {
++		drop := min - b.overflowStart
++		if drop > uint64(len(b.overflow)) {
++			drop = uint64(len(b.overflow))
++		}
++		for i := uint64(0); i < drop; i++ {
++			b.overflow[i] = zero
++		}
++		b.overflow = b.overflow[drop:]
++		b.overflowStart += drop
++		if len(b.overflow) == 0 {
++			b.overflow = nil
++			b.overflowStart = b.start
++		}
++	}
++}
++
++// Append publishes items in argument order. Appending after Close has no effect.
++func (b *Buffer[T]) Append(items ...T) {
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if b.closed || len(items) == 0 {
++		return
++	}
++	b.expire()
++	b.cleanup()
++	min := b.end
++	for c := range b.cursors {
++		if c.pos < min {
++			min = c.pos
++		}
++	}
++	for _, item := range items {
++		if b.end-b.start == uint64(len(b.ring)) {
++			if min <= b.start {
++				if len(b.overflow) == 0 {
++					b.overflowStart = b.start
++				}
++				b.overflow = append(b.overflow, b.ring[b.start%uint64(len(b.ring))])
++			}
++			var zero T
++			b.ring[b.start%uint64(len(b.ring))] = zero
++			b.start++
++		}
++		b.ring[b.end%uint64(len(b.ring))] = item
++		b.end++
++	}
++	if b.start > min {
++		deadline := b.cfg.Clock.Now().Add(b.cfg.GracePeriod)
++		for c := range b.cursors {
++			if c.pos < b.start && c.deadline.IsZero() {
++				c.deadline = deadline
++			}
++		}
++	}
++	b.cleanup()
++	b.signal()
++}
++
++// TryRead copies available items into out without waiting.
++func (c *Cursor[T]) TryRead(out []T) (int, error) {
++	b := c.buffer
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if c.closed {
++		return 0, ErrUseOfClosedCursor
++	}
++	if b.closed {
++		return 0, ErrBufferClosed
++	}
++	b.expire()
++	if c.expired {
++		b.cleanup()
++		return 0, ErrGracePeriodExceeded
++	}
++	if len(out) == 0 {
++		return 0, nil
++	}
++	n := 0
++	for n < len(out) && c.pos < b.end {
++		if c.pos < b.start {
++			out[n] = b.overflow[c.pos-b.overflowStart]
++		} else {
++			out[n] = b.ring[c.pos%uint64(len(b.ring))]
++		}
++		c.pos++
++		n++
++	}
++	if c.pos >= b.start {
++		c.deadline = time.Time{}
++	}
++	b.cleanup()
++	return n, nil
++}
++
++// Read waits for at least one item, closure, or context cancellation.
++func (c *Cursor[T]) Read(ctx context.Context, out []T) (int, error) {
++	for {
++		n, err := c.TryRead(out)
++		if n != 0 || err != nil || len(out) == 0 {
++			return n, err
++		}
++		b := c.buffer
++		b.mu.Lock()
++		if c.pos < b.end || c.closed || b.closed {
++			b.mu.Unlock()
++			continue
++		}
++		ch := b.notify
++		b.mu.Unlock()
++		select {
++		case <-ch:
++		case <-ctx.Done():
++			return 0, ctx.Err()
++		}
++	}
++}
++
++// Close releases a cursor's retained items and wakes any blocked read.
++func (c *Cursor[T]) Close() error {
++	b := c.buffer
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if c.closed {
++		return nil
++	}
++	c.closed = true
++	delete(b.cursors, c)
++	if !b.closed {
++		b.cleanup()
++	}
++	b.signal()
++	return nil
++}
++
++// Close permanently closes the buffer and wakes blocked readers.
++func (b *Buffer[T]) Close() {
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if b.closed {
++		return
++	}
++	b.closed = true
++	b.ring = nil
++	b.overflow = nil
++	b.cursors = nil
++	b.signal()
++}
+diff --git a/fanoutbuffer/buffer_test.go b/fanoutbuffer/buffer_test.go
+new file mode 100644
+index 0000000..2333f68
+--- /dev/null
++++ b/fanoutbuffer/buffer_test.go
+@@ -0,0 +1,114 @@
++package fanoutbuffer
++
++import (
++	"context"
++	"errors"
++	"reflect"
++	"testing"
++	"time"
++
++	"github.com/jonboulle/clockwork"
++)
++
++func TestCursorsReadEveryItemInOrderAcrossOverflow(t *testing.T) {
++	b := NewBuffer[int](Config{Capacity: 2})
++	fast, slow := b.NewCursor(), b.NewCursor()
++	b.Append(1, 2, 3, 4)
++	for _, cursor := range []*Cursor[int]{fast, slow} {
++		out := make([]int, 4)
++		n, err := cursor.TryRead(out)
++		if err != nil || n != 4 || !reflect.DeepEqual(out, []int{1, 2, 3, 4}) {
++			t.Fatalf("read = %v, %v; want [1 2 3 4], nil", out[:n], err)
++		}
++	}
++}
++
++func TestOverflowExpiresOnlySlowCursor(t *testing.T) {
++	clock := clockwork.NewFakeClock()
++	b := NewBuffer[int](Config{Capacity: 2, GracePeriod: time.Minute, Clock: clock})
++	slow, fast := b.NewCursor(), b.NewCursor()
++	b.Append(1, 2, 3)
++	out := make([]int, 3)
++	if n, err := fast.TryRead(out); n != 3 || err != nil {
++		t.Fatalf("fast read = %d, %v", n, err)
++	}
++	clock.Advance(time.Minute)
++	if _, err := slow.TryRead(out); !errors.Is(err, ErrGracePeriodExceeded) {
++		t.Fatalf("slow read error = %v, want ErrGracePeriodExceeded", err)
++	}
++	b.Append(4)
++	if n, err := fast.TryRead(out); n != 1 || err != nil || out[0] != 4 {
++		t.Fatalf("fast read = %d, %v, %v", n, err, out[:n])
++	}
++}
++
++func TestReadWakesAndCloseTerminates(t *testing.T) {
++	b := NewBuffer[string](Config{})
++	c := b.NewCursor()
++	result := make(chan error, 1)
++	go func() {
++		out := make([]string, 1)
++		n, err := c.Read(context.Background(), out)
++		if n != 1 || out[0] != "hello" {
++			result <- errors.New("wrong read result")
++			return
++		}
++		result <- err
++	}()
++	b.Append("hello")
++	select {
++	case err := <-result:
++		if err != nil {
++			t.Fatal(err)
++		}
++	case <-time.After(5 * time.Second):
++		t.Fatal("read did not wake")
++	}
++	b.Close()
++	if _, err := c.TryRead(make([]string, 1)); !errors.Is(err, ErrBufferClosed) {
++		t.Fatalf("after buffer close: %v", err)
++	}
++}
++
++func TestLastCursorCloseReleasesRetainedValues(t *testing.T) {
++	b := NewBuffer[*int](Config{Capacity: 2})
++	c := b.NewCursor()
++	v := 1
++	b.Append(&v)
++	if err := c.Close(); err != nil {
++		t.Fatal(err)
++	}
++	for _, item := range b.ring {
++		if item != nil {
++			t.Fatal("ring retains value after final cursor closes")
++		}
++	}
++}
++
++func TestBlockedReadWakesOnCursorClose(t *testing.T) {
++	b := NewBuffer[int](Config{})
++	c := b.NewCursor()
++	result := make(chan error, 1)
++	go func() { _, err := c.Read(context.Background(), make([]int, 1)); result <- err }()
++	if err := c.Close(); err != nil {
++		t.Fatal(err)
++	}
++	select {
++	case err := <-result:
++		if !errors.Is(err, ErrUseOfClosedCursor) {
++			t.Fatalf("read error = %v", err)
++		}
++	case <-time.After(5 * time.Second):
++		t.Fatal("read did not wake")
++	}
++}
++
++func TestCursorCloseAfterBufferClose(t *testing.T) {
++	b := NewBuffer[int](Config{Capacity: 2})
++	c := b.NewCursor()
++	b.Append(1)
++	b.Close()
++	if err := c.Close(); err != nil {
++		t.Fatal(err)
++	}
++}

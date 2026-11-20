@@ -1,0 +1,3 @@
+Implemented `DefaultConfig()` and exported `DecodeHooks`, with `Load` composing the same hooks. Added the `version` mapstructure tag and changed storage’s `Local` and `Git` fields to pointers with nil-safe validation. The existing tests now use the exported defaults, and a new test checks duration decoding through the exported hooks.
+
+`GOPROXY=off go test ./internal/config ./internal/cmd` and `git diff --check` pass. The described `schema_test.go` is absent from this checkout, so I could not run that exact CUE validation test.

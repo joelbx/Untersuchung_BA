@@ -1,0 +1,5 @@
+Implemented `scrolling.bar=overlay` with the QtWebEngine, Qt ≥ 5.11, and non-macOS gate. Legacy `False` values now migrate to `overlay`; the `@js_headers` tag skips Qt 5.12–5.14. Updated flag tests to ignore argument order.
+
+Validation passed: config files (159 passed, 1 skipped), config data (31 passed), and `TestQtArgs` (62 passed). The misc end-to-end scenarios collected successfully (74 scenarios). The full `test_configinit.py` run exited near completion without pytest’s usual summary, though its modified `TestQtArgs` class passed.
+
+Changes are in [configinit.py](/app/qutebrowser/config/configinit.py:286), [configdata.yml](/app/qutebrowser/config/configdata.yml:1488), [configfiles.py](/app/qutebrowser/config/configfiles.py:321), and [end2end/conftest.py](/app/tests/end2end/conftest.py:122).

@@ -1,0 +1,3 @@
+Extracted the inline role documentation logic into `RoleMixin._build_doc` in [doc.py](/app/lib/ansible/cli/doc.py:232). It returns `(fqcn, doc)` with the existing document keys, or `(fqcn, None)` when no entry points match. `_create_role_doc` now uses that return value.
+
+Added direct coverage in [test_doc.py](/app/test/units/cli/test_doc.py:37). All 17 tests in that file pass with `PYTHONPATH=/app/lib`; `git diff --check` also passes.

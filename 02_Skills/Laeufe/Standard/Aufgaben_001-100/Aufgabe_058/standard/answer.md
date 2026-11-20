@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts) to validate configuration, enforce DNT and anonymity consistently, guard and await event capture, hash user and room IDs, redact URLs by mode, and provide the requested state and logout methods. Expanded the [focused tests](/app/test/PosthogAnalytics-test.ts).
+
+All 22 focused tests pass; lint and `git diff --check` pass. The repository-wide TypeScript check remains blocked by existing dependency and unrelated source errors; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

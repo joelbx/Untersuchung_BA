@@ -1,0 +1,7 @@
+# Fault localization progress
+
+Diagnosis: In this checkout, `_get_color_percentage` and `interpolate_color` are still defined in `qutebrowser/utils/utils.py` (lines 236 and 260). `qtutils.py` has `ensure_valid` (line 171) but no interpolation helper. Three production calls still target `utils.interpolate_color`: `DownloadItem.get_status_color` in `browser/downloads.py:563`, and `TabbedBrowser._on_load_progress` / `_on_load_finished` in `mainwindow/tabbedbrowser.py:866,883`. Both caller modules already import `qtutils`. Moving the helper without redirecting all three calls causes the reported AttributeError.
+
+Existing interpolation tests are in `tests/unit/utils/test_utils.py:162-262` and call `utils.interpolate_color`; no direct progress-color assertions were found in `tests/unit/browser/test_downloads.py` or `tests/unit/mainwindow/test_tabbedbrowser.py`. Focused existing tests: 17 passed (`python -m pytest -q tests/unit/utils/test_utils.py::TestInterpolateColor`).
+
+Expected fix coverage: move both functions and their type imports to `qtutils.py`, keep RGB/HSV/HSL component and alpha interpolation, validation via `ensure_valid`, returned start color spec, and None colorspace threshold behavior; redirect all three production calls and relocate/update tests. Caveat: current None branch bypasses percent range validation and constructs an RGB QColor, so the stated universal validation and returned-spec requirements need deliberate handling. No project source or tests changed in this role.

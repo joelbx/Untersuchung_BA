@@ -1,0 +1,3 @@
+`Booknotes.update_work_id` now preserves every booknote when the target work ID already has notes. It returns the required dictionary with `rows_changed: 0`, `rows_deleted: 0`, and `failed_deletes: 1` for a conflict. The admin caller now retains that dictionary in its response.
+
+Verification: all 6 tests in `openlibrary/tests/core/test_db.py` passed, and `git diff --check` passed. No delegation was used.

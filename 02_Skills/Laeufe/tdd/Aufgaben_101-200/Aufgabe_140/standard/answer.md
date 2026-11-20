@@ -1,0 +1,3 @@
+Host blocking now checks the request host and each parent domain against both block sets. It checks whitelist rules first, preserves the first-party blocking toggle, and treats trailing-dot hosts like their non-trailing forms. I added `widened_hostnames` and regression tests for those cases.
+
+The affected test files passed: **435 passed, 1 skipped**. The full suite remains unverified: it reported an end-to-end startup error in `test_open_s[http://]` because QtWebKit is unavailable, then timed out after 120 seconds. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

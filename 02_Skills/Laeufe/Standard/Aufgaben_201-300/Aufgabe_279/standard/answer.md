@@ -1,0 +1,3 @@
+Extracted payment verification into `VerifyPayment`, `getDefaultVerifyPayment`, and `getCreatePaymentToken` in [paymentTokenHelper.tsx](/app/packages/components/containers/payments/paymentTokenHelper.tsx). The five named components and the additional single-signup caller now use the reusable handler. Chargeable tokens return immediately; pending tokens invoke verification; terminal creation statuses reject.
+
+Both affected TypeScript projects pass. The payment helper, verification modal, edit card, and subscription tests pass. Two `CreditsModal` tests still fail because they expect `PaymentMethodID` in the credit request, while the existing token conversion returns only `Payment`.

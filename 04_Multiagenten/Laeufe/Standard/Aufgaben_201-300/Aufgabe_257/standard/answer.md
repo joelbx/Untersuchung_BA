@@ -1,0 +1,3 @@
+Updated the repository so tsh command handlers return errors to `Run`, which now returns them to callers and accepts runtime options after argument parsing. Added the `SSOLoginFunc` hook and passed it from tsh configuration to the client. Auth and proxy setup now propagates addresses assigned by their listeners, including random ports.
+
+Focused tests passed in `tool/tsh`, `lib/client`, and `lib/service`.

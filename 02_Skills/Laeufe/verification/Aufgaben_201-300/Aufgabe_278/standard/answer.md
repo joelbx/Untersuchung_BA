@@ -1,0 +1,3 @@
+Updated the mailbox list so requests wait for pending backend item operations, loading reflects the current page and query, and stale responses are rejected before reaching the list. API failures retry after 2 seconds; stale responses retry after 1 second. Added tests for the counter, loading state, and both retry paths.
+
+Verification: the mail TypeScript check passed; the mailbox and element-state suites passed **17/17 tests**. Jest reported an open-handle notice after the combined run.

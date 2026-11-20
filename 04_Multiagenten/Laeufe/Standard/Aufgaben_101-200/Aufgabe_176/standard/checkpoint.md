@@ -1,0 +1,3 @@
+Task: Fix incdec_number URL matching, decrement validation, and encoded data preservation.
+Status: Complete. Implemented first valid numeric match in path, query, anchor, host order per the final explicit requirement. Port is accepted for compatibility but never edited. Count and operation validated; percent triplets skipped; fully encoded component getters and StrictMode setters preserve encoded data. Updated existing tests and added regressions.
+Verification: 128 TestIncDecNumber tests passed; git diff --check passed. Full test_urlutils.py progressed through incdec tests, then aborted during Qt application fixture startup in an unrelated test.

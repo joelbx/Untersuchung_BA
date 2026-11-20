@@ -1,0 +1,3 @@
+Implemented preview support for `/api/import` and `/api/import/ia`, with UUID-based placeholder keys, an `edits` list, cover acceptance reporting, and no persistence, cover uploads, or Archive.org metadata updates in preview mode. Added case-insensitive cover host validation and the renamed author and edition conversion functions, retaining aliases for existing callers.
+
+Python compilation succeeded. The focused existing test run stopped at a legacy cover test that expects an upload from `www.covers.org`, which is outside the enforced allow-list. The checkpoint is in `.codex-role-output/checkpoint.md`.

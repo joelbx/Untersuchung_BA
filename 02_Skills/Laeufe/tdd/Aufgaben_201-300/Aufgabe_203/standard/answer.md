@@ -1,0 +1,3 @@
+Added a reusable `ExternalLink` component with a decorative icon, a screen reader cue that it opens in a new tab, and secure navigation defaults. Migrated the settings links that open new tabs, including Profile Settings, and removed its separate icon-only link. Share dialog URLs now have localized, target-specific accessible labels.
+
+The three new focused tests pass. ESLint, stylelint, and `git diff --check` pass. The full suite still fails in `SpaceStore-test.ts` (timer limit) and `PollCreateDialog-test.tsx` (snapshots); type checking reports errors in existing thread files. These failures are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

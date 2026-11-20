@@ -1,0 +1,3 @@
+Added `checkEventValidity` with distinct results for invalid dates, pre-1970 starts, and start/end ordering, checked in that priority order. [Manual saves](/app/src/calendar/date/CalendarEventViewModel.ts) and [ICS imports](/app/src/calendar/export/CalendarParser.ts) now reject those events; ICS parsing also preserves valid one-second events.
+
+Two subagents handled the manual-save and import paths. I reviewed the combined patch and ran `npm run test:app`: **all 8,019 assertions passed**. `git diff --check` passed.

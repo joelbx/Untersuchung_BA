@@ -1,0 +1,5 @@
+The failure is localized to [getDateValue](/app/packages/shared/lib/contacts/helpers/csvFormat.ts:592), which uses ISO parsing alone. [getDateFromVCardProperty](/app/packages/shared/lib/contacts/property.ts:137) parses text separately and substitutes today when parsing fails, contrary to the requested unset behavior.
+
+A shared `guessDateFromText` should validate ISO dates and the listed common formats, return `undefined` on failure, and preserve an existing valid `Date` in `getDateFromVCardProperty`. [vCard serialization](/app/packages/shared/lib/contacts/vcard.ts:225) formats the date in local time, so parsing must preserve the intended calendar day. The [current tests](/app/packages/shared/test/contacts/property.spec.ts:17) expect today for invalid input and would need updating.
+
+**No project source or tests were changed or run.** The specialist assignment restricted this pass to diagnosis; I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

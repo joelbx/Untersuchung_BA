@@ -1,0 +1,3 @@
+# Fault-localization checkpoint
+
+Inspection complete. `paymentTokenHelper.tsx` owns token creation, modal rendering, and verification polling. `createPaymentToken` takes `createModal`; five named callers pass it directly. Chargeable tokens already return immediately; all other statuses currently open the modal, including terminal failures. `process` rejects on tab close and abort, and its `wait` based loops can continue until a pending timer fires. Existing helper tests assert rejection on these paths and use real-time delay; these expectations conflict with the requested resolve-on-close/cancel semantics. No project source or tests changed.

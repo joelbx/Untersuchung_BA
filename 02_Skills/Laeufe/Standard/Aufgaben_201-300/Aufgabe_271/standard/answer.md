@@ -1,0 +1,3 @@
+Fixed the IA import fallback so `London ; New York ; Paris : Berlitz Publishing` produces `publish_places: ["London", "New York", "Paris"]` and `publishers: ["Berlitz Publishing"]`. It now handles ordered location and publisher pairs, keeps publisher names in a list, and classifies trimmed ISBNs by length through [isbn.py](/app/openlibrary/utils/isbn.py).
+
+The focused test suite passed: **51 tests**. `git diff --check` passed. Ruff could not run because it is not installed; that check is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

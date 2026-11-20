@@ -1,0 +1,3 @@
+Removed `ListMixin` and moved its methods into `List`. The owner method now parses `/people/{username}/lists/{list_id}` and returns the user object when found, or `None` otherwise. Added `register_models()` in [openlibrary/core/lists/model.py](/app/openlibrary/core/lists/model.py) to register `List` as `/type/list` and `ListChangeset` as `lists`.
+
+The core list tests and focused owner and registration checks pass. The plugin list suite has one failure caused by a missing `web.ctx.env` test context; the list API suite cannot collect because `cookielib` is unavailable.

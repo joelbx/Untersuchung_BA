@@ -1,0 +1,3 @@
+Added JXL MIME and extension support, and enabled HEIC, HEIF, and JXL previews for macOS and iOS Safari 17+ in [mimetype.ts](/app/packages/shared/lib/helpers/mimetype.ts) and [constants.ts](/app/packages/shared/lib/drive/constants.ts). Both Drive MIME parsers now prefer a specific file type and use the extension when the type is empty or generic.
+
+Two delegated agents added regression tests. The combined run passed **12 tests across 3 suites**; targeted ESLint and Prettier checks passed. Type checks remain blocked by errors in unrelated crypto, docs, and config files. The shared browser test runner could not start because its local Chromium binary is missing.

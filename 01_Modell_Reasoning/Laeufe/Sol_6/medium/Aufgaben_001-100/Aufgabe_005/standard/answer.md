@@ -1,0 +1,3 @@
+Qt wrapper initialization now runs during early startup and passes its `SelectionInfo` to the availability checker. When no wrapper imports, it raises `NoWrapperAvailableError` with the required message and import details. Implicit initialization, diagnostic formatting, and debug logging now use the same selection info.
+
+Updated the relevant tests. **53 tests passed**, and `git diff --check` passed.

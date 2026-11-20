@@ -1,0 +1,3 @@
+Added `ident` support to `password_hash` and both hashing backends. The password lookup now defaults `encrypt=bcrypt` to `2a` and saves the chosen ident beside the salt so later runs reproduce it. Existing behavior for other algorithms is preserved.
+
+The relevant unit suites passed: **52 tests**. No delegation was used. This system’s `crypt` library rejects `$2$`; that backend now raises an error instead of returning its failure marker as a hash.

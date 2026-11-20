@@ -1,0 +1,3 @@
+Implemented priority-based author matching in the checked-out repository: Open Library key, then external `remote_ids`, then name and dates. Imports now preserve IDs on new authors, save compatible IDs to matched authors, use deterministic tie-breaking, and raise `AuthorRemoteIdConflictError` for conflicting IDs. Added the `wikisource` suspect-date exemption and updated [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+Verification: **188 tests passed** in the add-book and core model suites. Ruff and `git diff --check` passed.

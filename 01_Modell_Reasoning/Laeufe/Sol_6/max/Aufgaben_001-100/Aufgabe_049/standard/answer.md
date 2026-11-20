@@ -1,0 +1,3 @@
+Implemented the email confirmation fix. Confirmation codes now have a UID lookup key and an explicit expiry timestamp. Resends can recover an address from an expired confirmation, force validation can use that address, stale codes are rejected, and user deletion removes the confirmation keys. The ACP now displays all four email states. See [email.js](/app/src/user/email.js) and [users.tpl](/app/src/views/admin/manage/users.tpl).
+
+Focused user, admin socket, and ACP status tests pass; lint and template compilation pass. Broader suites hit unrelated existing failures: an invitation group join test, an admin 404 expectation, and an external request in the socket suite.

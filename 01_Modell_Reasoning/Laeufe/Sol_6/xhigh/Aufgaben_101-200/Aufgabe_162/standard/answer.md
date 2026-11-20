@@ -1,0 +1,3 @@
+FormatString now validates its input against an optional encoding during `to_py`. The user agent setting requires ASCII, while FormatString settings without an encoding constraint continue to accept Unicode.
+
+The config type and data tests passed (1,140 passed, 10 expected failures), and the new config API tests passed. One broader web settings test could not run because the optional `PyQt5.QtWebKit` module is unavailable.

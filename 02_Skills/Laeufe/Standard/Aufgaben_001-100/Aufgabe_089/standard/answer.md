@@ -1,0 +1,3 @@
+Resolved the reference validation gap. `Validate` now returns one error that can be unwrapped into individual issues with file, line, and column locations. Snapshot creation checks references, and import checks rule references before writing resources, so repeated imports of an invalid file fail consistently.
+
+The focused tests passed: `go test ./internal/cue ./internal/storage/fs ./internal/ext ./cmd/flipt`.

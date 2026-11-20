@@ -1,0 +1,3 @@
+Implemented `guessDateFromText` and wired it into CSV and vCard contact date conversion. Valid existing dates are preserved; unparseable text leaves the date unset. Regression tests cover the requested formats, invalid dates, and CSV-to-vCard calendar-day serialization.
+
+Type checking and lint passed. In the full shared suite, all contact date tests passed; two unrelated existing tests failed: cookie expiration and empty-file base64.

@@ -1,0 +1,3 @@
+Implemented `timeOffset` support for transcoded streams. The public and Subsonic stream handlers parse it, default missing or invalid values to 0, and pass it through the streaming and FFmpeg call chain. FFmpeg templates use `%t`; commands without that placeholder add `-ss` after the input path for nonzero offsets. Cache keys now distinguish offsets, and the OpenSubsonic response advertises support.
+
+Updated mocks and tests. `go test ./core/ffmpeg ./core ./server/public ./server/subsonic ./tests` and `git diff --check` pass.

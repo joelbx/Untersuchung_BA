@@ -1,0 +1,3 @@
+Implemented date based module deprecations across Python module output, parameter and alias handling, display, C#, and validate-modules. `exit_json()` preserves recorded deprecations before supplied entries, and the C# `DateTime` overload logs dates as `yyyy-MM-dd`.
+
+Verification: 21 focused tests passed; Python compilation and `git diff --check` passed. The validate-modules unit test could not collect because the local `voluptuous` dependency is unavailable.

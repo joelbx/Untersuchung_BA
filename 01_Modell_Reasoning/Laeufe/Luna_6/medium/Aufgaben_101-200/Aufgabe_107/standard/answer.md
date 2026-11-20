@@ -1,0 +1,3 @@
+Implemented mark-as-aware bypass filtering. The optimistic action now carries `markAsStatus`, and the reducer adds or removes bypass IDs based on the active unread filter. Added `getElementsToBypassFilter` in [elementBypassFilters.ts](/app/applications/mail/src/app/logic/elements/helpers/elementBypassFilters.ts).
+
+`git diff --check` passes. Jest did not complete: the installed runner failed during parsing before executing tests. The checkpoint is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

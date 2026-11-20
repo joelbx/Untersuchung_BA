@@ -1,0 +1,3 @@
+Implemented token accounting for `Chat.Complete` and `Agent.PlanAndExecute`. Both now return a non-nil `*model.TokenCount`; the agent aggregates prompt and completion counts across steps, including streamed responses. Assist and web callers now use the returned count.
+
+The model counter tests and `git diff --check` pass. Broader AI and Assist tests could not run because this environment lacks required HID and libc C headers; disabling CGO also breaks the HID dependency.

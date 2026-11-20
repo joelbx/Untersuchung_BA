@@ -1,0 +1,9 @@
+The failure spans scanning, CVE aggregation, and reporting:
+
+- [scan/base.go](/app/scan/base.go:526) analyzes the lockfiles together, so per-file analysis is the first fix point. [scan/library.go](/app/scan/library.go:10) then converts analysis results into `LibraryScanner` entries.
+- [models/library.go](/app/models/library.go:22) finds libraries by name alone, and `getVulnDetail` creates `LibraryFixedIn` without a path. Its `Scan` method also uses a driver initializer with a nil check rather than an error-returning initializer.
+- [libManager.go](/app/libmanager/libManager.go:41) overwrites an earlier finding when another lockfile produces the same CVE. [TUI](/app/report/tui.go:747) and [util reporting](/app/report/util.go:294) then match each finding to every lockfile containing that library name, which can pair the wrong version with a fixed version.
+
+The fix should preserve each lockfile’s path through analysis and `LibraryFixedIn`, merge same-CVE fixed-in entries, and resolve reported versions by `(path, name)`. Cover two lockfiles with the same library at different versions, including a shared CVE. One additional edge case needs checking: [getVulnDetail](/app/models/library.go:91) creates no `LibraryFixedIn` when `FixedVersion` is empty, so those findings may still lack a reportable path.
+
+I updated [checkpoint.md](/app/.codex-role-output/checkpoint.md) with the diagnosis. **No project source or tests were edited:** the assigned fault-localization role explicitly limits this pass to inspection. The exact `AnalyzeFile` and error-returning driver signatures remain unverified from repository code.

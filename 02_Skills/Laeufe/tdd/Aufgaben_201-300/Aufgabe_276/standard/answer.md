@@ -1,0 +1,3 @@
+GitHub and enabled OIDC configurations now fail startup validation when `client_id`, `client_secret`, or `redirect_address` is empty. Errors identify the provider and field in the requested format. The GitHub `read:org` check now returns the requested provider-specific message.
+
+Regression tests and `go test ./internal/config -count=1` pass. The full `GOPROXY=off go test ./...` run did not pass: Redis tests require an unavailable Docker daemon, and `Test_FS_Submodule` received `Forbidden` from GitHub. I recorded those limits in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

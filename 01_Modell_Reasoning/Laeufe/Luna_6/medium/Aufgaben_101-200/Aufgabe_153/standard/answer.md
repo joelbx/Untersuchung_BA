@@ -1,0 +1,3 @@
+Implemented share ID isolation for internal invitations, external invitations, and members in both Drive store copies. Each store now has per share getters and updates; missing shares return empty arrays. The member view uses its current share’s data, and the new `getExistingEmails` utility combines emails from all three lists.
+
+Validation passed: `yarn workspace @proton/drive-store check-types` and `git diff --check`. No existing tests directly cover these stores.

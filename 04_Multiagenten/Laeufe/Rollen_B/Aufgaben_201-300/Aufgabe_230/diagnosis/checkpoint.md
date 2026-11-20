@@ -1,0 +1,3 @@
+# Fault localization progress
+
+Inspected `scripts/affiliate_server.py` and `scripts/tests/test_affiliate_server.py`. The queue dataclass is `PrioritizedISBN` with `isbn`, `priority`, and `timestamp`; generated equality compares only priority/timestamp and the class is unhashable. `Submit.GET` tests a string against queued objects, so duplicates remain possible. `amazon_lookup` strips queue objects to strings, losing any future `stage_import` flag; `process_amazon_batch` stages every returned product. `to_dict` emits `isbn`, priority name, and ISO timestamp only. Existing tests cover only basic JSON conversion and ASIN parsing. Diagnosis only; no project source or tests modified.

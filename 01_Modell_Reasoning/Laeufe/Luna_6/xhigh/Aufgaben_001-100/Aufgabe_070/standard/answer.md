@@ -1,0 +1,3 @@
+Updated [format_languages](/app/openlibrary/catalog/utils/__init__.py:448) to resolve ISO-639-1 codes and English or translated language names to canonical MARC keys, then deduplicate while preserving first-seen order.
+
+The add-book tests passed (34/34), and a mock-record check of `German`, `Deutsch`, `es`, and `ger` produced `/languages/ger` and `/languages/spa` once each. `git diff --check` passed. The focused utility cases could not fully run because that test module leaves `web.ctx.site` unset.

@@ -1,0 +1,1 @@
+Implemented transformStyleAttributes to convert inline height values containing vh to auto for the root and descendants, preserving !important and unrelated styles. Integrated after transformStylesheet and before transformRemote. Added focused test; Jest reports PASS. git diff --check passed. Jest process lingers after reporting PASS in this environment.

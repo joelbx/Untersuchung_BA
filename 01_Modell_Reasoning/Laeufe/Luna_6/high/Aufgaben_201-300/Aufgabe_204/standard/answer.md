@@ -1,0 +1,3 @@
+Implemented shared text date parsing in [property.ts](/app/packages/shared/lib/contacts/property.ts) and used it for CSV imports and vCard text conversion. Invalid or missing vCard dates now remain unset. Valid dates continue through the existing vCard serializer, which emits their calendar fields.
+
+Targeted ESLint and `git diff --check` passed. The shared test bundle compiled, but Karma could not launch because its configured Chromium binary is missing. The shared type check produced no diagnostics.

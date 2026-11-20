@@ -1,0 +1,3 @@
+Fixed `vuls report` compatibility with legacy scan results. `AffectedProcess` now accepts string `listenPorts` and the structured format used by affected newer results. Scans use `ListenPortStats` for destination selection and reachability, while reports display either format.
+
+Three subagents handled the model, destination selection, and reachability changes; I integrated the scan collection and report changes. `GOPROXY=off GOSUMDB=off go test ./models ./scan ./report -count=1` and `git diff --check` passed.

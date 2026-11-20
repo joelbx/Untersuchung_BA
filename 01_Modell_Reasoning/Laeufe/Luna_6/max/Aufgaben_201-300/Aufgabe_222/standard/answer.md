@@ -1,0 +1,3 @@
+Extracted role documentation construction into [`RoleMixin._build_doc`](</app/lib/ansible/cli/doc.py:182>). It returns `(fqcn, doc)`, filters entry points, preserves their full specs and the supplied `path` and `collection`, and returns `(fqcn, None)` when no entries match. `_create_role_doc` now uses the helper.
+
+Validation: `test_doc.py` passed (14 tests), and compilation and `git diff --check` passed. The `ansible-test` wrapper could not run because its Python 3.8 environment lacks pytest and PyYAML.

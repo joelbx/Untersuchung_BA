@@ -1,0 +1,3 @@
+Updated [service.go](/app/lib/service/service.go:1222) so the auth listener’s bound address replaces `:0` in its configuration and matching `AuthServers` entries. Proxy listeners now include SSH, and their bound web, tunnel, kube, and SSH addresses are set before proxy settings and services are built.
+
+Validation passed: `git diff --check`, targeted service tests, and the full `go test ./lib/service -count=1` suite.

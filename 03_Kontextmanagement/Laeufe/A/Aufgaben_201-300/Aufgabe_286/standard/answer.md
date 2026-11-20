@@ -1,0 +1,3 @@
+Updated startup to use `release.Is(version)` and `release.Check(ctx, version)`. Release candidates, snapshots, and dev builds are classified as non-releases. Update messages and `info.Flipt` now use the returned `release.Info`; telemetry is disabled for non-release builds and when `CI` is `true` or `1`. Failed update checks log a warning and startup continues.
+
+Relevant tests passed for release, info, startup, telemetry, and metadata packages. `git diff --check` passed.

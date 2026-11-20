@@ -1,0 +1,3 @@
+Updated collection name validation to return `False` when either segment is a Python keyword or an invalid Python identifier. Galaxy requirement classification now uses the same validation method, and the legacy helpers and Python 2 fallback were removed from [dataclasses.py](/app/lib/ansible/galaxy/dependency_resolution/dataclasses.py).
+
+The regression test failed on the invalid names before the fix. After the fix, all 66 collection loader tests passed. Broader pytest runs did not pass: Galaxy tests encountered missing collection finder setup in the local invocation, and the full run timed out with other failures already present. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Startup now uses `release.Is(version)` and `release.Check(ctx, version)` for release status and updates. Builds ending in `-rc`, `-snapshot`, or `dev` are treated as non-releases, which disables telemetry. Update status comes from `release.Info`; failed checks log a warning and let startup continue.
+
+Verification passed: `GOPROXY=off go test ./internal/release ./cmd/flipt ./internal/info` and `git diff --check`.

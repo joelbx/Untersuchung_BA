@@ -1,0 +1,3 @@
+Updated the email confirmation flow in [src/user/email.js](/app/src/user/email.js): confirmations now use a user-to-code key and an explicit expiry timestamp. Admin validation can recover a pending address when the profile has no email, and deleting a user removes both confirmation keys. The [ACP user view](/app/src/views/admin/manage/users.tpl) now shows Validated, Validation Pending, Validation Expired, or (no email).
+
+Verification: the focused confirmation tests pass (5/5), ESLint passes, and the ACP template compiles. The full `test/user.js` run still fails in an invitation group membership test after 173 passing tests. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

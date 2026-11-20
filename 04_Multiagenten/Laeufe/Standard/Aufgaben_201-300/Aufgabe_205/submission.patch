@@ -1,0 +1,216 @@
+diff --git a/src/api/utils.js b/src/api/utils.js
+index 63d5473..c2cf4ed 100644
+--- a/src/api/utils.js
++++ b/src/api/utils.js
+@@ -1,13 +1,102 @@
+ 'use strict';
+ 
+ const db = require('../database');
++const user = require('../user');
++const commonUtils = require('../utils');
+ 
+ const utils = module.exports;
+ 
+-// internal token management utilities only
++// Internal token management utilities only. API routes are responsible for authorization.
++utils.tokens = {};
+ 
+-utils.log = async (token) => {
++utils.tokens.list = async () => {
++	const tokens = await db.getSortedSetRange('tokens:createtime', 0, -1);
++	return await utils.tokens.get(tokens);
++};
++
++utils.tokens.generate = async ({ uid, description = '' }) => {
++	const numericUid = Number(uid);
++	if (uid === null || uid === undefined || !Number.isInteger(numericUid) || numericUid < 0) {
++		throw new Error('[[error:invalid-data]]');
++	}
++	if (numericUid !== 0 && !await user.exists(numericUid)) {
++		throw new Error('[[error:no-user]]');
++	}
++
++	const token = commonUtils.generateUUID();
++	const timestamp = Date.now();
++	await db.setObject(`token:${token}`, {
++		uid: numericUid,
++		description: description,
++		timestamp: timestamp,
++	});
++	await Promise.all([
++		db.sortedSetAdd('tokens:createtime', timestamp, token),
++		db.sortedSetAdd('tokens:uid', numericUid, token),
++	]);
++	return token;
++};
++
++utils.tokens.get = async (tokens) => {
++	if (tokens === null || tokens === undefined) {
++		throw new Error('[[error:invalid-data]]');
++	}
++	const single = !Array.isArray(tokens);
++	const tokenList = single ? [tokens] : tokens;
++	if (tokenList.some(token => typeof token !== 'string' || !token)) {
++		throw new Error('[[error:invalid-data]]');
++	}
++	if (!tokenList.length) {
++		return [];
++	}
++	const [data, lastSeen] = await Promise.all([
++		db.getObjects(tokenList.map(token => `token:${token}`)),
++		utils.tokens.getLastSeen(tokenList),
++	]);
++	const result = tokenList.map((token, index) => {
++		if (!data[index]) {
++			return null;
++		}
++		return {
++			...data[index],
++			token: token,
++			uid: Number(data[index].uid),
++			timestamp: Number(data[index].timestamp),
++			lastSeen: lastSeen[index],
++		};
++	});
++	return single ? result[0] : result;
++};
++
++utils.tokens.update = async (token, { description }) => {
++	await db.setObjectField(`token:${token}`, 'description', description);
++	return await utils.tokens.get(token);
++};
++
++utils.tokens.delete = async (token) => {
++	await Promise.all([
++		db.delete(`token:${token}`),
++		db.sortedSetRemove('tokens:createtime', token),
++		db.sortedSetRemove('tokens:uid', token),
++		db.sortedSetRemove('tokens:lastSeen', token),
++	]);
++};
++
++utils.tokens.log = async (token) => {
+ 	await db.sortedSetAdd('tokens:lastSeen', Date.now(), token);
+ };
+ 
+-utils.getLastSeen = async tokens => await db.sortedSetScores('tokens:lastSeen', tokens);
++utils.tokens.getLastSeen = async (tokens) => {
++	if (!tokens.length) {
++		return [];
++	}
++	const scores = await db.sortedSetScores('tokens:lastSeen', tokens);
++	return scores.map((score) => {
++		const numericScore = Number(score);
++		return score !== null && Number.isFinite(numericScore) ? numericScore : null;
++	});
++};
++
++// Keep existing authentication and admin settings callers working.
++utils.log = utils.tokens.log;
++utils.getLastSeen = utils.tokens.getLastSeen;
+diff --git a/src/middleware/index.js b/src/middleware/index.js
+index 0c44b5c..adf53c8 100644
+--- a/src/middleware/index.js
++++ b/src/middleware/index.js
+@@ -128,7 +128,7 @@ middleware.prepareAPI = function prepareAPI(req, res, next) {
+ middleware.logApiUsage = async function logApiUsage(req, res, next) {
+ 	if (req.headers.hasOwnProperty('authorization')) {
+ 		const [, token] = req.headers.authorization.split(' ');
+-		await api.utils.log(token);
++		await api.utils.tokens.log(token);
+ 	}
+ 
+ 	next();
+diff --git a/src/routes/authentication.js b/src/routes/authentication.js
+index e2b1cd7..1672a6d 100644
+--- a/src/routes/authentication.js
++++ b/src/routes/authentication.js
+@@ -7,6 +7,7 @@ const BearerStrategy = require('passport-http-bearer').Strategy;
+ const winston = require('winston');
+ 
+ const meta = require('../meta');
++const apiUtils = require('../api/utils');
+ const controllers = require('../controllers');
+ const helpers = require('../controllers/helpers');
+ const plugins = require('../plugins');
+@@ -46,7 +47,7 @@ Auth.getLoginStrategies = function () {
+ 
+ Auth.verifyToken = async function (token, done) {
+ 	const { tokens = [] } = await meta.settings.get('core.api');
+-	const tokenObj = tokens.find(t => t.token === token);
++	const tokenObj = tokens.find(t => t.token === token) || await apiUtils.tokens.get(token);
+ 	const uid = tokenObj ? tokenObj.uid : undefined;
+ 
+ 	if (uid !== undefined) {
+diff --git a/test/authentication.js b/test/authentication.js
+index 7bb9968..28ee3dc 100644
+--- a/test/authentication.js
++++ b/test/authentication.js
+@@ -16,6 +16,7 @@ const meta = require('../src/meta');
+ const plugins = require('../src/plugins');
+ const privileges = require('../src/privileges');
+ const helpers = require('./helpers');
++const apiUtils = require('../src/api/utils');
+ 
+ describe('authentication', () => {
+ 	const jar = request.jar();
+@@ -670,5 +671,59 @@ describe('authentication', () => {
+ 			assert.strictEqual(res.statusCode, 200);
+ 			assert.strictEqual(body.username, 'apiUserTarget');
+ 		});
++
++		it('should manage indexed tokens through the internal utility and authenticate them', async () => {
++			const { tokens } = apiUtils;
++			assert.deepStrictEqual(await tokens.list(), []);
++			const before = Date.now();
++			const first = await tokens.generate({ uid: newUid, description: 'initial' });
++			const second = await tokens.generate({ uid: 0 });
++			try {
++				const stored = await db.getObject(`token:${first}`);
++				assert.strictEqual(Number(stored.uid), newUid);
++				assert.strictEqual(stored.description, 'initial');
++				assert(Number.isFinite(Number(stored.timestamp)));
++				assert(Number(stored.timestamp) >= before);
++				assert.strictEqual(await db.sortedSetScore('tokens:createtime', first), Number(stored.timestamp));
++				assert.strictEqual(await db.sortedSetScore('tokens:uid', first), newUid);
++				assert.deepStrictEqual(await tokens.get([]), []);
++				assert.deepStrictEqual(await tokens.getLastSeen([first, second]), [null, null]);
++				assert.deepStrictEqual((await tokens.get([first, second])).map(item => item.token), [first, second]);
++				const listed = await tokens.list();
++				assert(listed.some(item => item.token === first));
++				assert(listed.some(item => item.token === second));
++				assert(listed.every((item, index) => index === 0 || listed[index - 1].timestamp <= item.timestamp));
++
++				const updated = await tokens.update(first, { description: 'revised' });
++				assert.strictEqual(updated.description, 'revised');
++				assert.strictEqual(updated.timestamp, Number(stored.timestamp));
++				assert.strictEqual(updated.uid, newUid);
++				await tokens.log(first);
++				assert(Number.isFinite((await tokens.get(first)).lastSeen));
++				const seen = await tokens.getLastSeen([second, first]);
++				assert.strictEqual(seen[0], null);
++				assert(Number.isFinite(seen[1]));
++				const { res, body } = await helpers.request('get', '/api/self', {
++					json: true,
++					headers: { Authorization: `Bearer ${first}` },
++				});
++				assert.strictEqual(res.statusCode, 200);
++				assert.strictEqual(body.username, 'apiUserTarget');
++			} finally {
++				await tokens.delete(first);
++				await tokens.delete(second);
++			}
++			assert.strictEqual(await tokens.get(first), null);
++			assert.strictEqual(await db.sortedSetScore('tokens:createtime', first), null);
++			assert.strictEqual(await db.sortedSetScore('tokens:uid', first), null);
++			assert.strictEqual(await db.sortedSetScore('tokens:lastSeen', first), null);
++			assert.deepStrictEqual(await tokens.list(), []);
++		});
++
++		it('should reject missing token input and unknown users', async () => {
++			await assert.rejects(apiUtils.tokens.get(null), /\[\[error:invalid-data\]\]/);
++			await assert.rejects(apiUtils.tokens.get(undefined), /\[\[error:invalid-data\]\]/);
++			await assert.rejects(apiUtils.tokens.generate({ uid: 99999999 }), /\[\[error:no-user\]\]/);
++		});
+ 	});
+ });

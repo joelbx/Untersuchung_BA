@@ -1,0 +1,3 @@
+Implemented Teleport-Proxy SSH detection in [multiplexer.go](/app/lib/multiplexer/multiplexer.go). The multiplexer parses the null-terminated JSON payload, exposes a valid `ClientAddr` through [Conn.RemoteAddr()](/app/lib/multiplexer/wrappers.go), and replays the handshake so the SSH server can still read tracing context. Standard SSH connections retain their existing address behavior.
+
+`go test ./lib/multiplexer` and `go test ./lib/sshutils` passed. The API tracing SSH test could not run because its dependencies are unavailable with `GOPROXY=off`.

@@ -1,0 +1,3 @@
+Added `GET /.well-known/webfinger` through the new [controller](/app/src/controllers/well-known.js) and [router](/app/src/routes/well-known.js), and mounted it at startup. The handler validates the `acct:` resource and hostname, checks the `groups:view:users` permission using the Guest role for anonymous requests, and returns a WebFinger JSON response with profile aliases and a link. Invalid resources return 400, denied requests 403, and unknown users 404.
+
+ESLint, syntax checks, and isolated controller checks passed. The database-backed suite was not run because its setup reads and logs local configuration that may contain credentials.

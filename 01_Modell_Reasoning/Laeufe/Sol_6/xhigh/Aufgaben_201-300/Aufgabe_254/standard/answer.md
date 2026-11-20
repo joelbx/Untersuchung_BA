@@ -1,0 +1,3 @@
+Updated [ec2.go](/app/lib/utils/ec2.go:112) so `IsAvailable` retrieves the instance ID through IMDS within 250 ms and accepts only valid EC2 ID formats. The constructor now supports functional options, including `WithIMDSClient` for injecting a metadata client.
+
+Added [tests](/app/lib/utils/ec2_test.go:74) for valid IDs, captive portal HTML, malformed responses, timeout, and option errors. `go test ./lib/utils ./lib/labels/ec2 -count=1` passed.

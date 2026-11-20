@@ -1,0 +1,3 @@
+Implemented source-specific Trivy CVE content entries, preserving per-source severity, CVSS scores and vectors, references, and available publication dates. Updated model aggregation and TUI reference rendering, with support for Debian, Ubuntu, NVD, Red Hat, GHSA, and Oracle OVAL sources.
+
+Validation passed: `go test ./contrib/trivy/pkg ./models ./detector ./tui`; `git diff --check` also passed. The Trivy converter package and TUI have no test files.

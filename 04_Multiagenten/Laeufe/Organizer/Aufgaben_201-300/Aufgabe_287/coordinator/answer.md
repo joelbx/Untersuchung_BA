@@ -1,0 +1,3 @@
+Albums now store and expose full paths for images found in their media directories. The scanner collects image names during directory traversal, waits until the full directory map is available, and joins each album’s image paths with `filepath.ListSeparator` before saving it. The migration adds `image_files` and forces a full media rescan.
+
+Tests passed: `go test ./model ./scanner ./db ./persistence`. No delegation was used.

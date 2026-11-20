@@ -1,0 +1,3 @@
+Implemented fork-safe display forwarding through `DisplaySend` on the existing final queue. Parent display writes are protected by a lock, workers set the queue after forking, and the strategy result thread dispatches queued messages to the parent display. Removed the worker’s late stdout/stderr redirection and added stream flushing during manager cleanup.
+
+Verification: 4 tests passed, 9 skipped across the display, strategy, and task queue manager test files; `git diff --check` passed.

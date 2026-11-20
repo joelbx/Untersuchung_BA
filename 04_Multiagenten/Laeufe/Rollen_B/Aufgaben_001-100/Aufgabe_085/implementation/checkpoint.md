@@ -1,0 +1,1 @@
+Completed: diff now classifies CVEs by scan membership, supports plus/minus flags, sources package details by status, and displays status prefixes in text/CSV/TUI. Added model and report tests. Verified go test ./report ./models ./subcmds and git diff --check pass.

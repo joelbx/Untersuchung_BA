@@ -1,0 +1,3 @@
+Added per-ID `SetSeed` to the exported `Hasher` and the package API. Setting a seed now produces repeatable hashes for that identifier; reseeding changes them, and restoring the seed restores the original results. First use still initializes a seed automatically.
+
+Regression tests and the existing hasher, persistence, and database tests pass. The hasher race check also passes. Hash values remain stable within a running `Hasher`; its global `maphash` seed is regenerated when a new instance is created.

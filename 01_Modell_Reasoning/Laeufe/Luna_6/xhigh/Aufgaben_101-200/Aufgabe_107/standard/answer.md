@@ -1,0 +1,3 @@
+Implemented status-aware bypass filtering. Mark-as actions now pass `markAsStatus`; the reducer adds IDs that need bypassing and removes IDs that now match the active unread filter. Added the classification helper in [elementBypassFilters.ts](/app/applications/mail/src/app/logic/elements/helpers/elementBypassFilters.ts).
+
+Verification passed: app type check, mailbox element tests (12/12), and `git diff --check`.

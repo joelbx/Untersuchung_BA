@@ -1,0 +1,3 @@
+Implemented deterministic per-ID seeding in [hasher.go](/app/utils/hasher/hasher.go). `SetSeed` now produces repeatable hashes for the same input, reseeding changes the result, and restoring a seed restores the original result. Seed access is synchronized.
+
+Added regression coverage in [hasher_test.go](/app/utils/hasher/hasher_test.go). The hasher, database, and persistence tests pass; the hasher race test passes too.

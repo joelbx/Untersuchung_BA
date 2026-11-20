@@ -1,0 +1,3 @@
+Updated [format_languages](/app/openlibrary/catalog/utils/__init__.py:448) to resolve ISO-639-1 codes and English or translated language names to MARC codes, and to deduplicate results while preserving input order.
+
+`python -m compileall` passed. The focused pytest run had 90 passes and 4 formatter failures: those tests ran without `web.ctx.site`, which the formatter already depended on before this change. The alias behavior could not be verified by that run.

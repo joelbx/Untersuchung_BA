@@ -1,0 +1,3 @@
+Storage units now come from [helpers/size.ts](/app/packages/shared/lib/helpers/size.ts). I updated the member allocation, CSV import, organization setup, bonus storage, and display calculations to use `sizeUnits`, and moved `BASE_SIZE` there as well.
+
+The CSV suite passed: 64 tests and 5 snapshots. The component type check found two clamp argument errors, which I fixed, plus an unrelated existing `crypto/openpgp` type mismatch; a full type check remains unverified.

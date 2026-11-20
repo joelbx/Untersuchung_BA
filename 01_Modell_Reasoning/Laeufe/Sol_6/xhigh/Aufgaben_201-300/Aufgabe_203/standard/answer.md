@@ -1,0 +1,3 @@
+Added the reusable [ExternalLink component](/app/src/components/views/elements/ExternalLink.tsx) and [SCSS partial](/app/res/css/views/elements/_ExternalLink.scss), then migrated external links in settings, including the hosting link in [ProfileSettings](/app/src/components/views/settings/ProfileSettings.tsx). Links now have a decorative external icon, a screen reader new-tab cue, and secure new-tab defaults. The room permalink in [ShareDialog](/app/src/components/views/dialogs/ShareDialog.tsx) now has a descriptive accessible name.
+
+ESLint, stylelint, and 36 relevant tests pass. The repository typecheck still reports unrelated `ThreadEvent` errors; the RoomSettings suite cannot load because this checkout lacks the generated `src/component-index` module.

@@ -1,0 +1,3 @@
+Updated [useShouldMoveOut](/app/applications/mail/src/app/hooks/useShouldMoveOut.ts) to call `onBack` only after mailbox elements finish loading and the active ID is empty or absent from the valid ID list. [MailboxContainer](/app/applications/mail/src/app/containers/mailbox/MailboxContainer.tsx) now passes that list and loading state to both views. Conversation view selects the message ID for always message-level labels and the conversation ID otherwise; message-only view checks its message ID.
+
+Verification passed: 39 relevant tests, TypeScript, ESLint, Prettier, and `git diff --check`.

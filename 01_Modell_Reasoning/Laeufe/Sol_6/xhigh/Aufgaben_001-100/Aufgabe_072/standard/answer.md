@@ -1,0 +1,3 @@
+Implemented punycode encoding for URL hostnames and applied it to external links before confirmation or navigation. The URL helper preserves the other URL components while removing trailing path slashes, and the hook now shows an error notification when it cannot extract a link URL. The confirmation warning also detects punycode in any hostname label.
+
+Added focused tests. All 19 relevant tests pass; type checking, targeted ESLint, Prettier, and `git diff --check` pass.

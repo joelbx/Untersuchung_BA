@@ -1,0 +1,3 @@
+Implemented IDN handling in the checked-out files. `punycodeUrl` converts the hostname to ASCII while preserving the other URL components and removing a trailing path slash. `useLinkHandler` applies it to external links and shows an error when a link has no extractable URL. The confirmation warning now recognizes Punycode after subdomains such as `www`.
+
+Validation passed: 17 focused tests, the components typecheck, lint, formatting, and `git diff --check`.

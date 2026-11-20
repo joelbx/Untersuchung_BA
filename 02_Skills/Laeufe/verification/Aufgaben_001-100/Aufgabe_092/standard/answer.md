@@ -1,0 +1,3 @@
+Implemented `-U` / `--upgrade` for collection installation. It selects the newest version allowed by the declared constraint, updates dependencies when required, supports `--pre` and requirements files, and skips reinstalling a collection already at the selected version. Added unit tests and [upgrade.yml](/app/test/integration/targets/ansible-galaxy-collection/tasks/upgrade.yml) integration coverage.
+
+Verification: **148 unit tests passed** with `ANSIBLE_DEVEL_WARNING=False`; `git diff --check` passed, and both integration task files parsed as YAML. The Pulp-backed integration tasks were not run locally.

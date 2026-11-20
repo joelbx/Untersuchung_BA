@@ -1,0 +1,3 @@
+Implemented custom TLS cipher support across `get_url`, `uri`, URL lookup, and the shared HTTP request layers. Added public `make_context` and `get_ca_certs` helpers, with validation for cipher strings and lists. The configured ciphers are carried through redirects, proxies, and Unix socket connections.
+
+Validation: 134 relevant unit tests passed, and `git diff --check` passed. This work item is complete.

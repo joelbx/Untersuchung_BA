@@ -1,0 +1,3 @@
+Implemented upload cleanup on post purge. Files are deleted after their last post reference is removed; shared files remain. The ACP now has a `preserveOrphanedUploads` switch, and [Posts.uploads.deleteFromDisk](/app/src/posts/uploads.js) accepts a path or list of paths while ignoring unsafe paths. Topic thumbnail cleanup also checks remaining references. Behavioral tests were added in [test/posts/uploads.js](/app/test/posts/uploads.js).
+
+ESLint, syntax checks, and an isolated disk deletion check passed. The focused Mocha suites could not run: this checkout has no configured database type, so Mocha exited before loading tests.

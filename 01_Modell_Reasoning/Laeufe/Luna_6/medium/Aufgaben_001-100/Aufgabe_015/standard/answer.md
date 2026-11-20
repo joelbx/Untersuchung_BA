@@ -1,0 +1,3 @@
+Implemented the `feature_qr_signin_reciprocate_show` experimental setting with a disabled default and a description of the MSC3882/MSC3886 homeserver requirements. QR sign-in now requires both the setting and server support; the session manager also gates the section on the setting.
+
+Verification: all 3 relevant test suites passed (58 tests), and `git diff --check` passed. The tests emitted existing React `act(...)` warnings.

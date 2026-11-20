@@ -1,0 +1,3 @@
+Fixed kubeconfig address selection in [ProxyConfig.KubeAddr()](/app/lib/service/cfg.go) and [tctl auth sign](/app/tool/tctl/common/auth_command.go). Generated kubeconfigs now use `https` and Kubernetes port `3026`; invalid public addresses are skipped, and an explicit `--proxy` still takes precedence.
+
+Added regression tests and verified with `go test ./lib/service ./tool/tctl/common` and `git diff --check`.

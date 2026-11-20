@@ -1,0 +1,1 @@
+I started the refactor, but it’s incomplete: the CLI and config tests still need updating for `Load`’s new return type, and the changes haven’t been compiled or tested. The issue is not resolved yet.

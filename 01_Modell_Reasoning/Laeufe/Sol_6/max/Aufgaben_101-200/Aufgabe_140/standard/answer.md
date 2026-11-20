@@ -1,0 +1,3 @@
+Host blocking now checks the request host and each parent domain against both block sets. Whitelisted URLs take precedence, the per-URL blocking toggle is respected, and trailing-dot hosts match their non-trailing forms. The requested `widened_hostnames` helper is in [urlutils.py](/app/qutebrowser/utils/urlutils.py).
+
+Relevant unit suites passed: **423 passed, 1 skipped**. `git diff --check` is clean.

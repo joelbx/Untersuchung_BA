@@ -1,0 +1,3 @@
+Added SQL Server connection testing to the discovery diagnostic flow. `getDatabaseConnTester` now selects `SQLServerPinger`; the pinger validates connection parameters, uses the caller’s context to bound the connection attempt, and classifies refused connections, login failures, and invalid database names.
+
+The new tests and the full existing tests for both affected packages pass with `GOPROXY=off`.

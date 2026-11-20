@@ -1,0 +1,3 @@
+Added `token` to the audit event checker, including wildcard expansion for `token:created` and `token:deleted`. gRPC initialization now checks the configured events and passes the resulting `token:deleted` boolean to the authentication server. Existing token creation logging remains covered by the checker.
+
+Added tests for explicit events, wildcards, and enabled or disabled deletion logging. The affected Go test packages pass.

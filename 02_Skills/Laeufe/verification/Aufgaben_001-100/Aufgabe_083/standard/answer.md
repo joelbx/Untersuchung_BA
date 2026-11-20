@@ -1,0 +1,3 @@
+Refactored Drive’s extended-attribute helpers to use `XAttrCreateParams` for file metadata, added `DeepPartial` and stricter public types, and updated the upload call site. Creation now omits zero-length remainder blocks and absent digests, and returns frozen attributes. Parsing returns a neutral structure for malformed or partial input.
+
+Verification on the final files: 5 targeted tests passed, the strict TypeScript check passed, ESLint passed on the changed files, and `git diff --check` passed.

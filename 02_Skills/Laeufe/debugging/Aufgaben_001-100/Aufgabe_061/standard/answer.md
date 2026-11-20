@@ -1,0 +1,3 @@
+Implemented shared `pkgPs` process-to-package association for Debian and Red Hat. Red Hat ownership lookup now matches packages by name, so another installed version or architecture does not trigger a spurious lookup warning. It ignores the specified RPM path diagnostics and returns an error for malformed output.
+
+`GOPROXY=off GOSUMDB=off go test ./scan -count=1` and `git diff --check` passed. The compiler still emits an existing SQLite C warning.

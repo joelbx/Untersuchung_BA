@@ -1,0 +1,3 @@
+Updated the list model with explicit `List` and `Seed` annotations, a shared `SeedDict`, and subject seed normalization. Membership now compares normalized keys across supported seed formats, and exports always include `authors`, `works`, and `editions`. Added regression tests for mixed seeds and empty covers.
+
+Verification: 29 focused tests passed; the Open Library suite had 1,569 passed. Mypy, Ruff, and `git diff --check` passed. Bare `pytest -q` still fails during collection because of a duplicate conftest registration; [checkpoint.md](/app/.codex-role-output/checkpoint.md) records that and the separate `cookielib` collection error.

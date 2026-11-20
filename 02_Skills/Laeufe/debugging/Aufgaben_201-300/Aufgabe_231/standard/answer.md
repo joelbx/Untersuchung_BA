@@ -1,0 +1,3 @@
+Updated Vuls2 database handling in [db.go](/app/detector/vuls2/db.go). A schema mismatch now forces a download, or returns an explicit error when `SkipUpdate` is enabled. The connection path also validates metadata and includes the database path in connection and metadata errors.
+
+Added regression and connection lifecycle tests. `GOPROXY=off GOSUMDB=off go test ./detector/vuls2 -count=1` and `git diff --check` passed.

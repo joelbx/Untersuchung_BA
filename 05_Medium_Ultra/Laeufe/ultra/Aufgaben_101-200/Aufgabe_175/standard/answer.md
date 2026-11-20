@@ -1,0 +1,3 @@
+Implemented native SQLite backups in the checked-out repository. `conf.Server.Backup` now supports path, schedule, and retention settings; startup creates the backup directory and rejects invalid schedules. Scheduled jobs create a backup and prune old files. The new `backup create`, `backup prune`, and `backup restore` commands include the required confirmation and `--force` behavior.
+
+The database, CLI, and scheduling work was delegated in parallel, then integrated and reviewed. `GOPROXY=off GOSUMDB=off go test ./db ./conf ./cmd -count=1` passed. CLI and scheduled-run smoke checks also verified backup creation, restore, confirmation, and retention.

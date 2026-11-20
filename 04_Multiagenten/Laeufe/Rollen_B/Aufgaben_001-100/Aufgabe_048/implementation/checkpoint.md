@@ -1,0 +1,1 @@
+Implemented contextual plugin exceptions and loader result tuple, tombstone errors, deprecation formatting, and caller updates. Added focused tests and updated action mock for new API. Focused executor/action/loader/display suite: 33 passed. Full template suite: 67 passed, 1 order-sensitive to_json failure; that test passes in isolation. Diff check clean.

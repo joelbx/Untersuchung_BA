@@ -1,0 +1,324 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9f..1ffb67d 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -1,8 +1,9 @@
+ import datetime
+ import re
+ from collections.abc import Iterable
++from functools import cache
+ from typing import TYPE_CHECKING
+-from unicodedata import normalize
++from unicodedata import combining, normalize
+ 
+ import web
+ 
+@@ -445,20 +446,187 @@ class InvalidLanguage(Exception):
+         return f"invalid language code: '{self.code}'"
+ 
+ 
++def _language_name_key(name: str) -> str:
++    """Compare language names without differences in case or accents."""
++    return ''.join(
++        character
++        for character in normalize('NFKD', name.strip().casefold())
++        if not combining(character)
++    )
++
++
++@cache
++def _locale_language_names() -> dict[str, set[str]]:
++    """Index the English and native names supplied by the installed CLDR data."""
++    from babel import Locale, localedata
++
++    names: dict[str, set[str]] = {}
++    for iso_code in localedata.locale_identifiers():
++        if len(iso_code) != 2 or not iso_code.isascii() or not iso_code.isalpha():
++            continue
++        locale = Locale.parse(iso_code)
++        for name in (locale.get_display_name('en'), locale.get_display_name(iso_code)):
++            names.setdefault(_language_name_key(name), set()).add(iso_code)
++    return names
++
++
++def _add_language_match(index: dict[str, set[str]], name: str, code: str) -> None:
++    index.setdefault(_language_name_key(name), set()).add(code)
++
++
++def _load_language_matches(site) -> tuple[
++    dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]
++]:
++    """Read current language records without relying on the shared site cache."""
++    iso_codes: dict[str, set[str]] = {}
++    english_names: dict[str, set[str]] = {}
++    native_names: dict[str, set[str]] = {}
++    offset = 0
++    while keys := site.things(
++        {'type': '/type/language', 'limit': 1000, 'offset': offset}
++    ):
++        for record in site.get_many(keys):
++            if not record or record.get('deprecated'):
++                continue
++            code = record.get('code')
++            if not code:
++                continue
++            code = code.casefold()
++
++            if name := record.get('name'):
++                _add_language_match(english_names, name, code)
++
++            translated = record.get('name_translated') or {}
++            for name in translated.get('en', []) or []:
++                _add_language_match(english_names, name, code)
++
++            identifiers = record.get('identifiers') or {}
++            for iso_code in identifiers.get('iso_639_1', []) or []:
++                iso_code = iso_code.strip().casefold()
++                iso_codes.setdefault(iso_code, set()).add(code)
++                for name in translated.get(iso_code, []) or []:
++                    _add_language_match(native_names, name, code)
++
++        if len(keys) < 1000:
++            break
++        offset += len(keys)
++
++    return iso_codes, english_names, native_names
++
++
++def _sole_language_match(codes: set[str] | None, language: str) -> str | None:
++    if not codes:
++        return None
++    if len(codes) != 1:
++        raise InvalidLanguage(language)
++    return next(iter(codes))
++
++
++def _iso_to_marc(
++    iso_code: str,
++    language: str,
++    site,
++    iso_codes: dict[str, set[str]],
++    english_names: dict[str, set[str]],
++) -> str | None:
++    from babel import Locale
++    from babel.core import UnknownLocaleError
++
++    from openlibrary.plugins.upstream.utils import get_marc21_language
++
++    if code := _sole_language_match(iso_codes.get(iso_code), language):
++        return code
++
++    # Records without ISO identifiers can still be matched by their English
++    # name. This also avoids incorrect entries in the older fallback map.
++    try:
++        english_name = Locale.parse(iso_code).get_display_name('en')
++    except UnknownLocaleError:
++        english_name = None
++
++    if english_name and (
++        code := _sole_language_match(
++            english_names.get(_language_name_key(english_name)), language
++        )
++    ):
++        return code
++
++    code = get_marc21_language(iso_code)
++    record = site.get(f'/languages/{code}') if code else None
++    if record is None:
++        return None
++    if english_name and (record_name := record.get('name')):
++        expected = _language_name_key(english_name)
++        actual = _language_name_key(record_name)
++        if actual != expected and not actual.startswith((expected + ',', expected + ' (')):
++            return None
++    return code
++
++
+ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+     """
+-    Format language data to match Open Library's expected format.
+-    For an input of ["eng", "fre"], return:
+-    [{'key': '/languages/eng'}, {'key': '/languages/fre'}]
++    Resolve MARC codes, ISO-639-1 codes, and English or native language names
++    to unique Open Library language keys in input order.
+     """
+     if not languages:
+         return []
+ 
+-    formatted_languages = []
++    from openlibrary.plugins.upstream.utils import get_marc21_language
++
++    site = web.ctx.site
++    matches: tuple[dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]] | None = None
++    formatted_languages: list[dict[str, str]] = []
++    seen: set[str] = set()
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
+-            raise InvalidLanguage(language.lower())
++        token = language.strip().casefold()
++        code = (
++            token
++            if len(token) == 3 and site.get(f'/languages/{token}') is not None
++            else None
++        )
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        if code is None:
++            if matches is None:
++                matches = _load_language_matches(site)
++            iso_codes, english_names, native_names = matches
++
++            name_key = _language_name_key(token)
++            is_iso_code = len(token) == 2 and token.isascii() and token.isalpha()
++            code = (
++                (
++                    _iso_to_marc(token, token, site, iso_codes, english_names)
++                    if is_iso_code
++                    else None
++                )
++                or _sole_language_match(
++                    english_names.get(name_key, set())
++                    | native_names.get(name_key, set()),
++                    token,
++                )
++            )
++            if code is None and not is_iso_code:
++                code = get_marc21_language(token)
++
++            if code is None:
++                locale_codes = _locale_language_names().get(name_key)
++                if locale_codes:
++                    candidates = {
++                        mapped
++                        for iso_code in locale_codes
++                        if (
++                            mapped := _iso_to_marc(
++                                iso_code, token, site, iso_codes, english_names
++                            )
++                        )
++                        and site.get(f'/languages/{mapped}') is not None
++                    }
++                    code = _sole_language_match(candidates, token)
++
++        if code is None or site.get(f'/languages/{code}') is None:
++            raise InvalidLanguage(token)
++
++        if code not in seen:
++            formatted_languages.append({'key': f'/languages/{code}'})
++            seen.add(code)
+ 
+     return formatted_languages
+diff --git a/openlibrary/tests/catalog/test_utils.py b/openlibrary/tests/catalog/test_utils.py
+index 7fd42f4..5a0a42e 100644
+--- a/openlibrary/tests/catalog/test_utils.py
++++ b/openlibrary/tests/catalog/test_utils.py
+@@ -426,20 +426,106 @@ def test_remove_trailing_number_dot(date: str, expected: str) -> None:
+     assert got == expected
+ 
+ 
++@pytest.fixture
++def language_site(mock_site):
++    for code, name, iso_code, native_name in (
++        ('eng', 'English', 'en', 'English'),
++        ('fre', 'French', 'fr', 'Français'),
++        ('ger', 'German', 'de', 'Deutsch'),
++        ('spa', 'Spanish', 'es', 'Español'),
++    ):
++        mock_site.save(
++            {
++                'key': f'/languages/{code}',
++                'type': {'key': '/type/language'},
++                'code': code,
++                'name': name,
++                'identifiers': {'iso_639_1': [iso_code]},
++                'name_translated': {iso_code: [native_name]},
++            }
++        )
++
++    return mock_site
++
++
+ @pytest.mark.parametrize(
+     ("languages", "expected"),
+     [
+         (["eng"], [{'key': '/languages/eng'}]),
+         (["eng", "FRE"], [{'key': '/languages/eng'}, {'key': '/languages/fre'}]),
++        (["DE", "es"], [{'key': '/languages/ger'}, {'key': '/languages/spa'}]),
++        (["German"], [{'key': '/languages/ger'}]),
++        (["Deutsch"], [{'key': '/languages/ger'}]),
++        (["Español"], [{'key': '/languages/spa'}]),
++        (["eng", "eng"], [{'key': '/languages/eng'}]),
++        (
++            ["German", "Deutsch", "es", "ger", "ESPAÑOL", "EN", "English"],
++            [
++                {'key': '/languages/ger'},
++                {'key': '/languages/spa'},
++                {'key': '/languages/eng'},
++            ],
++        ),
+         ([], []),
+     ],
+ )
+-def test_format_languages(languages: list[str], expected: list[dict[str, str]]) -> None:
++def test_format_languages(
++    language_site, languages: list[str], expected: list[dict[str, str]]
++) -> None:
+     got = format_languages(languages)
+     assert got == expected
+ 
+ 
+-@pytest.mark.parametrize(("languages"), [(["wtf"]), (["eng", "wtf"])])
+-def test_format_language_rasise_for_invalid_language(languages: list[str]) -> None:
++@pytest.mark.parametrize("languages", [["wtf"], ["eng", "wtf"], ["Martian"]])
++def test_format_language_raises_for_invalid_language(
++    language_site, languages: list[str]
++) -> None:
+     with pytest.raises(InvalidLanguage):
+         format_languages(languages)
++
++
++def test_format_languages_iso_codes_without_identifiers(language_site) -> None:
++    for code, name in (
++        ('lit', 'Lithuanian'),
++        ('ltz', 'Luxembourgish'),
++        ('gle', 'Irish'),
++        ('gae', 'Scottish Gaelic'),
++        ('mac', 'Macedonian'),
++        ('mkh', 'Mon-Khmer'),
++    ):
++        language_site.save(
++            {
++                'key': f'/languages/{code}',
++                'type': {'key': '/type/language'},
++                'code': code,
++                'name': name,
++            }
++        )
++
++    assert format_languages(['lt', 'ga', 'mk', 'Lietuvių']) == [
++        {'key': '/languages/lit'},
++        {'key': '/languages/gle'},
++        {'key': '/languages/mac'},
++    ]
++
++
++def test_format_languages_rejects_ambiguous_name(language_site) -> None:
++    language_site.save(
++        {
++            'key': '/languages/fri',
++            'type': {'key': '/type/language'},
++            'code': 'fri',
++            'name': 'Frisian',
++        }
++    )
++    language_site.save(
++        {
++            'key': '/languages/fry',
++            'type': {'key': '/type/language'},
++            'code': 'fry',
++            'name': 'Frisian',
++        }
++    )
++
++    with pytest.raises(InvalidLanguage):
++        format_languages(['Frisian'])

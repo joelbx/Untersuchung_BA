@@ -1,0 +1,3 @@
+Fixed the member view in both Drive copies. Members, internal invitations, and external invitations are now stored and selected by `shareId`, so changes to one share do not affect another. Added `getExistingEmails` and tests for share isolation.
+
+Verification passed: both workspace type checks, 21 application tests, the focused tests in both copies, and `git diff --check`. ESLint reported no errors.

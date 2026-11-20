@@ -1,0 +1,3 @@
+Added `parsePkgName` to split and normalize names for Maven, PyPI, Golang, npm, and Cocoapods, and used its namespace, name, and subpath results when constructing library and dependency graph PURLs in [cyclonedx.go](/app/reporter/sbom/cyclonedx.go). Added tests in [cyclonedx_test.go](/app/reporter/sbom/cyclonedx_test.go).
+
+Verification passed: `GOPROXY=off GOSUMDB=off go test ./reporter/sbom ./reporter` and `git diff --check`.

@@ -1,0 +1,3 @@
+Fixed the Direct Dial heartbeat address in the checked-out files. Upstream streams now expose `PeerAddr()`, in-memory pipes accept `ICSPipePeerAddr`, and the controller replaces a wildcard or local heartbeat host with the peer host before `UpsertNode`, preserving port `3022`. An unavailable peer leaves the address unchanged.
+
+Focused `api/client` and `lib/inventory` tests pass, including the new address cases. `git diff --check` passes.

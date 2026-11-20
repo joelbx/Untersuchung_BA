@@ -1,0 +1,3 @@
+Updated the controller minimum to Python 3.12, aligned the CLI and ansible-test error messages, removed the collection tar cache workaround, and added a breaking-change note.
+
+Validation passed: 73 focused tests, `git diff --check`, and a check that both entry points reject Python 3.11 with the same message. Python 3.12 was unavailable here, so its execution path was not tested. This work item is complete.

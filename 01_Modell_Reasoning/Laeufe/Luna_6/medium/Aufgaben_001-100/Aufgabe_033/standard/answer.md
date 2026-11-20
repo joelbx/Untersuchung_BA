@@ -1,0 +1,3 @@
+Implemented multi-device U2F challenges. The server now creates a challenge for every registered U2F device and returns them in `challenges`, while preserving the legacy challenge fields at the JSON top level. Updated auth clients and SSH-agent login to process the list and fall back to legacy responses.
+
+Verification passed: `go test ./lib/auth ./lib/client ./tool/tsh`, the focused web U2F login test, and `git diff --check`. A full web test run also encountered a proxy registration timing failure in `TestWebSessionsRenewAllowsOldBearerTokenToLinger`. No MFA device management UI or commands were expanded.

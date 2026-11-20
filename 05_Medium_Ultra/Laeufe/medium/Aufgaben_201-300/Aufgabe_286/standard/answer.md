@@ -1,0 +1,3 @@
+Startup now uses [release.Is and release.Check](/app/internal/release/check.go) for release classification and update status. `-rc`, `-snapshot`, and `dev` builds are treated as non-releases, so telemetry is disabled for them and for `CI=true` or `CI=1`. [main.go](/app/cmd/flipt/main.go) uses the returned version information for console or logger messages; a failed check logs a warning and startup continues.
+
+Added release classification and update comparison tests. `GOPROXY=off go test ./internal/release ./cmd/flipt ./internal/info` passed.

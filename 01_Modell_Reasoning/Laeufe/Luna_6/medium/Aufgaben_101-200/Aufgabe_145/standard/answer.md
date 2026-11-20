@@ -1,0 +1,3 @@
+I updated both checked-out copies of the recovery hook to load regular and trashed items, wait for both listings to finish decrypting, include trashed image links in the move set, and fail if source photos remain or a core operation errors. Recovery still resumes from the persisted `progress` state.
+
+The focused test run is **not fully passing**: 5 of 7 tests pass. The automatic-resume test fails with `FAILED`, so the resume path still needs investigation. `git diff --check` and the final status check did not run because the test command stopped the chained command.

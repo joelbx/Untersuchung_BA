@@ -1,0 +1,586 @@
+diff --git a/core/agents/lastfm/agent.go b/core/agents/lastfm/agent.go
+index fdc0a97..7b823e3 100644
+--- a/core/agents/lastfm/agent.go
++++ b/core/agents/lastfm/agent.go
+@@ -159,7 +159,7 @@ func (l *lastfmAgent) callArtistGetTopTracks(ctx context.Context, artistName, mb
+ }
+ 
+ func (l *lastfmAgent) NowPlaying(ctx context.Context, userId string, track *model.MediaFile) error {
+-	sk, err := l.sessionKeys.get(ctx)
++	sk, err := l.sessionKeys.get(ctx, userId)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -179,7 +179,7 @@ func (l *lastfmAgent) NowPlaying(ctx context.Context, userId string, track *mode
+ }
+ 
+ func (l *lastfmAgent) Scrobble(ctx context.Context, userId string, scrobbles []scrobbler.Scrobble) error {
+-	sk, err := l.sessionKeys.get(ctx)
++	sk, err := l.sessionKeys.get(ctx, userId)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -208,7 +208,7 @@ func (l *lastfmAgent) Scrobble(ctx context.Context, userId string, scrobbles []s
+ }
+ 
+ func (l *lastfmAgent) IsAuthorized(ctx context.Context, userId string) bool {
+-	sk, err := l.sessionKeys.get(ctx)
++	sk, err := l.sessionKeys.get(ctx, userId)
+ 	return err == nil && sk != ""
+ }
+ 
+diff --git a/core/agents/lastfm/agent_test.go b/core/agents/lastfm/agent_test.go
+index c415482..b006df3 100644
+--- a/core/agents/lastfm/agent_test.go
++++ b/core/agents/lastfm/agent_test.go
+@@ -233,7 +233,7 @@ var _ = Describe("lastfmAgent", func() {
+ 		var track *model.MediaFile
+ 		BeforeEach(func() {
+ 			ctx = request.WithUser(ctx, model.User{ID: "user-1"})
+-			_ = ds.UserProps(ctx).Put(sessionKeyProperty, "SK-1")
++			_ = ds.UserProps(ctx).Put("user-1", sessionKeyProperty, "SK-1")
+ 			httpClient = &tests.FakeHttpClient{}
+ 			client := NewClient("API_KEY", "SECRET", "en", httpClient)
+ 			agent = lastFMConstructor(ds)
+@@ -250,6 +250,16 @@ var _ = Describe("lastfmAgent", func() {
+ 			}
+ 		})
+ 
++		It("uses the requested user's session even when context names another user", func() {
++			props := ds.UserProps(ctx)
++			Expect(props.Put("user-2", sessionKeyProperty, "SK-2")).To(Succeed())
++			ctx = request.WithUser(ctx, model.User{ID: "user-2"})
++			httpClient.Res = http.Response{Body: ioutil.NopCloser(bytes.NewBufferString("{}")), StatusCode: 200}
++
++			Expect(agent.NowPlaying(ctx, "user-1", track)).To(Succeed())
++			Expect(httpClient.SavedRequest.URL.Query().Get("sk")).To(Equal("SK-1"))
++		})
++
+ 		Describe("NowPlaying", func() {
+ 			It("calls Last.fm with correct params", func() {
+ 				httpClient.Res = http.Response{Body: ioutil.NopCloser(bytes.NewBufferString("{}")), StatusCode: 200}
+diff --git a/core/agents/lastfm/auth_router.go b/core/agents/lastfm/auth_router.go
+index 18e3393..ce19b1e 100644
+--- a/core/agents/lastfm/auth_router.go
++++ b/core/agents/lastfm/auth_router.go
+@@ -3,8 +3,13 @@ package lastfm
+ import (
+ 	"bytes"
+ 	"context"
++	"crypto/hmac"
++	"crypto/sha256"
+ 	_ "embed"
++	"encoding/base64"
+ 	"net/http"
++	"strconv"
++	"strings"
+ 	"time"
+ 
+ 	"github.com/deluan/rest"
+@@ -54,6 +59,7 @@ func (s *Router) routes() http.Handler {
+ 		r.Use(server.JWTRefresher)
+ 
+ 		r.Get("/link", s.getLinkStatus)
++		r.Get("/link/state", s.getCallbackState)
+ 		r.Delete("/link", s.unlink)
+ 	})
+ 
+@@ -64,7 +70,8 @@ func (s *Router) routes() http.Handler {
+ 
+ func (s *Router) getLinkStatus(w http.ResponseWriter, r *http.Request) {
+ 	resp := map[string]interface{}{"status": true}
+-	key, err := s.sessionKeys.get(r.Context())
++	user, _ := request.UserFrom(r.Context())
++	key, err := s.sessionKeys.get(r.Context(), user.ID)
+ 	if err != nil && err != model.ErrNotFound {
+ 		resp["error"] = err
+ 		resp["status"] = false
+@@ -76,7 +83,8 @@ func (s *Router) getLinkStatus(w http.ResponseWriter, r *http.Request) {
+ }
+ 
+ func (s *Router) unlink(w http.ResponseWriter, r *http.Request) {
+-	err := s.sessionKeys.delete(r.Context())
++	user, _ := request.UserFrom(r.Context())
++	err := s.sessionKeys.delete(r.Context(), user.ID)
+ 	if err != nil {
+ 		_ = rest.RespondWithError(w, http.StatusInternalServerError, err.Error())
+ 	} else {
+@@ -90,15 +98,13 @@ func (s *Router) callback(w http.ResponseWriter, r *http.Request) {
+ 		_ = rest.RespondWithError(w, http.StatusBadRequest, "token not received")
+ 		return
+ 	}
+-	uid := utils.ParamString(r, "uid")
+-	if uid == "" {
+-		_ = rest.RespondWithError(w, http.StatusBadRequest, "uid not received")
++	uid, valid := s.userFromCallbackState(utils.ParamString(r, "state"))
++	if !valid {
++		_ = rest.RespondWithError(w, http.StatusBadRequest, "invalid callback state")
+ 		return
+ 	}
+ 
+-	// Need to add user to context, as this is a non-authenticated endpoint, so it does not
+-	// automatically contain any user info
+-	ctx := request.WithUser(r.Context(), model.User{ID: uid})
++	ctx := r.Context()
+ 	err := s.fetchSessionKey(ctx, uid, token)
+ 	if err != nil {
+ 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+@@ -110,6 +116,44 @@ func (s *Router) callback(w http.ResponseWriter, r *http.Request) {
+ 	http.ServeContent(w, r, "response", time.Now(), bytes.NewReader(tokenReceivedPage))
+ }
+ 
++func (s *Router) getCallbackState(w http.ResponseWriter, r *http.Request) {
++	user, _ := request.UserFrom(r.Context())
++	_ = rest.RespondWithJSON(w, http.StatusOK, map[string]string{"state": s.callbackState(user.ID)})
++}
++
++func (s *Router) callbackState(userId string) string {
++	payload := userId + ":" + strconv.FormatInt(time.Now().Add(10*time.Minute).Unix(), 10)
++	mac := hmac.New(sha256.New, []byte(s.secret))
++	_, _ = mac.Write([]byte(payload))
++	return base64.RawURLEncoding.EncodeToString([]byte(payload)) + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
++}
++
++func (s *Router) userFromCallbackState(state string) (string, bool) {
++	parts := strings.Split(state, ".")
++	if len(parts) != 2 {
++		return "", false
++	}
++	payload, err := base64.RawURLEncoding.DecodeString(parts[0])
++	if err != nil {
++		return "", false
++	}
++	signature, err := base64.RawURLEncoding.DecodeString(parts[1])
++	if err != nil {
++		return "", false
++	}
++	mac := hmac.New(sha256.New, []byte(s.secret))
++	_, _ = mac.Write(payload)
++	if !hmac.Equal(signature, mac.Sum(nil)) {
++		return "", false
++	}
++	fields := strings.SplitN(string(payload), ":", 2)
++	if len(fields) != 2 || fields[0] == "" {
++		return "", false
++	}
++	expires, err := strconv.ParseInt(fields[1], 10, 64)
++	return fields[0], err == nil && time.Now().Unix() <= expires
++}
++
+ func (s *Router) fetchSessionKey(ctx context.Context, uid, token string) error {
+ 	sessionKey, err := s.client.GetSession(ctx, token)
+ 	if err != nil {
+@@ -117,7 +161,7 @@ func (s *Router) fetchSessionKey(ctx context.Context, uid, token string) error {
+ 			"requestId", middleware.GetReqID(ctx), err)
+ 		return err
+ 	}
+-	err = s.sessionKeys.put(ctx, sessionKey)
++	err = s.sessionKeys.put(ctx, uid, sessionKey)
+ 	if err != nil {
+ 		log.Error("Could not save LastFM session key", "userId", uid, "requestId", middleware.GetReqID(ctx), err)
+ 	}
+diff --git a/core/agents/lastfm/auth_router_test.go b/core/agents/lastfm/auth_router_test.go
+new file mode 100644
+index 0000000..3f9eaa6
+--- /dev/null
++++ b/core/agents/lastfm/auth_router_test.go
+@@ -0,0 +1,100 @@
++package lastfm
++
++import (
++	"bytes"
++	"context"
++	"encoding/base64"
++	"io/ioutil"
++	"net/http"
++	"net/http/httptest"
++	"strings"
++	"testing"
++
++	"github.com/navidrome/navidrome/model"
++	"github.com/navidrome/navidrome/model/request"
++	"github.com/navidrome/navidrome/tests"
++)
++
++func TestCallbackRejectsUnverifiedUserID(t *testing.T) {
++	ds := &tests.MockDataStore{}
++	router := NewRouter(ds)
++	fake := &tests.FakeHttpClient{Res: http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewBufferString(`{"session":{"key":"foreign-key"}}`))}}
++	router.client = NewClient("key", "secret", "en", fake)
++	recorder := httptest.NewRecorder()
++	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/link/callback?uid=victim&token=valid", nil))
++
++	if recorder.Code != http.StatusBadRequest {
++		t.Fatalf("callback status = %d, want 400", recorder.Code)
++	}
++	if _, err := ds.UserProps(context.Background()).Get("victim", sessionKeyProperty); err != model.ErrNotFound {
++		t.Fatalf("victim property error = %v, want not found", err)
++	}
++}
++
++func TestLinkStatusAndUnlinkUseAuthenticatedUser(t *testing.T) {
++	ds := &tests.MockDataStore{}
++	props := ds.UserProps(context.Background())
++	if err := props.Put("owner", sessionKeyProperty, "owner-key"); err != nil {
++		t.Fatal(err)
++	}
++	if err := props.Put("other", sessionKeyProperty, "other-key"); err != nil {
++		t.Fatal(err)
++	}
++	router := NewRouter(ds)
++	ctx := request.WithUser(context.Background(), model.User{ID: "owner"})
++	statusRequest := httptest.NewRequest(http.MethodGet, "/link", nil).WithContext(ctx)
++	status := httptest.NewRecorder()
++	router.getLinkStatus(status, statusRequest)
++	if status.Code != http.StatusOK || !bytes.Contains(status.Body.Bytes(), []byte(`"status":true`)) {
++		t.Fatalf("owner status = %d %s", status.Code, status.Body.String())
++	}
++	unlink := httptest.NewRecorder()
++	router.unlink(unlink, httptest.NewRequest(http.MethodDelete, "/link", nil).WithContext(ctx))
++	if unlink.Code != http.StatusOK {
++		t.Fatalf("unlink status = %d", unlink.Code)
++	}
++	if _, err := props.Get("owner", sessionKeyProperty); err != model.ErrNotFound {
++		t.Fatalf("owner key error = %v", err)
++	}
++	if key, err := props.Get("other", sessionKeyProperty); err != nil || key != "other-key" {
++		t.Fatalf("other key = %q, %v", key, err)
++	}
++}
++
++func TestCallbackStoresSessionForSignedUser(t *testing.T) {
++	ds := &tests.MockDataStore{}
++	router := NewRouter(ds)
++	fake := &tests.FakeHttpClient{Res: http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewBufferString(`{"session":{"key":"own-key"}}`))}}
++	router.client = NewClient("key", "secret", "en", fake)
++	state := router.callbackState("owner")
++	recorder := httptest.NewRecorder()
++	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/link/callback?state="+state+"&token=valid", nil))
++
++	if recorder.Code != http.StatusOK {
++		t.Fatalf("callback status = %d, want 200", recorder.Code)
++	}
++	key, err := ds.UserProps(context.Background()).Get("owner", sessionKeyProperty)
++	if err != nil || key != "own-key" {
++		t.Fatalf("owner session = %q, %v", key, err)
++	}
++}
++
++func TestCallbackRejectsChangedStateUser(t *testing.T) {
++	ds := &tests.MockDataStore{}
++	router := NewRouter(ds)
++	state := router.callbackState("owner")
++	parts := strings.Split(state, ".")
++	payload, err := base64.RawURLEncoding.DecodeString(parts[0])
++	if err != nil {
++		t.Fatal(err)
++	}
++	parts[0] = base64.RawURLEncoding.EncodeToString(bytes.Replace(payload, []byte("owner"), []byte("other"), 1))
++	recorder := httptest.NewRecorder()
++	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/link/callback?state="+strings.Join(parts, ".")+"&token=valid", nil))
++	if recorder.Code != http.StatusBadRequest {
++		t.Fatalf("changed state status = %d, want 400", recorder.Code)
++	}
++	if _, err := ds.UserProps(context.Background()).Get("other", sessionKeyProperty); err != model.ErrNotFound {
++		t.Fatalf("other property error = %v, want not found", err)
++	}
++}
+diff --git a/core/agents/lastfm/session_keys.go b/core/agents/lastfm/session_keys.go
+index 783886d..fdf7a1e 100644
+--- a/core/agents/lastfm/session_keys.go
++++ b/core/agents/lastfm/session_keys.go
+@@ -15,14 +15,14 @@ type sessionKeys struct {
+ 	ds model.DataStore
+ }
+ 
+-func (sk *sessionKeys) put(ctx context.Context, sessionKey string) error {
+-	return sk.ds.UserProps(ctx).Put(sessionKeyProperty, sessionKey)
++func (sk *sessionKeys) put(ctx context.Context, userId, sessionKey string) error {
++	return sk.ds.UserProps(ctx).Put(userId, sessionKeyProperty, sessionKey)
+ }
+ 
+-func (sk *sessionKeys) get(ctx context.Context) (string, error) {
+-	return sk.ds.UserProps(ctx).Get(sessionKeyProperty)
++func (sk *sessionKeys) get(ctx context.Context, userId string) (string, error) {
++	return sk.ds.UserProps(ctx).Get(userId, sessionKeyProperty)
+ }
+ 
+-func (sk *sessionKeys) delete(ctx context.Context) error {
+-	return sk.ds.UserProps(ctx).Delete(sessionKeyProperty)
++func (sk *sessionKeys) delete(ctx context.Context, userId string) error {
++	return sk.ds.UserProps(ctx).Delete(userId, sessionKeyProperty)
+ }
+diff --git a/model/user_props.go b/model/user_props.go
+index d76918a..1205e99 100644
+--- a/model/user_props.go
++++ b/model/user_props.go
+@@ -1,9 +1,9 @@
+ package model
+ 
+-// UserPropsRepository is meant to be scoped for the user, that can be obtained from request.UserFrom(r.Context())
++// UserPropsRepository stores properties scoped to the supplied user ID.
+ type UserPropsRepository interface {
+-	Put(key string, value string) error
+-	Get(key string) (string, error)
+-	Delete(key string) error
+-	DefaultGet(key string, defaultValue string) (string, error)
++	Put(userId, key, value string) error
++	Get(userId, key string) (string, error)
++	Delete(userId, key string) error
++	DefaultGet(userId, key, defaultValue string) (string, error)
+ }
+diff --git a/persistence/user_props_repository.go b/persistence/user_props_repository.go
+index f7a4f0e..012fc5d 100644
+--- a/persistence/user_props_repository.go
++++ b/persistence/user_props_repository.go
+@@ -6,7 +6,6 @@ import (
+ 	. "github.com/Masterminds/squirrel"
+ 	"github.com/astaxie/beego/orm"
+ 	"github.com/navidrome/navidrome/model"
+-	"github.com/navidrome/navidrome/model/request"
+ )
+ 
+ type userPropsRepository struct {
+@@ -21,12 +20,8 @@ func NewUserPropsRepository(ctx context.Context, o orm.Ormer) model.UserPropsRep
+ 	return r
+ }
+ 
+-func (r userPropsRepository) Put(key string, value string) error {
+-	u, ok := request.UserFrom(r.ctx)
+-	if !ok {
+-		return model.ErrInvalidAuth
+-	}
+-	update := Update(r.tableName).Set("value", value).Where(And{Eq{"user_id": u.ID}, Eq{"key": key}})
++func (r userPropsRepository) Put(userId, key, value string) error {
++	update := Update(r.tableName).Set("value", value).Where(And{Eq{"user_id": userId}, Eq{"key": key}})
+ 	count, err := r.executeSQL(update)
+ 	if err != nil {
+ 		return nil
+@@ -34,17 +29,13 @@ func (r userPropsRepository) Put(key string, value string) error {
+ 	if count > 0 {
+ 		return nil
+ 	}
+-	insert := Insert(r.tableName).Columns("user_id", "key", "value").Values(u.ID, key, value)
++	insert := Insert(r.tableName).Columns("user_id", "key", "value").Values(userId, key, value)
+ 	_, err = r.executeSQL(insert)
+ 	return err
+ }
+ 
+-func (r userPropsRepository) Get(key string) (string, error) {
+-	u, ok := request.UserFrom(r.ctx)
+-	if !ok {
+-		return "", model.ErrInvalidAuth
+-	}
+-	sel := Select("value").From(r.tableName).Where(And{Eq{"user_id": u.ID}, Eq{"key": key}})
++func (r userPropsRepository) Get(userId, key string) (string, error) {
++	sel := Select("value").From(r.tableName).Where(And{Eq{"user_id": userId}, Eq{"key": key}})
+ 	resp := struct {
+ 		Value string
+ 	}{}
+@@ -55,8 +46,8 @@ func (r userPropsRepository) Get(key string) (string, error) {
+ 	return resp.Value, nil
+ }
+ 
+-func (r userPropsRepository) DefaultGet(key string, defaultValue string) (string, error) {
+-	value, err := r.Get(key)
++func (r userPropsRepository) DefaultGet(userId, key, defaultValue string) (string, error) {
++	value, err := r.Get(userId, key)
+ 	if err == model.ErrNotFound {
+ 		return defaultValue, nil
+ 	}
+@@ -66,10 +57,6 @@ func (r userPropsRepository) DefaultGet(key string, defaultValue string) (string
+ 	return value, nil
+ }
+ 
+-func (r userPropsRepository) Delete(key string) error {
+-	u, ok := request.UserFrom(r.ctx)
+-	if !ok {
+-		return model.ErrInvalidAuth
+-	}
+-	return r.delete(And{Eq{"user_id": u.ID}, Eq{"key": key}})
++func (r userPropsRepository) Delete(userId, key string) error {
++	return r.delete(And{Eq{"user_id": userId}, Eq{"key": key}})
+ }
+diff --git a/persistence/user_props_repository_test.go b/persistence/user_props_repository_test.go
+new file mode 100644
+index 0000000..6a7c80a
+--- /dev/null
++++ b/persistence/user_props_repository_test.go
+@@ -0,0 +1,29 @@
++package persistence
++
++import (
++	"context"
++
++	"github.com/astaxie/beego/orm"
++	"github.com/navidrome/navidrome/model"
++	"github.com/navidrome/navidrome/model/request"
++	. "github.com/onsi/ginkgo"
++	. "github.com/onsi/gomega"
++)
++
++var _ = Describe("User properties repository", func() {
++	It("uses the explicit user ID for reads, updates and deletes", func() {
++		ctx := request.WithUser(context.Background(), model.User{ID: "context-user"})
++		repo := NewUserPropsRepository(ctx, orm.NewOrm())
++		Expect(repo.Put("first", "isolation-key", "first-value")).To(Succeed())
++		Expect(repo.Put("second", "isolation-key", "second-value")).To(Succeed())
++		Expect(repo.Get("first", "isolation-key")).To(Equal("first-value"))
++		Expect(repo.Get("second", "isolation-key")).To(Equal("second-value"))
++		Expect(repo.Put("first", "isolation-key", "updated")).To(Succeed())
++		Expect(repo.Get("first", "isolation-key")).To(Equal("updated"))
++		Expect(repo.DefaultGet("third", "isolation-key", "fallback")).To(Equal("fallback"))
++		Expect(repo.Delete("first", "isolation-key")).To(Succeed())
++		_, err := repo.Get("first", "isolation-key")
++		Expect(err).To(Equal(model.ErrNotFound))
++		Expect(repo.Get("second", "isolation-key")).To(Equal("second-value"))
++	})
++})
+diff --git a/tests/mock_user_props_repo.go b/tests/mock_user_props_repo.go
+index 71aa2c1..a725056 100644
+--- a/tests/mock_user_props_repo.go
++++ b/tests/mock_user_props_repo.go
+@@ -4,57 +4,57 @@ import "github.com/navidrome/navidrome/model"
+ 
+ type MockedUserPropsRepo struct {
+ 	model.UserPropsRepository
+-	UserID string
+-	data   map[string]string
+-	err    error
++	data map[userPropKey]string
++	err  error
+ }
+ 
++type userPropKey struct{ userId, key string }
++
+ func (p *MockedUserPropsRepo) init() {
+ 	if p.data == nil {
+-		p.data = make(map[string]string)
++		p.data = make(map[userPropKey]string)
+ 	}
+ }
+ 
+-func (p *MockedUserPropsRepo) Put(key string, value string) error {
++func (p *MockedUserPropsRepo) Put(userId, key, value string) error {
+ 	if p.err != nil {
+ 		return p.err
+ 	}
+ 	p.init()
+-	p.data[p.UserID+"_"+key] = value
++	p.data[userPropKey{userId, key}] = value
+ 	return nil
+ }
+ 
+-func (p *MockedUserPropsRepo) Get(key string) (string, error) {
++func (p *MockedUserPropsRepo) Get(userId, key string) (string, error) {
+ 	if p.err != nil {
+ 		return "", p.err
+ 	}
+ 	p.init()
+-	if v, ok := p.data[p.UserID+"_"+key]; ok {
++	if v, ok := p.data[userPropKey{userId, key}]; ok {
+ 		return v, nil
+ 	}
+ 	return "", model.ErrNotFound
+ }
+ 
+-func (p *MockedUserPropsRepo) Delete(key string) error {
++func (p *MockedUserPropsRepo) Delete(userId, key string) error {
+ 	if p.err != nil {
+ 		return p.err
+ 	}
+ 	p.init()
+-	if _, ok := p.data[p.UserID+"_"+key]; ok {
+-		delete(p.data, p.UserID+"_"+key)
++	if _, ok := p.data[userPropKey{userId, key}]; ok {
++		delete(p.data, userPropKey{userId, key})
+ 		return nil
+ 	}
+ 	return model.ErrNotFound
+ }
+ 
+-func (p *MockedUserPropsRepo) DefaultGet(key string, defaultValue string) (string, error) {
+-	if p.err != nil {
+-		return "", p.err
++func (p *MockedUserPropsRepo) DefaultGet(userId, key, defaultValue string) (string, error) {
++	v, err := p.Get(userId, key)
++	if err == model.ErrNotFound {
++		return defaultValue, nil
+ 	}
+-	p.init()
+-	v, err := p.Get(p.UserID + "_" + key)
+ 	if err != nil {
+-		return defaultValue, nil
++		return defaultValue, err
+ 	}
+ 	return v, nil
+ }
+diff --git a/ui/src/personal/LastfmScrobbleToggle.js b/ui/src/personal/LastfmScrobbleToggle.js
+index 92faf30..060fff3 100644
+--- a/ui/src/personal/LastfmScrobbleToggle.js
++++ b/ui/src/personal/LastfmScrobbleToggle.js
+@@ -12,21 +12,29 @@ import { baseUrl, openInNewTab } from '../utils'
+ import { httpClient } from '../dataProvider'
+ 
+ const Progress = (props) => {
+-  const { setLinked, setCheckingLink } = props
++  const { setLinked, setCheckingLink, openedTab } = props
+   const notify = useNotify()
+   let linkCheckDelay = 2000
+   let linkChecks = 30
+-  const openedTab = useRef()
+ 
+   useEffect(() => {
+-    const callbackEndpoint = baseUrl(
+-      `/api/lastfm/link/callback?uid=${localStorage.getItem('userId')}`
+-    )
+-    const callbackUrl = `${window.location.origin}${callbackEndpoint}`
+-    openedTab.current = openInNewTab(
+-      `https://www.last.fm/api/auth/?api_key=${config.lastFMApiKey}&cb=${callbackUrl}`
+-    )
+-  }, [])
++    httpClient('/api/lastfm/link/state')
++      .then((response) => {
++        const callbackEndpoint = baseUrl(
++          `/api/lastfm/link/callback?state=${encodeURIComponent(
++            response.json.state
++          )}`
++        )
++        const callbackUrl = `${window.location.origin}${callbackEndpoint}`
++        openedTab.current.location = `https://www.last.fm/api/auth/?api_key=${
++          config.lastFMApiKey
++        }&cb=${encodeURIComponent(callbackUrl)}`
++      })
++      .catch(() => {
++        openedTab.current?.close()
++        setCheckingLink(false)
++      })
++  }, [openedTab, setCheckingLink])
+ 
+   const endChecking = (success) => {
+     linkCheckDelay = null
+@@ -74,9 +82,11 @@ export const LastfmScrobbleToggle = (props) => {
+   const translate = useTranslate()
+   const [linked, setLinked] = useState(null)
+   const [checkingLink, setCheckingLink] = useState(false)
++  const openedTab = useRef()
+ 
+   const toggleScrobble = () => {
+     if (!linked) {
++      openedTab.current = openInNewTab('about:blank')
+       setCheckingLink(true)
+     } else {
+       httpClient('/api/lastfm/link', { method: 'DELETE' })
+@@ -115,7 +125,11 @@ export const LastfmScrobbleToggle = (props) => {
+         }
+       />
+       {checkingLink && (
+-        <Progress setLinked={setLinked} setCheckingLink={setCheckingLink} />
++        <Progress
++          setLinked={setLinked}
++          setCheckingLink={setCheckingLink}
++          openedTab={openedTab}
++        />
+       )}
+     </FormControl>
+   )

@@ -1,0 +1,3 @@
+Updated task execution so `delegate_to` is resolved before loop items, with delegation variables supplied through the new `VariableManager.get_delegated_vars_and_hostname()` method. Added `Task.get_play()`, disabled delegation resolution in `get_vars()` by default, and removed the loop evaluation cache.
+
+The focused and adjacent tests passed: **113 passed, 1 skipped**. The broader unit suite was interrupted after unrelated CLI test failures and errors, so its full result is unknown. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

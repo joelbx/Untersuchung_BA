@@ -1,0 +1,1 @@
+Complete: verified credential lookup ordering and late address mutation. Implemented missing-cluster NotFound validation, local credential priority, remote reverse-tunnel addressing, kube_service endpoint discovery, and stable per-session endpoint dialing. Updated relevant tests. Full `go test ./lib/kube/proxy -count=1` passes; `git diff --check` passes.

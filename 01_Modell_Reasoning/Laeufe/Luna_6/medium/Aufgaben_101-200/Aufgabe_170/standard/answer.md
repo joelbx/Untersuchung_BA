@@ -1,0 +1,3 @@
+Implemented edition expansion and matching in [merge_marc.py](/app/openlibrary/catalog/merge/merge_marc.py). Raw records are now expanded before comparison, author names include available dates, ISBN variants are combined, and invalid publication countries are omitted. Author and contributor comparisons also handle generated or missing `db_name` values.
+
+Verification: `64 passed, 1 xfailed` across the existing merge and catalog utility tests; `git diff --check` passed.

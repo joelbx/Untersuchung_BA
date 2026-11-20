@@ -1,0 +1,3 @@
+Implemented CLIXML escape decoding in [powershell.py](/app/lib/ansible/plugins/shell/powershell.py), including UTF-16 surrogate pairs, control characters, malformed escapes, stream filtering, and separators between `<Objs>` blocks. Added coverage in [test_powershell.py](/app/test/units/plugins/shell/test_powershell.py).
+
+Verification passed: `python -m pytest -q test/units/plugins/shell/test_powershell.py` (10 tests) and `git diff --check`.

@@ -1,0 +1,3 @@
+Updated the WordPress scanner to use the cache map directly. Cache lookups now distinguish missing keys from present empty strings and treat nil values as misses. The scan also reads `IgnoreInactive` from the scanned server’s configuration and excludes inactive themes and plugins by `Status`.
+
+Added tests for cache lookup and per-server filtering. Verified with `GOPROXY=off GOSUMDB=off go test -count=1 ./wordpress ./report ./models`; all three packages passed.

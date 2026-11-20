@@ -1,0 +1,3 @@
+Added `drive_download_mechanism_success_rate_total` to the metrics client and typed its `status`, `retry`, and `mechanism` labels against the requested schema. The [file saver](/app/applications/drive/src/app/store/_downloads/fileSaver/fileSaver.ts) now uses `selectMechanismForDownload(size)`, and [useDownloadMetrics](/app/applications/drive/src/app/store/_downloads/DownloadProvider/useDownloadMetrics.ts) records the mechanism for terminal downloads. Preview reports now pass file size too.
+
+Verification: 20 focused tests passed; Drive and metrics TypeScript checks, Prettier, and `git diff --check` passed.

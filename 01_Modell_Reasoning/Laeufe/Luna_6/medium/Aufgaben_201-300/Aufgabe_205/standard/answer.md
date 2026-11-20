@@ -1,0 +1,3 @@
+Implemented the token lifecycle utilities in [src/api/utils.js](/app/src/api/utils.js): token generation and metadata storage, creation and ownership indexes, ordered listing, single or bulk retrieval, description updates, deletion, usage logging, and aligned last-seen lookup.
+
+`npx eslint src/api/utils.js` and `git diff --check` pass. The token test run could not start because Redis at `127.0.0.1:6379` refused the connection; no tests ran.

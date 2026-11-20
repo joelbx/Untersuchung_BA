@@ -1,0 +1,3 @@
+Fixed both review findings. If the server policy lookup fails, the encryption control and Create button stay disabled, and the submit handler blocks room creation. I also added the forced-off message to the English catalog and a regression test.
+
+The flagged tests pass: 2 suites, 19 tests. `git diff --check` passes. Type checking still fails at unchanged `src/Unread.ts:167` with TS2339, as reported in the review.

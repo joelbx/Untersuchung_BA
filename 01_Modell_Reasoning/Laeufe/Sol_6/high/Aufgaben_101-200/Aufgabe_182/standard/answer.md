@@ -1,0 +1,3 @@
+Worker calls to `display`, `warning`, and `deprecated` now send the method name and exact caller arguments through `_final_q`. The main process dispatches each call to the corresponding `Display` method, so warnings and deprecations share its deduplication state.
+
+Focused tests passed: 14 passed, 1 skipped. An existing warning test passes alone but fails after another warning test because they share the `Display` singleton cache.

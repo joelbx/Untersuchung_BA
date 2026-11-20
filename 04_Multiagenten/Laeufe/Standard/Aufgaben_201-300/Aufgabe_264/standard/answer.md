@@ -1,0 +1,3 @@
+Updated [MerakiModule.request](/app/lib/ansible/module_utils/network/meraki/meraki.py) to retry HTTP 429, 500, and 502 up to three times, raise the new public exceptions when appropriate, and retain the latest HTTP status. Rate-limit retries now produce a warning with the retry count.
+
+Updated the [Meraki unit tests](/app/test/units/module_utils/network/meraki/test_meraki.py). All 12 pass, and `git diff --check` passes.

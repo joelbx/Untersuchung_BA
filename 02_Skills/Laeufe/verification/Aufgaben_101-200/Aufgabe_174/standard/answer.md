@@ -1,0 +1,3 @@
+Forked worker calls to `Display.display` now go through `FinalQueue` and are replayed by the parent’s strategy results thread. Parent output is protected by a lock, the worker’s late `/dev/null` redirection is removed, and cleanup flushes both output streams.
+
+The focused tests passed: **8 passed, 2 skipped**. Compilation and `git diff --check` also passed. A broader combined test run still fails because of shared display test state and a test that reloads Ansible modules; those tests passed when run individually.

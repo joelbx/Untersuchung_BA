@@ -1,0 +1,5 @@
+The issue is localized to [srv.go](/app/lib/reversetunnel/srv.go:74) and [localsite.go](/app/lib/reversetunnel/localsite.go:46). `NewServer` creates one local site, but `server` stores it in a slice and searches or iterates that slice for connection registration, reconnect advice, site lookup, close handling, and proxy updates. `newlocalSite` also calls `srv.newAccessPoint`, creating the redundant resource cache.
+
+The fix should store that one instance as `server.localSite`, validate service connections against its `domainName` with the specified `BadParameter` errors, and have `newlocalSite` use the server’s existing client, access point, and peer client. [localsite_test.go](/app/lib/reversetunnel/localsite_test.go:45) calls the current constructor and would need updating. Access point interface compatibility still needs compile verification.
+
+This run’s repository instructions limited my role to fault localization. I wrote the required progress note; I did not change source or tests or run tests.

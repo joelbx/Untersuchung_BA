@@ -1,0 +1,3 @@
+Updated address parsing in [recipient.ts](/app/packages/shared/lib/mail/recipient.ts): `splitBySeparator` now trims tokens, removes angle brackets, and drops empties; bare bracketed emails now use the email for both `Name` and `Address`. Both autocomplete paste paths use the splitter. Added [parser tests](/app/packages/shared/test/mail/recipient.spec.ts).
+
+The 3 focused tests pass, and shared and component typechecks pass. The full shared suite ran 838 tests and has 2 failures in unrelated cookie expiry and base64 tests.

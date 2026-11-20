@@ -1,0 +1,3 @@
+Refactored Drive XAttr creation and encryption to accept an `XAttrCreateParams` metadata object, added the public `DeepPartial` and XAttr types, and updated the upload worker. Creation now omits zero-length remainder blocks and absent digests; parsing handles partial and malformed JSON without throwing.
+
+The focused tests pass (5/5). The Drive TypeScript check, targeted ESLint and Prettier checks, and `git diff --check` pass.

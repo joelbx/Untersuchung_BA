@@ -1,0 +1,346 @@
+diff --git a/lib/ansible/modules/network/icx/icx_logging.py b/lib/ansible/modules/network/icx/icx_logging.py
+new file mode 100644
+index 00000000..584996d7
+--- /dev/null
++++ b/lib/ansible/modules/network/icx/icx_logging.py
+@@ -0,0 +1,285 @@
++#!/usr/bin/python
++# Copyright: Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++ANSIBLE_METADATA = {'metadata_version': '1.1', 'status': ['preview'], 'supported_by': 'community'}
++
++DOCUMENTATION = '''
++---
++module: icx_logging
++version_added: '2.9'
++short_description: Manage logging on Ruckus ICX switches
++author: Ansible Project
++description:
++  - Configure logging destinations and facilities on Ruckus ICX 7000 switches.
++options:
++  dest:
++    description: Logging destination.
++    choices: [on, host, console, buffered, persistence, rfc5424]
++    type: str
++  name:
++    description: Hostname or IP address of a syslog server.
++    type: str
++  udp_port:
++    description: UDP port of a syslog server.
++    type: str
++  facility:
++    description: Syslog facility to set or clear.
++    type: str
++  level:
++    description: Buffered logging level or list of levels.
++    type: str
++    choices: [alerts, critical, debugging, emergencies, errors, informational, notifications, warnings]
++  aggregate:
++    description: List of logging settings to manage together.
++    type: list
++    elements: dict
++  state:
++    description: Whether the setting should be present or absent.
++    type: str
++    choices: [present, absent]
++    default: present
++  check_running_config:
++    description: Compare desired settings to the running configuration.
++    type: bool
++    default: true
++'''
++
++EXAMPLES = '''
++- name: Configure IPv6 syslog and a facility
++  icx_logging:
++    aggregate:
++      - {dest: host, name: '2001:db8::1', udp_port: '514'}
++      - {facility: local7}
++- name: Disable console logging
++  icx_logging:
++    dest: console
++    state: absent
++'''
++
++RETURN = '''
++commands:
++  description: Configuration commands sent to the device.
++  returned: always
++  type: list
++'''
++
++import re
++from copy import deepcopy
++from ansible.module_utils.basic import AnsibleModule, env_fallback
++from ansible.module_utils.network.icx.icx import get_config, load_config
++from ansible.module_utils.network.common.utils import validate_ip_v6_address
++
++LEVELS = ('emergencies', 'alerts', 'critical', 'errors', 'warnings',
++          'notifications', 'informational', 'debugging')
++DESTINATIONS = ('on', 'host', 'console', 'buffered', 'persistence', 'rfc5424')
++
++
++def count_terms(check, param=None):
++    keys = param if param is not None else check
++    if isinstance(keys, str):
++        keys = [keys]
++    return sum(check.get(key) is not None for key in keys)
++
++
++def check_required_if(module, spec, param):
++    for key, value, required in spec or []:
++        if param.get(key) == value:
++            missing = [item for item in required if param.get(item) is None]
++            if missing:
++                module.fail_json(msg='%s is required when %s is %s' % (', '.join(missing), key, value))
++
++
++def search_obj_in_list(name, lst):
++    for item in lst:
++        if item.get('name') == name:
++            return item
++    return None
++
++
++def diff_in_list(want, have):
++    return set(want) - set(have), set(have) - set(want)
++
++
++def parse_port(line, dest):
++    if dest == 'host':
++        match = re.search(r'\budp-port\s+(\d+)\b', line)
++        if match:
++            return match.group(1)
++    return None
++
++
++def parse_name(line, dest):
++    if dest == 'host':
++        match = re.match(r'^logging host (?:ipv6 )?(\S+)', line.strip())
++        if match:
++            return match.group(1)
++    return None
++
++
++def parse_address(line, dest):
++    return dest == 'host' and bool(re.match(r'^logging host ipv6\s+\S+', line.strip()))
++
++
++def _object(dest=None, name=None, udp_port=None, facility=None, level=None,
++            state='present', addr6=False):
++    return dict(dest=dest, name=name, udp_port=udp_port, facility=facility,
++                level=level, state=state, addr6=addr6)
++
++
++def map_params_to_obj(module, required_if=None):
++    params = module.params
++    entries = params.get('aggregate') or [params]
++    result = []
++    rules = required_if or [('dest', 'host', ['name']), ('dest', 'buffered', ['level'])]
++    for entry in entries:
++        item = dict((key, entry.get(key) if entry.get(key) is not None else params.get(key))
++                    for key in ('dest', 'name', 'udp_port', 'facility', 'level', 'state'))
++        check_required_if(module, rules, item)
++        dest = item['dest']
++        if dest not in DESTINATIONS and dest is not None:
++            module.fail_json(msg='unsupported logging destination: %s' % dest)
++        if not dest and item['facility'] is None:
++            module.fail_json(msg='dest or facility is required')
++        if dest != 'host':
++            item['name'] = item['udp_port'] = None
++        else:
++            item['addr6'] = bool(validate_ip_v6_address(item['name']))
++            if item['udp_port'] is not None:
++                item['udp_port'] = str(item['udp_port'])
++        if dest == 'buffered':
++            levels = item['level'] if isinstance(item['level'], (list, tuple, set)) else [item['level']]
++            if any(level not in LEVELS for level in levels):
++                module.fail_json(msg='invalid buffered logging level')
++            item['level'] = set(levels)
++        else:
++            item['level'] = None
++        if dest != 'host':
++            item['addr6'] = False
++        item['state'] = item['state'] or 'present'
++        result.append(item)
++    return result
++
++
++def map_config_to_obj(module):
++    config = get_config(module, None, compare=module.params['check_running_config'])
++    lines = [line.strip() for line in config.splitlines()]
++    result = []
++    facility = 'user'
++    buffered = False
++    buffered_levels = set()
++    all_buffered = False
++    excluded = set()
++    for line in lines:
++        if line.startswith('logging host '):
++            result.append(_object('host', parse_name(line, 'host'),
++                                  parse_port(line, 'host'), addr6=parse_address(line, 'host')))
++        elif line.startswith('logging facility '):
++            facility = line.split()[2]
++        elif line == 'logging buffered':
++            buffered = True
++            all_buffered = True
++        elif line.startswith('logging buffered '):
++            buffered = True
++            level = line.split()[2]
++            if level in LEVELS:
++                buffered_levels.add(level)
++                excluded.discard(level)
++        elif line.startswith('no logging buffered '):
++            level = line.split()[3]
++            if level in LEVELS:
++                excluded.add(level)
++        elif line == 'logging console':
++            result.append(_object('console'))
++        elif line == 'logging persistence':
++            result.append(_object('persistence'))
++        elif line == 'logging enable rfc5424':
++            result.append(_object('rfc5424'))
++    if buffered:
++        result.append(_object('buffered', level=(set(LEVELS) if all_buffered else buffered_levels) - excluded))
++    result.append(_object('facility', facility=facility))
++    if 'no logging on' not in lines:
++        result.append(_object('on'))
++    return result
++
++
++def _host_command(item, port=None):
++    command = 'logging host ' + ('ipv6 ' if item.get('addr6') else '') + item['name']
++    if port is not None:
++        command += ' udp-port ' + str(port)
++    return command
++
++
++def map_obj_to_commands(updates):
++    want, have = updates
++    commands = []
++    for item in want:
++        dest, state = item.get('dest'), item.get('state', 'present')
++        if item.get('facility') is not None:
++            current = next((entry.get('facility') for entry in have
++                            if entry['dest'] == 'facility'), 'user')
++            if state == 'present' and current != item['facility']:
++                commands.append('logging facility ' + item['facility'])
++            elif state == 'absent' and current == item['facility'] and current != 'user':
++                commands.append('no logging facility')
++        if dest is None or dest == 'facility':
++            continue
++        matches = [entry for entry in have if entry['dest'] == dest]
++        if dest == 'host':
++            matches = [entry for entry in matches if entry['name'] == item['name']
++                       and entry.get('addr6') == item.get('addr6')]
++            port = item.get('udp_port')
++            exact = [entry for entry in matches if entry.get('udp_port') == port]
++            removals = matches if port is None else exact
++            if state == 'absent':
++                for entry in removals:
++                    commands.append('no ' + _host_command(entry, entry.get('udp_port')))
++            elif not exact:
++                for entry in matches:
++                    commands.append('no ' + _host_command(entry, entry.get('udp_port')))
++                commands.append(_host_command(item, port))
++        elif dest == 'buffered':
++            current = matches[0]['level'] if matches else set()
++            levels = item['level'] or set()
++            if state == 'present':
++                adds, _ = diff_in_list(levels, current)
++                for level in LEVELS:
++                    if level in adds:
++                        commands.append('logging buffered ' + level)
++            else:
++                for level in LEVELS:
++                    if level in levels & current:
++                        commands.append('no logging buffered ' + level)
++        else:
++            command = 'logging enable rfc5424' if dest == 'rfc5424' else 'logging ' + dest
++            if state == 'present' and not matches:
++                commands.append(command)
++            elif state == 'absent' and matches:
++                commands.append('no ' + command)
++    return commands
++
++
++def main():
++    element_spec = dict(dest=dict(type='str', choices=list(DESTINATIONS)),
++                        name=dict(type='str'), udp_port=dict(type='str'),
++                        facility=dict(type='str'), level=dict(type='str'),
++                        state=dict(type='str', choices=['present', 'absent']))
++    aggregate_spec = deepcopy(element_spec)
++    argument_spec = dict(element_spec)
++    argument_spec['state']['default'] = 'present'
++    argument_spec.update(aggregate=dict(type='list', elements='dict', options=aggregate_spec),
++                         check_running_config=dict(type='bool', default=True,
++                                                   fallback=(env_fallback, ['ANSIBLE_CHECK_ICX_RUNNING_CONFIG'])))
++    module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
++    want = map_params_to_obj(module)
++    have = map_config_to_obj(module)
++    commands = map_obj_to_commands((want, have))
++    if commands and not module.check_mode:
++        load_config(module, commands)
++    module.exit_json(changed=bool(commands), commands=commands)
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/test/units/modules/network/icx/test_icx_logging.py b/test/units/modules/network/icx/test_icx_logging.py
+new file mode 100644
+index 00000000..d58c9c10
+--- /dev/null
++++ b/test/units/modules/network/icx/test_icx_logging.py
+@@ -0,0 +1,49 @@
++from __future__ import absolute_import, division, print_function
++
++from ansible.modules.network.icx import icx_logging as logging
++
++
++class Module(object):
++    def __init__(self, params):
++        self.params = params
++
++    def fail_json(self, **kwargs):
++        raise ValueError(kwargs['msg'])
++
++
++def test_aggregate_and_ipv6(monkeypatch):
++    monkeypatch.setattr(logging, 'get_config', lambda *args, **kwargs: '''logging host ipv6 2001:db8::1 udp-port 514
++logging facility local7
++logging buffered
++no logging buffered debugging
++logging console
++''')
++    module = Module(dict(aggregate=[{'dest': 'host', 'name': '2001:db8::1', 'udp_port': '514'},
++                                    {'dest': 'host', 'name': '192.0.2.1', 'udp_port': '5514'},
++                                    {'facility': 'local7'},
++                                    {'dest': 'buffered', 'level': 'debugging'},
++                                    {'dest': 'console', 'state': 'absent'},
++                                    {'dest': 'on', 'state': 'absent'}],
++                         dest=None, name=None, udp_port=None, facility=None, level=None,
++                         state='present', check_running_config=True))
++    want = logging.map_params_to_obj(module)
++    have = logging.map_config_to_obj(module)
++    assert logging.map_obj_to_commands((want, have)) == [
++        'logging host 192.0.2.1 udp-port 5514',
++        'logging buffered debugging', 'no logging console', 'no logging on']
++
++
++def test_removals(monkeypatch):
++    monkeypatch.setattr(logging, 'get_config', lambda *args, **kwargs: '''logging host ipv6 2001:db8::1 udp-port 514
++logging facility local7
++logging buffered
++no logging buffered errors
++''')
++    module = Module(dict(check_running_config=True))
++    have = logging.map_config_to_obj(module)
++    want = [logging._object('host', '2001:db8::1', state='absent', addr6=True),
++            logging._object(facility='local7', state='absent'),
++            logging._object('buffered', level={'warnings', 'errors'}, state='absent')]
++    assert logging.map_obj_to_commands((want, have)) == [
++        'no logging host ipv6 2001:db8::1 udp-port 514',
++        'no logging facility', 'no logging buffered warnings']

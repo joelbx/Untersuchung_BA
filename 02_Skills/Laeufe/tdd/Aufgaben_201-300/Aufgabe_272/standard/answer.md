@@ -1,0 +1,3 @@
+Added TLS cipher configuration to `get_url`, `uri`, and `lookup('url')`, with propagation through `fetch_url`, `open_url`, and `Request`. The shared SSL context applies the selected ciphers to HTTPS handlers, including redirects and Unix socket requests, while preserving the default when ciphers are unset. Invalid cipher values produce a sanitized error.
+
+The relevant tests pass: **134 passed**, with four deprecation warnings. The repository-wide `pytest -q` run did not pass; it encountered 24 collection errors and unrelated test failures. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

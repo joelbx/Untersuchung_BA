@@ -1,0 +1,3 @@
+Invitation registration now accepts a valid token without an email. The registration form submits the URL token, and the backend uses token keyed metadata to join the invited groups, confirm an email only when it matches the invitation, and clean up linked invitation records. Email based cleanup removes all tokens for that address.
+
+Verification: the existing invitation suite passed (31 tests); ESLint and `git diff --check` passed. No delegation was used.

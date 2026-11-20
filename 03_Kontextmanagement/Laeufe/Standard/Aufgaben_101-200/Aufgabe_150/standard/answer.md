@@ -1,0 +1,3 @@
+Updated collection manifest handling so an omitted `manifest` uses `Sentinel` and the directory walk, while explicit `manifest: {}` and `manifest: null` select the default directive builder. The walk now excludes file symlinks pointing outside the collection; tests also confirm that internal symlinks appear once under their linked paths. The collection guide reflects the simpler configuration.
+
+All 68 collection unit tests pass. `distlib` is unavailable in this environment, so execution of its directive builder was verified through dispatch tests rather than an end-to-end build.

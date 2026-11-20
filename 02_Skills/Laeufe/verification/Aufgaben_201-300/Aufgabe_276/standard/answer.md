@@ -1,0 +1,3 @@
+GitHub and enabled OIDC authentication now fail startup validation when `client_id`, `client_secret`, or `redirect_address` is empty or missing. Errors name the provider and field in the required format. GitHub’s `read:org` check also returns the specified provider and field message.
+
+Verification: `go test ./internal/config -count=1` passed. `go test ./cmd/flipt -count=1` completed successfully; that package has no test files.

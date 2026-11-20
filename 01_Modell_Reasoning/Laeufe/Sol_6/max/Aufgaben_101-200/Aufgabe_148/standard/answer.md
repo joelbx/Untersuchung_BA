@@ -1,0 +1,3 @@
+Implemented `Teleport-Proxy` SSH support in the [multiplexer](/app/lib/multiplexer/multiplexer.go). It routes null terminated JSON headers as SSH and exposes `ClientAddr` through `RemoteAddr()`. The [SSH server](/app/lib/sshutils/server.go) can read prefixed headers up to 16 KiB while retaining tracing metadata.
+
+Plain SSH and prefixed connections are covered by tests. `go test ./lib/multiplexer ./lib/sshutils -count=1` passed with downloads disabled.

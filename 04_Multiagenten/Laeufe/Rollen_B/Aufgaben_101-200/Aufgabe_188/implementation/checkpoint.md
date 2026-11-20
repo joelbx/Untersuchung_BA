@@ -1,0 +1,5 @@
+Verified: sizeUnits is currently defined in humanSize.ts and BASE_SIZE/GIGA in constants.ts. Consolidating in helpers/size.ts, then updating consumers and running local tests.
+Implemented a single helpers/size.ts source and migrated member, CSV, organization, bonus, offers, referral, and Drive GB uses. Drive plan initial allocation intentionally changes from 1000 GB to 1 TB (1024 GB). Checking formatting, type safety, and existing tests.
+Review caught and corrected two clamp arguments changed by an overly broad text replacement; defaults now multiply sizeUnits.GB as intended.
+CSV suite passes (64 tests). Added focused selector coverage for family, Drive Pro/Business, and default allocations. Type checks initially exposed the two clamp mistakes (corrected); they also report an unrelated pre-existing openpgp/pmcrypto type mismatch in packages/crypto/lib/worker/api.ts.
+Final verification: CSV suite 64/64 passed; MemberStorageSelector suite 4/4 passed. Components type check reports only the unrelated packages/crypto/lib/worker/api.ts openpgp type mismatch after the clamp fix; shared check reported the same. git diff --check passes.

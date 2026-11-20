@@ -1,0 +1,3 @@
+Implemented polling lifecycle management across the Git, local, Azure Blob, S3, and OCI snapshot stores. Each store retains its poller and exposes `Close()`; the wrapping filesystem store also forwards `Close()`. Added tests confirming that closing a poller waits for an active update and is safe before polling starts.
+
+The final `GOTOOLCHAIN=local GOPROXY=off go test ./internal/storage/fs/...` run and `git diff --check` passed.

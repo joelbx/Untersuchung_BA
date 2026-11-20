@@ -1,0 +1,3 @@
+Deprecated both `safe_eval` entry points with Ansible runtime notices targeting 2.21, added the changelog entries, and changed `check_type_dict` to parse JSON, dictionary literals, and `key=value` pairs without calling `safe_eval`. Invalid inputs now raise descriptive `TypeError`s.
+
+Verification: the relevant validation, parameter, and wrapper tests passed (**118 passed**). `git diff --check` also passed.

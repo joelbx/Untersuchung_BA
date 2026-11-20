@@ -1,0 +1,3 @@
+Resolved the `module_common` collection import issue in [module_common.py](/app/lib/ansible/executor/module_common.py). Dependency discovery now uses a queue and separate legacy and collection locators. It handles redirects and their metadata, relative imports in package initializers, missing `__init__.py` files, and clearer lookup errors. I added focused [tests](/app/test/units/executor/module_common/test_collection_module_utils.py).
+
+Validation: all 55 `module_common` tests passed, and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated [_parse_clixml](/app/lib/ansible/plugins/shell/powershell.py:33) to decode UTF-16 escapes, including surrogate pairs and control characters, while preserving invalid escapes and unpaired surrogates. It now handles empty `<S>` elements and places `\r\n` only between results from different `<Objs>` blocks.
+
+Added regression cases in [test_powershell.py](/app/test/units/plugins/shell/test_powershell.py:79). The shell unit tests passed: **20/20**. `git diff --check` also passed.

@@ -1,0 +1,3 @@
+Updated [module_common.py](/app/lib/ansible/executor/module_common.py) so new-style Python modules use their declared shebang and arguments by default. Explicit interpreter settings still take precedence, and modules without a shebang get a default interpreter. Shebang rewrites preserve the source argument text and place the encoding line immediately after the shebang.
+
+The relevant unit suite passed: **73 tests**. `git diff --check` also passed.

@@ -1,0 +1,3 @@
+Implemented contextual plugin resolution in [loader.py](/app/lib/ansible/plugins/loader.py), plugin exceptions in [errors](/app/lib/ansible/errors/__init__.py), and consistent removal and deprecation messages in [display.py](/app/lib/ansible/utils/display.py). Updated the action, connection, and template callers; removed filters now surface as template syntax errors.
+
+**Verification:** 70 focused unit tests passed, and `git diff --check` passed. Two existing display warning tests pass individually but fail when run together because they share singleton warning state.

@@ -1,0 +1,3 @@
+Implemented ZIP timestamp validation in [unarchive.py](/app/lib/ansible/modules/unarchive.py:322). Invalid dates and years outside 1980–2107 now use the ZIP epoch fallback, and `is_unarchived` uses the validated tuple instead of `datetime` and `strptime`.
+
+Added coverage in [test_unarchive.py](/app/test/units/modules/test_unarchive.py:20). The relevant test file passed: **12 passed**. `git diff --check` also passed.

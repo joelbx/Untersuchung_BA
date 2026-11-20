@@ -1,0 +1,5 @@
+The issue is localized to [internal/telemetry/telemetry.go](/app/internal/telemetry/telemetry.go:24): the schema version is `1.2`, and the `flipt` payload has no audit field. `Reporter.ping` already receives the full configuration. [internal/config/audit.go](/app/internal/config/audit.go:21) provides the two sink enablement flags.
+
+The fix should emit `flipt.audit: {"sinks":["log","webhook"]}` with only the enabled names, omit `audit` when neither sink is enabled, and update the telemetry version to `1.3`. [TestPing](/app/internal/telemetry/telemetry_test.go:246) is the place to cover all four sink combinations and update the existing version assertions.
+
+No project source or tests were changed. This run’s fault-localization constraint prevented implementing the requested fix. Confidence is high from the payload construction and configuration paths; behavior was not verified by running tests.

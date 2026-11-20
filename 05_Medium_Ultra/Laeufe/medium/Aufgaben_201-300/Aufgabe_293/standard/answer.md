@@ -1,0 +1,3 @@
+OCI storage now validates repository references with clear errors, parses the bundle directory, authentication credentials, and duration poll interval, and passes them through to the OCI backend. `NewStore` uses its `dir` argument, and `DefaultBundleDir()` creates a path under Flipt’s data directory. I also registered `fs/oci` in the integration suite and CI matrix.
+
+Focused config, OCI, startup, CLI, and build testing package tests passed. The Dagger integration suite was compiled but not run locally.

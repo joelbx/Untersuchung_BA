@@ -1,0 +1,3 @@
+`config.Load("")` now applies environment overrides to the default configuration. The CLI uses `config.Load` when no config file is found, so `FLIPT_LOG_LEVEL` and `FLIPT_SERVER_HTTP_PORT` take effect on startup. File values still provide the base when a path is supplied, with environment variables taking precedence.
+
+Added tests for defaults and both override paths. `go test ./internal/config ./cmd/flipt` passed, and `git diff --check` was clean. No delegation was used.

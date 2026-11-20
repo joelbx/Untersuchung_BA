@@ -1,0 +1,3 @@
+Implemented shared process-to-package association in [base.go](/app/scan/base.go), and updated Debian and Red Hat post-scan flows to use it. Red Hat ownership results now match name, version, release, and architecture. RPM ownership output skips the specified permission, unowned-file, and missing-file lines, and reports malformed lines as errors.
+
+Verification: `go test ./scan -run 'TestParseInstalledPackagesLine|TestParseNeedsRestarting' -count=1` passed; `git diff --check` passed. The full `go test ./scan` run was interrupted before completion.

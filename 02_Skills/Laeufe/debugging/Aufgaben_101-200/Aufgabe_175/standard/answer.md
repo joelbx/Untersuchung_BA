@@ -1,0 +1,3 @@
+Implemented native SQLite backups in the checked-out repository. `conf.Server.Backup` now supports `backup.path`, `backup.schedule`, and `backup.count`; the CLI provides `backup create`, `backup prune`, and `backup restore` with the required confirmations and `--force` flags. Scheduled backups use the configured retention count, while manual creation does not prune.
+
+Verification passed: `GOPROXY=off go test ./db ./conf ./cmd -count=1`, `GOPROXY=off go build ./cmd ./db ./conf`, and `git diff --check`.

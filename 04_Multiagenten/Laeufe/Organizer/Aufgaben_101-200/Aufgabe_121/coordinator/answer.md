@@ -1,0 +1,3 @@
+Added `flipt.is_auth_method(input, method)` to the Rego engine. It maps the supported names to the protobuf method codes, treats `k8s` and `kubernetes` as aliases, and returns the specified errors for missing authentication and unsupported names. Built-in errors now propagate through policy evaluation.
+
+Tests passed: `go test ./internal/server/authz/engine/ext ./internal/server/authz/engine/rego ./internal/server/authz/middleware/grpc`. No delegation was used.

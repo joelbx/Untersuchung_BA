@@ -1,0 +1,5 @@
+Implemented shebang handling in [module_common.py](/app/lib/ansible/executor/module_common.py:595): declared interpreters and arguments are preserved, explicit Python overrides take precedence, and modules without shebangs use configured interpreter discovery. `modify_module` only replaces a shebang when the resolved interpreter differs and places the encoding cookie after it.
+
+Added coverage in [test_module_common.py](/app/test/units/executor/module_common/test_module_common.py:96) and [test_modify_module.py](/app/test/units/executor/module_common/test_modify_module.py:46).
+
+Validation: all 60 module-common unit tests pass; `git diff --check` passes. The test run emitted one `PytestUnraisableExceptionWarning` during `ZipFile` finalization in a recursive-finder test. Checkpoint recorded in `.codex-role-output/checkpoint.md`.

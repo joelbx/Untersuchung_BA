@@ -1,0 +1,3 @@
+Updated [email.js](/app/src/user/email.js) to return a strict pending state, expose the live remaining TTL in milliseconds, clear both confirmation records on expiry, and allow resend only after the configured interval. Confirmation codes are valid only while they match the current pending record. Added a one-day default for `emailConfirmExpiry` in [defaults.json](/app/install/data/defaults.json).
+
+ESLint, syntax, diff checks, and isolated confirmation-flow checks passed. The existing integration tests could not be run because their harness reads and logs `config.json`, which conflicts with the credential-access restriction.

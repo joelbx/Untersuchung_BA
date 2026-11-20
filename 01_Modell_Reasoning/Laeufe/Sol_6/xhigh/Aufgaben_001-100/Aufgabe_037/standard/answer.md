@@ -1,0 +1,3 @@
+Resolved the YAML template error. [AnsibleDumper](/app/lib/ansible/parsing/yaml/dumper.py) now surfaces Jinja’s undefined-variable error; both YAML filters report their own names and preserve the original exception. The [templating layer](/app/lib/ansible/template/__init__.py) reports `AnsibleUndefinedVariable` with the missing variable’s name.
+
+Verification: 164 relevant tests passed. One existing test was excluded because this environment lacks the `mocker` fixture.

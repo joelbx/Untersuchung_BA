@@ -1,0 +1,3 @@
+Implemented host-scoped monitoring in `/app`. `OlAsyncIOScheduler` now supports scheduled jobs with function-name IDs, and `limit_server` uses `HOSTNAME` to retain jobs only for matching exact names or prefix wildcards, including short names on fully qualified hosts. I also added the async monitoring entrypoint and HAProxy metrics collector.
+
+Validation: all 6 monitoring tests pass; Ruff and `git diff --check` pass. No delegation was used.

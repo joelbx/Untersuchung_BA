@@ -1,0 +1,3 @@
+Updated the controller minimum to **Python 3.12** across the CLI, ansible-test, and package metadata. Collection extraction now passes `dirname` unchanged to `tar.getmember()` and no longer uses the private TarFile cache. I also cleaned up obsolete compatibility code and added a [changelog fragment](/app/changelogs/fragments/drop-controller-python-3.10-3.11.yml).
+
+Verification: 74 targeted tests passed, 1 skipped; syntax and diff checks passed. The installed Python is 3.11, so CLI and role tests could not collect under the new version gate.

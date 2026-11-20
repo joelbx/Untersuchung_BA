@@ -1,0 +1,3 @@
+Updated [mathstuff.py](/app/lib/ansible/plugins/filter/mathstuff.py) so `min` and `max` use Jinja2’s enhanced filters with the environment and forward keyword arguments. When those filters are unavailable, calls without keywords use Python’s built-ins; calls with keywords raise the required `AnsibleFilterError`.
+
+Validation passed: all 49 existing math filter tests, direct checks for `attribute` and `case_sensitive`, and `git diff --check`. Checkpoint recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

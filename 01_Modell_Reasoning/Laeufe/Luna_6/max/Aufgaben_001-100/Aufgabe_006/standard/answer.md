@@ -1,0 +1,3 @@
+Implemented the generic fanout buffer in [buffer.go](/app/lib/utils/fanoutbuffer/buffer.go), including ring and overflow storage, cursor reads and cleanup, grace period errors, and close notifications. Wrote the required checkpoint to `.codex-role-output/checkpoint.md`.
+
+`go test ./lib/utils/fanoutbuffer` passed (no test files). `go test ./lib/services` could not build because local Go build-cache artifacts for dependencies were missing.

@@ -1,0 +1,3 @@
+Moved `interpolate_color` and `_get_color_percentage` into [qtutils.py](/app/qutebrowser/utils/qtutils.py) and updated the download and tab progress callers to use the new location. Regression tests cover progress colors, invalid inputs, and color-spec preservation.
+
+**Verification:** 338 relevant tests passed; `git diff --check` passed. The full suite could not complete because QtWebKit is unavailable in this environment. The broader unit run also exited abruptly in `test_caret.py` without a pytest summary. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

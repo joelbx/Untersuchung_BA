@@ -1,0 +1,3 @@
+Implemented host-scoped monitoring scheduling in [utils.py](/app/scripts/monitoring/utils.py) and switched the monitoring service to `OlAsyncIOScheduler` in [monitor.py](/app/scripts/monitoring/monitor.py). The scheduler inherits from APScheduler’s asyncio scheduler and defaults job IDs to function names. Host matching reads `HOSTNAME` from the environment and supports exact names, trailing `*` prefixes, and short names against fully qualified hostnames.
+
+Verification: `PYTHONPATH=. pytest -q scripts/monitoring/tests/test_utils_py.py` passed (2 tests), and `git diff --check` passed.

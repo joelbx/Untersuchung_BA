@@ -1,0 +1,3 @@
+Added `checkEventValidity` and its enum in [CalendarUtils.ts](/app/src/calendar/date/CalendarUtils.ts). It checks for invalid dates first, then pre-1970 starts, then equal or reversed date ranges. Manual creation and ICS parsing now use the same result; ICS imports reject invalid events instead of repairing their end times.
+
+Updated the regression tests and recorded the work in [checkpoint.md](/app/.codex-role-output/checkpoint.md). `npm run test:app` passed all 7,990 assertions, and `git diff --check` passed.

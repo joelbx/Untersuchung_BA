@@ -1,0 +1,3 @@
+Replaced the ad hoc parser with a typed expression AST in [ast.go](/app/lib/utils/parse/ast.go) and [parse.go](/app/lib/utils/parse/parse.go). Nested string expressions, constant inputs, matcher predicates, variable validation, and expression depth limits are now handled through the new parser. Trait and PAM interpolation now validate every variable in an expression.
+
+Parser tests and focused service tests pass offline. `lib/srv` could not be compiled in this environment because required native C headers and sqlite symbols are missing, so the PAM change remains untested there.

@@ -1,0 +1,3 @@
+Updated [book import](/app/openlibrary/catalog/add_book/__init__.py) to accept cover URLs only from `ALLOWED_COVER_HOSTS`. The new `process_cover_url` function compares hosts case-insensitively, accepts HTTP and HTTPS, and removes the `cover` key whether the URL is accepted or ignored. Both new and matched edition imports use it.
+
+The [add-book tests](/app/openlibrary/catalog/add_book/tests/test_add_book.py) pass: 148 passed, 1 expected failure. Ruff and `git diff --check` also pass. The projectwide suite could not complete because `test_isbndb.py` fetches a schema during collection and the proxy returned 403; details are in the [checkpoint](/app/.codex-role-output/checkpoint.md).

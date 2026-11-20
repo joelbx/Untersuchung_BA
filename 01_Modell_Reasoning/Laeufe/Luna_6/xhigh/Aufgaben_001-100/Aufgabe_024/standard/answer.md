@@ -1,0 +1,3 @@
+Implemented the author matching fixes: honorific removal now handles multilingual titles, exceptions, and title-only names; matching checks extracted years across exact, alternate, and surname lookups; literal asterisks no longer broaden name searches; and unmatched author records retain their input fields.
+
+Verification passed: **138 focused tests** and Ruff checks. The changed files are [load_book.py](/app/openlibrary/catalog/add_book/load_book.py), [catalog/utils](/app/openlibrary/catalog/utils/__init__.py), [helpers.py](/app/openlibrary/core/helpers.py), and the related tests and mock.

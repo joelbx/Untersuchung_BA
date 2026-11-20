@@ -1,0 +1,3 @@
+Amazon imports now include edition language names exactly as supplied by Amazon, excluding “Original Language” entries and duplicates. The serializer omits `languages` when the list is empty, and the metadata cleaner preserves the field. I added coverage in [test_vendors.py](/app/openlibrary/tests/core/test_vendors.py) for those cases.
+
+Verification: 37 vendor tests passed; Ruff lint and `git diff --check` passed.

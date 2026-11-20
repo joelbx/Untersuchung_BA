@@ -1,0 +1,3 @@
+Fixed hosts validation in [play.py](/app/lib/ansible/playbook/play.py). `Play.load` leaves `name` untouched, `get_name` derives it from hosts when needed, and invalid hosts produce the requested `AnsibleParserError` messages.
+
+Added regression coverage and updated the existing integration assertion. All 251 playbook unit tests passed; CLI syntax checks returned parser errors for malformed and empty hosts.

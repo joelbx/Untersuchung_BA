@@ -1,0 +1,5 @@
+VERDICT: FIX
+
+**Code defect:** The UI gives each tab a UUID, but [eventStream.js](/app/ui/src/eventStream.js:17) opens `EventSource` without it. The server instead reads a browser-wide cookie for that request ([middlewares.go](/app/server/middlewares.go:63)). If another tab updates the cookie before the stream opens or reconnects, the subscription gets the wrong client ID. An action can then echo to its originating tab or be withheld from the other tab. Bind the SSE subscription to its tab’s UUID, for example by passing the UUID in the stream URL and resolving it when subscribing.
+
+**Tests:** `GOPROXY=off GOSUMDB=off go test ./server/events ./server ./server/subsonic ./scanner ./model/request` passed; `CI=true npm test -- --watch=false --runInBand` passed (11 suites, 41 tests); `git diff --check` passed. No `TEST_ENVIRONMENT_PROBLEM`. Project code was not changed during this independent review.

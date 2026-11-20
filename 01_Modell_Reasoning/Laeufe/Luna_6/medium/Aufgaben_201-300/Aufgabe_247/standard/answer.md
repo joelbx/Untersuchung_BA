@@ -1,0 +1,3 @@
+Updated `SocketPosts.getUpvoters` to bulk-check `topics:read` across every category associated with the requested posts and reject non-administrators if any category is unreadable. It now deduplicates UIDs before username lookup, preserves their per-post order, and returns a cutoff of 6 with the remaining count.
+
+The frontend reads the cutoff from the response and enables HTML tooltips. ESLint and `git diff --check` passed. The posts test suite could not initialize because Redis was unavailable at `127.0.0.1:6379`.

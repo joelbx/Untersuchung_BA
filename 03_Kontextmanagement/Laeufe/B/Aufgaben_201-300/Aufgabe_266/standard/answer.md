@@ -1,0 +1,3 @@
+Added `STAGED_SOURCES` and `ImportItem.find_staged_or_pending` in [imports.py](/app/openlibrary/core/imports.py). The lookup returns local `import_item` rows matching `{source}:{identifier}` with `staged` or `pending` status, including an empty result for empty inputs.
+
+Added coverage in [test_imports.py](/app/openlibrary/tests/core/test_imports.py). All 6 relevant tests pass; Ruff and diff checks pass.

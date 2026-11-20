@@ -1,0 +1,3 @@
+Added `storage.readOnly` to backend configuration and frontend metadata. Validation now rejects any defined value on non-database storage with the specified error. The UI derives read-only mode from that flag, defaults by storage type when it is absent, and shows a backend-specific icon in the Read-Only badge. Authentication bootstrap now avoids a database connection when authentication is disabled and storage is non-database. I also added the requested fixture and exported `selectConfig`.
+
+`go test ./internal/config` passed, and `git diff --check` passed. The combined Go run was interrupted while compiling SQLite for `internal/cmd`; the UI build could not run because `npm` is unavailable.

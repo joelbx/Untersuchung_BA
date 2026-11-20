@@ -1,0 +1,3 @@
+Updated collection-name validation to return `False` when either segment is a Python keyword or an invalid Python identifier. The dependency resolver now uses that validator, and the legacy helpers and their Python 2/3 compatibility code are removed.
+
+The relevant test files passed in separate processes: 81 collection-loader tests and 34 Galaxy collection-install tests. A combined run hit test-state interference because the loader tests remove the collection finder that the Galaxy tests need.

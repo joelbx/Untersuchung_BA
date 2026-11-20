@@ -1,0 +1,5 @@
+# Fault localization checkpoint
+
+Located parser at lib/ansible/plugins/shell/powershell.py:32-56. It filters direct child <S> elements by stream, but line 54 removes only `_x000D__x000A_`, calls `.replace` on possible `None`, and line 56 joins all entries with CRLF regardless of their <Objs> block. The loop at lines 44-47 assumes an `<Objs ` opening tag and closing `</Objs>`. `to_bytes` defaults to strict UTF-8 encoding; isolated surrogate output needs `surrogatepass` or equivalent.
+
+Existing parser tests in test/units/plugins/shell/test_powershell.py:6-75 cover empty objects, stream selection, and multiple blocks. Their single-stream expectation assumes CRLF is supplied by joining entries, so it conflicts with the requested decoding and concatenation semantics. All five existing parser tests pass on baseline. Read-only probes confirm `_x263A_` and surrogate tokens remain escaped, adjacent entries gain an unwanted CRLF, and an empty matching <S> raises AttributeError. No project source or tests changed.

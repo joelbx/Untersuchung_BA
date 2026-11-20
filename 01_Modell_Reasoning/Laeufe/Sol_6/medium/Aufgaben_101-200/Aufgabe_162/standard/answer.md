@@ -1,0 +1,3 @@
+Added optional encoding validation to `FormatString` during `to_py` conversion and set `content.headers.user_agent` to require ASCII. Values containing characters outside the configured encoding now raise a clear `ValidationError`; format strings without an encoding constraint retain their existing behavior.
+
+Added type and configuration tests. The relevant test suites passed: **1,139 passed, 10 expected failures**.

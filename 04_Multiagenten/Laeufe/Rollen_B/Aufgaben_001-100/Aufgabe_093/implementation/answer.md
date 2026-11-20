@@ -1,0 +1,3 @@
+Implemented RTL-aware Popper placement reporting. The new helper swaps `start` and `end` for top and bottom placements in RTL; middleware reads the floating element’s direction and reports the resolved placement. `usePopper` now exposes that value while preserving `hidden`.
+
+The focused tests pass (11 tests), along with the components TypeScript check, targeted ESLint and Prettier checks, and `git diff --check`.

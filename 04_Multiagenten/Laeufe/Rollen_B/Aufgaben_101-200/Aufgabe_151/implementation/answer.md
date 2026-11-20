@@ -1,0 +1,3 @@
+Updated [webview.py](/app/qutebrowser/browser/webengine/webview.py) so affected Qt versions add missing file extensions to the types passed to the file picker. The helper resolves specific MIME types and wildcards through Python’s `mimetypes` module and avoids adding extensions already present.
+
+Added coverage in [test_webview.py](/app/tests/unit/browser/webengine/test_webview.py). All 12 focused tests pass, and `git diff --check` passes.

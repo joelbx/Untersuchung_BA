@@ -1,0 +1,3 @@
+Implemented poller lifecycle management across Git, local filesystem, OCI, S3, and Azure Blob stores. Each store now retains its poller and exposes a nil-safe `Close() error`; the poller cancels its context and waits for its goroutine to exit.
+
+`go test ./internal/storage/fs/...` passed for the core, Git, OCI, S3, and Azure Blob packages. The local package failed because its test could not find the expected `staging` namespace after receiving the update notification.

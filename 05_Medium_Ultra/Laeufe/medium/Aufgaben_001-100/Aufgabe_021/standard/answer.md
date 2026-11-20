@@ -1,0 +1,3 @@
+Updated the list model with explicit seed types and method annotations. Seed membership now compares normalized keys across `Thing`, `SeedDict`, and subject strings; subject keys normalize consistently; and export always returns type-filtered `authors`, `works`, and `editions` lists. I also added regression tests and string annotations to the URL helpers.
+
+Verification: 6 relevant tests passed, and Ruff and `git diff --check` passed.

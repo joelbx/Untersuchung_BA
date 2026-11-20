@@ -1,0 +1,4 @@
+Task: fix QtColor HSV/HSVA hue percentage scaling and color function validation.
+Status: implementation and focused tests complete.
+Changes: qutebrowser/config/configtypes.py now scales hue against 359 and other channels against 255, normalizes percentages before multiplication so 100% reaches the maximum, validates function names and component counts, and calls the matching QColor constructor. tests/unit/config/test_configtypes.py covers HSV/HSVA and RGB/RGBA percentages, bounds, and invalid function calls.
+Verification: QtColor and QssColor tests passed (58 tests); git diff --check passed. Full test_configtypes.py run had 60 failures outside the edited color cases (Hypothesis function-scoped fixture health checks, QtFont weight type, Proxy Qt warning, TimestampTemplate validation); 978 passed and 20 xfailed.

@@ -1,0 +1,3 @@
+Centralized storage units in [size.ts](/app/packages/shared/lib/helpers/size.ts). Member provisioning, editing, organization setup, CSV imports, bonus allocations, and byte-size limits now use `sizeUnits`; calendar and contacts import `BASE_SIZE` from the helper. Removed `GIGA` and `BASE_SIZE` from shared constants. No legacy `GIGA` or inline GB formulas remain.
+
+**Verification:** CSV tests passed (64); both Drive encryption suites passed (10 each); lint checks passed. The shared Karma suite compiled but couldn’t launch because Playwright’s Chrome binary is missing. Shared and components type checks hit an OpenPGP type mismatch in [api.ts](/app/packages/crypto/lib/worker/api.ts:579). `git diff --check` is clean.

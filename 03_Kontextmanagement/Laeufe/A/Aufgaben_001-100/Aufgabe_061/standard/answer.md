@@ -1,0 +1,3 @@
+Updated process to package association in [scan/base.go](/app/scan/base.go). Debian and Red Hat post scan now use it. Red Hat ownership lookup matches the stored package’s version and architecture, ignores the three specified RPM file errors, and reports malformed output.
+
+The regression test covers mixed architectures, ignored errors, and malformed lines. `go test ./scan ./models` and `git diff --check` passed.

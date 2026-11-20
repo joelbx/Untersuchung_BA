@@ -1,0 +1,3 @@
+The MIME suffix workaround now checks **runtime Qt only** and activates from 6.2.3 up to, but not including, 6.7.0. I clarified `compiled` in [qtutils.py](/app/qutebrowser/utils/qtutils.py:78), changed `compiled=True, exact=True` to raise `RuntimeError`, and added tests for mismatched runtime, compiled Qt, and PyQt versions.
+
+Verification: 43 relevant tests passed with Qt’s offscreen platform; `git diff --check` passed.

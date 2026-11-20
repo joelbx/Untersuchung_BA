@@ -1,0 +1,3 @@
+BSD hardware fact gathering now calculates `uptime_seconds` from a numeric `sysctl -n kern.boottime` result. The shared sysctl parser preserves multiline values, accepts platform delimiters, and warns while continuing past malformed lines.
+
+Verification: 14 focused tests passed; the facts suite excluding timeout tests had 356 passed and 5 skipped. The full suite had one failure in an existing timeout test, which returned after two seconds instead of timing out.

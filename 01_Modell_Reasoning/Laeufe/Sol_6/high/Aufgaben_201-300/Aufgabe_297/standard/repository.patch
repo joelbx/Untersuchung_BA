@@ -1,0 +1,482 @@
+diff --git a/README.md b/README.md
+index 36c96c4..7031aab 100644
+--- a/README.md
++++ b/README.md
+@@ -25,6 +25,18 @@ please file a [GitHub issue](https://github.com/navidrome/navidrome/issues) or j
+ 
+ See instructions in the [project's website](https://www.navidrome.org/docs/installation/)
+ 
++## Trusted reverse proxy login
++
++To let a reverse proxy authenticate browser users, set `ReverseProxyWhitelist` to
++the proxy's IP address or comma-separated IPv4/IPv6 CIDR ranges, and have the
++proxy send the authenticated username in `Remote-User`. Set
++`ReverseProxyUserHeader` if your proxy uses another header. For a Unix socket,
++use `@` in the whitelist. An empty whitelist disables this login method.
++
++Only whitelist addresses that belong to proxies which remove any incoming
++user header before setting their own. A broad range such as `0.0.0.0/0` lets
++clients claim any username, including an administrator's.
++
+ ## Features
+  
+  - Handles very **large music collections**
+diff --git a/conf/configuration.go b/conf/configuration.go
+index 5e3f55c..bbe47ff 100644
+--- a/conf/configuration.go
++++ b/conf/configuration.go
+@@ -50,6 +50,8 @@ type configOptions struct {
+ 	EnableLogRedacting     bool
+ 	AuthRequestLimit       int
+ 	AuthWindowLength       time.Duration
++	ReverseProxyWhitelist  string
++	ReverseProxyUserHeader string
+ 
+ 	Scanner scannerOptions
+ 
+@@ -200,6 +202,8 @@ func init() {
+ 	viper.SetDefault("enablelogredacting", true)
+ 	viper.SetDefault("authrequestlimit", 5)
+ 	viper.SetDefault("authwindowlength", 20*time.Second)
++	viper.SetDefault("reverseproxywhitelist", "")
++	viper.SetDefault("reverseproxyuserheader", "Remote-User")
+ 
+ 	viper.SetDefault("scanner.extractor", "taglib")
+ 	viper.SetDefault("agents", "lastfm,spotify")
+diff --git a/log/log.go b/log/log.go
+index bb79f7e..7987b50 100644
+--- a/log/log.go
++++ b/log/log.go
+@@ -29,6 +29,7 @@ var redacted = &Hook{
+ 		"([^\\w]s=)[^&]+",
+ 		"([^\\w]p=)[^&]+",
+ 		"([^\\w]jwt=)[^&]+",
++		`(?i)(["']?(?:token|subsonicToken|subsonicSalt|secret|password|apiKey)["']?\s*[:=]\s*["']?)[^"'\s,}\]]+`,
+ 	},
+ }
+ 
+diff --git a/log/redactrus.go b/log/redactrus.go
+index 8c0d2ac..a425c94 100755
+--- a/log/redactrus.go
++++ b/log/redactrus.go
+@@ -4,6 +4,7 @@ package log
+ // Copyright (c) 2018 William Huang
+ 
+ import (
++	"fmt"
+ 	"reflect"
+ 	"regexp"
+ 
+@@ -37,17 +38,12 @@ func (h *Hook) Fire(e *logrus.Entry) error {
+ 	for _, re := range h.redactionKeys {
+ 		// Redact based on key matching in Data fields
+ 		for k, v := range e.Data {
+-			if re.MatchString(k) {
++			if re.MatchString(k) || sensitiveField.MatchString(k) {
+ 				e.Data[k] = "[REDACTED]"
+ 				continue
+ 			}
+ 
+-			// Redact based on value matching in Data fields
+-			switch reflect.TypeOf(v).Kind() {
+-			case reflect.String:
+-				e.Data[k] = re.ReplaceAllString(v.(string), "$1[REDACTED]$2")
+-				continue
+-			}
++			e.Data[k] = redactValue(v, re)
+ 		}
+ 
+ 		// Redact based on text matching in the Message field
+@@ -57,6 +53,49 @@ func (h *Hook) Fire(e *logrus.Entry) error {
+ 	return nil
+ }
+ 
++// redactValue preserves map keys while redacting their values, including
++// values in nested maps. Other non-string values use Go's default formatting.
++func redactValue(value interface{}, re *regexp.Regexp) interface{} {
++	if value == nil {
++		return nil
++	}
++	v := reflect.ValueOf(value)
++	if v.Kind() == reflect.Map {
++		redacted := make(map[interface{}]interface{}, v.Len())
++		iter := v.MapRange()
++		for iter.Next() {
++			key := iter.Key().Interface()
++			if re.MatchString(fmt.Sprint(key)) || sensitiveField.MatchString(fmt.Sprint(key)) {
++				redacted[key] = "[REDACTED]"
++			} else {
++				redacted[key] = redactValue(iter.Value().Interface(), re)
++			}
++		}
++		// Keep the common map types intact for callers that inspect log fields.
++		switch value.(type) {
++		case map[string]interface{}, logrus.Fields:
++			result := make(map[string]interface{}, len(redacted))
++			for key, val := range redacted {
++				result[key.(string)] = val
++			}
++			return result
++		case map[string]string:
++			result := make(map[string]string, len(redacted))
++			for key, val := range redacted {
++				result[key.(string)] = fmt.Sprint(val)
++			}
++			return result
++		}
++		return redacted
++	}
++	if s, ok := value.(string); ok {
++		return re.ReplaceAllString(s, "$1[REDACTED]$2")
++	}
++	return re.ReplaceAllString(fmt.Sprintf("%v", value), "$1[REDACTED]$2")
++}
++
++var sensitiveField = regexp.MustCompile(`(?i)^(?:token|subsonictoken|subsonicsalt|secret|password|apikey|authorization|cookie|set-cookie|jwt)$`)
++
+ func (h *Hook) initRedaction() error {
+ 	if len(h.redactionKeys) == 0 {
+ 		for _, redactionKey := range h.RedactionList {
+diff --git a/log/redactrus_test.go b/log/redactrus_test.go
+index c06987b..5f50e29 100755
+--- a/log/redactrus_test.go
++++ b/log/redactrus_test.go
+@@ -150,3 +150,27 @@ func TestEntryMessage(t *testing.T) {
+ 	assert.Nil(t, err)
+ 	assert.Equal(t, "Secret Password: [REDACTED]", logEntry.Message)
+ }
++
++func TestNestedMapRedaction(t *testing.T) {
++	entry := &logrus.Entry{Data: logrus.Fields{
++		"token": "top-level-token",
++		"config": map[string]interface{}{
++			"auth": map[string]interface{}{"token": "abc123", "name": "Alice"},
++			"url":  "?t=secret123&x=1",
++		},
++	}}
++	hook := &Hook{RedactionList: []string{`([^\w]t=)[\w]+`}}
++	assert.NoError(t, hook.Fire(entry))
++	config := entry.Data["config"].(map[string]interface{})
++	auth := config["auth"].(map[string]interface{})
++	assert.Equal(t, "[REDACTED]", entry.Data["token"])
++	assert.Equal(t, "[REDACTED]", auth["token"])
++	assert.Equal(t, "Alice", auth["name"])
++	assert.Equal(t, "?t=[REDACTED]&x=1", config["url"])
++}
++
++func TestRedactSerializedAuth(t *testing.T) {
++	redacted := Redact(`{"auth":{"token":"abc123","subsonicToken":"def456"}}`)
++	assert.NotContains(t, redacted, "abc123")
++	assert.NotContains(t, redacted, "def456")
++}
+diff --git a/server/app/auth.go b/server/app/auth.go
+index 10943a1..ef2ae4f 100644
+--- a/server/app/auth.go
++++ b/server/app/auth.go
+@@ -2,8 +2,11 @@ package app
+ 
+ import (
+ 	"context"
++	"crypto/md5"
+ 	"encoding/json"
+ 	"errors"
++	"fmt"
++	"net"
+ 	"net/http"
+ 	"strings"
+ 	"time"
+@@ -128,7 +131,104 @@ func createDefaultUser(ctx context.Context, ds model.DataStore, username, passwo
+ 	if err != nil {
+ 		log.Error("Could not create initial user", "user", initialUser, err)
+ 	}
+-	return nil
++	return err
++}
++
++// validateIPAgainstList checks the actual connection address. Forwarded headers
++// cannot be used here because clients can supply them themselves.
++func validateIPAgainstList(remoteAddr, whitelist string) bool {
++	if whitelist == "" {
++		return false
++	}
++	if remoteAddr == "@" {
++		for _, entry := range strings.Split(whitelist, ",") {
++			if strings.TrimSpace(entry) == "@" {
++				return true
++			}
++		}
++		return false
++	}
++	if host, _, err := net.SplitHostPort(remoteAddr); err == nil {
++		remoteAddr = host
++	}
++	ip := net.ParseIP(strings.Trim(remoteAddr, "[]"))
++	if ip == nil {
++		return false
++	}
++	for _, entry := range strings.Split(whitelist, ",") {
++		entry = strings.TrimSpace(entry)
++		if host, _, err := net.SplitHostPort(entry); err == nil {
++			entry = host
++		}
++		entry = strings.Trim(entry, "[]")
++		if !strings.Contains(entry, "/") {
++			if listed := net.ParseIP(entry); listed != nil && listed.Equal(ip) {
++				return true
++			}
++			continue
++		}
++		if _, network, err := net.ParseCIDR(entry); err == nil && network.Contains(ip) {
++			return true
++		}
++	}
++	return false
++}
++
++// handleLoginFromHeaders returns a session only for a user asserted by a
++// configured, trusted proxy. A first-time proxy user becomes the initial admin.
++func handleLoginFromHeaders(ds model.DataStore, r *http.Request) map[string]interface{} {
++	if !validateIPAgainstList(r.RemoteAddr, conf.Server.ReverseProxyWhitelist) {
++		return nil
++	}
++	header := conf.Server.ReverseProxyUserHeader
++	if header == "" {
++		header = "Remote-User"
++	}
++	username := strings.TrimSpace(r.Header.Get(header))
++	if username == "" {
++		return nil
++	}
++	repo := ds.User(r.Context())
++	user, err := repo.FindByUsername(username)
++	if err == model.ErrNotFound {
++		count, countErr := repo.CountAll()
++		if countErr != nil {
++			log.Error(r, "Could not count users for proxy login", countErr)
++			return nil
++		}
++		user = &model.User{ID: uuid.NewString(), UserName: username, Name: strings.Title(username), IsAdmin: count == 0, NewPassword: uuid.NewString()}
++		if err = repo.Put(user); err != nil {
++			log.Error(r, "Could not create proxy user", err)
++			return nil
++		}
++		// Put persists NewPassword but does not populate Password on the model.
++		user, err = repo.FindByUsername(username)
++		if err != nil || user == nil {
++			log.Error(r, "Could not reload proxy user", err)
++			return nil
++		}
++	} else if err != nil || user == nil {
++		log.Error(r, "Could not find proxy user", err)
++		return nil
++	}
++	if err := repo.UpdateLastLoginAt(user.ID); err != nil {
++		log.Error(r, "Could not update LastLoginAt", "user", user.UserName, err)
++	}
++	now := time.Now()
++	user.LastLoginAt = &now
++	auth.Init(ds)
++	token, err := auth.CreateToken(user)
++	if err != nil {
++		log.Error(r, "Could not create proxy session", err)
++		return nil
++	}
++	salt := uuid.NewString()
++	return map[string]interface{}{
++		"id": user.ID, "isAdmin": user.IsAdmin, "name": user.Name,
++		"username": user.UserName, "token": token,
++		"subsonicSalt":  salt,
++		"subsonicToken": fmt.Sprintf("%x", md5.Sum([]byte(user.Password+salt))),
++	}
+ }
+ 
+ func validateLogin(userRepo model.UserRepository, userName, password string) (*model.User, error) {
+diff --git a/server/app/auth_test.go b/server/app/auth_test.go
+index 5643cc6..3c793f7 100644
+--- a/server/app/auth_test.go
++++ b/server/app/auth_test.go
+@@ -6,7 +6,10 @@ import (
+ 	"net/http"
+ 	"net/http/httptest"
+ 	"strings"
++	"testing"
+ 
++	"github.com/navidrome/navidrome/conf"
++	"github.com/navidrome/navidrome/core/auth"
+ 	"github.com/navidrome/navidrome/model"
+ 	"github.com/navidrome/navidrome/tests"
+ 
+@@ -95,3 +98,77 @@ var _ = Describe("Auth", func() {
+ 		})
+ 	})
+ })
++
++func TestValidateIPAgainstList(t *testing.T) {
++	tests := []struct {
++		address, list string
++		want          bool
++	}{
++		{"192.0.2.3:1234", "", false},
++		{"192.0.2.3:1234", "bad, 192.0.2.0/24", true},
++		{"192.0.3.3:1234", "192.0.2.0/24", false},
++		{"[2001:db8::1]:1234", "bad, 2001:db8::/32", true},
++		{"[2001:db9::1]:1234", "2001:db8::/32", false},
++		{"192.0.2.3:1234", "192.0.2.3:8080", true},
++		{"@", "@", true},
++		{"@", "0.0.0.0/0", false},
++	}
++	for _, tc := range tests {
++		if got := validateIPAgainstList(tc.address, tc.list); got != tc.want {
++			t.Errorf("validateIPAgainstList(%q, %q) = %v, want %v", tc.address, tc.list, got, tc.want)
++		}
++	}
++}
++
++type loginTrackingRepo struct {
++	*tests.MockedUserRepo
++	lastLoginID string
++}
++
++func (r *loginTrackingRepo) UpdateLastLoginAt(id string) error {
++	r.lastLoginID = id
++	return nil
++}
++
++func TestHandleLoginFromHeaders(t *testing.T) {
++	previousList, previousHeader := conf.Server.ReverseProxyWhitelist, conf.Server.ReverseProxyUserHeader
++	defer func() {
++		conf.Server.ReverseProxyWhitelist = previousList
++		conf.Server.ReverseProxyUserHeader = previousHeader
++	}()
++	repo := &loginTrackingRepo{MockedUserRepo: tests.CreateMockUserRepo()}
++	ds := &tests.MockDataStore{MockedUser: repo}
++	conf.Server.ReverseProxyWhitelist = "192.0.2.0/24"
++	conf.Server.ReverseProxyUserHeader = "X-Proxy-User"
++	req := httptest.NewRequest("GET", "/app/", nil)
++	req.RemoteAddr = "198.51.100.1:1234"
++	req.Header.Set("X-Proxy-User", "alice")
++	if got := handleLoginFromHeaders(ds, req); got != nil {
++		t.Fatal("untrusted IP received credentials")
++	}
++	req.RemoteAddr = "192.0.2.1:1234"
++	login := handleLoginFromHeaders(ds, req)
++	if login == nil || login["username"] != "alice" || login["isAdmin"] != true {
++		t.Fatalf("unexpected first login payload: %v", login)
++	}
++	if repo.lastLoginID != login["id"] {
++		t.Fatal("LastLoginAt was not updated")
++	}
++	if _, err := auth.Validate(login["token"].(string)); err != nil {
++		t.Fatalf("invalid token: %v", err)
++	}
++	if login["subsonicSalt"] == "" || login["subsonicToken"] == "" {
++		t.Fatal("missing Subsonic credentials")
++	}
++	req.RemoteAddr = "@"
++	conf.Server.ReverseProxyWhitelist = "0.0.0.0/0"
++	if got := handleLoginFromHeaders(ds, req); got != nil {
++		t.Fatal("unix socket request received credentials without @ whitelist")
++	}
++	req.RemoteAddr = "192.0.2.1:1234"
++	conf.Server.ReverseProxyWhitelist = "192.0.2.0/24"
++	req.Header.Del("X-Proxy-User")
++	if got := handleLoginFromHeaders(ds, req); got != nil {
++		t.Fatal("missing user header received credentials")
++	}
++}
+diff --git a/server/app/serve_index.go b/server/app/serve_index.go
+index 8d35af2..c6aa35f 100644
+--- a/server/app/serve_index.go
++++ b/server/app/serve_index.go
+@@ -51,6 +51,11 @@ func serveIndex(ds model.DataStore, fs fs.FS) http.HandlerFunc {
+ 			"enableUserEditing":       conf.Server.EnableUserEditing,
+ 			"devEnableShare":          conf.Server.DevEnableShare,
+ 		}
++		if proxyAuth := handleLoginFromHeaders(ds, r); proxyAuth != nil {
++			appConfig["auth"] = proxyAuth
++			appConfig["firstTime"] = false
++			w.Header().Set("Cache-Control", "no-store")
++		}
+ 		j, err := json.Marshal(appConfig)
+ 		if err != nil {
+ 			log.Error(r, "Error converting config to JSON", "config", appConfig, err)
+diff --git a/server/app/serve_index_test.go b/server/app/serve_index_test.go
+index ab6daa8..a336525 100644
+--- a/server/app/serve_index_test.go
++++ b/server/app/serve_index_test.go
+@@ -209,6 +209,31 @@ var _ = Describe("serveIndex", func() {
+ 		config := extractAppConfig(w.Body.String())
+ 		Expect(config).To(HaveKeyWithValue("devEnableShare", false))
+ 	})
++
++	It("includes proxy auth only for trusted addresses", func() {
++		previousList, previousHeader := conf.Server.ReverseProxyWhitelist, conf.Server.ReverseProxyUserHeader
++		defer func() {
++			conf.Server.ReverseProxyWhitelist = previousList
++			conf.Server.ReverseProxyUserHeader = previousHeader
++		}()
++		conf.Server.ReverseProxyWhitelist = "192.0.2.0/24"
++		conf.Server.ReverseProxyUserHeader = "Remote-User"
++		proxyDS := &tests.MockDataStore{}
++		r := httptest.NewRequest("GET", "/index.html", nil)
++		r.Header.Set("Remote-User", "alice")
++		r.RemoteAddr = "198.51.100.1:1234"
++		w := httptest.NewRecorder()
++		serveIndex(proxyDS, fs)(w, r)
++		Expect(extractAppConfig(w.Body.String())).ToNot(HaveKey("auth"))
++
++		r.RemoteAddr = "192.0.2.1:1234"
++		w = httptest.NewRecorder()
++		serveIndex(proxyDS, fs)(w, r)
++		config := extractAppConfig(w.Body.String())
++		Expect(config).To(HaveKey("auth"))
++		Expect(config).To(HaveKeyWithValue("firstTime", false))
++		Expect(w.Header().Get("Cache-Control")).To(Equal("no-store"))
++	})
+ })
+ 
+ var appConfigRegex = regexp.MustCompile(`(?m)window.__APP_CONFIG__="([^"]*)`)
+diff --git a/ui/src/authProvider.js b/ui/src/authProvider.js
+index a22cbcf..31c4f62 100644
+--- a/ui/src/authProvider.js
++++ b/ui/src/authProvider.js
+@@ -26,13 +26,7 @@ const authProvider = {
+       .then((response) => {
+         // Validate token
+         jwtDecode(response.token)
+-        // TODO Store all items in one object
+-        localStorage.setItem('token', response.token)
+-        localStorage.setItem('userId', response.id)
+-        localStorage.setItem('name', response.name)
+-        localStorage.setItem('username', response.username)
+-        response.avatar && localStorage.setItem('avatar', response.avatar)
+-        localStorage.setItem('role', response.isAdmin ? 'admin' : 'regular')
++        storeAuth(response)
+         const salt = generateSubsonicSalt()
+         localStorage.setItem('subsonic-salt', salt)
+         localStorage.setItem(
+@@ -94,6 +88,24 @@ const authProvider = {
+   },
+ }
+ 
++const storeAuth = (auth) => {
++  localStorage.setItem('token', auth.token)
++  localStorage.setItem('userId', auth.id)
++  localStorage.setItem('name', auth.name)
++  localStorage.setItem('username', auth.username)
++  auth.avatar && localStorage.setItem('avatar', auth.avatar)
++  localStorage.setItem('role', auth.isAdmin ? 'admin' : 'regular')
++  if (auth.subsonicSalt && auth.subsonicToken) {
++    localStorage.setItem('subsonic-salt', auth.subsonicSalt)
++    localStorage.setItem('subsonic-token', auth.subsonicToken)
++  }
++}
++
++if (config.auth) {
++  jwtDecode(config.auth.token)
++  storeAuth(config.auth)
++}
++
+ const removeItems = () => {
+   localStorage.removeItem('token')
+   localStorage.removeItem('userId')

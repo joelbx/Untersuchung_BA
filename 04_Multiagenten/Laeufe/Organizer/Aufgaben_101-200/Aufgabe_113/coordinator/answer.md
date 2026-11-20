@@ -1,0 +1,3 @@
+Added `route_targets` to [nxos_vrf_af.py](/app/lib/ansible/modules/network/nxos/nxos_vrf_af.py). It manages multiple import and export values in one invocation, defaults `direction` to `both`, and compares entries within the specified VRF and address family for idempotency. Added the requested `match_current_rt` helper and unit coverage.
+
+Verification: all 9 focused unit tests passed; `git diff --check` passed. No delegation was used.

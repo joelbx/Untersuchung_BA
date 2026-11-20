@@ -1,0 +1,3 @@
+Expanded MARC role mapping for `$e` terms and `$4` codes, with `$4` taking precedence. New works now preserve each role alongside the correct author key and raise `ValueError` when author counts differ. I updated the MARC fixtures and added parser and import-path tests.
+
+The MARC and add-book suites pass: **291 tests**. Ruff lint and `git diff --check` pass. Black formatting remains unverified because `black` is not installed; the exact failed command is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

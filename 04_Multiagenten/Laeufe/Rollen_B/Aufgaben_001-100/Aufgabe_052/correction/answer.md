@@ -1,0 +1,3 @@
+Fixed streaming token accounting. `CountAll()` now reads a live count without finalizing it; the stream receiver finalizes the counter when the stream ends. A regression test reads usage mid-stream, then checks the final total.
+
+`go test ./lib/ai/model ./lib/ai` passed. **TEST_ENVIRONMENT_PROBLEM:** the reviewer’s assist/web test command could not compile because native headers and compatible SQLite C symbols are unavailable.

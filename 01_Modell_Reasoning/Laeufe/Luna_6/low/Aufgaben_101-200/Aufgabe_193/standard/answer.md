@@ -1,0 +1,1 @@
+I started the CLI changes, but they’re incomplete: the mixed install path calls an unimplemented helper, and I have not finished adding tests or verifying the requested behavior. The existing `test_galaxy.py` run also reported four failures, so I can’t claim this resolves the issue.

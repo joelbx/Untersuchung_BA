@@ -1,0 +1,3 @@
+Fixed the default configuration path. `config.Load("")` now applies environment overrides to defaults, and CLI startup calls `config.Load` when no config file is found. File based configuration still accepts environment overrides.
+
+The new regression test passed for defaults, empty path overrides, and file overrides. The full `internal/config` test suite and the `cmd/flipt` build check also passed.

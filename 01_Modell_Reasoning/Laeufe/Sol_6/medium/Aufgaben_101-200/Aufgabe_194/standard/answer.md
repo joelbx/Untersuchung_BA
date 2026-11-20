@@ -1,0 +1,3 @@
+`BlocklistDownloads` now inherits from `QObject` and emits `single_download_finished(object)` and `all_downloads_finished(int)`. Its constructor accepts an optional QObject parent instead of callbacks. Both adblock consumers now connect their handlers before starting downloads, including for empty batches.
+
+The updated tests cover multiple listeners and empty-list completion. The relevant suite passed: **38 passed, 13 skipped**.

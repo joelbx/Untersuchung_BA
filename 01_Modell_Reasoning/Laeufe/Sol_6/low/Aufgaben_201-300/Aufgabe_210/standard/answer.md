@@ -1,0 +1,3 @@
+Updated TaskExecutor to resolve `delegate_to` before evaluating loop items. VariableManager now exposes `get_delegated_vars_and_hostname()`, Task exposes `get_play()`, and the loop evaluation cache workaround has been removed. Delegation resolution is no longer part of variable retrieval by default; the legacy method is marked deprecated.
+
+Added a regression test for the resolution order. All 34 relevant unit tests passed, and `git diff --check` found no issues.

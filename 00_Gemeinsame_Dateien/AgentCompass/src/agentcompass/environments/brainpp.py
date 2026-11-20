@@ -1,0 +1,531 @@
+"""H-Cluster environment provider."""
+from __future__ import annotations
+
+import asyncio
+import base64
+import ipaddress
+import logging
+import random
+import shlex
+import time
+import traceback
+import uuid
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import aiofiles
+from tenacity import retry, retry_if_exception, retry_if_exception_type, stop_after_attempt, wait_exponential
+
+from agentcompass.environments.utils.exec import normalize_exec_timeout, with_exec_workdir
+from agentcompass.environments.utils.files import download_directory
+from agentcompass.environments.utils.pvisor import (PVISOR_NETWORK_MODES, PvisorCommandEnforcer,
+                                                    build_pvisor_model_route, normalize_pvisor_path)
+from agentcompass.environments.utils.shared_storage import (SharedStorageConfig, upload_directory_from_shared_storage,
+                                                            upload_file_from_shared_storage,
+                                                            validate_environment_shared_storage)
+from agentcompass.errors import EnvironmentInteractionError, EnvironmentSetupError
+from agentcompass.runtime import (ENVIRONMENTS, BaseEnvironment, EnvironmentSession, ExecResult, ExecutionPlan,
+                                  RunRequest)
+from agentcompass.runtime.base import EnvRecord, close_environment_resource
+from agentcompass.runtime.config import RuntimeEnvironmentConfig, config_field, env_config_field, parse_positive_int
+from agentcompass.runtime.dependencies import missing_imports
+from agentcompass.runtime.network import (NetworkAllowlistEntryType, NetworkPolicy, NetworkPolicyTarget,
+                                          model_endpoint_targets)
+from agentcompass.runtime.resources import ResourceField, ResourceRequirements, resource_mib_to_gib_ceil
+from agentcompass.utils.call import maybe_call_in_thread
+from agentcompass.utils.env import parse_env_variables, resolve_env_ref
+
+logger = logging.getLogger(__name__)
+
+BRAINPP_ENV_UUID_VAR = "AGENTCOMPASS_BRAINPP_ENV_UUID"
+_DEFAULT_BRAINPP_CPUS_PER_TASK = 1
+_DEFAULT_BRAINPP_MEMORY_PER_TASK_GB = 4
+
+
+def _retry_transfer_error(exc: BaseException) -> bool:
+    """Resolve the SDK exception type only when a transfer fails."""
+    from env_gateway_sdk.errors import HealthCheckError
+
+    return isinstance(exc, Exception) and not isinstance(exc, HealthCheckError)
+
+
+class BrainppSession(EnvironmentSession):
+    id = "brainpp"
+    shared_storage: list[SharedStorageConfig] | None = None
+
+    def __init__(
+            self,
+            env_client,
+            job_info,
+            pvisor_path: str,
+            network_policy: NetworkPolicy | None = None,
+            shared_storage: list[SharedStorageConfig] | None = None,
+            model_endpoint_targets: tuple[NetworkPolicyTarget, ...] = (),
+            model_gateway_route: str | None = None,
+    ):
+        from env_gateway_sdk import AsyncEnvClient
+
+        self.job_info = job_info
+        self.env_client: AsyncEnvClient = env_client
+        self.shared_storage = list(shared_storage or [])
+        self._pvisor = PvisorCommandEnforcer(
+            executable=pvisor_path,
+            policy=NetworkPolicy.from_value(network_policy),
+            provider_id=self.id,
+            model_endpoint_targets=model_endpoint_targets,
+            model_gateway_route=model_gateway_route,
+        )
+        self.network_policy = self._pvisor.policy
+
+    async def set_network_policy(self, policy: NetworkPolicy) -> None:
+        self.network_policy = await self._pvisor.resolve_and_set_policy(policy, self._exec_raw)
+
+    @with_exec_workdir
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        reraise=True,
+    )
+    async def _exec_raw(
+        self,
+        command: list[str] | str,
+        *,
+        shell: bool = False,
+        cwd: str | None = None,
+        env: dict[str, str] | None = None,
+        required_env: dict[str, str] | None = None,
+        timeout: float | None = None,
+        detach: bool = False,
+        flags: dict[str, Any] | None = None,
+    ) -> ExecResult:
+        start_time = time.time()
+
+        command = self._validate_exec_command(command, shell=shell)
+        if shell:
+            command_text = command
+        else:
+            command_text = shlex.join(command)
+
+        logger.debug("before exec: command=%s; job_info=%s; detach=%s", command_text[:100], self.job_info, detach)
+
+        # base64 encoding in case of inner safety policy
+        command_b64 = base64.b64encode(command_text.encode()).decode()
+        env = self._merge_exec_env(env, required_env=required_env)
+
+        try:
+            timeout_sec = normalize_exec_timeout(timeout)
+            res = await self.env_client.exec(
+                f"base64://{command_b64}",
+                cwd=cwd,
+                timeout_sec=timeout_sec,
+                detach=detach,
+                env=env,
+            )
+            logger.debug(
+                f"exec command: command={command_text[:100]}; res={res}; time_cost={time.time() - start_time}; detach={detach}"
+            )
+            return ExecResult(
+                returncode=res.return_code,
+                stdout=res.stdout,
+                stderr=res.stderr,
+                timed_out=(res.return_code == 124),
+            )
+        except Exception as e:
+            err_msg = '\n'.join(traceback.format_exception(e))
+            raise EnvironmentInteractionError(f"brainpp exec error: {err_msg}") from e
+
+    async def exec(
+        self,
+        command: list[str] | str,
+        *,
+        shell: bool = False,
+        cwd: str | None = None,
+        env: dict[str, str] | None = None,
+        required_env: dict[str, str] | None = None,
+        timeout: float | None = None,
+        detach: bool = False,
+        flags: dict[str, Any] | None = None,
+    ) -> ExecResult:
+        command = self._validate_exec_command(command, shell=shell)
+        command_text = str(command) if shell else shlex.join(command)
+        wrapped = self._pvisor.wrap(command_text,
+                                    shell=shell,
+                                    pass_env=tuple(self._merge_exec_env(env, required_env=required_env) or {}))
+        return await self._exec_raw(
+            wrapped,
+            shell=True,
+            cwd=cwd,
+            env=env,
+            required_env=required_env,
+            timeout=timeout,
+            detach=detach,
+            flags=flags,
+        )
+
+    async def validate_pvisor(self) -> None:
+        await self._pvisor.validate(self._exec_raw)
+
+    @retry(
+        stop=stop_after_attempt(3),
+        retry=retry_if_exception(_retry_transfer_error),
+        reraise=True,
+    )
+    async def upload(self, src: str, dst: str) -> None:
+        dst = await self.resolve_path(dst)
+        if await upload_file_from_shared_storage(self, self.shared_storage, src, dst):
+            return
+        try:
+            async with aiofiles.open(src, 'rb') as f:
+                content = await f.read()
+            await self.env_client.upload(dst, content)
+        except Exception as e:
+            await self.env_client.status()
+            err_msg = '\n'.join(traceback.format_exception(e))
+            raise EnvironmentInteractionError(f"brainpp upload error: {err_msg}") from e
+
+    @retry(
+        stop=stop_after_attempt(3),
+        retry=retry_if_exception(_retry_transfer_error),
+        reraise=True,
+    )
+    async def download(self, src: str, dst: str) -> None:
+        src = await self.resolve_path(src)
+        try:
+            res = await self.env_client.download_file(src)
+            async with aiofiles.open(dst, 'wb') as f:
+                await f.write(res.content)
+        except Exception as e:
+            await self.env_client.status()
+            err_msg = '\n'.join(traceback.format_exception(e))
+            raise EnvironmentInteractionError(f"brainpp download error: {err_msg}") from e
+
+    async def read_text(self, path: str) -> str:
+        path = await self.resolve_path(path)
+        res = await self.env_client.download_file(path)
+        return res.content.decode()
+
+    async def write_text(self, path: str, content: str) -> None:
+        path = await self.resolve_path(path)
+        await self.env_client.upload_text(path, content)
+
+    async def upload_dir(self, src: Path | str, dst: str) -> None:
+        dst = await self.resolve_path(dst)
+        source_dir = Path(src).resolve()
+        if not source_dir.exists():
+            raise EnvironmentInteractionError(f"Source directory does not exist: {source_dir}")
+        if not source_dir.is_dir():
+            raise EnvironmentInteractionError(f"Source path is not a directory: {source_dir}")
+
+        if await upload_directory_from_shared_storage(self, self.shared_storage, source_dir, dst):
+            return
+
+        for file_path in source_dir.rglob("*"):
+            if file_path.is_file():
+                logger.debug(f"upload dir, file={file_path}")
+                rel_path = file_path.relative_to(source_dir).as_posix()
+                target_dir = f"{dst.rstrip('/')}/{rel_path}"
+                await self.upload(str(file_path), target_dir)
+
+    async def download_dir(self, src: str, dst: Path | str) -> None:
+        await download_directory(self, src, dst)
+
+    async def endpoint(self) -> str | None:
+        return None
+
+
+@dataclass(slots=True)
+class BrainppEnvironmentConfig(RuntimeEnvironmentConfig):
+    """Resolved adapter settings for the Brain++ environment provider."""
+
+    env_gateway_server: str | None = env_config_field("BRAINPP_ENV_GATEWAY_SERVER", "env-gateway server path.")
+    pvisor_path: str = config_field(
+        default="",
+        description="Required absolute path to the pvisor executable mounted inside the Brain++ environment.",
+    )
+    partition: str | None = env_config_field("BRAINPP_PARTITION", "Partition.")
+    project: str | None = config_field(default=None, description="Project.")
+    idle_timeout: int = config_field(default=3600, description="Idle timeout in seconds.")
+    env_client_timeout: int = config_field(default=3600, description="Environment client timeout in seconds.")
+    shared_storage: list[SharedStorageConfig] = config_field(
+        default_factory=list,
+        description="Ordered host_path to env_path shared-storage mappings used to optimize uploads.",
+    )
+
+    image: str = config_field(default="", description="Runtime image.")
+    resources: dict[str, Any] = config_field(
+        default_factory=dict,
+        description="Unified AgentCompass resource requirements.",
+    )
+    wait_for_ready_timeout: int = config_field(
+        default=1800,
+        description="Timeout for waiting until the remote environment is ready, in seconds.",
+    )
+    env_variables: dict[str, str] = config_field(
+        default_factory=dict,
+        description="Environment variables passed when creating the session.",
+    )
+
+    def __post_init__(self) -> None:
+        self.image = str(self.image or "").strip()
+        self.env_gateway_server = str(resolve_env_ref(self.env_gateway_server, "BRAINPP_ENV_GATEWAY_SERVER")
+                                      or "").strip()
+        self.pvisor_path = str(self.pvisor_path or resolve_env_ref("${BRAINPP_PVISOR_PATH}", "BRAINPP_PVISOR_PATH")
+                               or "").strip()
+        self.resources = ResourceRequirements.from_value(self.resources)
+        self.partition = str(resolve_env_ref(self.partition, "BRAINPP_PARTITION") or "").strip()
+        self.project = str(self.project or "").strip() or None
+        self.wait_for_ready_timeout = parse_positive_int(
+            self.wait_for_ready_timeout,
+            "wait_for_ready_timeout",
+        )
+        self.idle_timeout = parse_positive_int(self.idle_timeout, "idle_timeout")
+        self.env_client_timeout = parse_positive_int(self.env_client_timeout, "env_client_timeout")
+        self.env_variables = parse_env_variables(self.env_variables, "env_variables")
+        self.shared_storage = SharedStorageConfig.from_values(self.shared_storage)
+
+
+@ENVIRONMENTS.register()
+class BrainppEnvironment(BaseEnvironment):
+    """Start an isolated container via the Brain++ SDK."""
+
+    setup_image_parameter = "image"
+    setup_timeout_parameter = "wait_for_ready_timeout"
+    supported_operating_systems = frozenset({"linux"})
+
+    id = "brainpp"
+    supports_task_env = True
+    supports_startup_env = True
+    env_variables_param = "env_variables"
+    config_class = BrainppEnvironmentConfig
+    supported_network_modes = PVISOR_NETWORK_MODES
+    supported_allowlist_entry_types = frozenset(NetworkAllowlistEntryType)
+    supports_network_target_ports = True
+    supports_dynamic_network_policy = True
+    supported_resource_fields = frozenset({ResourceField.CPU, ResourceField.MEMORY_MB, ResourceField.GPU})
+
+    def __init__(self) -> None:
+        super().__init__()
+        dependencies = {
+            "brainpp": "Install the internal Brain++ SDK with `pip install brainpp`.",
+            "env_gateway_sdk": "Install the internal Env Gateway SDK with `pip install /path/to/env-gateway-sdk`.",
+        }
+        missing = missing_imports(dependencies)
+        if missing:
+            hints = "\n".join(f"  {module}: {dependencies[module]}" for module in missing)
+            raise EnvironmentSetupError(f"{self.id} environment requires missing dependencies: {', '.join(missing)}.\n"
+                                        f"Install them in the AgentCompass Python environment:\n{hints}")
+
+    def validate_resources(self, resources: ResourceRequirements) -> None:
+        if resources.cpu is not None and not float(resources.cpu).is_integer():
+            raise ValueError("brainpp resources.cpu must be a positive integer")
+
+    def validate_open_config(self, config: BrainppEnvironmentConfig) -> None:
+        if not config.image:
+            raise ValueError("brainpp environment requires image")
+        if not config.env_gateway_server:
+            raise ValueError("brainpp environment requires env_gateway_server")
+        normalize_pvisor_path(config.pvisor_path, provider_id=self.id)
+        if not config.partition:
+            raise ValueError("partition is required")
+
+    def _get_client(self, project: str | None = None):
+        clients = getattr(self, "_clients", None)
+        if clients is None:
+            clients = self._clients = {}
+        if project not in clients:
+            from brainpp.rjob import RJobClient
+
+            client = RJobClient(namespace=project)
+            clients[project] = client
+            clients[client.namespace] = client
+        return clients[project]
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=retry_if_exception_type(EnvironmentSetupError),
+        reraise=True,
+    )
+    async def open(self, req: RunRequest, plan: ExecutionPlan) -> BrainppSession:
+        import loguru
+        from brainpp.rjob import (Container, Job, JobStatusType, Metadata, PrivateMachine, ReplicaState, Resources,
+                                  RestartPolicy, Spec, Task, Template, utils)
+        from env_gateway_sdk import AsyncEnvClient
+        loguru.logger.disable('env_gateway_sdk')
+
+        config = self.build_config(req, plan)
+        if not isinstance(config, BrainppEnvironmentConfig):
+            raise TypeError("brainpp requires BrainppEnvironmentConfig")
+        self.validate_open_config(config)
+
+        client = self._get_client(config.project)
+        job_name = f"ac-{req.benchmark.id[:12]}-{uuid.uuid4().hex[:8]}".replace('_', '-').lower()
+        job_name, _ = utils.validate_and_normalize_to_k8s_name(job_name)
+        partition = config.partition
+        project = client.namespace
+        wait_for_ready_timeout = config.wait_for_ready_timeout
+        port = 18080 + random.randrange(0, 20000)
+        env_uuid = uuid.uuid4().hex
+        env_variables = {
+            **config.env_variables,
+            BRAINPP_ENV_UUID_VAR: env_uuid,
+            'EXEC_SERVER_IDLE_TIMEOUT_SEC': str(config.idle_timeout),
+        }
+        resources = config.resources
+        cpus_per_task = int(resources.cpu or _DEFAULT_BRAINPP_CPUS_PER_TASK)
+        memory_per_task_gb = (resource_mib_to_gib_ceil(resources.memory_mb)
+                              if resources.memory_mb else _DEFAULT_BRAINPP_MEMORY_PER_TASK_GB)
+
+        job = Job(
+            metadata=Metadata(
+                name=job_name,
+                charged_group=partition,
+                annotations={"volcano.brainpp.cn/priority": "1"},
+            ),
+            spec=Spec(
+                group=partition,
+                host_network=False,
+                tasks={
+                    "task":
+                    Task(
+                        replicas=1,
+                        restart_policy=RestartPolicy.Never,
+                        private_machine=PrivateMachine.Group,
+                        template=Template(
+                            containers=[
+                                Container(
+                                    name="task",
+                                    image=config.image,
+                                    command=["/env/env-gateway-go", "--port",
+                                             str(port)],
+                                    resources=Resources(
+                                        cpu=cpus_per_task,
+                                        gpu=resources.gpu or 0,
+                                        memory_in_mb=memory_per_task_gb * 1000,
+                                    ),
+                                    requests=Resources(
+                                        cpu=cpus_per_task,
+                                        gpu=resources.gpu or 0,
+                                        memory_in_mb=memory_per_task_gb * 1000,
+                                    ),
+                                    environments=env_variables,
+                                ),
+                            ],
+                            mount=[f'gpfs+{config.env_gateway_server}:/env'],
+                        ),
+                    ),
+                },
+            ),
+        )
+        env_client_timeout = config.env_client_timeout
+        baseline_network_policy = self.resolve_network_policy(plan.environment.baseline_network_policy)
+
+        job_info = None
+        close_params: dict[str, Any] | None = None
+        env_record: EnvRecord | None = None
+        try:
+            job_id = str(await maybe_call_in_thread(client.submit, job, no_packaging=True) or "").strip()
+            if not job_id:
+                raise EnvironmentSetupError("brainpp create response did not include a job id")
+            close_params = {"job_id": job_id, "project": project}
+            env_record = EnvRecord.create(self, close_params)
+
+            start_time = time.time()
+            import httpcore
+            import httpx
+            while time.time() - start_time < wait_for_ready_timeout:
+                # while True:
+                await asyncio.sleep(3)
+                jobs = await maybe_call_in_thread(client.list, job_names=[job_id])
+                if not jobs:
+                    continue
+                job_info = jobs[0]
+                if job_info.status.current == JobStatusType.Running:
+                    replicas = job_info.spec.tasks["task"].replicaStatus
+                    node_ip = next((replica.pod_ip for replica in replicas if replica.state == ReplicaState.RUNNING),
+                                   "")
+                    try:
+                        ipaddress.ip_address(node_ip)
+                    except ValueError:
+                        continue
+
+                    env_client = AsyncEnvClient(f'http://{node_ip}:{port}', timeout=env_client_timeout, use_lb=False)
+                    try:
+                        await env_client.wait_ready(timeout=wait_for_ready_timeout)
+                        await self._verify_env_uuid(env_client, env_uuid, job_info)
+                    except httpcore.ConnectError:
+                        logger.error(
+                            f"brainpp wait_ready httpcore.ConnectError: eror={traceback.format_exc()}; job={job_info}")
+                        continue
+                    except httpx.ConnectError:
+                        logger.error(
+                            f"brainpp wait_ready httpx.ConnectError: eror={traceback.format_exc()}; job={job_info}")
+                        continue
+                    except EnvironmentSetupError:
+                        raise
+                    except Exception as e:
+                        err_msg = f"open brainpp environment error. error={traceback.format_exc()}; job={job_info}"
+                        logger.error(err_msg)
+                        raise EnvironmentSetupError(err_msg) from e
+                    session = BrainppSession(
+                        env_client=env_client,
+                        job_info=job_info,
+                        pvisor_path=config.pvisor_path,
+                        network_policy=baseline_network_policy,
+                        shared_storage=config.shared_storage,
+                        model_endpoint_targets=tuple(model_endpoint_targets(req.model)),
+                        model_gateway_route=build_pvisor_model_route(req.model),
+                    )
+                    session.env_record = env_record
+                    await session.validate_pvisor()
+                    await session.set_network_policy(baseline_network_policy)
+                    await validate_environment_shared_storage(session, config.shared_storage)
+                    return session
+                elif job_info.status.current in {
+                        JobStatusType.Succeeded,
+                        JobStatusType.Failed,
+                        JobStatusType.Stopped,
+                        JobStatusType.Killing,
+                        JobStatusType.Killed,
+                        JobStatusType.Deleting,
+                }:
+                    raise EnvironmentSetupError(f'Failed to open Brainpp environment job_id={job_id}')
+            raise EnvironmentSetupError(
+                f"Failed to open Brainpp environment after {wait_for_ready_timeout} seconds. job_info={job_info}")
+        except BaseException as e:
+            if env_record is not None:
+                await env_record.close()
+            elif close_params is not None:
+                await close_environment_resource(self, close_params)
+            if isinstance(e, (asyncio.CancelledError, KeyboardInterrupt, SystemExit)):
+                raise
+            if isinstance(e, EnvironmentSetupError):
+                raise
+            err_msg = '\n'.join(traceback.format_exception(e))
+            raise EnvironmentSetupError(f"brainpp environment setup error: {err_msg}") from e
+
+    async def _verify_env_uuid(self, env_client, expected_uuid: str, job_info) -> None:
+        command = f'printf %s "${BRAINPP_ENV_UUID_VAR}"'
+        command_b64 = base64.b64encode(command.encode()).decode()
+        try:
+            res = await env_client.exec(f"base64://{command_b64}", timeout_sec=30)
+        except Exception as e:
+            raise EnvironmentSetupError(f"failed to verify brainpp environment uuid. job={job_info}") from e
+
+        actual_uuid = str(getattr(res, "stdout", "") or "").strip()
+        return_code = getattr(res, "return_code", 1)
+        if return_code != 0 or actual_uuid != expected_uuid:
+            raise EnvironmentSetupError("brainpp environment uuid mismatch. "
+                                        f"expected={expected_uuid}; actual={actual_uuid}; job={job_info}")
+
+    async def close(self, *, job_id: str, project: str | None = None) -> None:
+        from kubernetes.client.exceptions import ApiException
+
+        client = self._get_client(project)
+        try:
+            await maybe_call_in_thread(client.stop, job_id)
+        except ApiException as exc:
+            if exc.status != 404:
+                raise
+        logger.debug("stopped brainpp job, job_id=%s", job_id)

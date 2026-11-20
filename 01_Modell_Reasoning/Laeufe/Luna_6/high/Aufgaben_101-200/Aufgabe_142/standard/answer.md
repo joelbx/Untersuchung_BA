@@ -1,0 +1,3 @@
+Implemented the expression AST and parser, including nested string functions, strict variable and function validation, matcher evaluation, and namespace-aware interpolation. Updated trait and PAM interpolation call sites, and adjusted parser tests for the AST-backed behavior.
+
+`go test ./lib/utils/parse` passes. Services compile with `CGO_ENABLED=0`; the `srv` build is blocked by local HID headers and platform-dependent build issues. `git diff --check` passes.

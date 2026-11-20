@@ -1,0 +1,3 @@
+Forked worker display calls now travel through `FinalQueue` as `DisplaySend` events and are replayed by the parent strategy thread. Parent output is protected by a threading lock. I removed the worker’s shutdown redirection, arranged for workers to finish before the result thread stops, and added stdout/stderr flushing in `TaskQueueManager.cleanup`.
+
+The relevant tests passed: **19 passed, 9 skipped**. A new fork test verifies that a worker can send display output even while the parent holds the display lock. `git diff --check` also passed.

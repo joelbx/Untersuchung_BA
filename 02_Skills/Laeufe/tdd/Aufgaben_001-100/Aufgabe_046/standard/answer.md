@@ -1,0 +1,3 @@
+Updated [module_common.py](/app/lib/ansible/executor/module_common.py) to resolve `module_utils` dependencies with a queue and separate legacy and collection locators. The payload now includes redirect shims and targets, package initializer dependencies, missing package `__init__.py` files, and the required base packages. Resolution errors list attempted paths.
+
+The executor tests pass: **86 passed**. The bare repository pytest run did not pass; it encountered unrelated test collection and CLI failures and was interrupted. The command, failures, and remaining uncertainty are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

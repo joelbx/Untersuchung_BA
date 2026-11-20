@@ -1,0 +1,3 @@
+Updated [module_common.py](/app/lib/ansible/executor/module_common.py) to resolve `module_utils` dependencies through a queue and separate legacy and collection locators. It now bundles redirect shims and their targets, handles relative imports in package initializers, synthesizes missing package files, and reports the import paths it tried. Added focused tests in [test_collection_locator.py](/app/test/units/executor/module_common/test_collection_locator.py) and recorded the work in [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+Validation: all 51 `module_common` unit tests passed; `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented runtime-only MIME workaround gating in [webview.py](/app/qutebrowser/browser/webengine/webview.py) and clarified `compiled` behavior in [qtutils.py](/app/qutebrowser/utils/qtutils.py). The ambiguous `compiled=True, exact=True` combination now raises `RuntimeError`; existing tests were updated accordingly.
+
+The focused version checks passed (13 tests), as did the MIME suffix tests (7 tests). `git diff --check` passed. A broader run encountered an unrelated Qt enum count mismatch and then aborted during Qt fixture setup.

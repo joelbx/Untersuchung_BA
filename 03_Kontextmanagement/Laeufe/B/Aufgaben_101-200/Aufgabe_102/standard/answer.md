@@ -1,0 +1,3 @@
+Added the Linux `locally_reachable_ips` fact with separate IPv4 and IPv6 lists. It collects host-scope routes, normalizes and sorts addresses and prefixes, removes duplicates, and returns empty lists with a warning when collection is unavailable. The fact is registered for selective gathering.
+
+Relevant tests passed: **147 passed, 5 skipped**. Live route collection was not exercised because this environment has no `ip` command.

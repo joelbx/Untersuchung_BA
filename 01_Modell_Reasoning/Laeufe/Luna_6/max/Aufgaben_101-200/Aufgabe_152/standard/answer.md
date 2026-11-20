@@ -1,0 +1,3 @@
+Added [icx_logging.py](/app/lib/ansible/modules/network/icx/icx_logging.py:1) with aggregate configuration, IPv4/IPv6 host commands, facility management, buffered level reconciliation, and console, persistence, RFC5424, and global logging state handling.
+
+Verification passed: Python compilation, helper smoke checks, and the existing ICX unit suite (92 tests). `ansible-test` skipped its interpreter matrix because the configured Python versions aren’t installed.

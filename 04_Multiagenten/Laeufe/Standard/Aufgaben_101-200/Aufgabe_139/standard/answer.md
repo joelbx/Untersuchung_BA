@@ -1,0 +1,3 @@
+Updated the promise-item import flow so incomplete records are enriched from staged or pending metadata **before validation**. It prefers ISBN-10, then a B-prefixed Amazon ASIN, and fills only empty fields. The batch script uses the same completeness rule, records total and incomplete gauges, and logs lookup failures while continuing with other items.
+
+Validation now accepts either a complete record or a title and source records with a strong identifier. Verification: **105 relevant tests passed**, and Ruff passed.

@@ -1,0 +1,3 @@
+Implemented optional `fields` for `db.getObject` and `db.getObjects` across MongoDB, Postgres, and Redis. Empty or omitted arrays return full objects through those methods and the field helpers; selected fields return `null` when absent, while missing keys remain falsy. Updated five data callers to use `getObjects(keys, fields)` and added coverage for field selection and input order.
+
+I delegated the three backend changes to subagents, then integrated and reviewed them. The hash suite passed **59 tests** on Redis; ESLint, syntax checks, and `git diff --check` passed. Live MongoDB and Postgres integration tests were unavailable in this workspace.

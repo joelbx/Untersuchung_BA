@@ -1,0 +1,3 @@
+Updated the checked-out repository to use `_UNSET` for unset parameters, accept base type construction patterns for legacy YAML types, ignore `None` templar overrides, return a Boolean from `timedout`, clarify lookup messages, respect deprecation configuration, and include help text in early CLI errors.
+
+**Validation:** 166 focused tests passed. Separate existing deprecation tests still fail because they expect target side warning storage while this test environment routes deprecations through the controller display path.

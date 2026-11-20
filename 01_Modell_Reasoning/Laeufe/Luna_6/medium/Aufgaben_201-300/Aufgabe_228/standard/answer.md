@@ -1,0 +1,3 @@
+Implemented Qt-native version parsing and comparisons across the requested modules. `utils.parse_version` returns a normalized `QVersionNumber`; Qt checks, early initialization, distribution version reporting, and the crash dialog now use it.
+
+The targeted Qt utility, early-init, and crash-dialog tests passed: **140 passed**. The existing `test_version.py` expectations still compare distribution versions to `pkg_resources` values, so that suite needs its expectations updated for the new `QVersionNumber` contract. `git diff --check` passed.

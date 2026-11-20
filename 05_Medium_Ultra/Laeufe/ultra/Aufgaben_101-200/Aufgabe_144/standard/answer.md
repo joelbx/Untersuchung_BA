@@ -1,0 +1,3 @@
+Added [`expand_record()`](/app/openlibrary/catalog/utils/__init__.py) and moved its title helper into `catalog.utils`. It combines ISBNs, copies comparison fields, filters placeholder publication countries, and produces normalized title variants and a 25-character `short_title`. I removed `build_marc` and updated its callers, documentation, and tests; no `build_marc` references remain.
+
+Three subagents handled the caller, merge module, and test updates. I integrated their changes and verified the result: **85 passed, 8 skipped, 2 expected failures** across the add_book and merge suites. Ruff and `git diff --check` also passed.

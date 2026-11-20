@@ -1,0 +1,3 @@
+Updated the message composer so replaced-room notices use paragraphs and explicitly say the room is no longer active. Reply previews now identify the sender and have a labeled cancel action. Added a reusable, size-configurable [CancelButton](/app/src/components/views/buttons/Cancel.tsx) and applied it to icon cancel controls.
+
+Four focused Jest suites pass (10 tests), along with ESLint and Stylelint. TypeScript still reports existing errors in the SDK and two room settings files; it reports none in the changed files.

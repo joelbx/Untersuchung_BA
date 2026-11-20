@@ -1,0 +1,3 @@
+Updated [galaxy.py](/app/lib/ansible/cli/galaxy.py) so bare `ansible-galaxy install -r` installs both roles and collections when no custom roles path is supplied. A custom roles path installs roles only and warns about skipped collections; explicit `role` and `collection` commands stay scoped to their type. Empty requirements now produce the requested skip message.
+
+Added focused coverage in [test_galaxy.py](/app/test/units/cli/test_galaxy.py). Verification: 113 Galaxy CLI tests passed; Python compilation and `git diff --check` passed. The results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

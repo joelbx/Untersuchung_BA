@@ -1,0 +1,3 @@
+Fixed the WordPress cache and inactive package handling. [Cache lookup](/app/wordpress/wordpress.go:303) now uses the map directly and treats a nil entry as a miss. The scan reads the per-server `IgnoreInactive` setting and excludes plugins and themes whose `Status` is `"inactive"`.
+
+I delegated the cache change, filtering change, and model filter test review, then reviewed the combined patch. Uncached offline tests passed: `go test -count=1 ./wordpress ./models ./report`.

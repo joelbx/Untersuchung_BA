@@ -1,0 +1,5 @@
+The missing behavior is in [WikidataEntity](/app/openlibrary/core/wikidata.py:24): it has no sitelink resolver, statement value parser, or `get_external_profiles` method. The [author infobox](/app/openlibrary/templates/authors/infobox.html:22) uses Wikidata only for the description, so it has no place to display structured profiles.
+
+The fix should cover requested language → English → no Wikipedia link; valid `content` values from single or multiple P1960 statements while skipping malformed entries; a Wikidata entry for every entity; and one Google Scholar entry per identifier. The infobox should render those profiles with the specified icons. Existing [tests](/app/openlibrary/tests/core/test_wikidata.py) cover caching only; all 7 pass. I found no local response fixture or requested icon assets, so their payload and asset placement need verification during implementation.
+
+I made no project source or test changes.

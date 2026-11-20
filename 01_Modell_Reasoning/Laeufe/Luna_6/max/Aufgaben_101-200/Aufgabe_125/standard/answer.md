@@ -1,0 +1,3 @@
+Implemented topic backlinks with per post association tracking, backlink event creation and removal on post edits, timeline visibility controlled by `topicBacklinks`, and an admin toggle that defaults off. Added localized labels and fixed the timeline link markup.
+
+Verification: ESLint and syntax checks pass; the topic event, topic, and post suites pass (**292 tests**). [src/topics/posts.js](/app/src/topics/posts.js:17) contains the synchronization logic.

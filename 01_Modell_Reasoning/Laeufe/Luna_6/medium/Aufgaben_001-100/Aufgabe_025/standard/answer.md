@@ -1,0 +1,3 @@
+Implemented exact `${VARIABLE_NAME}` substitution as the first config decode hook. It resolves multiple references and runs before type conversion, so environment values can populate integer and string fields. Nonmatching values and missing variables remain unchanged.
+
+Added loader coverage for integer and string substitutions, a nonexact reference, and a missing variable. `go test ./internal/config` passes, and `git diff --check` is clean.

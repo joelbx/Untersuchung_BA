@@ -1,0 +1,3 @@
+Work search documents now expose `id_project_runeberg` as an array, including `[]` when no Runeberg identifier exists. The change preserves the other identifier fields. I also added the Project Runeberg acquisition provider and its read button and download options templates.
+
+Verification: 53 relevant tests passed, Ruff passed, and both templates rendered locally. External download URLs could not be live checked because external research is blocked.

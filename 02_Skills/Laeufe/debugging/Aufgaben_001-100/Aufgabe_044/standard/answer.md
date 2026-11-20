@@ -1,0 +1,3 @@
+Fixed namespace listing for users without access to `default`. Both authorization engines now evaluate `viewable_namespaces`; middleware passes the accessible list to the endpoint, which filters returned namespaces and reports an authorized count. The UI now redirects from an inaccessible namespace route to an available one.
+
+Relevant Go tests and `git diff --check` passed. The UI build remains unverified because `npm` is not installed in this environment.

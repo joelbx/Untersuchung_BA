@@ -1,0 +1,3 @@
+Fixed public bookmark session restoration. `getLastPersistedLocalID` now returns `null` when no valid persisted ID exists, ignores keys without a numeric session suffix, and preserves a valid ID of `0`. The bookmark view calls `resumeSession` only when an ID exists, so it can restore a saved key password without treating empty storage as session `0`.
+
+The focused Jest suites passed: **18 tests across 2 suites**. `git diff --check` also passed.

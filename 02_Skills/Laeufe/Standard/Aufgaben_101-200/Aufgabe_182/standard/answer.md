@@ -1,0 +1,3 @@
+Forked `display`, `warning`, and `deprecated` calls now send their method name and exact caller arguments through the queue. The main process invokes the matching Display method, so warning and deprecation deduplication applies across workers.
+
+Verification: 17 tests passed, 1 skipped; `git diff --check` passed. The repository’s strategy test module is marked skipped, so the added test exercises its result dispatch path directly.

@@ -1,0 +1,3 @@
+Implemented native SQLite backups in `/app`: `conf.Server.Backup` settings, startup directory and schedule validation, periodic backup and pruning, and `backup create`, `backup prune`, and `backup restore` CLI commands. Prune and restore require confirmation in the specified cases unless `--force` is passed.
+
+A focused test covers backup from a WAL database, restore, and retention pruning. `go test ./db ./conf ./cmd` passes.

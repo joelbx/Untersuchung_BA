@@ -1,0 +1,3 @@
+Added SQL Server connection testing to the database diagnostic flow. The new [SQLServerPinger](/app/lib/client/conntest/database/sqlserver.go) validates connection parameters, respects the context deadline, and classifies refused connections, login failures, and invalid database errors. The [protocol selector](/app/lib/client/conntest/database.go) now returns it for SQL Server and continues to reject unsupported protocols.
+
+Focused tests pass: `GOPROXY=off go test ./lib/client/conntest/database ./lib/client/conntest`.

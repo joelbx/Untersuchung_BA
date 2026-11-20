@@ -1,0 +1,3 @@
+Updated TaskExecutor to evaluate loop items once and resolve `delegate_to` before iterations, including targets based on `item`. Removed the loop cache workaround, added VariableManager’s `get_delegated_vars_and_hostname()` and Task’s `get_play()`, and made delegation resolution in `get_vars()` opt-in with the legacy method marked deprecated.
+
+Verification: 36 focused unit tests and three existing delegation integration playbooks passed. No worker was delegated or adopted.

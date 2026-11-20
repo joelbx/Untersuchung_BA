@@ -1,0 +1,3 @@
+Implemented user-scoped property storage. A new `user_props` migration moves existing Last.fm session keys out of the global `property` table. The new `model.UserPropsRepository` and `DataStore.UserProps` scope `Put`, `Get`, and `Delete` to the user in the context. Last.fm now uses the `sessionKeyProperty` constant, and property error logs include a request ID when available.
+
+`go test ./...` and `git diff --check` passed. No delegation was used.

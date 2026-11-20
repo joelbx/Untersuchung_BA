@@ -1,0 +1,3 @@
+Forked `Display.display` calls now travel through `FinalQueue` as `DisplaySend` events and are replayed by the parent’s [strategy results loop](/app/lib/ansible/plugins/strategy/__init__.py:113). Parent output is locked, worker startup is guarded against inheriting an active display write, and the [worker’s late `/dev/null` redirection](/app/lib/ansible/executor/process/worker.py:113) is removed. Cleanup waits for workers to finish sending events and flushes both output streams.
+
+I delegated the queue and worker changes, strategy handling, and regression tests to three agents, then integrated and verified the patch. **12 focused tests passed**, including a real fork and queue round trip; `git diff --check` passed.

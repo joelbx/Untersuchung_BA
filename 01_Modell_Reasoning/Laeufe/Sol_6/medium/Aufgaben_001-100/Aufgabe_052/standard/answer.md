@@ -1,0 +1,3 @@
+Implemented token accounting for `Chat.Complete` and `Agent.PlanAndExecute`. Both now return a non-nil `*model.TokenCount`; the agent accumulates prompt and completion usage across steps, including streamed output. Assist and web usage reporting now read those totals.
+
+`go test ./lib/ai/model ./lib/ai` and `git diff --check` passed. Assist and web tests could not build in this environment because required system C headers are missing.

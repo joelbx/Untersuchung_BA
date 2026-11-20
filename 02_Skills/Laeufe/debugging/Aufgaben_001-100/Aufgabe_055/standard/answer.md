@@ -1,0 +1,3 @@
+Trivy results now store the OS version in `Release` and use `ArtifactName` for `ServerName`, adding `:latest` to untagged container images. The parser leaves `Optional` nil. Package CVE detection now skips Trivy and other ineligible results, and CVE reuse identifies Trivy through `ScannedBy`.
+
+Regression tests and the existing Trivy and detector suites passed with `GOPROXY=off go test ./contrib/trivy/... ./detector -count=1`.

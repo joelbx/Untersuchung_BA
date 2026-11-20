@@ -1,0 +1,3 @@
+Host blocking now checks the request hostname and each parent domain against both block sets. The enabled setting and URL whitelist take precedence, and trailing dots are handled consistently. I added `widened_hostnames` with the requested string behavior and updated the existing per-URL toggle test to use a URL with a parsed host.
+
+The relevant tests passed: **437 passed, 1 skipped**. `git diff --check` passed. I solved this directly; no delegation was used.

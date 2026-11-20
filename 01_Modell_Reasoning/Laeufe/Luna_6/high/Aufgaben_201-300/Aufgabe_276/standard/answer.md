@@ -1,0 +1,3 @@
+Implemented startup validation for enabled GitHub and OIDC authentication. Missing or whitespace-only required values now return provider-qualified errors, and GitHub requires `read:org` when allowed organizations are configured. Provider validation runs before session-domain validation so these errors are reported directly.
+
+Added coverage for each required field and the GitHub scope rule. `go test ./internal/config` passed.

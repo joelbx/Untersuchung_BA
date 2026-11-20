@@ -1,0 +1,3 @@
+Added an OCI backed snapshot source in [source.go](/app/internal/storage/fs/oci/source.go). It fetches by digest, reopens local OCI layouts on every fetch to detect external changes, and polls for updates at a configurable interval. OCI file handling now applies namespace annotations and supports gzip layers. I also updated `SnapshotSource.Get` and its existing implementations and callers to accept a context.
+
+`go test ./internal/oci ./internal/storage/fs/...` passed, including tests for external local updates and compressed layers. No delegation was used.

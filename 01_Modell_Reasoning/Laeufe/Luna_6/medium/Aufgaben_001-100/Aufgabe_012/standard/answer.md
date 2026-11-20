@@ -1,0 +1,3 @@
+Updated `custom_headers` to accept `fallback_accept_language=True`. When fallback is disabled, it omits the global `Accept-Language` while retaining a URL-specific override. `interceptRequest` disables fallback for XHR requests.
+
+Both focused test files passed: 22 tests total. `git diff --check` also passed. The initial test run without offscreen Qt aborted; rerunning with `QT_QPA_PLATFORM=offscreen` succeeded.

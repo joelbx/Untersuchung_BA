@@ -1,0 +1,3 @@
+Implemented token-only invitation registration. The form copies the URL token into its hidden input; the backend validates invitations by token, joins the invited groups, confirms the email only when it matches the invitation, and cleans up linked invitation records.
+
+The invitation tests pass (32 tests), as do lint and `git diff --check`. The full user suite stopped at an existing email-confirmation test failure (`NaN !== 1`); full-suite success remains unverified.

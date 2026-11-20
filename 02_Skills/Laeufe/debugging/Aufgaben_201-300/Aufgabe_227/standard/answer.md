@@ -1,0 +1,3 @@
+Updated the MIME suffix workaround to check **runtime Qt only** at both bounds: 6.2.3 is included and 6.7.0 is excluded. Clarified the `compiled` parameter and changed the `compiled=True, exact=True` error to `RuntimeError`. Added tests for mismatched runtime and compiled versions.
+
+The focused checks passed: **31 tests**. The broader run passed 193 tests and failed two unrelated Qt 6.9.1 compatibility tests; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

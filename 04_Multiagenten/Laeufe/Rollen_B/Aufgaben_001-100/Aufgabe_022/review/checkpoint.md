@@ -1,0 +1,4 @@
+VERDICT: FIX
+Code defect: scanner/redhatbase.go splitFileName strips a numeric epoch from the source filename's name but does not put it in ver. Both parseInstalledPackagesLine variants build SrcPackage.Version from fields[1], so a line such as `bar 0 9 123a ia64 1:bar-9-123a.src.rpm` produces source version `9-123a` instead of `1:9-123a`; differing nonzero epochs are also misreported. Preserve the filename epoch in the source version and avoid duplicate prefixes when it matches the binary epoch. The existing epoch tests cover only matching epochs.
+Tests executed: `GOPROXY=off GOSUMDB=off go test ./scanner -run 'Test_redhatBase_(sourceRPMFilename|parseInstalledPackagesContinuesAfterSourceFilenameWarning|parseInstalledPackagesLine|parseInstalledPackagesLineFromRepoquery)$' -count=1` — PASS; `GOPROXY=off GOSUMDB=off go test ./scanner -count=1` — PASS.
+TEST_ENVIRONMENT_PROBLEM: none.

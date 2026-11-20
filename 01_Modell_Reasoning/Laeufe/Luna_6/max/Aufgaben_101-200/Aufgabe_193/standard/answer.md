@@ -1,0 +1,3 @@
+Updated [galaxy.py](/app/lib/ansible/cli/galaxy.py:973) so implicit `ansible-galaxy install -r` installs roles and collections with default paths. Explicit subcommands and custom role paths skip the other item type with the requested messages. Empty requirements now skip cleanly, and role dependency processing respects force options.
+
+Verification: all 107 Galaxy CLI unit tests passed; compilation and `git diff --check` passed.

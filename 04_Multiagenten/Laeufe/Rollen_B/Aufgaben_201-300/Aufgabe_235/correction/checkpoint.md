@@ -1,0 +1,1 @@
+Fixed terminal-period field-of-content marker handling in name_from_list without removing periods in other name parts. Added helper and MARC 100 regressions. Verified: pytest -q openlibrary/catalog/marc/tests/test_parse.py (61 passed); pytest -q openlibrary/catalog/marc/tests (122 passed). No environment failures.

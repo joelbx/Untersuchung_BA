@@ -1,0 +1,3 @@
+Added [removeTechnicalFields](/app/src/api/common/utils/EntityUtils.ts:135). It mutates the input entity, removing keys with the three specified prefixes at the root and in nested objects and arrays while preserving other fields. Added [tests](/app/test/tests/api/common/utils/EntityUtilsTest.ts:40) for unchanged entities and recursive removal.
+
+Verification passed: `npm run types` and `npm run fasttest` (8,680 assertions).

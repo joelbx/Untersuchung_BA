@@ -1,0 +1,3 @@
+Fixed the Kubernetes exec startup path. The Kubernetes service now initializes the session uploader once per process, creating the streaming directory needed for recordings. The forwarder now creates a fresh cluster session per request, caches only valid short lived credentials, and records audit events even when a client disconnects.
+
+The full Kubernetes proxy tests, a focused service build, the concurrent credential race test, and `git diff --check` passed. A live `kubectl exec` session was not tested.

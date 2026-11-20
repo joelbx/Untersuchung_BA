@@ -1,0 +1,3 @@
+Fixed the mailbox reload timing in `/app`. List loading now waits for tracked backend item operations to finish, uses the current page and query context, and rejects API responses marked stale. Stale responses retry after one second; fetch failures retry after two seconds.
+
+TypeScript and `git diff --check` passed. The focused tests and existing mailbox element tests passed (16 tests total). Jest reported an open-handle warning after the passing run.

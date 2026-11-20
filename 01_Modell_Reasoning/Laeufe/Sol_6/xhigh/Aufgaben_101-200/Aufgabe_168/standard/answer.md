@@ -1,0 +1,3 @@
+Fixed the rapid activation issue in [UserInfo.tsx](/app/src/components/views/right_panel/UserInfo.tsx:613). Kick, Ban, and Mute now share a lock for the selected member. It starts before confirmation, sets `disabled` and `aria-disabled="true"` on all three controls, and clears after cancellation, success, or failure. Failures show one error dialog.
+
+Added [regression tests](/app/test/components/views/right_panel/UserInfo-test.tsx:1205). All 73 UserInfo tests pass, as do ESLint and Prettier checks. The full TypeScript check still reports existing errors elsewhere in the repository; it reports none in UserInfo.

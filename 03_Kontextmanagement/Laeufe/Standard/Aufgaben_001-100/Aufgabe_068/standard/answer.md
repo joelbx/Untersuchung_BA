@@ -1,0 +1,3 @@
+Updated the single and batch loaders to apply supplied owner-encrypted session keys before decryption, and passed those keys through `EntityClient`, `DefaultEntityRestCache`, and the mail detail call sites. The cache also retries a previously failed decryption when a key becomes available. Added regression tests for key propagation and the batch loader’s optional fourth argument.
+
+Type checking and the focused `EntityRestClient`, cache, `MailIndexer`, and `MailFacade` tests passed.

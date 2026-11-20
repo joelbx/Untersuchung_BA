@@ -1,0 +1,3 @@
+Updated the work search document to expose `id_project_runeberg` as an array for every work, including `[]` when absent. Existing identifier fields are left intact. Added the registered `ProjectRunebergProvider` and its read and download templates.
+
+Verification: 53 relevant tests passed, both templates rendered in local checks, and Ruff and `git diff --check` passed. External Runeberg download links were not checked.

@@ -1,0 +1,3 @@
+Updated `flipt validate` to report each YAML validation error with its field path, message, file, line, and column. Text output shows the location beside the issue; JSON output contains the complete error list, including `{"errors":[]}` on success. Validation failures return a nonzero exit status and print `validation failed` to stderr.
+
+Added regression tests for multiple errors, a rollout range violation, malformed YAML, and both output formats. `go test ./internal/cue ./cmd/flipt` passes, and a command run against the invalid fixture returned the expected JSON error and failure status.

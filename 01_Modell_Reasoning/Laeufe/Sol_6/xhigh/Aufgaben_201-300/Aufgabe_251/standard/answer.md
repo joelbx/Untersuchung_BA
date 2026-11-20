@@ -1,0 +1,3 @@
+Updated `flipt validate` to report every YAML validation finding with its field path, descriptive message, and corrected source file, line, and column. Text output identifies the field; JSON output contains the complete structured result. Validation failures now exit with a clear `validation failed` message on stderr.
+
+Added regression tests for misspelled keys, rollout bounds, missing fields, and both output formats in [validate_test.go](/app/internal/cue/validate_test.go). `go test ./internal/cue ./cmd/flipt` passes, and a manual JSON CLI run exits with failure and reports the rollout error at line 17, column 16.

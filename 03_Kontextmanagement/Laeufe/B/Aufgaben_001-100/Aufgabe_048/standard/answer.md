@@ -1,0 +1,3 @@
+Resolved the plugin handling issue in `/app`. Plugin errors now carry resolution context, `get_with_context()` returns the plugin and its metadata, tombstones raise contextual removal errors, and deprecation messages use `Display` formatting. The action, connection, and Jinja callers use the updated behavior.
+
+The focused suite passed: **80 tests**, followed by **22 tests** after the final edge-case fix. `git diff --check` is clean. The existing display warning test fails when run with its companion because warning deduplication state is shared; it passes in isolation.

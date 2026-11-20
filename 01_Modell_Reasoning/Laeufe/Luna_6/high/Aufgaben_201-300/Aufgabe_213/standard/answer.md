@@ -1,0 +1,3 @@
+Added `isShareAvailable(abortSignal, shareId)` to [useDefaultShare.ts](/app/applications/drive/src/app/store/_shares/useDefaultShare.ts). It forwards both arguments to `getShare` and returns `false` for locked or soft-deleted shares. Default-share loading and volume creation remain unchanged.
+
+Prettier and `git diff --check` pass. The focused Jest test stalled without output on two attempts, so I stopped both runs; no test result was available.

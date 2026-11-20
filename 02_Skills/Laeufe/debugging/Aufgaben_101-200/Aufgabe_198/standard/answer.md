@@ -1,0 +1,3 @@
+Updated the Red Hat OVAL path to use `goval-dictionary` v0.9.5, accept only family appropriate advisory IDs, and carry package fix states through matching and scan results. Gost no longer detects CVEs for Red Hat families. Added regression tests for resolution states, module streams, advisory IDs, and status preservation.
+
+Verification passed: `GOPROXY=off go test ./oval ./gost ./detector -count=1` and `git diff --check`.

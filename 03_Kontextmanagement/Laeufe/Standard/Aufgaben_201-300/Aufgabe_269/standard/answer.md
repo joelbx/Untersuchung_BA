@@ -1,0 +1,3 @@
+Trivy CVE contents are now keyed by source, such as `trivy:debian` and `trivy:ubuntu`. Both conversion paths preserve each source’s severity, CVSS values, references, and publication dates. Metadata aggregation and the TUI also include Trivy sources, including additional source keys found in scan results.
+
+Regression tests cover differing vendor severities and scores. `go test ./models ./contrib/trivy/pkg ./detector ./tui` and `git diff --check` pass.

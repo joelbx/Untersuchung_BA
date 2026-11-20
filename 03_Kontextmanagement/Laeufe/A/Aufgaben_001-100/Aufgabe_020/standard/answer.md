@@ -1,0 +1,3 @@
+Implemented Redis cache TLS options for a custom CA path, inline CA certificate, and optional certificate verification bypass. The new `redis.NewClient` uses TLS 1.2 or newer, and configuration rejects simultaneous CA path and inline certificate values. I added YAML fixtures, schema entries, client tests, and the `api/cachetls` GitHub Actions matrix entry.
+
+The focused Go tests and `git diff --check` pass. The Dagger integration suite compiled but was not run locally.

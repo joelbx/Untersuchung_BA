@@ -1,0 +1,3 @@
+Implemented process completion messaging in [guiprocess.py](/app/qutebrowser/misc/guiprocess.py): messages include the process PID, crashes show the signal name, and SIGTERM sets the state to `terminated` and stays quiet unless verbose mode is enabled. Added regression coverage in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py).
+
+`py_compile` and `git diff --check` pass. The focused pytest suite could not run because PyQt5 is missing from the environment.

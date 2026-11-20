@@ -1,0 +1,3 @@
+Fixed the cancellation expiry date. The expiry utility now uses the active term when cancellation context is set or auto-renew is disabled, and the cancellation screens display that date instead of a scheduled future term’s date. Free-plan behavior and the existing renewal behavior are preserved.
+
+The focused tests pass: **34 tests across 2 suites**. The repository-wide type check was stopped before completion.

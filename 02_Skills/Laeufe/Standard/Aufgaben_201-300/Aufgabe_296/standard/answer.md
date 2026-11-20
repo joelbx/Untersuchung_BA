@@ -1,0 +1,3 @@
+Token-only invitation registration is implemented. The form reads the URL token into its hidden `token` field; registration uses token metadata to join groups, confirms the email only when it matches the invitation, and cleans up linked invitation records.
+
+The focused invitation suite passed **30 tests**. ESLint and `git diff --check` passed. The full user suite still has two failures outside the token cases; the commands and errors are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

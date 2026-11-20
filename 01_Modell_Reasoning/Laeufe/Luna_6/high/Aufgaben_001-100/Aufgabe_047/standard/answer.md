@@ -1,0 +1,3 @@
+Implemented deterministic per-ID seeds in [hasher.go](/app/utils/hasher/hasher.go). Added package-level and `Hasher` methods for `SetSeed`; repeated seeds reproduce hashes, changing or restoring a seed changes or restores the result. IDs without an explicit seed are initialized automatically, and `Reseed` keeps its random behavior.
+
+`go test ./utils/hasher` passed. Updated `.codex-role-output/checkpoint.md`.

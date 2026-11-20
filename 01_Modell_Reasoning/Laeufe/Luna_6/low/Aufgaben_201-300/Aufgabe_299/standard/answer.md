@@ -1,0 +1,3 @@
+Implemented filesystem completion for `:open`, including the configurable `Filesystem` category and `completion.favorite_paths` setting. Absolute paths, `file:///` inputs, and `~` paths are expanded for matching, with matching entries sorted deterministically.
+
+`py_compile` and `git diff --check` pass. In the focused completion suite, explicit category tests pass; `test_url_completion_no_quickmarks` fails because it expects two categories, while the required default now includes `Filesystem`. The details are recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

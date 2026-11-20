@@ -1,0 +1,3 @@
+The fix is complete. YAML dumping now surfaces `AnsibleUndefined` as an undefined-variable error. Both YAML filters identify themselves in their errors and preserve the underlying cause for the templating layer.
+
+I removed the unused `mocker` fixture argument that blocked the broader test run. The reviewed test commands now pass: **20/20 focused tests** and **168/168 broader tests**. `git diff --check` found no whitespace errors.

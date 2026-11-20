@@ -1,0 +1,2 @@
+Correction round: inspected format_languages. Reviewer found Irish is resolved by abbreviation fallback as iri before language-name lookup, while canonical record is gle. I will reorder resolution and add a regression test, then rerun the review's exact tests.
+Resolution: language-record name matching now precedes abbreviation fallback. Added Irish/Gaeilge/ga deduplication regression. Reviewer test commands rerun: catalog format_language 12 passed; upstream abbreviation 1 passed; full catalog utils 101 passed. No remaining failures.

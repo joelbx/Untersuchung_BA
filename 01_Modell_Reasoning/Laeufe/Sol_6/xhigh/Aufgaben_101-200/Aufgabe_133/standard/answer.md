@@ -1,0 +1,3 @@
+The OSS migration now downgrades the existing `admin` role and keeps users and trusted cluster mappings on `admin`. It also repairs mappings left on `ossuser` by the earlier migration. Legacy user creation assigns `admin`.
+
+The migration tests cover restricted permissions, trusted cluster mappings, repair, and repeat runs. The focused tests passed across `lib/auth`, `lib/services`, and `tool/tctl/common`; `git diff --check` passed.

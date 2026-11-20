@@ -1,0 +1,3 @@
+Added DynamoDB `billing_mode` support. New tables default to `pay_per_request`; `provisioned` tables use the configured read and write capacity. Initialization now checks an existing table’s billing mode and disables configured auto scaling with a log message when the table is on demand. I updated the documentation and added regression tests.
+
+`go test ./lib/backend/dynamo -count=1` passed. The broader `go test ./lib/backend/... -count=1` run could not complete because the local SQLite C dependency failed to compile (`pread64`, `pwrite64`, and `off64_t`).

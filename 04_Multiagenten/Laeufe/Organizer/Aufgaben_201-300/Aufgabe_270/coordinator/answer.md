@@ -1,0 +1,3 @@
+Updated public pages to select the persisted session with the highest `persistedAt` and return its full record, so the UID and localID come from the same session. The provider now uses that record for metrics and session resume, then stores the resumed authentication and user state. Telemetry uses the same selector, and the `LAST_ACTIVE_PING` storage paths are removed.
+
+The focused tests pass: **10 tests across 2 suites**. Prettier, ESLint, and `git diff --check` pass. The app-wide type check remains blocked by an OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts`, outside these changes. No delegation was used.

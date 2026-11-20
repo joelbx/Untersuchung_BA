@@ -1,0 +1,3 @@
+Resolved the referential validation gap. [`Validate`](/app/internal/cue/validate.go:85) now returns one unwrap-able error with file, line, and column for each issue. Import checks rule references before writing, so repeated imports of the same invalid file fail consistently. [`SnapshotFromFS` and `SnapshotFromPaths`](/app/internal/storage/fs/snapshot.go:82) validate files before loading them.
+
+Relevant tests passed across the CUE, import, filesystem storage, and CLI packages.

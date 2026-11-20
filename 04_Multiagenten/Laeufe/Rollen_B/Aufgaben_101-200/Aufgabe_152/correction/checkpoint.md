@@ -1,0 +1,1 @@
+Progress: Fixed host normalization so names are stripped before required-field validation. Whitespace-only host names now fail validation for direct and aggregate inputs; added a regression test covering both. Reran the reviewer-flagged commands: logging module tests 11 passed; all ICX module tests 103 passed. No test environment problems or remaining failures.

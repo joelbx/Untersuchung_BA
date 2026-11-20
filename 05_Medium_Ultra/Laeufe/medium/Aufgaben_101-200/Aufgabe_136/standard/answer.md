@@ -1,0 +1,3 @@
+Updated the certificate error wrappers in `/app`. WebKit now accepts `reply` and `errors` arguments, renders one error as an escaped paragraph and multiple errors as an escaped list, and only calls the reply when the certificate is accepted. The shared decision methods and Qt5/Qt6 WebEngine wrappers are connected to their callers.
+
+The focused certificate tests and adjacent network and shared-type tests passed: **64 tests total**. `git diff --check` passed. The existing WebEngine tab test module exited before reporting a result in this environment, so that module remains unverified.

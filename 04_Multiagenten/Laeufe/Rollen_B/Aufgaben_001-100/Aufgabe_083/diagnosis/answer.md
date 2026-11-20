@@ -1,0 +1,8 @@
+The implementation is in [extendedAttributes.ts](/app/applications/drive/src/app/store/_links/extendedAttributes.ts:5), not the `services/` path named in the issue. I inspected the code and existing tests; project source and tests are unchanged.
+
+- `createFileExtendedAttributes` and `encryptFileExtendedAttributes` use positional file metadata. The call in [worker.ts](/app/applications/drive/src/app/store/_uploads/worker/worker.ts:104) and the [existing tests](/app/applications/drive/src/app/store/_links/extendedAttributes.test.ts:40) would need the object-parameter shape.
+- [Block-size creation](/app/applications/drive/src/app/store/_links/extendedAttributes.ts:78) always appends a remainder. Exact chunk multiples therefore get a trailing `0`, and an empty file gets `[0]`.
+- [Parsing helpers](/app/applications/drive/src/app/store/_links/extendedAttributes.ts:151) use `any`. `parseMedia` and `parseDigests` can throw when valid JSON contains `"Media": null` or `"Digests": null`, so the current parser does not meet the neutral-result requirement for all partial input.
+- Both attribute interfaces permit a present `Digests` object with no `SHA1` string. The new `DeepPartial` type belongs under `utils/type/`, which does not yet exist here.
+
+The fix should cover those cases, preserve ISO timestamps on creation and Unix seconds on parsing, and add tests for exact chunk boundaries and null nested values. One API detail remains ambiguous: the requirement calls the params object encryption’s “sole parameter,” while its listed interface and current encryption path require two key arguments. The likely intended signature is the params object followed by those keys.

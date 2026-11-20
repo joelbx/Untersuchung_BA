@@ -1,0 +1,3 @@
+Fixed WinRM Kerberos command construction. The plugin now accepts `ansible_winrm_kinit_args`, splits argument strings into tokens, and supports existing `ansible_winrm_kinit_cmd` values that include arguments. Explicit `kinit_args` takes precedence over the default delegation `-f` flag. Both subprocess and pexpect use the same command tokens.
+
+Verification: all 36 WinRM unit tests passed, including checks for one invocation per attempt and a unique credential cache for each attempt.

@@ -1,0 +1,3 @@
+Task: Clean local group covers and user cover/avatar files during explicit removal and account deletion.
+Status: Implemented and verified. Group cleanup removes cover, thumbnail, and supported extension variants for local upload URLs. User image layer validates local profile URLs, removes legacy and timestamped variants, exposes path lookup/removal helpers, and account deletion uses the same file cleanup. Socket handlers delegate to the image layer and retain action hooks.
+Verification: ESLint passed on all changed JavaScript files; targeted existing and added Mocha tests passed (6 passing). git diff --check passed.

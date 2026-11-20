@@ -1,0 +1,3 @@
+Added the global `chat:privileged` permission and applied it to direct chats and invitations with privileged users. Denied attempts return `[[error:no-privileges]]`. Chat checks now accept privilege arrays, and profile responses expose a boolean `canChat` field documented in [UserObject.yaml](/app/public/openapi/components/schemas/UserObject.yaml).
+
+Verification: the messaging and middleware suites passed (90 tests); ESLint, OpenAPI schema parsing, and `git diff --check` passed. The broader controller run failed after 230 passing tests in an unrelated user data export job; the failure is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

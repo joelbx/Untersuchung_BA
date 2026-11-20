@@ -1,0 +1,3 @@
+Implemented the typed `SimpleCache[V]` abstraction in [simple_cache.go](/app/utils/cache/simple_cache.go:1), with TTL expiration, loader support, and active key listing. Migrated the play tracker, genre repository, and HTTP client; removed the `ttlcache` dependency.
+
+Verification passed: `GOPROXY=off GOSUMDB=off go test ./utils/cache ./scanner ./core/scrobbler`. No Go source still references `ttlcache`.

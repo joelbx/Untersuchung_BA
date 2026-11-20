@@ -1,0 +1,3 @@
+Added a **“Polls history”** button to `RoomSummaryCard`, shown only when the new `feature_poll_history` Labs setting is enabled. Clicking it opens the named `PollHistoryDialog` with the current room’s `roomId`. The dialog currently displays its title.
+
+The existing Labs settings test, Prettier, and `git diff --check` passed. The TypeScript check remains blocked by an unrelated existing `RoomState.findPredecessor` error in `RoomCreate.tsx`.

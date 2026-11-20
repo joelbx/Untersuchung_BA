@@ -1,0 +1,3 @@
+Updated [ec2.go](/app/lib/utils/ec2.go:112) so clients accept functional options, including an injected IMDS client. `IsAvailable` now retrieves `instance-id` through that client within 250ms and accepts only a valid EC2 ID, preventing captive portal HTML from identifying a node as EC2. Added regression tests in [ec2_test.go](/app/lib/utils/ec2_test.go:35).
+
+`go test ./lib/utils -count=1` and `go test ./lib/labels/ec2 -count=1` pass. The hostname and label integration tests could not build because this checkout lacks `linux/hidraw.h` and its SQLite C dependency fails to compile.

@@ -1,0 +1,3 @@
+Task: Predictable no_log sanitization in /app.
+Implemented: remove_values masks only string values and preserves scalar/container types; sanitize_keys handles exact/partial mapping key matches, ignore list, _ansible keys, and nested containers without recursive traversal; uri sanitizes response keys when no_log_values exists using NO_MODIFY_KEYS; JSON fallback serializes preserved date values.
+Tests: 47 focused tests passed; full converter suite 394 passed before adding one date case, then focused date case passed. Full basic directory had failures from old expectations (updated) and pre-existing warning state leaking between tests; isolated sanitizer/exit tests passed. git diff --check passed.

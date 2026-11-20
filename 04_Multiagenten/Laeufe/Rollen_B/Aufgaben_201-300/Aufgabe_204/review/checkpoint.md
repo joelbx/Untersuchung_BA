@@ -1,0 +1,5 @@
+VERDICT: FIX
+
+CODE DEFECT: packages/shared/lib/contacts/property.ts:138-140 parses timezone-bearing ISO timestamps as instants. The vCard date path in packages/shared/lib/contacts/vcard.ts:225-229 formats the resulting Date in local time. In UTC, 2023-12-03T00:30:00+02:00 becomes 20231202, changing the supplied calendar day. Preserve the input calendar date when converting text for date-only contact fields, or adjust serialization consistently. Add coverage for an offset timestamp that crosses the local midnight boundary.
+
+TEST_ENVIRONMENT_PROBLEM: `yarn workspace @proton/shared test` exited 1 after successful Webpack compilation because Karma's Playwright Chromium path `/root/.cache/ms-playwright/chromium-1045/chrome-linux/chrome` is absent. Point the local test runner at an installed Chromium binary without changing the checked-in harness, then rerun. `yarn workspace @proton/shared check-types` exited 0. Local `node -e` date-fns probe confirmed the offset example parses to 2023-12-02T22:30:00.000Z and serializes as 20231202. No project code or tests changed in this review.

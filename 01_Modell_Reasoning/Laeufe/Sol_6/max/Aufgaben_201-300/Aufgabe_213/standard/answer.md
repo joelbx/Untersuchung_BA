@@ -1,0 +1,3 @@
+Implemented `isShareAvailable` in [useDefaultShare.ts](/app/applications/drive/src/app/store/_shares/useDefaultShare.ts:58). It forwards the abort signal and share ID to `getShare` and returns false for locked or soft-deleted shares. [FolderContainer.tsx](/app/applications/drive/src/app/containers/FolderContainer.tsx:43) now returns to the root for an unavailable folder share.
+
+Both focused Jest suites passed (9 tests), including the existing default-share creation cases. TypeScript, ESLint, Prettier, and `git diff --check` also passed.

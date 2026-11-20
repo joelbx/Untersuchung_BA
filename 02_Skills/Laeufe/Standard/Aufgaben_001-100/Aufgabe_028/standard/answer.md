@@ -1,0 +1,3 @@
+Added `getCachedChildrenCount(shareId, parentLinkId)` to [useLinksListing.tsx](/app/applications/drive/src/app/store/links/useLinksListing.tsx). It returns the length of the cached children for that share and parent.
+
+Updated the [tests](/app/applications/drive/src/app/store/links/useLinksListing.test.tsx) to cover fetched counts, an empty cache, and share and parent isolation. The targeted Jest suite passed (5 tests), and `git diff --check` passed.

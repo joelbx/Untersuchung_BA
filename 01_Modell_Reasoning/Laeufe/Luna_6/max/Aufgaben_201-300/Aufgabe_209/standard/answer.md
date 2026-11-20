@@ -1,0 +1,5 @@
+Implemented centralized calendar URL validation in [SubscribeCalendarModal.tsx](/app/packages/components/containers/calendar/subscribeCalendarModal/SubscribeCalendarModal.tsx:16), with a 10,000 character limit from [calendar constants](/app/packages/shared/lib/calendar/constants.ts:98), prioritized warnings, and one submit disabled flag for both flows. Removed the counter and `maxLength` prop.
+
+Moved the `ResizeObserver` mock into the shared [Jest setup](/app/jest.setup.js:1) and removed the test and helper overrides. The calendar container spec now mocks `useGetCalendarSetup` as an ES module default, so it doesn’t run the real hook.
+
+The focused calendar, components, and mail suites passed; formatting and `git diff --check` passed. There was no existing spec directly covering the modal’s URL warnings.

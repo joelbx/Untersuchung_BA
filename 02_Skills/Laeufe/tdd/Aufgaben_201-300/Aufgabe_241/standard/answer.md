@@ -1,0 +1,3 @@
+Updated [VoiceBroadcastPreRecordingPip.tsx](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx) so “Go live” is a native button that disables immediately and calls `start()` only once while initiation is pending. It becomes available again when the attempt resolves or rejects. Added tests for rapid activation, failure, close behavior, and the existing device selection flow.
+
+All voice broadcast tests passed: **241 tests across 26 suites**. The full Jest run could not complete because of a React/jsdom `document.createEvent` crash. The type check still reports five `MatrixClient` errors outside the changed files; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

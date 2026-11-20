@@ -1,0 +1,3 @@
+Implemented author matching in `/app`. Imports now check an Open Library key first, then external IDs, then name and dates. Matched authors gain nonconflicting IDs; conflicting values raise `AuthorRemoteIdConflictError`. New authors retain supplied IDs, and ties between matches resolve consistently. Wikisource records are exempt from suspect date removal.
+
+Verification: 149 relevant tests passed, Ruff passed, and `git diff --check` passed.

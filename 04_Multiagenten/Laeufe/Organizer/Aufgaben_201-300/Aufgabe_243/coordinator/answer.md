@@ -1,0 +1,3 @@
+Updated Kubernetes session creation to return `trace.NotFound` for a missing or unknown `kubeCluster`, use local credentials when available, and route remote sessions through `reversetunnel.LocalKubernetes`. kube_service sessions now discover endpoints, pass the selected address and server ID to `dialEndpoint`, and record the selected address in `kubeAddress`. Dialing with no endpoints returns `trace.BadParameter`.
+
+The existing proxy tests pass: `GOPROXY=off GOSUMDB=off go test ./lib/kube/proxy -count=1`. I also added assertions for missing clusters, empty endpoint lists, and the address and server ID passed to the dialer. No delegation was used.

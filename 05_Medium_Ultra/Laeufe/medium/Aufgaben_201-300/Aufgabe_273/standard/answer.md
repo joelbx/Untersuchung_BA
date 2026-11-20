@@ -1,0 +1,3 @@
+Updated [make_work](/app/openlibrary/plugins/upstream/addbook.py:69) to return a `web.Storage` with empty authors when author fields are missing, preserve supplied fields, and apply the required defaults. The nested `make_author` now has the requested type annotations.
+
+Added regression coverage in [test_addbook.py](/app/openlibrary/plugins/upstream/tests/test_addbook.py:9). All 15 tests in that file pass.

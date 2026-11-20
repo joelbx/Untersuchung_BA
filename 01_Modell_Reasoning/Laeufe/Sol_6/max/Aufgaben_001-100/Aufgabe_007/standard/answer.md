@@ -1,0 +1,3 @@
+Fixed the WinRM Kerberos command construction. Set `ansible_winrm_kinit_cmd` to the executable and `ansible_winrm_kinit_args` to its arguments, such as `-krb -init`. Explicit arguments take precedence over the automatic delegation flag. Both subprocess and pexpect use the same command content and a unique credential cache per attempt.
+
+Updated the [plugin](/app/lib/ansible/plugins/connection/winrm.py), [tests](/app/test/units/plugins/connection/test_winrm.py), and [documentation](/app/docs/docsite/rst/user_guide/windows_winrm.rst). **Verification:** all 37 WinRM unit tests passed; `git diff --check` passed.

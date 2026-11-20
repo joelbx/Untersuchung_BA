@@ -1,0 +1,3 @@
+Implemented a member-scoped lock for Kick, Ban/Unban, and Mute/Unmute in [UserInfo.tsx](/app/src/components/views/right_panel/UserInfo.tsx). It disables all three controls with `disabled` and `aria-disabled="true"` before showing confirmation, and releases the lock after cancellation or when the request settles. The existing error dialogs handle request failures.
+
+The focused `UserInfo` suite passed: 68 tests. ESLint and `git diff --check` passed. TypeScript checking reported existing SDK and unrelated-file errors; it reported none in the edited file.

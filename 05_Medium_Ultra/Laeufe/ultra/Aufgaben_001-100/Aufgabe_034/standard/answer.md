@@ -1,0 +1,3 @@
+Updated the IA importer to split publisher names and publication places, and to classify ISBNs into `isbn_10` and `isbn_13` lists. Empty or unusable values are omitted. The public helpers are in [utils.py](/app/openlibrary/plugins/upstream/utils.py); the importer change is in [code.py](/app/openlibrary/plugins/importapi/code.py).
+
+Two delegated agents reviewed repository conventions and tests; one updated the regression tests. I integrated the patch and verified it: **36 targeted tests passed**, and flake8 and `git diff --check` passed.

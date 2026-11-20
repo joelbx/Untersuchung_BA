@@ -1,0 +1,5 @@
+I found the compile blocker in [config.go](/app/internal/config/config.go:16): the decode hook slice is private, and the package has no `DefaultConfig`. `Load` already composes those hooks at [config.go](/app/internal/config/config.go:144), so an exported slice should be the shared source for both paths.
+
+The default values are specified in a test-only helper at [config_test.go](/app/internal/config/config_test.go:203). [storage.go](/app/internal/config/storage.go:20) uses value fields for `Local` and `Git`; changing them to the requested pointers also requires nil-safe validation and updates to the existing test literals. `BasicAuth` is already a pointer. `Config.Version` also lacks a `mapstructure` tag.
+
+`go test ./internal/config` passes on the current checkout. The described `schema_test.go` is absent, so I could not verify the exact CUE validation path. My assigned scope was fault localization only; I updated [checkpoint.md](/app/.codex-role-output/checkpoint.md) and made no project source or test changes.

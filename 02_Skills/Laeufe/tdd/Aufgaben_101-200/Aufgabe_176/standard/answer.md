@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py:548) to skip digits in percent-encoded triplets, preserve encoded URL data, reject invalid counts and decrements below zero, and leave ports unchanged. It now defaults to the path and changes the last eligible number in the first applicable segment. Regression tests are in [test_urlutils.py](/app/tests/unit/utils/test_urlutils.py:619).
+
+The URL utility tests passed: **417 passed, 1 skipped**. The full suite could not complete because the installed pytest-qt lacks `SignalBlocker`; the exact commands and errors are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

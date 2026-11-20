@@ -1,0 +1,3 @@
+Updated Kubernetes proxy `authenticate` to preserve the trace classification of non-access authorization and setup errors. Unsupported users and authorization denials still return `AccessDenied`; unknown local Kubernetes clusters and remote requests without a reverse tunnel remain non-`AccessDenied`. Added the requested `httplib` wrappers with custom error writers.
+
+`go test ./lib/kube/proxy ./lib/httplib` and `git diff --check` passed. I completed the work directly; no delegation was used.

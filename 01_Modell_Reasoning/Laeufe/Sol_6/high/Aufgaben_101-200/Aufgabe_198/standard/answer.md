@@ -1,0 +1,3 @@
+Updated the Red Hat OVAL path to use the locally cached goval-dictionary v0.9.5, accept advisories only with supported family identifiers, and carry package fix states through HTTP and database collection into scan results. Red Hat and derived distributions now use OVAL for CVE detection; Gost’s exported Red Hat `DetectCVEs` method was removed.
+
+Added focused tests. `go test ./oval ./gost ./detector` and `git diff --check` pass.

@@ -1,0 +1,3 @@
+Updated the Red Hat family vulnerability path to use OVAL for package CVE detection. The code now filters advisories by supported distribution IDs, reads OVAL resolution states, and carries `FixState`, `NotFixedYet`, and `FixedIn` into package statuses. It also uses a locally cached goval-dictionary version that supports resolution data and removes the exported Red Hat Gost detection method.
+
+The existing `oval`, `gost`, and `detector` tests pass offline.

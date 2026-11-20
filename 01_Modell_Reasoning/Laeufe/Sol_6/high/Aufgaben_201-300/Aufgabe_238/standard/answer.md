@@ -1,0 +1,3 @@
+Replaced `:buffer` with `:tab-select` in the [command registration](/app/qutebrowser/browser/commands.py:918), tab completion providers, current help, and the default `gt` binding. Tab selection still supports numeric indices, URL or title matches, cross-window references, and count precedence.
+
+Verification: 154 completion unit tests passed; 13 tab selection and 2 completion end-to-end tests passed. One existing tab scenario was skipped.

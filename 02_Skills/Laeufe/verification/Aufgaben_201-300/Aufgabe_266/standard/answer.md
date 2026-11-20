@@ -1,0 +1,3 @@
+Added `STAGED_SOURCES` and `ImportItem.find_staged_or_pending` in [imports.py](/app/openlibrary/core/imports.py). The method returns matching staged or pending rows for every source and identifier combination. [ISBN resolution](/app/openlibrary/core/models.py) now uses it to check local records for both ISBN-13 and ISBN-10 forms.
+
+Verification: 17 relevant tests passed; Ruff and `git diff --check` passed.

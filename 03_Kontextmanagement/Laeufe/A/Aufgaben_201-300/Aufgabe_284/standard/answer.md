@@ -1,0 +1,3 @@
+Updated `reversetunnel.Server` to keep one `localSite` and use it for local connections, reconnect advisories, site lookup, and proxy updates. The local site now reuses the server’s proxy access point and clients instead of creating a second resource cache. Connection registration validates the certificate’s cluster name.
+
+Updated the existing tests and added validation checks. `go test ./lib/reversetunnel` and `git diff --check` pass.

@@ -1,0 +1,5 @@
+VERDICT: FIX
+
+The `isFromProton` helper correctly returns true for `IsProton === 1` and false for `0` on both messages and conversations. The patch does not provide the specified [VerifiedBadge.tsx](/app/applications/mail/src/app/components/list/VerifiedBadge.tsx) component. The existing badge in [Item.tsx](/app/applications/mail/src/app/components/list/Item.tsx:107) still uses a sender whitelist, and [ItemColumnLayout.tsx](/app/applications/mail/src/app/components/list/ItemColumnLayout.tsx:132) renders it without the specified tooltip. Add the component and use `isFromProton` for its origin check.
+
+Tests executed: `yarn workspace proton-mail test src/app/helpers/elements.test.ts --coverage=false` passed (22 tests); `yarn workspace proton-mail check-types --pretty false` passed; `git diff --check` passed. **TEST_ENVIRONMENT_PROBLEM:** none.

@@ -1,0 +1,3 @@
+Updated `listRemoveAll` in [Redis](/app/src/database/redis/list.js), [MongoDB](/app/src/database/mongo/list.js), and [PostgreSQL](/app/src/database/postgres/list.js) to accept an array of values. It removes every matching element, preserves the order of the rest, and completes the removal before a subsequent read. Added a [regression test](/app/test/database/list.js) for multiple values and an immediate read.
+
+The focused list suite passed on Redis (20 tests). ESLint and `git diff --check` passed. MongoDB and PostgreSQL were not integration tested. No delegation was used.

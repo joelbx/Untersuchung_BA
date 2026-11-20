@@ -1,0 +1,3 @@
+Updated `RoomView` to dispatch `{ action: Action.RoomLoaded }` after a room loads. `RoomViewStore` now recalculates widget buttons on that action, including when no `ViewRoom` action preceded it. Initial event focus now falls back to `RoomView` state when the store has no event ID.
+
+The focused RoomView and store suites passed (65 tests); the store suite passed again after the final test addition (37 tests). ESLint, Prettier, and `git diff --check` passed. Repository-wide TypeScript checking still fails on errors outside the edited files, including OIDC and matrix-js-sdk type errors.

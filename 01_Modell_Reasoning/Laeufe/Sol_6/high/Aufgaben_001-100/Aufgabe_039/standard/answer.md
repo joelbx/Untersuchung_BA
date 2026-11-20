@@ -1,0 +1,3 @@
+Fixed `Booknotes.update_work_id` so a destination ID conflict leaves every booknote unchanged. It now returns `{"rows_changed": 0, "rows_deleted": 0, "failed_deletes": 1}` for that case. The admin response uses the returned dictionary, and regression tests cover conflicts, successful updates, and dry runs.
+
+Verification: all 5 tests in `openlibrary/tests/core/test_db.py` passed; `git diff --check` passed. Flake8 still reports pre-existing violations in the touched files.

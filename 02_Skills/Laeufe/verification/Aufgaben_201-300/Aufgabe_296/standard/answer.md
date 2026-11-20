@@ -1,0 +1,3 @@
+Updated invitation registration so a valid token works without an email. The form reads the token from the URL, and registration uses token metadata to join groups, confirm the email only when it matches the invitation, and clean up invitation records.
+
+The focused invitation suite passed **30 tests**, and lint and diff checks passed. The full `test/user.js` run had **177 passing and 1 failing**: an email confirmation test outside the invitation suite failed with `NaN !== 1`.

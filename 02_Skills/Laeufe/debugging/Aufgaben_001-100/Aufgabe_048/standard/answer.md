@@ -1,0 +1,3 @@
+Implemented contextual plugin resolution in `/app`. `get_with_context()` now returns the plugin object and resolution metadata; `get()` delegates to it and returns the object. Tombstones raise `AnsiblePluginRemovedError`, deprecation and removal messages use a shared formatter, and the action, connection, and Jinja callers use the new behavior.
+
+The relevant test run passed: **163 tests**. `git diff --check` also passed. Findings and commands are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

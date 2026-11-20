@@ -1,0 +1,3 @@
+Implemented `proxy_service.kube_listen_addr` with Kubernetes proxy enablement, default port handling, clear conflict validation, and support for overriding an explicitly disabled legacy block. Added the missing-listen-address warning and wildcard host resolution through the web proxy hostname. Existing public-address precedence is preserved.
+
+Verification passed: `go test ./lib/config ./lib/client` and `git diff --check`.

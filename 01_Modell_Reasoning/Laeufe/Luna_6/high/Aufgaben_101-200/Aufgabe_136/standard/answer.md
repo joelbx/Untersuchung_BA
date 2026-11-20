@@ -1,0 +1,3 @@
+Updated [certificateerror.py](/app/qutebrowser/browser/webkit/certificateerror.py) to accept named `reply` and `errors` arguments while preserving the existing `CertificateErrorWrapper(errors)` form. The WebKit network manager now passes both arguments explicitly. Construction retains the reply without initiating network operations. Existing rendering produces a paragraph for one error and a list for multiple errors, with HTML escaping in both cases.
+
+Verification: the existing certificate error tests passed (4 tests), and `git diff --check` passed.

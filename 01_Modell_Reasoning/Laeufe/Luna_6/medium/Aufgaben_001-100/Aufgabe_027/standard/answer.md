@@ -1,0 +1,3 @@
+Updated [`lastActivePersistedUserSession.ts`](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts) to return `number | null`, consider only numeric `ps-` keys, and return `null` for empty storage or caught errors. The bookmark view now checks for a missing ID before calling `resumeSession`, and the focused tests reflect the new behavior.
+
+`git diff --check` passed. I attempted the focused Jest test twice, but both runs stayed at full CPU without producing output, so I stopped them; the tests remain unverified.

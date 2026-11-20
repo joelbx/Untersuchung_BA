@@ -1,0 +1,3 @@
+Fixed default configuration startup so it applies `FLIPT_` environment overrides. `config.Load("")` now loads defaults without reading a file, and startup calls it when no config file is found. File values remain the base when a path is provided, with environment values taking precedence.
+
+Added regression tests for `FLIPT_LOG_LEVEL` and `FLIPT_SERVER_HTTP_PORT` in both cases. `go test ./internal/config ./cmd/flipt` and `git diff --check` passed.

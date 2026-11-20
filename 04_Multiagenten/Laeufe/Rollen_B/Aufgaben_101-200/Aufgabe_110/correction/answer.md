@@ -1,0 +1,3 @@
+Fixed the download metric’s mechanism reporting so service worker registration failures are recorded as `memory_fallback`. Prebuffered downloads now reach `Done` or `Error` only after the file save settles. Added regression tests for both cases.
+
+The reviewer’s exact test command passed (23 tests), the new provider tests passed (2 tests), and Drive’s type check passed. No remaining failures or `TEST_ENVIRONMENT_PROBLEM`.

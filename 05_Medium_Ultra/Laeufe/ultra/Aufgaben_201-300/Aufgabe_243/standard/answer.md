@@ -1,0 +1,3 @@
+Updated [forwarder.go](/app/lib/kube/proxy/forwarder.go:1413) so sessions reject a missing cluster, prefer local credentials, route remote clusters through `LocalKubernetes`, and discover kube_service endpoints. All request types now dial the session’s selected endpoint and record its address. The kube_service HTTP host remains `LocalKubernetes` for TLS verification.
+
+Added regression coverage in [forwarder_test.go](/app/lib/kube/proxy/forwarder_test.go:594). Two subagents reviewed auth and TLS behavior and expanded the tests. Focused tests and `go test -mod=vendor ./lib/kube/... -count=1` passed; `git diff --check` passed.

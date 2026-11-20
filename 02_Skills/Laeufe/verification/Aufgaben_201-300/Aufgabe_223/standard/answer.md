@@ -1,0 +1,3 @@
+Updated module assembly to preserve a new-style Python module’s declared interpreter and arguments. Inventory and configured interpreter overrides still take precedence; modules without a shebang receive `/usr/bin/python`. Added tests for those paths and for unchanged non-Python shebangs.
+
+Verification: `python -m pytest -q test/units/executor/module_common` passed (54 tests, 1 warning). `git diff --check` passed.

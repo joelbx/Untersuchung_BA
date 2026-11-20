@@ -1,0 +1,3 @@
+Extracted `RoleMixin._build_doc` in [doc.py](/app/lib/ansible/cli/doc.py:232). It returns the role name and a documentation dictionary with the original path, collection, and full selected entry point specifications; it returns `(fqcn, None)` when no entry points qualify. `_create_role_doc` now uses that result.
+
+The new tests passed after first failing on the missing method. All 18 tests in `test_doc.py` pass. The repository wide run timed out at about 30% after reporting unrelated failures and collection errors, so the full suite remains unverified. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

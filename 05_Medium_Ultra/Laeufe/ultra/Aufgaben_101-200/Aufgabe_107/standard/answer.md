@@ -1,0 +1,3 @@
+Implemented the bypass filter fix. Optimistic mark-as actions now carry `markAsStatus`, and the [reducer](/app/applications/mail/src/app/logic/elements/elementsReducers.ts:166) uses the new [helper](/app/applications/mail/src/app/logic/elements/helpers/elementBypassFilters.ts:4) to add IDs when the new status needs to bypass the active filter and remove them when it matches.
+
+Native subagents added the helper and regression tests; I integrated and reviewed the patch. All 23 relevant tests passed (6 helper, 5 reducer, 12 mailbox). The mail TypeScript check, ESLint, Prettier, and whitespace check also passed.

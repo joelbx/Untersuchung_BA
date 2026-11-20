@@ -1,0 +1,3 @@
+Replaced `:buffer` with `:tab-select` in the command registry, tab completion providers, default `gt` binding, current help, and examples. The existing selection behavior still handles counts, title and URL matches, `win_id/index`, window focus, and the no-argument `qute://tabs` page.
+
+Focused verification passed: 463 tests passed, two skipped, and one expected failure. The full suite could not complete because its QtWebKit end-to-end setup requires a module unavailable here; the relevant tab-selection and completion scenarios passed with WebEngine.

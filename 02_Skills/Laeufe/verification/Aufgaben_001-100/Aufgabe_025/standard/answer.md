@@ -1,0 +1,3 @@
+Added `${VARIABLE_NAME}` substitution as the first configuration decode hook. It resolves multiple references in a YAML file before type conversion, while preserving values that are malformed, unset, or non-string. Existing environment overrides keep their precedence.
+
+Added YAML loading tests for ports, durations, log encoding, overrides, and unchanged values. Verification: `GOPROXY=off GOSUMDB=off go test ./internal/config -count=1` passed; `git diff --check` passed.

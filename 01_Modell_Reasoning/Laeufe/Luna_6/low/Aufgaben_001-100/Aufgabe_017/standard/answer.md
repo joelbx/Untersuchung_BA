@@ -1,0 +1,3 @@
+Added SQL Server connection testing to the discovery diagnostic flow. The new `SQLServerPinger` uses the caller’s context, validates its parameters, and classifies connection refusals, login failures, and invalid database errors. Unsupported protocols still return an error.
+
+`git diff --check` passed. I started the targeted Go tests, but stopped them after they remained silent during compilation, so test success is unconfirmed.

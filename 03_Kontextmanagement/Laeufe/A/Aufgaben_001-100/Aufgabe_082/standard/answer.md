@@ -1,0 +1,3 @@
+Fixed the auth service crash when multiple audit event backends are configured. `WriterEmitter` now writes newline-delimited JSON events to the supplied writer, and `MultiLog` validates emitters and fans events out to every backend. The `stdout://` backend uses `WriterEmitter`.
+
+Added coverage for event fanout, logger validation, close errors, and a `file://` plus `stdout://` URI list. `go test ./lib/events ./lib/service -count=1` passed. The DynamoDB combination was not run against a live backend.

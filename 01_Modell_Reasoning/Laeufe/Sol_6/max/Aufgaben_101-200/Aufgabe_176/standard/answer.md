@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py:542) to preserve encoded URL components, skip encoded numeric data, reject invalid counts and negative decrements, retain zero padding, and leave ports unchanged. Tests and setting documentation were updated. The issue gives conflicting match rules; I followed its final rule: the first eligible number in path, query, anchor, then host.
+
+Verification: 420 tests passed, 1 skipped; `git diff --check` passed. Qt may normalize some escapes before the function receives a `QUrl`.

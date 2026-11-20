@@ -1,0 +1,3 @@
+Updated [email confirmation handling](/app/src/user/email.js) so pending status is a strict boolean, `getValidationExpiry` returns the live remaining TTL in milliseconds, and resend eligibility uses the configured interval. Expiring a confirmation clears its marker and record; orphaned confirmation codes are rejected. Added the expiry default and a [regression test](/app/test/user.js).
+
+Verification passed: 255 user tests, 6 email API tests, ESLint, and `git diff --check`.

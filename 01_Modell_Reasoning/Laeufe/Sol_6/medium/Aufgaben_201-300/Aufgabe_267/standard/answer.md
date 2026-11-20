@@ -1,0 +1,3 @@
+Fixed the room button update flow. `RoomView` now dispatches `{ action: Action.RoomLoaded }` when a room loads, and `RoomViewStore` recomputes button options on that action instead of during navigation. `RoomView` also falls back to its current initial event ID when the store returns `null` or `undefined`.
+
+The two relevant test suites pass (66 tests), and ESLint and Prettier pass. The full TypeScript check remains blocked by errors in unrelated OIDC code and installed SDK types.

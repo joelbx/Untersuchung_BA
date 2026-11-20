@@ -1,0 +1,1 @@
+Implemented chat privacy settings, checks in Messaging.canMessageUser and newRoom, migration, account controls, schema and tests. Syntax checks passed. Targeted npm test cannot run: Redis at 127.0.0.1:6379 refused connection.

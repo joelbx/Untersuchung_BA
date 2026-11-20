@@ -1,0 +1,3 @@
+Added `Diag` and `DiagResult` for macOS Touch ID checks and wired availability to those results. The existing registration and passwordless login flow passes WebAuthn creation and validation tests; I also added coverage for login with an allowed credential.
+
+`go test ./lib/auth/touchid ./lib/auth/webauthn -count=1` passed. The native macOS diagnostic code could not be exercised in this Linux workspace.

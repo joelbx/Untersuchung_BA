@@ -1,0 +1,3 @@
+Added the default-disabled `feature_qr_signin_reciprocate_show` experimental setting with a description of the homeserver requirements. Both settings tabs now require the flag to show the QR sign-in option, and [LoginWithQRSection.tsx](/app/src/components/views/settings/devices/LoginWithQRSection.tsx) also requires MSC3882 and MSC3886. The enabled “Show QR code” flow still renders `login-with-qr` until closed.
+
+All 60 tests in the three focused suites pass. Prettier and ESLint pass on the changed files. The full type check reports an unrelated existing error in `RoomView-test.tsx:178`.

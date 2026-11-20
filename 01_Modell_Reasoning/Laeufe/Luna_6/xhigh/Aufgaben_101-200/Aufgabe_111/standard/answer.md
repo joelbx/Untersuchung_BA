@@ -1,0 +1,3 @@
+Implemented Amazon Linux release recognition through 2029, including system release parsing, OVAL release selection, and ALAS advisory links. Added EOL dates: 2023 → June 30, 2027; 2025 → June 30, 2029; 2027 → June 30, 2031; 2029 → June 30, 2033. Unrecognized releases now return `unknown` for normalization and `found=false` for EOL lookup.
+
+Verification passed: `go test ./config ./scanner ./oval` and `git diff --check`.

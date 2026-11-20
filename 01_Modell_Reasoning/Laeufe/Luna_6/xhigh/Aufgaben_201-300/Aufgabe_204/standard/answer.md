@@ -1,0 +1,3 @@
+Implemented text date parsing in [property.ts](/app/packages/shared/lib/contacts/property.ts:132) and routed CSV import through it in [csvFormat.ts](/app/packages/shared/lib/contacts/helpers/csvFormat.ts:590). Invalid text now leaves the date unset, and existing valid `Date` values are returned unchanged. Updated the existing property spec to reflect unset behavior.
+
+Type checking and lint passed. The shared test bundle compiled, but Karma could not run because the configured Playwright Chromium binary is missing. `git diff --check` passed.

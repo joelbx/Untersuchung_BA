@@ -1,0 +1,3 @@
+Updated [pip.py](/app/lib/ansible/modules/pip.py) to detect whether the current interpreter can import `pip`, use `[sys.executable, '-m', 'pip']` when no executable is found, and keep launchers as argv lists. Package listing tries `list --format=freeze` then `freeze`, returning the command as a string for logging. Virtualenv `PATH` prefix now uses `os.path.dirname`.
+
+Verification: `test/units/modules/test_pip.py` passed (4 tests), and `git diff --check` passed.

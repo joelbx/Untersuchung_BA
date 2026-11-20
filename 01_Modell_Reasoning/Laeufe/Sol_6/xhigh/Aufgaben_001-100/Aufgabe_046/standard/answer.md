@@ -1,0 +1,3 @@
+Resolved the `module_common` issue in the checked-out files. Dependency discovery now uses a queue with separate legacy and collection locators. Collection redirects produce shims, package initializers are scanned with the correct relative import level, missing intermediate `__init__.py` files are synthesized, and unresolved imports report the paths tried.
+
+Added focused regression tests in [test_recursive_finder.py](/app/test/units/executor/module_common/test_recursive_finder.py). All **107 relevant unit tests pass**, and `git diff --check` is clean.

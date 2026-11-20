@@ -1,0 +1,3 @@
+Digest-based images now work through configuration, scanning, scan results, and report UUID naming. Validation requires a name and exactly one of tag or digest; full references use `name:tag` or `name@digest`. Per-image server names use `<index>@<originalServerName>`.
+
+Affected config, scan, and report tests passed, as did the scan result model tests, with downloads disabled. The full model suite remains blocked by an existing vet error and a test that requires a local Trivy database.

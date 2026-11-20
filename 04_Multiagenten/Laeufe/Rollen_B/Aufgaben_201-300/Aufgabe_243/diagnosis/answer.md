@@ -1,0 +1,5 @@
+The likely fault is in [newClusterSessionSameCluster](/app/lib/kube/proxy/forwarder.go:1454): it requires a matching kube_service registration before checking `Forwarder.creds`. A cluster with valid local credentials can therefore return `trace.NotFound`.
+
+Endpoint selection in [dialWithEndpoints](/app/lib/kube/proxy/forwarder.go:1391) updates the session address during dialing, while forwarding headers are set earlier and can use `LocalKubernetes` as a fallback. The fix should keep the selected dial endpoint and recorded session address consistent, including when multiple endpoints are available or none are available.
+
+One requirement needs reconciliation with existing behavior: [newClusterSession](/app/lib/kube/proxy/forwarder.go:1418) accepts an empty `kubeCluster` for remote sessions, and an [existing test](/app/lib/kube/proxy/forwarder_test.go:649) expects that to succeed. I inspected the code and tests; I did not change project source or run tests.

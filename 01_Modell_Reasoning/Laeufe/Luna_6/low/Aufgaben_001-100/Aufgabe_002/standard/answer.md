@@ -1,0 +1,3 @@
+Implemented Kubernetes proxy address selection in [cfg.go](/app/lib/service/cfg.go) and [auth_command.go](/app/tool/tctl/common/auth_command.go). `ProxyConfig.KubeAddr()` requires Kubernetes proxy support and returns an HTTPS address on port 3026. Kubeconfig generation uses it when enabled; otherwise it checks registered proxies and applies port 3026, skipping invalid addresses. An explicit `--proxy` address is preserved.
+
+Verified with `go test ./lib/service ./tool/tctl/common` and `git diff --check`. The Go build emitted an existing SQLite compiler warning.

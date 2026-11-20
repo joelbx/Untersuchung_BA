@@ -1,0 +1,3 @@
+Fixed both review findings. Smart transport now resolves the configured SSH executable before probing ControlPersist. An explicit CLI timeout keeps precedence even when its value equals the default. Added regression tests for both cases.
+
+The reviewer’s exact SSH, PlayContext, and targeted config tests pass: 23, 3, and 62 tests respectively. **TEST_ENVIRONMENT_PROBLEM:** the full config suite has 68 passes and 8 setup errors because an existing fixture assigns `None` to `ANSIBLE_CONFIG`.

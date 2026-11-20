@@ -1,0 +1,3 @@
+Updated voice broadcast liveness so the badge shows **red while playing**, **grey while buffering or paused**, and **no badge when stopped or no longer live**. The playback model now emits liveness changes only when the value changes, and the hook and header use the shared `VoiceBroadcastLiveness` type. I also added `VoiceBroadcastChunkEvents.isLast()` and updated the recording call sites.
+
+Verification: all 214 voice broadcast tests and 15 snapshots passed; targeted ESLint, Stylelint, and `git diff --check` passed. Repository type checking remains blocked by an error in untouched [notifications.ts](/app/src/utils/notifications.ts:79): `TS2554: Expected 1-2 arguments, but got 3.`

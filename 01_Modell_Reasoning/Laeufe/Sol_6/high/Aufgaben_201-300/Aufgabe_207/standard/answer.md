@@ -1,0 +1,3 @@
+QtWebEngine now combines features from CLI arguments, `qt.args`, and qutebrowser configuration into one `--enable-features=` argument. Other backends keep their existing argument behavior. The change is in [qtargs.py](/app/qutebrowser/config/qtargs.py), with coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+Verification: 83 tests passed. One existing Chromium version test was excluded because it segfaults in this environment. `git diff --check` passed; flake8 is not installed.

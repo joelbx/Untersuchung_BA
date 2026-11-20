@@ -1,0 +1,3 @@
+Fixed config loading when no file is specified. `config.Load("")` now applies `FLIPT_` environment overrides to defaults, and startup calls the loader even when it finds no config file. Regression tests cover log level, HTTP port, and environment precedence over file values.
+
+The config and command package tests pass. The full Go suite failed only in three Redis tests (`TestSet`, `TestGet`, `TestDelete`) because Docker is unavailable.

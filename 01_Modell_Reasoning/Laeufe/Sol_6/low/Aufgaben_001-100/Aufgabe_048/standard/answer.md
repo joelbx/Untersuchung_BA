@@ -1,0 +1,3 @@
+Updated the checked-out repository with contextual plugin errors, `get_with_context` resolution results, tombstone handling, centralized deprecation formatting, and the connection, action, and template consumer changes.
+
+Compilation, a loader context smoke check, and 10 focused display/template tests passed. Two broader tests still fail: one expects different template JSON conversion output, and one action test mocks the old `find_plugin` call. The change is therefore **not fully verified**.

@@ -1,0 +1,3 @@
+Implemented Project Runeberg support. Every work search document now exposes `id_project_runeberg` as an array, including `[]` when absent, while existing identifier fields retain their values. I also added the registered `ProjectRunebergProvider` and its [read button](/app/openlibrary/templates/book_providers/runeberg_read_button.html) and [download options](/app/openlibrary/templates/book_providers/runeberg_download_options.html) templates.
+
+Verification: 56 relevant tests passed; Ruff and `git diff --check` passed. The format-specific Runeberg URLs could not be validated externally.

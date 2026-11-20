@@ -1,0 +1,3 @@
+Diff reports now mark newly detected CVEs with `+` and resolved CVEs with `-`, omit unchanged CVEs, and include either or both types through `-diff-plus` and `-diff-minus`. Resolved CVEs use package data from the previous scan. The diff status is included in JSON results and displayed with CVE IDs in report output.
+
+Added `DiffStatus`, `CveIDDiffFormat`, and `CountDiff` in [vulninfos.go](/app/models/vulninfos.go). `go test ./models ./report ./subcmds` passed.

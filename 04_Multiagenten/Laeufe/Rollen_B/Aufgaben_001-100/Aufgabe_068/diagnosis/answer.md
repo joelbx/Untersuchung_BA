@@ -1,0 +1,7 @@
+I located the failure path but did not edit source or tests; this run was restricted to fault localization.
+
+- [EntityRestClient.ts](/app/src/api/worker/rest/EntityRestClient.ts:114) resolves session keys before mapping, but `load` and `loadMultiple` cannot apply a supplied `_ownerEncSessionKey` to the raw entity first.
+- [EntityClient.ts](/app/src/api/common/EntityClient.ts:77) and [DefaultEntityRestCache.ts](/app/src/api/worker/rest/DefaultEntityRestCache.ts:220) need to pass the optional key or key map through, including batch cache misses.
+- Mail detail loads in [MailUtils.ts](/app/src/mail/model/MailUtils.ts:397), [MailFacade.ts](/app/src/api/worker/facades/lazy/MailFacade.ts:505), [MailIndexer.ts](/app/src/api/worker/search/MailIndexer.ts:153), and [InboxRuleHandler.ts](/app/src/mail/model/InboxRuleHandler.ts:149) have access to the parent mail but omit its key.
+
+The fix should apply each supplied key **before session key resolution**, preserve a fourth `loadMultiple` argument when the map is `undefined`, and decrypt independently of the crypto session key cache. One remaining uncertainty is whether cached detail entities with earlier decryption errors need to be reloaded; the existing tests do not establish that behavior. Findings are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

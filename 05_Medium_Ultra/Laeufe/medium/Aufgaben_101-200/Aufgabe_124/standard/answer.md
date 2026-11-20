@@ -1,0 +1,3 @@
+Added DynamoDB `billing_mode` support. New tables default to `pay_per_request`; `provisioned` uses the configured read and write capacity. Initialization skips auto scaling and logs why when the table is on-demand. The table status check now returns the billing mode, and the configuration docs and tests are updated.
+
+`go test ./lib/backend/dynamo` and `git diff --check` pass. AWS backed tests were not run because they require a live AWS environment.

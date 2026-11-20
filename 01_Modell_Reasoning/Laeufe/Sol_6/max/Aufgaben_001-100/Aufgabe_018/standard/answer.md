@@ -1,0 +1,3 @@
+Fixed config decoding in [config.go](/app/internal/config/config.go:15). Scalar strings targeting `[]string` now split on whitespace, including repeated spaces, tabs, and newlines; empty strings produce an empty slice. Explicitly empty ENV values now reach the same decoder. Existing YAML sequences remain intact.
+
+Updated the CORS fixture and added YAML and ENV regression coverage in [config_test.go](/app/internal/config/config_test.go:473). `go test ./internal/config -count=1` passed, and `git diff --check` found no issues.

@@ -1,0 +1,3 @@
+Implemented contextual plugin errors, `get_with_context` resolution metadata, tombstone handling, and centralized deprecation messages. Updated the connection, action, and Jinja plugin consumers and added focused tests.
+
+The relevant test suite passed: **105 tests**. `git diff --check` passed. The separate display warning test still has one failure: `Display` retains the first test’s warning in its singleton cache, so the second test receives no output. I recorded the check and its limitation in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

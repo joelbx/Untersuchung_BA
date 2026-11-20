@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) so QtWebEngine combines user and configuration features into one `--enable-features=` argument. QtWebKit arguments remain unchanged. Added regression coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+**Verification:** 91 tests passed; `git diff --check` passed. The full test file could not finish because the existing `test_new_chromium` test segfaults during Qt user-agent initialization. Two subagents inspected the code and tests; one added tests, which I integrated and verified.

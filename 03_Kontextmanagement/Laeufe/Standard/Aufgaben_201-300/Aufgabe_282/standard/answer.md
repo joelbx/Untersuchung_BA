@@ -1,0 +1,3 @@
+Added `content.javascript.log_message.levels` and `content.javascript.log_message.excludes`, with glob matching for both source and message text. `_js_log_to_ui` now shows eligible messages in the required format; excluded messages continue to the standard logger. Existing `content.javascript.log_message` settings migrate to `levels`.
+
+Verification: 252 tests passed, 1 skipped. An unrelated existing `test_nul_bytes` assertion fails under Python 3.11 and was excluded from the clean run.

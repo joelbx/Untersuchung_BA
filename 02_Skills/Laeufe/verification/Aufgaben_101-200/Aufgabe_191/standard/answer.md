@@ -1,0 +1,3 @@
+Added a registration token entry view to InteractiveAuth. It handles both the stable and unstable stage identifiers, displays the required token field and help text, and submits the advertised type with the entered token. The form also handles busy, duplicate submission, and error states.
+
+Verification: the focused suite passed **5/5 tests**; ESLint, Prettier, and `git diff --check` passed. The repository-wide type check remains blocked by existing SlidingSync errors outside the changed files; the command and errors are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

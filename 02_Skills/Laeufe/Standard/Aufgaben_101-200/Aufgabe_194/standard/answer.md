@@ -1,0 +1,3 @@
+`BlocklistDownloads` now inherits `QObject` and emits `single_download_finished(object)` and `all_downloads_finished(int)`. I updated both callers to connect their handlers before starting downloads, and added tests for multiple listeners, empty batches, and QObject parenting.
+
+Verification: **38 passed, 13 skipped** in the relevant component tests. `git diff --check` and Python compilation also passed.

@@ -1,0 +1,3 @@
+Added [ExternalLink](/app/src/components/views/elements/ExternalLink.tsx) with a decorative icon, a screen reader cue that it opens in a new tab, and secure new-tab defaults. Migrated the settings links, added its [SCSS styling](/app/res/css/views/elements/_ExternalLink.scss), and gave the [Share dialog link](/app/src/components/views/dialogs/ShareDialog.tsx) a localized accessible name.
+
+ESLint, stylelint, and the existing TooltipTarget Jest suite pass. Full type checking still reports six errors in untouched thread files.

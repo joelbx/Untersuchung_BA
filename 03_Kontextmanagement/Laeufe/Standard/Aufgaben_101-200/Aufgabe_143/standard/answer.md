@@ -1,0 +1,3 @@
+Centralized `add_db_name` in [catalog utilities](/app/openlibrary/catalog/utils/__init__.py). `expand_record` now adds identifiers to every author, and [edition matching](/app/openlibrary/catalog/add_book/match.py) passes author names and birth and death dates through that expansion path. Added tests for missing dates and threshold matching.
+
+The catalog tests and lint checks pass. One separate merge test still fails because its fixed author names use opposite name order (`Stanley Cramp` and `Cramp, Stanley.`).

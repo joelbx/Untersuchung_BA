@@ -1,0 +1,3 @@
+Updated the WebKit certificate wrapper to accept `reply` and `errors`, including the existing errors-only call. It now calls `ignoreSslErrors()` only when a certificate is accepted. Single errors render as escaped paragraphs; multiple errors render as escaped lists. I also added the shared decision methods and Qt5/Qt6 WebEngine wrappers.
+
+Verification: 81 tests passed and 8 were skipped in the WebKit network and focused wrapper suite. The WebEngine tab tests completed their 25 assertions, but the command exited with an X11 teardown error, so that suite is not confirmed passing. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Added `scrolling.bar=overlay`. It enables Chromium’s `OverlayScrollbar` flag only with QtWebEngine on Qt 5.11 or newer outside macOS; other environments retain normal scrollbar behavior. Legacy `False` values now migrate to `overlay`. The `js_headers` marker skips affected QtWebEngine 5.12–5.14 tests.
+
+Verification: 161 applicable config initialization tests and 160 config file tests passed. Both marked header scenarios collected successfully. The full config initialization run still exits at the existing `test_new_chromium` test without a summary; that uncertainty is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

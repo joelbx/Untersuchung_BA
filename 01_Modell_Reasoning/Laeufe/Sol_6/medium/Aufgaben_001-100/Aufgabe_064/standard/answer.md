@@ -1,0 +1,3 @@
+Updated `useMyCountry` to return a country code or `undefined`, and changed all listed consumers to use the single value. PhoneInput now starts with no country when its default is absent or empty, adopts the first later default only if its country state is empty, and ignores later default changes.
+
+All 19 targeted tests pass. Formatting and `git diff --check` pass. The components type check remains blocked by an unrelated `openpgp` type conflict in the unchanged [crypto worker](/app/packages/crypto/lib/worker/api.ts:579).

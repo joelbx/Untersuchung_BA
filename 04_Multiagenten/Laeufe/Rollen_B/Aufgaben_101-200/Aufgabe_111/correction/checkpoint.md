@@ -1,0 +1,3 @@
+Correction round: reviewed current patch and independent review. Reviewer found dotted Amazon Linux build releases (for example 2023.0.20230322) remain unnormalized, breaking EOL and OVAL lookup. I will fix normalization and rerun the reviewed tests.
+Implemented numeric dotted build normalization for supported Amazon Linux year releases in config/os.go. Added regression cases for EOL, OVAL, and scanner-preserved release text; unsupported years and malformed suffixes remain unknown.
+Validation: GOPROXY=off GOSUMDB=off go test ./config ./oval ./scanner passed for all three packages; repeated after gofmt, all passed. git diff --check passed. No remaining test failures or environment problems.

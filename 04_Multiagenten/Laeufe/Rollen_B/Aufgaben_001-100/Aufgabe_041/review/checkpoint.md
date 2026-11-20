@@ -1,0 +1,3 @@
+VERDICT: ACCEPT
+Reviewed the patch and import/registration path. ListMixin methods are present on List; no remaining ListMixin references were found. get_owner parses complete /people/{username}/lists/{list_id} keys and delegates owner lookup to the site. register_models in core/lists/model.py registers /type/list and lists changesets, and core.models.register_models calls it. No code defect found.
+Tests: `pytest -q openlibrary/tests/core/test_lists_model.py openlibrary/tests/core/test_models.py` (15 passed); `pytest -q openlibrary/tests/core/test_lists_engine.py` (1 passed). `git diff --check` passed. Two third-party deprecation warnings appeared; no test environment problem.

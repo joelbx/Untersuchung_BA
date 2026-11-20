@@ -1,0 +1,3 @@
+Implemented the `useMyCountry` return shape change and updated its consumers. User-settings loading gates remain in place. `PhoneInput` now starts without a selected country when its default is absent or empty, and adopts one later non-empty default only if its internal country is still empty.
+
+The existing targeted tests passed: 13 tests across `PhoneInput.test.tsx` and `useMyCountry.test.ts`. `git diff --check` passed. The package type check found an unrelated OpenPGP `PartialConfig` incompatibility in `crypto/lib/worker/api.ts:579`.

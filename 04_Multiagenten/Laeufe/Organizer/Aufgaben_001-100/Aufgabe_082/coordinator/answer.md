@@ -1,0 +1,3 @@
+Fixed the auth service crash when multiple audit event backends are configured. `MultiLog` now validates its backends and fans out audit events; `stdout://` now uses the new `WriterEmitter`, which writes newline-delimited JSON events and aggregates close errors. Added tests for emitter behavior and multiple backend initialization.
+
+Verification passed: the full `lib/events` test package, the targeted `lib/service` initialization tests, and `git diff --check`. An earlier audit log test failed at a one-second timestamp boundary, then passed on rerun. No delegation was used.

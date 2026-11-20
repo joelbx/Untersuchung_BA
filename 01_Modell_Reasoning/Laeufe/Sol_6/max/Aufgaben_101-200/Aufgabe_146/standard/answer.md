@@ -1,0 +1,3 @@
+Updated [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py) to read `/proc/sysinfo` on s390 and use its vendor, type, and serial values in gathered hardware facts. It returns `{}` when the file is absent and keeps undiscovered fields as `NA`.
+
+Added regression tests in [test_linux.py](/app/test/units/module_utils/facts/hardware/test_linux.py). All 21 hardware unit tests pass; a live s390 host was not available for verification.

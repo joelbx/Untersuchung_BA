@@ -1,0 +1,3 @@
+Updated the email confirmation flow to store a `confirm:byUid:<uid>` lookup and an explicit expiry timestamp. ACP validation can recover an email from confirmation data, and the user list now shows Validated, Validation Pending, Validation Expired, or (no email). User deletion removes both confirmation keys.
+
+The new regression test passes. ESLint and `git diff --check` pass. An older test fails when run in isolation because it assumes a previous test has already created the first user.

@@ -1,0 +1,3 @@
+Implemented multi-device U2F authentication in `/app`. Sign requests now include a challenge for every registered U2F token while retaining the legacy single-challenge JSON fields. The CLI accepts either format, and the web endpoint supports the challenge list. The `tsh mfa` management command is hidden from help.
+
+The focused web login test passed with two tokens, including authentication through the web endpoint using the second token. The auth MFA test, full `lib/client` tests, `tool/tsh` compilation, and `git diff --check` also passed.

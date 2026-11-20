@@ -1,0 +1,3 @@
+Implemented plugin resolution context across the loader and its callers. `get_with_context()` now returns the plugin object and resolution metadata; `get()` delegates to it and returns the object. Tombstones and redirect loops raise contextual plugin errors, and deprecation and removal messages use the new `Display.get_deprecation_message()` formatter.
+
+Updated the connection, action, and Jinja filter callers, and added focused tests. **33 relevant tests passed**, and `git diff --check` is clean. The broader template run had one order-sensitive `to_json` failure; that test passed when run alone.

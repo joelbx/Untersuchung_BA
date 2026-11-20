@@ -1,0 +1,3 @@
+Consolidated QtWebEngine `--enable-features` arguments in [qtargs.py](/app/qutebrowser/config/qtargs.py). Existing features from `--qt-arg` and `qt.args` are collected, comma-split, and emitted in one entry alongside any configuration-required feature. Other backends keep their existing argument path.
+
+Validation passed: `pytest -q tests/unit/config/test_qtargs.py` (77 tests) and `git diff --check`.

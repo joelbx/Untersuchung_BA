@@ -1,0 +1,2 @@
+Task: Prefer artist.* in the artist folder for artist artwork, derive folders from album media directories, and trace lookup durations.
+Status: Implemented and verified. Albums persist unique media directories through a migration and full rescan; artist artwork checks artist.* in the derived folder before existing fallbacks; every source attempt logs duration. Added model and artwork tests. `go test ./model ./core/artwork ./scanner ./persistence` and `git diff --check` pass.

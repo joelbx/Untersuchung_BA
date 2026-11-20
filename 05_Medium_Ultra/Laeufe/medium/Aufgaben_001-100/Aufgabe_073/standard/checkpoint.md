@@ -1,0 +1,2 @@
+Task: Add Amazon edition languages to serialized imports and preserve them for load.
+Status: Implemented language extraction from ContentInfo.Languages.DisplayValues, excluding Original Language and duplicates while preserving source names and order. Added languages to load cleaner's accepted fields and expanded vendor tests. Verification: 37 vendor tests passed; ruff check and git diff --check passed.

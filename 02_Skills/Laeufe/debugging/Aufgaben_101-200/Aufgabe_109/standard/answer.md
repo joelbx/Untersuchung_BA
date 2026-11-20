@@ -1,0 +1,3 @@
+Added a “Polls history” button to [RoomSummaryCard](/app/src/components/views/right_panel/RoomSummaryCard.tsx). It appears only when the new, disabled by default `feature_poll_history` Labs setting is enabled, and opens the named [PollHistoryDialog](/app/src/components/views/dialogs/polls/PollHistoryDialog.tsx) with the current room’s `roomId`.
+
+The room card and settings store tests pass, as do ESLint, Prettier, and Stylelint. The repository wide TypeScript check still fails in unchanged `RoomCreate.tsx` because `RoomState.findPredecessor` is missing from the installed SDK type.

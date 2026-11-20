@@ -1,0 +1,3 @@
+Updated the scanner to collect image filenames and save their full paths in each album’s new `image_files` field. The migration adds the database column and forces a full media rescan. Incremental scans and folder deletions now pass the complete directory map to album refreshes.
+
+Added `MediaFiles.Dirs()` and tests for path collection and persistence. `GOPROXY=off go test ./model ./scanner ./db ./persistence` and `git diff --check` passed.

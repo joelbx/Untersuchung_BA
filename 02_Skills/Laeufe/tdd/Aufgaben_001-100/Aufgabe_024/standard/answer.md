@@ -1,0 +1,3 @@
+Fixed author matching in [load_book.py](/app/openlibrary/catalog/add_book/load_book.py). It now compares extracted birth and death years across date formats, tries exact and alternate names before surname matching, escapes literal `*` in name searches, and preserves input fields when creating an unmatched author. Honorific removal now takes and returns a string. The existing `extract_year` already met the requested behavior.
+
+**Verification:** The offline Python suite passed with 1,876 tests passed. Two test modules could not be collected because their import-time GitHub requests failed with a proxy 403; the exact commands and errors are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

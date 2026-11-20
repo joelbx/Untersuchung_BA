@@ -1,0 +1,3 @@
+Added the global `chat:privileged` permission. Chat creation and invitations to administrators or moderators now return `[[error:no-privileges]]` unless the initiator has it. Chat checks accept privilege arrays, the admin privileges UI has a label for the new permission, and profile responses expose the documented boolean `canChat`.
+
+Verification passed: 79 messaging tests, 12 middleware tests, ESLint, OpenAPI validation, and `git diff --check`.

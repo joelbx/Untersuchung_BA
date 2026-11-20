@@ -1,0 +1,3 @@
+Updated [unarchive.py](/app/lib/ansible/modules/unarchive.py) to validate ZIP timestamps with a regular expression, enforce the 1980–2107 year range, and use the 1980 epoch tuple for invalid dates. `is_unarchived` now uses the validated tuple, avoiding the reported `ValueError`. Added regression cases in [test_unarchive.py](/app/test/units/modules/test_unarchive.py).
+
+Verification: all 14 unarchive unit tests passed; `git diff --check` passed. No delegation was used.

@@ -1,0 +1,9 @@
+# Fault localization progress
+
+Inspected `lib/utils/parse/parse.go`, its current tests, and `lib/utils/replace.go`; ran `go test ./lib/utils/parse` (passes). No project source or tests changed.
+
+Likely fault: `parse.go` has only `Expression`/`Variable`; no `Matcher`, `Match`, or matcher implementations. `Variable` uses `reVariable` and `parser.ParseExpr`, then `walk`, whose `ast.CallExpr` branch only accepts `email.local`; `regexp.match` currently returns an unsupported namespace error. `walkResult` contains only variable parts and a transformer, so matcher calls cannot be represented. `Variable` currently has no matcher-specific rejection path.
+
+Fix surface: add matcher parser and types in `parse.go`, using `reVariable` to isolate one expression and preserve static prefix/suffix; compile literal/glob patterns with `utils.GlobToRegexp` and anchors, and raw `^...$` regex directly; validate AST call namespace, function name, exactly one string literal argument, and regex compilation errors. Reject variable parts/transforms and malformed/nested templates with required messages; reject matcher calls in `Variable` with its required exact message. Wrap `regexp.not_match` inside the prefix/suffix check so static text remains mandatory.
+
+Evidence: current `parse_test.go` covers interpolation only, with no matcher tests. `utils.GlobToRegexp` is at `lib/utils/replace.go:19`; its use in `ReplaceRegexp` and `SliceMatchesRegex` illustrates glob conversion and anchoring. No import from `lib/utils` to `lib/utils/parse` appeared in local Go files, so importing `utils` from `parse` appears feasible, though an actual build would verify this. Existing parser package tests pass. Uncertainty: no checked-in tests specify whether `regexp.match` should search or require a full match; requirements explicitly require anchoring only for glob conversion, so compiled regexp semantics should likely remain unchanged.

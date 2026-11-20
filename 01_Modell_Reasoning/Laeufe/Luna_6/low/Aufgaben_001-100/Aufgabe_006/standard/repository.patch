@@ -1,0 +1,256 @@
+diff --git a/fanoutbuffer/buffer.go b/fanoutbuffer/buffer.go
+new file mode 100644
+index 0000000..cb009c3
+--- /dev/null
++++ b/fanoutbuffer/buffer.go
+@@ -0,0 +1,250 @@
++// Package fanoutbuffer provides an in-memory ordered fanout buffer.
++package fanoutbuffer
++
++import (
++	"context"
++	"errors"
++	"sync"
++	"time"
++
++	"github.com/jonboulle/clockwork"
++)
++
++var (
++	ErrGracePeriodExceeded = errors.New("fanout buffer cursor exceeded grace period")
++	ErrUseOfClosedCursor   = errors.New("use of closed fanout buffer cursor")
++	ErrBufferClosed        = errors.New("fanout buffer is closed")
++)
++
++// Config controls the buffer's memory and slow consumer limits.
++type Config struct {
++	Capacity    uint64
++	GracePeriod time.Duration
++	Clock       clockwork.Clock
++}
++
++// SetDefaults fills fields that have not been configured.
++func (c *Config) SetDefaults() {
++	if c.Capacity == 0 {
++		c.Capacity = 64
++	}
++	if c.GracePeriod == 0 {
++		c.GracePeriod = 5 * time.Minute
++	}
++	if c.Clock == nil {
++		c.Clock = clockwork.NewRealClock()
++	}
++}
++
++// Buffer distributes each appended item, in order, to every active cursor.
++type Buffer[T any] struct {
++	mu      sync.Mutex
++	cfg     Config
++	items   []entry[T]
++	base    uint64
++	nextID  uint64
++	cursors map[uint64]*cursorState
++	changed chan struct{}
++	closed  bool
++}
++
++type entry[T any] struct {
++	value T
++	added time.Time
++}
++
++type cursorState struct {
++	pos    uint64
++	closed bool
++	failed bool
++}
++
++// NewBuffer creates a buffer with cfg.
++func NewBuffer[T any](cfg Config) *Buffer[T] {
++	cfg.SetDefaults()
++	return &Buffer[T]{cfg: cfg, cursors: make(map[uint64]*cursorState), changed: make(chan struct{})}
++}
++
++func (b *Buffer[T]) signalLocked() {
++	close(b.changed)
++	b.changed = make(chan struct{})
++}
++
++// Append adds items to the buffer and wakes waiting readers.
++func (b *Buffer[T]) Append(items ...T) {
++	if len(items) == 0 {
++		return
++	}
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if b.closed {
++		return
++	}
++	now := b.cfg.Clock.Now()
++	for _, item := range items {
++		b.items = append(b.items, entry[T]{value: item, added: now})
++	}
++	b.enforceGraceLocked(now)
++	b.compactLocked()
++	b.signalLocked()
++}
++
++// NewCursor creates a consumer positioned at the next appended item.
++func (b *Buffer[T]) NewCursor() *Cursor[T] {
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	b.nextID++
++	state := &cursorState{pos: b.base + uint64(len(b.items))}
++	b.cursors[b.nextID] = state
++	return &Cursor[T]{buffer: b, id: b.nextID, state: state}
++}
++
++// Close permanently closes the buffer and wakes all readers.
++func (b *Buffer[T]) Close() {
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if b.closed {
++		return
++	}
++	b.closed = true
++	b.signalLocked()
++}
++
++func (b *Buffer[T]) enforceGraceLocked(now time.Time) {
++	// Items occupying the fixed capacity form the primary buffer. Older items
++	// in the overflow backlog expire after the grace period for lagging cursors.
++	for id, c := range b.cursors {
++		if c.closed || c.failed || c.pos >= b.base+uint64(len(b.items)) {
++			continue
++		}
++		idx := c.pos - b.base
++		if uint64(len(b.items))-idx > b.cfg.Capacity && now.Sub(b.items[idx].added) >= b.cfg.GracePeriod {
++			c.failed = true
++			delete(b.cursors, id)
++		}
++	}
++}
++
++func (b *Buffer[T]) compactLocked() {
++	end := b.base + uint64(len(b.items))
++	min := end
++	for _, c := range b.cursors {
++		if !c.closed && !c.failed && c.pos < min {
++			min = c.pos
++		}
++	}
++	if min <= b.base {
++		return
++	}
++	n := min - b.base
++	for i := uint64(0); i < n; i++ {
++		var zero entry[T]
++		b.items[i] = zero
++	}
++	b.items = append([]entry[T](nil), b.items[n:]...)
++	b.base = min
++}
++
++// Cursor is an independent reader of a Buffer.
++type Cursor[T any] struct {
++	buffer *Buffer[T]
++	id     uint64
++	state  *cursorState
++}
++
++// Read blocks until data is available, ctx is canceled, or the buffer closes.
++func (c *Cursor[T]) Read(ctx context.Context, out []T) (int, error) {
++	if len(out) == 0 {
++		return 0, nil
++	}
++	for {
++		b := c.buffer
++		b.mu.Lock()
++		if c.state.closed {
++			b.mu.Unlock()
++			return 0, ErrUseOfClosedCursor
++		}
++		if c.state.failed {
++			b.mu.Unlock()
++			return 0, ErrGracePeriodExceeded
++		}
++		if c.state.pos < b.base {
++			c.state.failed = true
++			b.mu.Unlock()
++			return 0, ErrGracePeriodExceeded
++		}
++		available := b.base + uint64(len(b.items)) - c.state.pos
++		if available > 0 {
++			n := len(out)
++			if uint64(n) > available {
++				n = int(available)
++			}
++			offset := c.state.pos - b.base
++			for i := 0; i < n; i++ {
++				out[i] = b.items[offset+uint64(i)].value
++			}
++			c.state.pos += uint64(n)
++			b.compactLocked()
++			b.mu.Unlock()
++			return n, nil
++		}
++		if b.closed {
++			b.mu.Unlock()
++			return 0, ErrBufferClosed
++		}
++		changed := b.changed
++		b.mu.Unlock()
++		select {
++		case <-ctx.Done():
++			return 0, ctx.Err()
++		case <-changed:
++		}
++	}
++}
++
++// TryRead reads currently available items without blocking.
++func (c *Cursor[T]) TryRead(out []T) (int, error) {
++	b := c.buffer
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if c.state.closed {
++		return 0, ErrUseOfClosedCursor
++	}
++	if c.state.failed || c.state.pos < b.base {
++		c.state.failed = true
++		return 0, ErrGracePeriodExceeded
++	}
++	available := b.base + uint64(len(b.items)) - c.state.pos
++	if available == 0 {
++		if b.closed {
++			return 0, ErrBufferClosed
++		}
++		return 0, nil
++	}
++	n := len(out)
++	if uint64(n) > available {
++		n = int(available)
++	}
++	offset := c.state.pos - b.base
++	for i := 0; i < n; i++ {
++		out[i] = b.items[offset+uint64(i)].value
++	}
++	c.state.pos += uint64(n)
++	b.compactLocked()
++	return n, nil
++}
++
++// Close releases this cursor's retained items.
++func (c *Cursor[T]) Close() error {
++	b := c.buffer
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	if c.state.closed {
++		return nil
++	}
++	c.state.closed = true
++	delete(b.cursors, c.id)
++	b.compactLocked()
++	b.signalLocked()
++	return nil
++}

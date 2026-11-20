@@ -1,0 +1,3 @@
+Implemented transparent gzip decoding for `uri`, `get_url`, and the shared URL utilities. Both modules now expose `decompress` with a default of `true`; setting it to `false` preserves compressed bytes. The change also handles gzip encoded HTTP error bodies and includes the requested missing gzip warning and error behavior.
+
+Verification: all 89 URL utility tests passed. Syntax checks and `git diff --check` passed.

@@ -1,0 +1,160 @@
+diff --git a/applications/drive/src/app/store/_links/useLink.fetch.test.ts b/applications/drive/src/app/store/_links/useLink.fetch.test.ts
+new file mode 100644
+index 0000000..73a59bf
+--- /dev/null
++++ b/applications/drive/src/app/store/_links/useLink.fetch.test.ts
+@@ -0,0 +1,79 @@
++import { renderHook } from '@testing-library/react-hooks';
++
++import { RESPONSE_CODE } from '@proton/shared/lib/drive/constants';
++
++import useLink from './useLink';
++
++const mockRequest = jest.fn();
++const mockSetLinks = jest.fn();
++const mockGetLink = jest.fn();
++const mockLinkMetaToEncryptedLink = jest.fn();
++
++jest.mock('../_api', () => ({
++    useDebouncedRequest: () => mockRequest,
++    linkMetaToEncryptedLink: (...args: unknown[]) => mockLinkMetaToEncryptedLink(...args),
++}));
++jest.mock('../_crypto', () => ({ useDriveCrypto: () => ({ getVerificationKey: jest.fn() }) }));
++jest.mock('../_shares', () => ({ useShare: () => ({ getSharePrivateKey: jest.fn() }) }));
++jest.mock('../_utils', () => ({
++    useDebouncedFunction: () => (callback: (signal: AbortSignal) => unknown) => callback(),
++}));
++jest.mock('./useLinksKeys', () => () => ({}));
++jest.mock('./useLinksState', () => () => ({ getLink: mockGetLink, setLinks: mockSetLinks }));
++
++describe('useLink failed fetch backoff', () => {
++    const signal = new AbortController().signal;
++
++    beforeEach(() => {
++        jest.useFakeTimers();
++        jest.clearAllMocks();
++        mockGetLink.mockReturnValue(undefined);
++    });
++
++    afterEach(() => {
++        jest.runOnlyPendingTimers();
++        jest.useRealTimers();
++    });
++
++    it.each([RESPONSE_CODE.NOT_FOUND, RESPONSE_CODE.NOT_ALLOWED, RESPONSE_CODE.INVALID_ID])(
++        'reuses error code %s for the same link, then retries after backoff',
++        async (code) => {
++            const error = { data: { Code: code } };
++            mockRequest.mockRejectedValue(error);
++            const { result } = renderHook(() => useLink());
++
++            await expect(result.current.getLink(signal, 'share', `missing-${code}`)).rejects.toBe(error);
++            await expect(result.current.getLink(signal, 'share', `missing-${code}`)).rejects.toBe(error);
++            expect(mockRequest).toHaveBeenCalledTimes(1);
++
++            jest.advanceTimersByTime(30_000);
++            await expect(result.current.getLink(signal, 'share', `missing-${code}`)).rejects.toBe(error);
++            expect(mockRequest).toHaveBeenCalledTimes(2);
++        }
++    );
++
++    it('does not block another link or share and processes a successful fetch', async () => {
++        const error = { data: { Code: RESPONSE_CODE.NOT_FOUND } };
++        const encrypted = { linkId: 'valid', name: 'encrypted' };
++        mockRequest.mockRejectedValueOnce(error).mockResolvedValue({ Link: { LinkID: 'valid' } });
++        mockLinkMetaToEncryptedLink.mockReturnValue(encrypted);
++        const { result } = renderHook(() => useLink());
++
++        await expect(result.current.setSignatureIssues(signal, 'share', 'missing', {})).rejects.toBe(error);
++        await expect(result.current.setSignatureIssues(signal, 'share', 'valid', {})).resolves.toBeUndefined();
++        await expect(result.current.setSignatureIssues(signal, 'other-share', 'missing', {})).resolves.toBeUndefined();
++        expect(mockRequest).toHaveBeenCalledTimes(3);
++        expect(mockLinkMetaToEncryptedLink).toHaveBeenCalledWith({ LinkID: 'valid' }, 'share');
++        expect(mockSetLinks).toHaveBeenCalledWith('share', [{ encrypted: { ...encrypted, signatureIssues: {} } }]);
++    });
++
++    it('does not cache other failures', async () => {
++        const error = { data: { Code: 5000 } };
++        mockRequest.mockRejectedValue(error);
++        const { result } = renderHook(() => useLink());
++
++        await expect(result.current.getLink(signal, 'share', 'other-failure')).rejects.toBe(error);
++        await expect(result.current.getLink(signal, 'share', 'other-failure')).rejects.toBe(error);
++        expect(mockRequest).toHaveBeenCalledTimes(2);
++    });
++});
+diff --git a/applications/drive/src/app/store/_links/useLink.ts b/applications/drive/src/app/store/_links/useLink.ts
+index a049a1f..efa9937 100644
+--- a/applications/drive/src/app/store/_links/useLink.ts
++++ b/applications/drive/src/app/store/_links/useLink.ts
+@@ -4,6 +4,7 @@ import { c } from 'ttag';
+ import { CryptoProxy, PrivateKeyReference, SessionKey, VERIFICATION_STATUS } from '@proton/crypto';
+ import { queryFileRevisionThumbnail } from '@proton/shared/lib/api/drive/files';
+ import { queryGetLink } from '@proton/shared/lib/api/drive/link';
++import { RESPONSE_CODE } from '@proton/shared/lib/drive/constants';
+ import { base64StringToUint8Array } from '@proton/shared/lib/helpers/encoding';
+ import { DriveFileRevisionThumbnailResult } from '@proton/shared/lib/interfaces/drive/file';
+ import { LinkMetaResult } from '@proton/shared/lib/interfaces/drive/link';
+@@ -20,6 +21,9 @@ import { isDecryptedLinkSame } from './link';
+ import useLinksKeys from './useLinksKeys';
+ import useLinksState from './useLinksState';
+ 
++const FAILING_FETCH_BACKOFF_MS = 30_000;
++const linkFetchErrors = new Map<string, unknown>();
++
+ export default function useLink() {
+     const linksKeys = useLinksKeys();
+     const linksState = useLinksState();
+@@ -28,20 +32,38 @@ export default function useLink() {
+ 
+     const debouncedRequest = useDebouncedRequest();
+     const fetchLink = async (abortSignal: AbortSignal, shareId: string, linkId: string): Promise<EncryptedLink> => {
+-        const { Link } = await debouncedRequest<LinkMetaResult>(
+-            {
+-                ...queryGetLink(shareId, linkId),
+-                // Ignore HTTP errors (e.g. "Not Found", "Unprocessable Entity"
+-                // etc). Not every `fetchLink` call relates to a user action
+-                // (it might be a helper function for a background job). Hence,
+-                // there are potential cases when displaying such messages will
+-                // confuse the user. Every higher-level caller should handle it
+-                //based on the context.
+-                silence: true,
+-            },
+-            abortSignal
+-        );
+-        return linkMetaToEncryptedLink(Link, shareId);
++        const cacheKey = JSON.stringify([shareId, linkId]);
++        if (linkFetchErrors.has(cacheKey)) {
++            throw linkFetchErrors.get(cacheKey);
++        }
++
++        let result: LinkMetaResult;
++        try {
++            result = await debouncedRequest<LinkMetaResult>(
++                {
++                    ...queryGetLink(shareId, linkId),
++                    // Ignore HTTP errors (e.g. "Not Found", "Unprocessable Entity"
++                    // etc). Not every `fetchLink` call relates to a user action
++                    // (it might be a helper function for a background job). Hence,
++                    // there are potential cases when displaying such messages will
++                    // confuse the user. Every higher-level caller should handle it
++                    //based on the context.
++                    silence: true,
++                },
++                abortSignal
++            );
++        } catch (err: any) {
++            if (
++                err?.data?.Code === RESPONSE_CODE.NOT_FOUND ||
++                err?.data?.Code === RESPONSE_CODE.NOT_ALLOWED ||
++                err?.data?.Code === RESPONSE_CODE.INVALID_ID
++            ) {
++                linkFetchErrors.set(cacheKey, err);
++                setTimeout(() => linkFetchErrors.delete(cacheKey), FAILING_FETCH_BACKOFF_MS);
++            }
++            throw err;
++        }
++        return linkMetaToEncryptedLink(result.Link, shareId);
+     };
+ 
+     return useLinkInner(

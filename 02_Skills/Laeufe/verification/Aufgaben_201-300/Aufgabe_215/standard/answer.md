@@ -1,0 +1,3 @@
+Added HTTPS support for the REST API, UI, and gRPC endpoint. Configuration now accepts `server.protocol`, separate HTTP and HTTPS ports, and certificate paths; HTTPS startup validates that both files exist. HTTP remains the default.
+
+Updated the configuration docs and added tests for defaults, overrides, TLS validation errors, and metadata handlers. `GOPROXY=off GOSUMDB=off go test ./...` and `git diff --check` passed. A live TLS connection test was not run.

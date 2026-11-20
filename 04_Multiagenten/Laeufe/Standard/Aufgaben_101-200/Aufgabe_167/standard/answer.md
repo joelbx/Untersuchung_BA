@@ -1,0 +1,3 @@
+Added an OCI `SnapshotSource` that fetches snapshots from local layouts or remote registries, reopens local layouts on each fetch, and polls for digest changes. Updated `SnapshotSource.Get` and its callers to accept a context. OCI layers now support namespace annotations, gzip encoding, and manifest creation timestamps.
+
+The local refresh and subscription test passes. All tests in `./internal/oci` and `./internal/storage/fs/...` pass.

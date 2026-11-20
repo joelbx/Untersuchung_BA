@@ -1,0 +1,3 @@
+Resolved the validation gap. `Validate` now returns a single error that can be unwrapped into individual, source-located errors for unknown variants and segments. Both snapshot constructors validate files before loading them, and `flipt import` validates before changing database state, so repeated attempts with invalid references report the same errors.
+
+Updated the affected fixtures and added regression tests. The relevant CUE, filesystem storage, importer, and CLI packages pass with `GOPROXY=off go test ./internal/cue/... ./internal/storage/fs/... ./internal/ext/... ./cmd/flipt -count=1`.

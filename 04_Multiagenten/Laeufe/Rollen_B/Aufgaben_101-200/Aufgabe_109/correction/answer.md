@@ -1,0 +1,3 @@
+Fixed the review-reported TypeScript error in [RoomCreate.tsx](/app/src/components/views/messages/RoomCreate.tsx:48) by calling `findPredecessor()` on the current room while retaining state update refreshes. The poll history button, feature flag, and room-specific dialog remain in the patch.
+
+The reviewer’s exact RightPanel Jest and TypeScript commands now pass. The existing RoomCreate tests and `git diff --check` also pass.

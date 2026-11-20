@@ -1,0 +1,3 @@
+Added `qcolor_to_qsscolor(c: QColor) -> str` in [qtutils.py](/app/qutebrowser/utils/qtutils.py:108). It formats all four integer components, including alpha, as `rgba(r, g, b, a)`.
+
+Validation passed: all 119 existing qtutils tests, direct checks for named and explicit RGBA colors, and `git diff --check`. The tests required `QT_QPA_PLATFORM=offscreen` and clearing the outdated pytest `--strict` addopts.

@@ -1,0 +1,2 @@
+Task: replace expression parsing and interpolation with a typed AST; update trait and PAM validation; run relevant existing tests.
+Status: implemented and verified. go test -p 1 -vet=off ./lib/utils/parse passed. go test -p 1 -vet=off ./lib/services -run 'TestApplyValueTraits|Test.*Traits' -count=1 passed. lib/srv package build is blocked by missing linux/hidraw.h and incompatible sqlite3 C declarations in this environment. git diff --check passed.

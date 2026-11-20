@@ -1,0 +1,3 @@
+Updated [format_languages](/app/openlibrary/catalog/utils/__init__.py:456) to resolve ISO-639-1 codes and English or native language names to canonical Open Library keys. It now removes duplicates while preserving first occurrence and raises `InvalidLanguage` for unknown or ambiguous names.
+
+Added coverage in [test_utils.py](/app/openlibrary/tests/catalog/test_utils.py:429). All 242 relevant tests passed; Ruff and `git diff --check` passed.

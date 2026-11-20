@@ -1,0 +1,3 @@
+Fixed the reviewed UI defect in [Layout.tsx](/app/ui/src/app/Layout.tsx). Once the namespace list loads, valid deep links remain in place; an unauthorized namespace route is replaced with an accessible namespace’s Flags page before its content mounts. The UI also shows a message when the list is empty.
+
+The reviewer’s exact Go test command passed, and `git diff --check` passed. **TEST_ENVIRONMENT_PROBLEM:** UI tests could not run because `npm` and prepared UI dependencies are absent.

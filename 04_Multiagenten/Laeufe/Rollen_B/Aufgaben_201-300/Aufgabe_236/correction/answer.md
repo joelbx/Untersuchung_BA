@@ -1,0 +1,3 @@
+Fixed the two reviewed parser issues in [validation.py](/app/lib/ansible/module_utils/common/validation.py): empty quoted values such as `k1=""` now return `{'k1': ''}`, and text or escapes after a closing quote raise `TypeError`. Added regression cases.
+
+The reviewer’s exact test commands passed: 27 focused tests and 68 validation tests. `git diff --check` passed. No remaining failures or test environment problems.

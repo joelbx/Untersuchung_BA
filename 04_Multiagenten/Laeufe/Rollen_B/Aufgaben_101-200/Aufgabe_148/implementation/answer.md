@@ -1,0 +1,3 @@
+Implemented support for `Teleport-Proxy`-prefixed SSH connections. The mux now routes them as SSH and exposes `ClientAddr` through `RemoteAddr()`. The SSH server parser also handles metadata split across reads; standard SSH routing remains unchanged.
+
+Added tests for prefixed, fragmented, malformed, and standard SSH input. Both relevant package suites pass: `go test ./lib/multiplexer ./lib/sshutils -count=1`.

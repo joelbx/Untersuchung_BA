@@ -1,0 +1,5 @@
+The fault is in [IsAvailable](/app/lib/utils/ec2.go:120): it accepts any HTTP 200 from the metadata address, so a captive portal can pass the check. [Service startup](/app/lib/service/service.go:844) then reads `TeleportHostname` and can use the portal’s HTML as the node name.
+
+The fix belongs in [ec2.go](/app/lib/utils/ec2.go:104): add variadic `InstanceMetadataClientOption` arguments and `WithIMDSClient`, then have `IsAvailable` retrieve `instance-id` through `getMetadata` under a 250 ms context and accept only `i-` followed by exactly 8 or 17 lowercase hex digits. The existing node ID validator includes an account prefix and is unsuitable for this check. Tests should cover valid IDs, HTML responses, retrieval errors, timeout, injection, and option errors.
+
+I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). No project source or tests were edited: the specialist instructions for this task require fault localization only, so the requested fix remains unimplemented.

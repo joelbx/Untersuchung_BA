@@ -1,0 +1,3 @@
+Added a member-scoped guard in [UserInfo.tsx](/app/src/components/views/right_panel/UserInfo.tsx:612). Kick, Ban, and Mute now become disabled with `aria-disabled="true"` as soon as one is activated, stay locked through confirmation and the request, and unlock on success, cancellation, or failure. Failures show one action-specific error dialog.
+
+[Regression tests](/app/test/components/views/right_panel/UserInfo-test.tsx:1239) pass: 73 tests. ESLint, Prettier, and `git diff --check` also pass. The full TypeScript check still reports errors in unrelated files and installed SDK declarations; it reported none in the changed files.

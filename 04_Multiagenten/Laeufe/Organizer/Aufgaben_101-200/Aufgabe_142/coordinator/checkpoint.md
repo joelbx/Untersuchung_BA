@@ -1,0 +1,1 @@
+Status: implementation complete. lib/utils/parse tests pass. Integration tests in lib/services and lib/srv blocked by missing linux/hidraw.h (CGO) and bpf/u2f build failures (CGO disabled). No delegation used.

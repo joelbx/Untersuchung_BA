@@ -1,0 +1,3 @@
+Implemented undefined value handling for YAML serialization. `AnsibleDumper` now triggers Jinja’s undefined error for `AnsibleUndefined`; `to_yaml` and `to_nice_yaml` wrap dump failures in filter specific `AnsibleFilterError`s while retaining the original exception. The templating layer converts wrapped undefined errors to `AnsibleUndefinedVariable` and preserves the underlying cause.
+
+Verification: the focused unit tests passed (11 tests), manual undefined propagation checks passed, and `git diff --check` passed.

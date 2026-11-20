@@ -1,0 +1,3 @@
+Updated notifications to render string content as sanitized HTML and give every notification link `target="_blank"` and `rel="noopener noreferrer"`. Non-success notifications now deduplicate by an explicit key, or by text for strings and ID for React content. Repeated success notifications remain separate.
+
+Added [notification tests](/app/packages/components/containers/notifications/Notifications.test.tsx). The focused Jest tests, TypeScript check, ESLint, and `git diff --check` pass.

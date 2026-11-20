@@ -1,0 +1,3 @@
+Implemented structured validation results, field paths, and clearer messages in [validate.go](/app/internal/cue/validate.go). JSON diagnostics now write to the supplied writer.
+
+`go test ./internal/cue` passed. I couldn’t confirm the `cmd/flipt` test result; the command produced no output before the execution window ended. Precise per-error coordinates still depend on the positions CUE reports, which the current CLI uses as its first input position for each error.

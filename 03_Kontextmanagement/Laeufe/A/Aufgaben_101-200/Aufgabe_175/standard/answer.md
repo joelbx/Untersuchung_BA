@@ -1,0 +1,3 @@
+Implemented native Navidrome database backups. The CLI now supports `backup create`, `backup prune`, and `backup restore`; prune and restore require confirmation where specified unless `--force` is used. The database uses SQLite’s online backup API, and restore checks file integrity and the Navidrome schema.
+
+Added `backup.path`, `backup.schedule`, and `backup.count` configuration, startup validation, periodic backup scheduling, and retention pruning. Relevant package tests pass, and the new CLI commands appear in `backup --help`.

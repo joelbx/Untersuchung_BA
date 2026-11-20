@@ -1,0 +1,3 @@
+Added `timeOffset` support through the streaming and transcoding call chain. FFmpeg commands now replace `%t` or insert `-ss` after the input when needed; transcoding cache keys include the offset. The public and Subsonic stream handlers parse the parameter and default missing or invalid values to 0. I updated the OpenSubsonic extension response, mocks, and call sites.
+
+The focused Go tests passed. `go test ./...` passed except for three TagLib fixture and permission assertions unrelated to these changes. No delegation was used.

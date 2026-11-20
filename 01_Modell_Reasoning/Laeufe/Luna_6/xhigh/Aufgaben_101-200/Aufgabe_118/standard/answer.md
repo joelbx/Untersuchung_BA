@@ -1,0 +1,3 @@
+Updated [pip.py](/app/lib/ansible/modules/pip.py) to use the current interpreter’s `pip` module when available, normalize launchers to argv lists, and use OS path joining for the virtualenv PATH prefix. Package listing now tries `list --format=freeze`, falls back to `freeze`, and returns the selected command with stdout and stderr.
+
+Validation passed: `pytest -q test/units/modules/test_pip.py` (4 tests) and `git diff --check`.

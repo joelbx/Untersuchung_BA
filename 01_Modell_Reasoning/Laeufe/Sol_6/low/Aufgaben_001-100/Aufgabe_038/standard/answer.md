@@ -1,0 +1,3 @@
+Implemented gzip response decoding in [urls.py](/app/lib/ansible/module_utils/urls.py) and added the `decompress` option, defaulting to `True`, to [uri.py](/app/lib/ansible/modules/uri.py) and [get_url.py](/app/lib/ansible/modules/get_url.py). The shared request path now advertises gzip support, decodes gzip responses when enabled, and preserves response metadata.
+
+The existing URL utility suite finished with **73 passed and 6 failed**. The failures are assertions written for the previous request headers, arguments, and fallback count; they have not been updated. A direct gzip stream check confirmed full decoded output and cleanup of the underlying response.

@@ -1,0 +1,5 @@
+The likely fault is in [LegacyCallHandler.play](/app/src/LegacyCallHandler.tsx:398): it calls `audio.play()` without clearing `audio.muted`. Ring, ringback, busy, and call-end all use this method. [AudioID](/app/src/LegacyCallHandler.tsx:74) defines their identifiers but is not exported.
+
+A fix should unmute the selected element before playback, leave already-unmuted elements alone, and cover both first play and queued replay. Tests should check that ordering for all four sounds while preserving intentional call silencing. Existing [call handler tests](/app/test/LegacyCallHandler-test.ts:442) only check whether `play()` was called.
+
+The specified `src/legacy/LegacyCallHandler/handleEvent.ts` interface is absent from this checkout, so its relationship to the issue is uncertain. I recorded the diagnosis in `.codex-role-output/checkpoint.md`. Project source and tests were left unchanged under this run’s fault-localization scope; no tests were run.

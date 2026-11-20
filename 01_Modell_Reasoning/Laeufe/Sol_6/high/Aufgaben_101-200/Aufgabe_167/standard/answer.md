@@ -1,0 +1,3 @@
+Implemented OCI feature flag storage. The new [OCI snapshot source](/app/internal/storage/fs/oci/source.go) caches snapshots by digest, polls for changes, and detects updates written by external processes to local OCI layouts. I also made `SnapshotSource.Get` context-aware, connected `storage.type: oci` to server startup, and added gzip and namespace annotation handling.
+
+The local refresh and subscription test passes. The relevant config, command, storage, and OCI tests pass with network access disabled; `git diff --check` is clean.

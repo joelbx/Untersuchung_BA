@@ -1,0 +1,3 @@
+BSD fact gathering now calculates `uptime_seconds` from the current time and the numeric result of `sysctl -n kern.boottime`. FreeBSD, NetBSD, and OpenBSD include the fact when that command succeeds. The shared sysctl parser also handles multiline values, mixed delimiters, and malformed lines while continuing to collect valid facts.
+
+Verification: 98 focused tests passed, 5 skipped; `git diff --check` passed.

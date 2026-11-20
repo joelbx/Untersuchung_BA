@@ -1,0 +1,3 @@
+Implemented YAML-native variant attachments in [internal/ext](/app/internal/ext/common.go). Export renders stored JSON as YAML maps, lists, and values; import converts YAML attachments to JSON strings. The CLI import and export commands now use the new package.
+
+A round trip test covers nested values, nulls, missing attachments, and the related flag, rule, distribution, segment, and constraint data. `GOPROXY=off go test ./...` passed. The named fixture files are absent from this checkout, so exact fixture comparison was unavailable.

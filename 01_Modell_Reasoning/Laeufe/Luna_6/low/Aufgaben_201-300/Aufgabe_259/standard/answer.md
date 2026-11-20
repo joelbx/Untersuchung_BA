@@ -1,0 +1,3 @@
+I wasn’t able to complete the fix. The targeted test run still fails: 56 passed and `test_with_multiple_editions` fails because `lending_edition_s` is `OL2M` instead of `OL3M`.
+
+I added a multi-edition regression test and changes to [update_work.py](/app/openlibrary/solr/update_work.py) and [test_update_work.py](/app/openlibrary/tests/solr/test_update_work.py), but the lending edition selection remains incorrect.

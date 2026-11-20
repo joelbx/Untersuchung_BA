@@ -1,0 +1,3 @@
+Updated the MIME suffix workaround to check **runtime Qt only** at both bounds: ≥ 6.2.3 and < 6.7.0. Clarified `version_check(compiled)` and changed the `compiled=True, exact=True` error to `RuntimeError`.
+
+The 31 focused regression tests pass. A broader run passed 193 tests and had two unrelated Qt utility failures: `test_qdatastream_status_count` and `TestSavefileOpen.test_failing_flush`. The full suite was stopped after repeated end-to-end setup failures because Chromium cannot run as root without sandbox flags in this environment.

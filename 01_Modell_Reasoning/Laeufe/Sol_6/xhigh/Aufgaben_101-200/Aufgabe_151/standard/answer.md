@@ -1,0 +1,3 @@
+Implemented the Qt file picker workaround in [webview.py](/app/qutebrowser/browser/webengine/webview.py). For Qt runtime versions 6.2.3 through 6.6.x, it adds missing filename suffixes for accepted MIME types, including wildcards, before `chooseFiles` calls Qt.
+
+Added coverage in [test_webview.py](/app/tests/unit/browser/webengine/test_webview.py). All 13 tests pass with the offscreen Qt test environment.

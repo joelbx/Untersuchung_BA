@@ -1,0 +1,3 @@
+Resolved `async_wrapper`’s inconsistent exit paths. It now uses `end` for structured responses and `jwrite` for atomic job records, with consistent job IDs and lifecycle fields. Fork and setup failures return JSON, timeout records include the child PID, and temporary directory cleanup follows the configured policy.
+
+Added coverage in [test_async_wrapper.py](/app/test/units/modules/test_async_wrapper.py). The focused suite passed: **13 tests**. `git diff --check` was clean.

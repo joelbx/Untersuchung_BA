@@ -1,0 +1,244 @@
+diff --git a/public/openapi/components/schemas/SettingsObj.yaml b/public/openapi/components/schemas/SettingsObj.yaml
+index 2ccc8e1..210fee1 100644
+--- a/public/openapi/components/schemas/SettingsObj.yaml
++++ b/public/openapi/components/schemas/SettingsObj.yaml
+@@ -31,9 +31,19 @@ Settings:
+     followTopicsOnReply:
+       type: boolean
+       description: Automatically be notified of new posts in a topic, when you reply to that topic
+-    restrictChat:
++    disableIncomingMessages:
+       type: boolean
+-      description: Do not allow other users to start chats with you (or add you to other chat rooms)
++      description: Disable all incoming chat requests
++    chatAllowList:
++      type: array
++      items:
++        type: string
++      description: User IDs allowed to initiate chats
++    chatDenyList:
++      type: array
++      items:
++        type: string
++      description: User IDs denied from initiating chats
+     topicSearchEnabled:
+       type: boolean
+       description: Enable keyword searching within topics
+@@ -139,7 +149,9 @@ Settings:
+     - showfullname
+     - followTopicsOnCreate
+     - followTopicsOnReply
+-    - restrictChat
++    - disableIncomingMessages
++    - chatAllowList
++    - chatDenyList
+     - topicSearchEnabled
+     - categoryTopicSort
+     - userLang
+diff --git a/src/messaging/index.js b/src/messaging/index.js
+index 0c8bd0e..78ab355 100644
+--- a/src/messaging/index.js
++++ b/src/messaging/index.js
+@@ -358,18 +358,24 @@ Messaging.canMessageUser = async (uid, toUid) => {
+ 		throw new Error('[[error:no-privileges]]');
+ 	}
+ 
+-	const [settings, isAdmin, isModerator, isFollowing, isBlocked] = await Promise.all([
++	const [settings, isAdmin, isGlobalModerator, isBlocked] = await Promise.all([
+ 		user.getSettings(toUid),
+ 		user.isAdministrator(uid),
+-		user.isModeratorOfAnyCategory(uid),
+-		user.isFollowing(toUid, uid),
++		user.isGlobalModerator(uid),
+ 		user.blocks.is(uid, toUid),
+ 	]);
+ 
+ 	if (isBlocked) {
+ 		throw new Error('[[error:chat-user-blocked]]');
+ 	}
+-	if (settings.restrictChat && !isAdmin && !isModerator && !isFollowing) {
++	if (settings.disableIncomingMessages && !isAdmin && !isGlobalModerator) {
++		throw new Error('[[error:chat-restricted]]');
++	}
++	if (!isAdmin && !isGlobalModerator && settings.chatDenyList.includes(String(uid))) {
++		throw new Error('[[error:chat-restricted]]');
++	}
++	if (!isAdmin && !isGlobalModerator && settings.chatAllowList.length &&
++		!settings.chatAllowList.includes(String(uid))) {
+ 		throw new Error('[[error:chat-restricted]]');
+ 	}
+ 
+diff --git a/src/upgrades/4.3.0/chat_allow_list.js b/src/upgrades/4.3.0/chat_allow_list.js
+new file mode 100644
+index 0000000..cc41ad1
+--- /dev/null
++++ b/src/upgrades/4.3.0/chat_allow_list.js
+@@ -0,0 +1,31 @@
++'use strict';
++
++const db = require('../../database');
++const batch = require('../../batch');
++
++module.exports = {
++	name: 'Migrate restricted chat settings to allow lists',
++	timestamp: Date.UTC(2025, 3, 16),
++	method: async function () {
++		const { progress } = this;
++		progress.total = await db.sortedSetCard('users:joindate');
++
++		await batch.processSortedSet('users:joindate', async (uids) => {
++			const settings = await db.getObjects(uids.map(uid => `user:${uid}:settings`));
++			const eligible = uids.reduce((result, uid, index) => {
++				const setting = settings[index] || {};
++				if (parseInt(setting.restrictChat, 10) === 1 && setting.chatAllowList === undefined) {
++					result.push(uid);
++				}
++				return result;
++			}, []);
++			const following = await db.getSortedSetsMembers(eligible.map(uid => `following:${uid}`));
++			const bulkSet = eligible.map((uid, index) => [
++				`user:${uid}:settings`,
++				{ chatAllowList: JSON.stringify(following[index].map(String)) },
++			]);
++			await db.setObjectBulk(bulkSet);
++			progress.incr(uids.length);
++		}, { batch: 500 });
++	},
++};
+diff --git a/src/user/settings.js b/src/user/settings.js
+index 5390f37..8d46bc1 100644
+--- a/src/user/settings.js
++++ b/src/user/settings.js
+@@ -76,7 +76,9 @@ module.exports = function (User) {
+ 		settings.followTopicsOnCreate = parseInt(getSetting(settings, 'followTopicsOnCreate', 1), 10) === 1;
+ 		settings.followTopicsOnReply = parseInt(getSetting(settings, 'followTopicsOnReply', 0), 10) === 1;
+ 		settings.upvoteNotifFreq = getSetting(settings, 'upvoteNotifFreq', 'all');
+-		settings.restrictChat = parseInt(getSetting(settings, 'restrictChat', 0), 10) === 1;
++		settings.disableIncomingMessages = parseInt(getSetting(settings, 'disableIncomingMessages', 0), 10) === 1;
++		settings.chatAllowList = parseUidList(settings.chatAllowList);
++		settings.chatDenyList = parseUidList(settings.chatDenyList);
+ 		settings.topicSearchEnabled = parseInt(getSetting(settings, 'topicSearchEnabled', 0), 10) === 1;
+ 		settings.updateUrlWithPostIndex = parseInt(getSetting(settings, 'updateUrlWithPostIndex', 1), 10) === 1;
+ 		settings.bootswatchSkin = validator.escape(String(settings.bootswatchSkin || ''));
+@@ -103,6 +105,17 @@ module.exports = function (User) {
+ 		return defaultValue;
+ 	}
+ 
++	function parseUidList(list) {
++		if (typeof list === 'string') {
++			try {
++				list = JSON.parse(list);
++			} catch (err) {
++				return [];
++			}
++		}
++		return Array.isArray(list) ? list.filter(uid => typeof uid === 'string') : [];
++	}
++
+ 	User.saveSettings = async function (uid, data) {
+ 		const maxPostsPerPage = meta.config.maxPostsPerPage || 20;
+ 		if (
+@@ -145,7 +158,9 @@ module.exports = function (User) {
+ 			acpLang: data.acpLang || meta.config.defaultLang,
+ 			followTopicsOnCreate: data.followTopicsOnCreate,
+ 			followTopicsOnReply: data.followTopicsOnReply,
+-			restrictChat: data.restrictChat,
++			disableIncomingMessages: data.disableIncomingMessages,
++			chatAllowList: JSON.stringify(parseUidList(data.chatAllowList)),
++			chatDenyList: JSON.stringify(parseUidList(data.chatDenyList)),
+ 			topicSearchEnabled: data.topicSearchEnabled,
+ 			updateUrlWithPostIndex: data.updateUrlWithPostIndex,
+ 			homePageRoute: ((data.homePageRoute === 'custom' ? data.homePageCustom : data.homePageRoute) || '').replace(/^\//, ''),
+diff --git a/src/views/admin/settings/user.tpl b/src/views/admin/settings/user.tpl
+index de23ba9..a8d23b5 100644
+--- a/src/views/admin/settings/user.tpl
++++ b/src/views/admin/settings/user.tpl
+@@ -296,8 +296,8 @@
+ 				</div>
+ 
+ 				<div class="form-check form-switch mb-3">
+-					<input class="form-check-input" type="checkbox" id="restrictChat" data-field="restrictChat">
+-					<label for="restrictChat" class="form-check-label">[[admin/settings/user:restrict-chat]]</label>
++					<input class="form-check-input" type="checkbox" id="disableIncomingMessages" data-field="disableIncomingMessages">
++					<label for="disableIncomingMessages" class="form-check-label">[[admin/settings/user:restrict-chat]]</label>
+ 				</div>
+ 
+ 				<div class="form-check form-switch mb-3">
+diff --git a/test/messaging.js b/test/messaging.js
+index 0dc7012..3b46c1e 100644
+--- a/test/messaging.js
++++ b/test/messaging.js
+@@ -61,7 +61,7 @@ describe('Messaging Library', () => {
+ 		}));
+ 
+ 		await Groups.join('administrators', mocks.users.foo.uid);
+-		await User.setSetting(mocks.users.baz.uid, 'restrictChat', '1');
++		await User.setSetting(mocks.users.baz.uid, 'disableIncomingMessages', '1');
+ 
+ 		({ jar: mocks.users.foo.jar, csrf_token: mocks.users.foo.csrf } = await helpers.loginUser('foo', 'barbar'));
+ 		({ jar: mocks.users.bar.jar, csrf_token: mocks.users.bar.csrf } = await helpers.loginUser('bar', 'bazbaz'));
+@@ -85,7 +85,7 @@ describe('Messaging Library', () => {
+ 		});
+ 
+ 		it('should NOT allow messages to be sent to a restricted user', async () => {
+-			await User.setSetting(mocks.users.baz.uid, 'restrictChat', '1');
++			await User.setSetting(mocks.users.baz.uid, 'disableIncomingMessages', '1');
+ 			try {
+ 				await Messaging.canMessageUser(mocks.users.herp.uid, mocks.users.baz.uid);
+ 			} catch (err) {
+@@ -100,13 +100,12 @@ describe('Messaging Library', () => {
+ 			});
+ 		});
+ 
+-		it('should allow messages to be sent to a restricted user if restricted user follows sender', (done) => {
+-			User.follow(mocks.users.baz.uid, mocks.users.herp.uid, () => {
+-				Messaging.canMessageUser(mocks.users.herp.uid, mocks.users.baz.uid, (err) => {
+-					assert.ifError(err);
+-					done();
+-				});
+-			});
++		it('should not allow messages to be sent when incoming messages are disabled, even from followed users', async () => {
++			await User.follow(mocks.users.baz.uid, mocks.users.herp.uid);
++			await assert.rejects(
++				Messaging.canMessageUser(mocks.users.herp.uid, mocks.users.baz.uid),
++				err => err.message === '[[error:chat-restricted]]'
++			);
+ 		});
+ 
+ 		it('should not allow messaging room if user is muted', async () => {
+@@ -169,11 +168,11 @@ describe('Messaging Library', () => {
+ 		});
+ 
+ 		it('should create a new chat room', async () => {
+-			await User.setSetting(mocks.users.baz.uid, 'restrictChat', '0');
++			await User.setSetting(mocks.users.baz.uid, 'disableIncomingMessages', '0');
+ 			const { body } = await callv3API('post', `/chats`, {
+ 				uids: [mocks.users.baz.uid],
+ 			}, 'foo');
+-			await User.setSetting(mocks.users.baz.uid, 'restrictChat', '1');
++			await User.setSetting(mocks.users.baz.uid, 'disableIncomingMessages', '1');
+ 
+ 			roomId = body.response.roomId;
+ 			assert(roomId);
+diff --git a/test/user.js b/test/user.js
+index dde35f5..3fb1592 100644
+--- a/test/user.js
++++ b/test/user.js
+@@ -1629,7 +1629,7 @@ describe('User', () => {
+ 					postsPerPage: '5',
+ 					showemail: 1,
+ 					showfullname: 1,
+-					restrictChat: 0,
++					disableIncomingMessages: 0,
+ 					followTopicsOnCreate: 1,
+ 					followTopicsOnReply: 1,
+ 				},
+@@ -1654,7 +1654,7 @@ describe('User', () => {
+ 					postsPerPage: '5',
+ 					showemail: 1,
+ 					showfullname: 1,
+-					restrictChat: 0,
++					disableIncomingMessages: 0,
+ 					followTopicsOnCreate: 1,
+ 					followTopicsOnReply: 1,
+ 				},

@@ -1,0 +1,3 @@
+Host blocking now checks the request host and each parent domain against both block sets. The blocking toggle and URL whitelist take precedence, and trailing-dot hosts match their undotted forms. Added `urlutils.widened_hostnames` and regression tests.
+
+Verification: 425 tests passed and 1 skipped across the hostblock, URL utility, and config utility suites; the final hostblock run passed 38 tests with 1 skipped.

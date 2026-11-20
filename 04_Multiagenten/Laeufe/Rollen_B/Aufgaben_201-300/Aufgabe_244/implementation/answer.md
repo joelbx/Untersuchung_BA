@@ -1,0 +1,3 @@
+Implemented `colors.webpage.darkmode.threshold.foreground` as an Int option with default `256`. QtWebEngine versions below 6.4 send its value as `TextBrightnessThreshold`; versions 6.4 and later use `ForegroundBrightnessThreshold`. Existing `threshold.text` settings work through YAML migration and direct `config.py` access.
+
+Verification: 438 local tests passed, 1 skipped. The installed QtWebEngine is 5.15.2, so the 6.4 behavior was verified with version specific unit tests rather than a 6.4 runtime.

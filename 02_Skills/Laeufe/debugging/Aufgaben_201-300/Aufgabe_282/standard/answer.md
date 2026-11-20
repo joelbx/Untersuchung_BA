@@ -1,0 +1,3 @@
+Added `content.javascript.log_message.levels` and `content.javascript.log_message.excludes`. The new `_js_log_to_ui` helper checks source and level first, then source and message exclusion globs. Messages kept out of the UI continue through the existing standard logger path. The settings and behavior are documented, and the old setting is marked for migration to `levels`.
+
+Verification: 45 relevant tests passed; `git diff --check` passed.

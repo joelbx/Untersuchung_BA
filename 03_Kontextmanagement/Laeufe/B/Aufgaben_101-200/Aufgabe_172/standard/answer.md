@@ -1,0 +1,3 @@
+Fixed legacy `listenPorts` parsing. [AffectedProcess](/app/models/packages.go) now accepts string ports from older results and exposes structured `PortStat` values for scanning. The scan and report paths use the new fields, including wildcard expansion, port deduplication, and reachability updates.
+
+The legacy JSON regression test and the existing model, scan, and report tests pass with network fetching disabled.

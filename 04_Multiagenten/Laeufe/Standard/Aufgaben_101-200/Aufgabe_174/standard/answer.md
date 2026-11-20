@@ -1,0 +1,3 @@
+Forked workers now send `Display.display` calls through `FinalQueue` as `DisplaySend` events. The parent results thread replays them under a display lock. I removed the worker’s shutdown redirection, made cleanup flush stdout and stderr, and kept the results reader active until workers have exited.
+
+Verification: 8 focused tests passed, 7 existing strategy tests were skipped, and a forked-process smoke check passed. The existing warning tests still fail when run together because they share a singleton warning cache.

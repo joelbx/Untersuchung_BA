@@ -1,0 +1,3 @@
+Implemented the chat edit requirements in the checked-out repository: the REST `PUT` route and controller, `Messaging.messageExists` and the invalid ID guard, client `PUT` edits, socket deprecation and input validation, and the `invalid-mid` error text. New messages continue to use `POST`, and the send hook includes `message` and `mid`.
+
+The existing messaging suite passes: **71 tests**. The issue’s `LinkProvider` and `DirectedGraph` classes are absent from this checkout, so I could not make that graph refactor here.

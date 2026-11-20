@@ -1,0 +1,3 @@
+Implemented iterative, value-only redaction in [basic.py](/app/lib/ansible/module_utils/basic.py:429) and added `sanitize_keys` with exact-match sentinel keys, `_ansible` exemptions, and `ignore_keys` support at [basic.py](/app/lib/ansible/module_utils/basic.py:437). The URI module now sanitizes response keys when no_log values exist, using `NO_MODIFY_KEYS` exemptions in [uri.py](/app/lib/ansible/modules/uri.py:394).
+
+`py_compile`, `git diff --check`, and manual checks—including 10,000-level nesting—passed. The existing `test_no_log.py` reports 3 passed and 3 failed: those failures assert the old value-sentinel and `TypeError` behavior, which conflicts with the requested contract. No URI unit tests were present.

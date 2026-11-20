@@ -1,0 +1,3 @@
+Updated [useLink.ts](/app/applications/drive/src/app/store/_links/useLink.ts) to reuse specified API errors for the same share and link for 30 seconds, then allow a retry. Added coverage in [useLink.test.ts](/app/applications/drive/src/app/store/_links/useLink.test.ts) for expiry, isolation, and successful fetches.
+
+Verification passed: 17 hook tests, Drive type check, ESLint, Prettier, and `git diff --check`.

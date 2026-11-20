@@ -1,0 +1,3 @@
+Updated the OCI backend to validate repositories with the OCI parser, load `bundles_directory`, `poll_interval`, and authentication, and pass those settings to the store and source. Added `DefaultBundleDir()` and registered `fs/oci` in the integration test and CI matrices.
+
+The focused Go tests passed, the local OCI bundle seed command created an index, and `git diff --check` passed. The Dagger integration suite was not run because it requires external container images.

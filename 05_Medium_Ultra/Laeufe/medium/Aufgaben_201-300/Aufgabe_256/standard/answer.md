@@ -1,0 +1,3 @@
+Fixed the invalid `hosts` handling in [Play](/app/lib/ansible/playbook/play.py). `Play.load` no longer derives or changes `name`; `get_name` derives it from `hosts`, and `_validate_hosts` raises the specified parser errors when a supplied value is invalid.
+
+Updated the unit coverage and the existing empty-host integration expectation. All 247 playbook unit tests passed, and a syntax check of the existing empty-host playbook produced the intended error.

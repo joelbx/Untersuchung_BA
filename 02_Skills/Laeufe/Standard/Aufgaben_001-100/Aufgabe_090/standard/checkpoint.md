@@ -1,0 +1,5 @@
+Task: Fix /lists/add parameter precedence and flattened input reconstruction.
+Status: Patched `ListRecord.from_input` to parse nonempty URL-encoded bodies independently of `web.input`, apply only nonconflicting defaults before unflattening, and ignore malformed seeds. Updated `unflatten` so later simple assignments win. Added focused tests.
+Checks: `python -m pytest openlibrary/plugins/openlibrary/tests/test_lists.py -q` passed (4 tests). `python -m ruff check openlibrary/plugins/openlibrary/lists.py openlibrary/plugins/openlibrary/tests/test_lists.py openlibrary/plugins/upstream/utils.py && git diff --check` passed.
+Unavailable broader check: `python -m pytest openlibrary/plugins/openlibrary/tests/test_listapi.py openlibrary/plugins/openlibrary/tests/test_lists.py -q` failed during collection because `test_listapi.py` imports `cookielib` (`ModuleNotFoundError: No module named 'cookielib'`). Its API coverage remains unverified in this environment.
+Tooling: `rg` is unavailable (`/bin/bash: rg: command not found`); used local grep/find instead.

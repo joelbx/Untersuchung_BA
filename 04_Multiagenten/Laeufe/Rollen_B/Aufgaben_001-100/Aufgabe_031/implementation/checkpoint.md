@@ -1,0 +1,1 @@
+Complete: Load skips file reading for empty paths, retaining Viper defaults and environment binding. CLI uses Load for file and no-file startup. Config suite and CLI package checks passed; incidental go.work.sum change was removed.

@@ -1,0 +1,3 @@
+Task: Fix edition matching and record expansion in openlibrary/catalog/merge/merge_marc.py.
+Status: Complete. Shared add_db_name and expand_record now live in merge_marc and are re-exported by catalog.utils. threshold_match expands raw records; editions_match delegates to it. Author/contributor matching handles generated db_name and inverted comma-form names. Missing titles do not earn title points.
+Verification: pytest -q openlibrary/catalog/merge/tests/test_merge_marc.py openlibrary/tests/catalog/test_utils.py openlibrary/catalog/add_book/tests/test_match.py openlibrary/catalog/add_book/tests/test_add_book.py (134 passed, 1 pre-existing xfailed). ruff check on changed Python files and git diff --check passed.

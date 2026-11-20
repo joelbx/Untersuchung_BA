@@ -1,0 +1,3 @@
+Implemented HTTPS support for Flipt’s REST API, UI, and gRPC endpoint. [Configuration loading and validation](/app/cmd/flipt/config.go) now support `http` or `https`, separate ports, certificate paths, `FLIPT_` environment overrides, and the required validation errors. [Server startup](/app/cmd/flipt/main.go) uses TLS for both listeners when HTTPS is selected; HTTP remains the default.
+
+Updated the [configuration documentation](/app/docs/configuration.md) and added focused tests. `go test ./... -count=1` passed. Live checks confirmed HTTP and HTTPS REST responses, plus a TLS gRPC connection using HTTP/2.

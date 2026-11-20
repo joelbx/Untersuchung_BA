@@ -1,0 +1,3 @@
+Resolved the `atomic_move()` permission issue. New files use `_DEFAULT_PERM = 0o0600`, with the destination chmod calculated from the current umask. When a module accepts `mode` but it is omitted, created paths are recorded and `_return_formatted()` emits the required warning for each path. A later `set_mode_if_different()` call with a mode removes that path from warning tracking.
+
+Tests: 66 focused tests passed; the full `basic` unit suite passed with test isolation (298 passed, 14 skipped).

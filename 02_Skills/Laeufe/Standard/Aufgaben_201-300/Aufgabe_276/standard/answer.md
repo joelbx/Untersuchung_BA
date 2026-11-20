@@ -1,0 +1,3 @@
+GitHub and each configured OIDC provider now require non-empty `client_id`, `client_secret`, and `redirect_address` when enabled. Configuration loading returns the specified error format with the provider key. GitHub’s `read:org` check remains in place and now returns the specified scope error.
+
+Added load-level tests for missing and whitespace-only fields. `go test ./internal/config` and `git diff --check` passed.

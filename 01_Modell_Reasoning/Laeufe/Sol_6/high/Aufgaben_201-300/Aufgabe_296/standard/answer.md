@@ -1,0 +1,3 @@
+Invitation registration now works with a valid token and no email. The form fills its hidden token field from the URL; registration uses token keyed invitation metadata to add groups, confirms the email only when it matches the invitation, and cleans up linked invitation records.
+
+ESLint, the 32 invite tests, and the 30 authentication tests pass. The full user suite has one unrelated existing failure in `confirmByCode` ([email.js](/app/src/user/email.js:140)), which calls `setUserField` without a UID.

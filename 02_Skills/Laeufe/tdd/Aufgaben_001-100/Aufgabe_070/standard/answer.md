@@ -1,0 +1,3 @@
+Updated [format_languages](/app/openlibrary/catalog/utils/__init__.py) to resolve ISO 639-1 codes and English or native language names to canonical MARC keys, then remove duplicates while preserving first-occurrence order. Added regression cases in [test_utils.py](/app/openlibrary/tests/catalog/test_utils.py).
+
+The targeted tests passed (100), and the `openlibrary` suite passed (2,270). The full repository run had no failing assertions but reported 77 setup or collection errors involving unavailable external services and Infogami setup; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

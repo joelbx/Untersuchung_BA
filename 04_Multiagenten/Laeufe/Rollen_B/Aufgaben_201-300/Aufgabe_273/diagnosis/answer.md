@@ -1,0 +1,5 @@
+The fault is in [make_work()](/app/openlibrary/plugins/upstream/addbook.py:69). It indexes `doc['author_key']` and `doc['author_name']`, so either missing field raises `KeyError`. It also overwrites a supplied `cover_url`.
+
+The fix should pair available author keys and names, return `authors=[]` when either field is absent, preserve supplied fields, and default missing `cover_url`, `ia`, and `first_publish_year`. The nested `make_author` should receive the requested type annotations and continue returning the object from `web.ctx.site.new`. Unequal nonempty author lists remain unspecified; the existing `zip` behavior pairs only matching positions.
+
+No source or tests were edited: this run’s specialist instructions permit diagnosis only. Findings are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Added `checkEventValidity` and its distinct results in [CalendarUtils.ts](/app/src/calendar/date/CalendarUtils.ts). Manual creation and ICS import now use it to reject invalid dates, pre-1970 starts, and equal or reversed times. Updated the calendar tests to cover those cases.
+
+Verification: `npm run types` passed; `npm run test:app` passed all 7,990 assertions. The separate `fasttest` command could not run because its entry point is missing; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

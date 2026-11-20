@@ -1,0 +1,3 @@
+Added `proxy_service.kube_listen_addr` as a shorthand that enables the Kubernetes proxy, with the default Kubernetes port when no port is given. Enabled legacy settings now conflict with it; an explicitly disabled legacy block yields to it. Client address resolution replaces wildcard hosts with the web proxy host, while configured public addresses retain priority.
+
+`go test ./lib/config ./lib/client` passed.

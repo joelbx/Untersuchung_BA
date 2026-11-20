@@ -1,0 +1,3 @@
+Updated `ContextReader` to restore the terminal when a password read is canceled or closed. Canceled reads move to a clean state so later reads can proceed, and a timed-out password read returns an empty result with `context.DeadlineExceeded`. Added `NotifyExit` and called it when `tsh` finishes running.
+
+`go test ./lib/utils/prompt` and `git diff --check` pass. The `tsh` compile check was stopped during extended dependency compilation; it produced no diagnostic.

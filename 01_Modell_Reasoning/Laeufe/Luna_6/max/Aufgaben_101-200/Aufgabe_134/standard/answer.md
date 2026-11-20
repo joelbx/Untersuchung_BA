@@ -1,0 +1,3 @@
+Implemented Project Runeberg support. Work-search results now include `id_project_runeberg` as an array, defaulting to `[]`; the provider is registered and builds an open access link from the edition’s best identifier. Added the Runeberg download options and read button templates, including optional analytics tracking.
+
+Validation passed: 50 existing tests, template rendering checks, and `git diff --check`.

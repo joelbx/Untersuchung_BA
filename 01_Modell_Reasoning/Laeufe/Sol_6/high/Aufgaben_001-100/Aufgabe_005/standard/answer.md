@@ -1,0 +1,3 @@
+Qt wrapper selection now runs in [early initialization](/app/qutebrowser/misc/earlyinit.py), and the checker receives its `SelectionInfo`. [Machinery](/app/qutebrowser/qt/machinery.py) now returns that info, probes wrappers during implicit initialization, and raises `NoWrapperAvailableError` with the requested message and diagnostics when none can be imported. Selection and debug messages are clearer.
+
+Verification: 52 launcher, machinery, and early-init tests passed; 9 version-info tests passed. The broader version test module stopped in a Qt/WebEngine runtime test without a traceback in this environment.

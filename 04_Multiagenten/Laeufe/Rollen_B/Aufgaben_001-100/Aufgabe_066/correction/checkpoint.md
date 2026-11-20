@@ -1,0 +1,2 @@
+Correction complete: `transformStyleAttributes` now detects numeric `vh` units outside CSS comments and quoted strings. Added regression coverage for the reported `height: 20px /* vh */` case and related false positives. The transform remains between `transformStylesheet` and `transformRemote`.
+Validation: `yarn workspace proton-mail test src/app/helpers/transforms/tests --runInBand --watch=false` passed (6 suites, 92 tests). `git diff --check` passed. No TEST_ENVIRONMENT_PROBLEM.

@@ -1,0 +1,3 @@
+Implemented `PrioritizedIdentifier` with generic identifiers, identifier-only equality and hashing, queue ordering, and complete JSON serialization. Preserved the legacy `PrioritizedISBN` constructor and `isbn` property. The lookup workflow now carries `stage_import` through batching and only stages opted-in products.
+
+Validation: `pytest -q scripts/tests/test_affiliate_server.py` — **16 passed**. `git diff --check` passed.

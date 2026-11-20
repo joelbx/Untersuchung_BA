@@ -1,0 +1,3 @@
+Address parsing is updated in [/app/packages/shared/lib/mail/recipient.ts](/app/packages/shared/lib/mail/recipient.ts). The new `splitBySeparator` preserves order while removing brackets, whitespace, and empty tokens. `inputToRecipient` now uses the bare address for both `Name` and `Address`. Both autocomplete variants use the shared splitter.
+
+Shared and component type checks passed, as did 3 existing address component tests. The shared Karma suite could not run because its configured Chromium binary is missing.

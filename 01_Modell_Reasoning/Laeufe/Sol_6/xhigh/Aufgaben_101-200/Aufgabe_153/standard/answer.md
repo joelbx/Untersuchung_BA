@@ -1,0 +1,3 @@
+Fixed the Drive member view so it reads members, internal invitations, and external invitations for the current share only. The stores now key those lists by `shareId`, and their updates leave other shares’ data intact. I also added [getExistingEmails](/app/applications/drive/src/app/store/_views/utils/getExistingEmails.ts) and regression tests for share isolation.
+
+Verified with the new tests in both Drive copies, existing share tests, TypeScript checks for both projects, ESLint, and `git diff --check`.

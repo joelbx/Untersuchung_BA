@@ -1,0 +1,3 @@
+Updated `Load` to return `Result` with separate `Config` and `Warnings` fields. Deprecation warnings now depend on keys explicitly present in the configuration file, including `ui.enabled` and `cache.memory.enabled: false`. The CLI logs warnings from the result.
+
+The config tests pass. The full suite failed on three Redis cache tests because Docker is unavailable; that limit is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

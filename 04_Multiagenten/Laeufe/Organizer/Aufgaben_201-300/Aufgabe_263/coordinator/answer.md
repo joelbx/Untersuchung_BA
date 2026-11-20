@@ -1,0 +1,3 @@
+DynamoDB audit events now write metadata to the native `FieldsMap` attribute. Reads accept both `FieldsMap` and legacy JSON `Fields` records, so audit queries continue during migration. A distributed lock protects the batched migration; interrupted runs resume by scanning for records that still need conversion. Conversion validates that the metadata retains the same JSON content and logs progress and record errors. I also added `backend.FlagKey`.
+
+`git diff --check` and `go test ./lib/events/dynamoevents ./lib/backend -count=1` passed. The AWS-dependent suite was skipped because its opt-in setting was absent. I completed the work directly; there were no delegations or adoptions.

@@ -1,0 +1,4 @@
+VERDICT: FIX
+Review complete. No code defect confirmed in the inspected patch: storage validation rejects non-database readOnly settings; selectReadonly uses config.storage.readOnly with the required fallback; the header renders storage icons and Read-Only text; disabled auth on object storage avoids getDB. The requested invalid fixture exists.
+Tests: `GOTOOLCHAIN=local GOPROXY=off go test ./internal/config ./internal/cmd` passed both packages. `git diff --check` passed. `npm test -- --runInBand --watch=false` and `npm run build` in /app/ui both failed with exit 127 because npm is not installed.
+TEST_ENVIRONMENT_PROBLEM: UI test/build execution unavailable. Install/provide Node.js and npm with existing project dependencies, then rerun both UI commands. No project code or tests were changed by this review.

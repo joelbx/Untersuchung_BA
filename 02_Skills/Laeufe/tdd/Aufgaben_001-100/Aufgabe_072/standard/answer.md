@@ -1,0 +1,3 @@
+Implemented IDN hostname conversion in [url.ts](/app/packages/components/helpers/url.ts) and applied it to external links in [useLinkHandler.tsx](/app/packages/components/hooks/useLinkHandler.tsx). The URL helper preserves the path, query, and fragment while converting the hostname; links with no extractable URL now trigger an error notification.
+
+Added regression tests. The components suite passed: 59 suites and 275 tests passed, with 2 suites and 10 tests skipped. TypeScript, ESLint, Prettier, and diff checks also passed.

@@ -1,0 +1,3 @@
+Updated the Solr work builder to prefer a public IA edition for `lending_edition_s` and keep `lending_identifier_s` paired with that edition. It now treats `lendinglibrary` editions as borrowable, so they do not incorrectly set `public_scan_b`. The mixed-edition test verifies the public edition, print-disabled IDs, IA IDs, and collection union.
+
+Verification: all 58 tests in `openlibrary/tests/solr/test_update_work.py` passed, and `git diff --check` passed. No delegation was used.

@@ -1,0 +1,3 @@
+Implemented `RegistrationTokenAuthEntry` and routed both stable and MSC3231 registration-token stages to it. The entry submits the server-advertised type with the token and includes the required field, help text, button, busy state, and accessible error display.
+
+Verification: ESLint, the existing InteractiveAuth dialog test, and `git diff --check` passed. TypeScript checking reported existing SlidingSync-related errors outside the changed file; there were no reported errors in the changed file.

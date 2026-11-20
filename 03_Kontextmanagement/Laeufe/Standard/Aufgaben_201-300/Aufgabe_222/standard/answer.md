@@ -1,0 +1,3 @@
+Extracted `RoleMixin._build_doc` in [doc.py](/app/lib/ansible/cli/doc.py:232). It returns `(fqcn, doc)`, preserves the path, collection, and full entry-point specifications, and returns `(fqcn, None)` when no entry points match. `_create_role_doc` now uses that result. Added focused tests in [test_doc.py](/app/test/units/cli/test_doc.py:36).
+
+The focused suite passed: **19 tests**. `git diff --check` passed. A broader CLI run had unrelated ad hoc and Galaxy failures.

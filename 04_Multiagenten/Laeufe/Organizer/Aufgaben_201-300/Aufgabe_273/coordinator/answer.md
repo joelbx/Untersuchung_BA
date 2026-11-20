@@ -1,0 +1,3 @@
+Updated [make_work](/app/openlibrary/plugins/upstream/addbook.py:69) to return a work when either author field is missing, with an empty `authors` list. It preserves supplied fields and applies the requested metadata defaults. The nested `make_author` now has the requested type annotations.
+
+Added regression coverage in [test_addbook.py](/app/openlibrary/plugins/upstream/tests/test_addbook.py:25). All 15 addbook tests passed, and `git diff --check` passed. No delegation was used.

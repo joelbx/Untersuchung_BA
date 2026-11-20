@@ -1,0 +1,3 @@
+Resolved the certificate error handling issue. The [WebKit wrapper](/app/qutebrowser/browser/webkit/certificateerror.py) now accepts named `reply` and `errors` arguments while preserving existing errors-only calls. It renders a single error as an escaped paragraph and multiple errors as an escaped list, and it touches the network reply only when a decision is made. I also integrated the shared decision methods and Qt5/Qt6 WebEngine wrappers.
+
+Two agents handled the shared interface and WebEngine work; I integrated and reviewed their changes. **All 39 targeted tests passed**, and `git diff --check` is clean. Qt6 behavior was tested with local fakes because this environment has only PyQt5.

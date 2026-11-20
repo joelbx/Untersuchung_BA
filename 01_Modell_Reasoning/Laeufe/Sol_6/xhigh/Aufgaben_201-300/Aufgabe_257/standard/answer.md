@@ -1,0 +1,3 @@
+Resolved the tsh test environment issue. [tsh.go](/app/tool/tsh/tsh.go) and [db.go](/app/tool/tsh/db.go) now return handler errors through `Run`, which also accepts configuration options after argument parsing. [api.go](/app/lib/client/api.go) adds `SSOLoginFunc` and uses an injected SSO handler when provided. [service.go](/app/lib/service/service.go) propagates OS-assigned auth and proxy listener addresses to dependent configuration.
+
+Tests covering SSO injection, returned errors, and `:0` listener addresses pass: `go test ./tool/tsh ./lib/client ./lib/service`.

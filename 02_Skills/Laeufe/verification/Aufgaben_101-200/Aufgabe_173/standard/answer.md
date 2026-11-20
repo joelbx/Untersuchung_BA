@@ -1,0 +1,3 @@
+The proxy now shuffles all matching database services and tries each tunnel until one connects. It reports a connection problem if none can be reached. `tsh db ls` sorts by service name and host ID, then displays one entry per name. The fake tunnel can simulate outages by server ID, and tests cover fallback to a reachable service.
+
+Verification passed with fresh `go test -count=1` runs for `api/types`, `lib/srv/db`, `tool/tsh`, and `lib/reversetunnel`. `git diff --check` also passed.

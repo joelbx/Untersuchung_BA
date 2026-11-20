@@ -1,0 +1,3 @@
+Updated the Trivy parser to store the OS version in `Release`, use `ArtifactName` for `ServerName` on OS and library scans, and append `:latest` to untagged container image names. Trivy results no longer use `Optional["trivy-target"]`.
+
+Package CVE detection now skips unsupported results with a logged reason, and Trivy reuse is identified through `ScannedBy`. Updated the parser expectations; `go test ./contrib/trivy/parser/v2 ./detector` passes.

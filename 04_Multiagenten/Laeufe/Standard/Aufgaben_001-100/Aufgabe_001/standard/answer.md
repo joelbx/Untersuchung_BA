@@ -1,0 +1,3 @@
+Syslog configuration now has a public [`syslog.Conf`](/app/config/syslog/types.go) with validation in its own package. Config and the reporter use that type, while `config.SyslogConf` remains an alias for existing callers. Enabled syslog retains the existing field validation behavior; Windows returns the specified unsupported error.
+
+Tests passed for `./config/syslog`, `./config`, and `./reporter`. The Windows syslog tests cross compiled successfully, and `git diff --check` passed.

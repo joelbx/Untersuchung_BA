@@ -1,0 +1,3 @@
+Refactored Drive’s XAttr helpers to use `XAttrCreateParams` and added `DeepPartial` and `MaybeExtendedAttributes`. File attributes are immutable, exact chunk sizes omit a zero remainder, and parsing returns unset fields for malformed or partial input while normalizing SHA1 digests. The upload call site and tests are updated.
+
+The focused Jest suite, Drive TypeScript check, and formatting check pass.

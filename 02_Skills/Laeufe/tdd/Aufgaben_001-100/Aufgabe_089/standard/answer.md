@@ -1,0 +1,3 @@
+Updated `Validate` to report positioned, individually unwrap-able errors for unknown rule variants and segments. Snapshot creation now validates files before loading them, and the exported `StoreSnapshot`, `SnapshotFromFS`, and `SnapshotFromPaths` interfaces are available. The CLI validation output uses the new error shape.
+
+The targeted tests pass. The full `go test ./...` run failed only in `internal/cache/redis`: `TestSet`, `TestGet`, and `TestDelete` could not connect to the Docker daemon. I recorded the command and failure in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

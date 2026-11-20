@@ -1,0 +1,3 @@
+Implemented the link accessibility fix. [ExternalLink.tsx](/app/src/components/views/elements/ExternalLink.tsx) provides secure new-tab defaults, preserves anchor props and custom classes, and pairs a decorative icon with a localized screen reader cue. External links in settings now use it, including the consolidated hosting signup link. The [Share dialog](/app/src/components/views/dialogs/ShareDialog.tsx) now labels room, user, and community links by purpose.
+
+ESLint, Stylelint, JSON validation, and `git diff --check` passed. The full type check reports errors in untouched thread files. The existing Room Settings test could not start because this checkout lacks `src/component-index`.

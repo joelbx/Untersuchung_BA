@@ -1,0 +1,3 @@
+Implemented structured external profiles for Wikidata authors. `WikidataEntity` now resolves Wikipedia links by language with English fallback, extracts valid statement values, and returns Wikipedia, Wikidata, and one Google Scholar profile per P1960 identifier. The author infobox displays those profiles with icon assets, and the author lookup now reaches the entity data.
+
+Verification: 36 relevant tests passed. Ruff, `git diff --check`, template rendering, and SVG parsing also passed.

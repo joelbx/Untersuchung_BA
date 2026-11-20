@@ -1,0 +1,3 @@
+Updated the rollout audit models so single segments retain their key, while multiple segments produce comma-separated keys and include the operator name. The new operator fields use the requested optional JSON tags. Added regression tests for both constructors.
+
+All audit package tests pass. The repository-wide suite could not pass: `internal/cache/redis.TestSet` requires rootless Docker, which is unavailable here. The command and failure are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

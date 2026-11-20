@@ -1,0 +1,3 @@
+Propagated optional owner-encrypted session keys through the entity loader and cache, and updated Mail detail callers to supply the mail’s key. The rest client now applies each key before decryption, using the base64 format expected by the entity mapper. Added tests for single and batch loading, including an omitted batch key map.
+
+Verification passed: TypeScript, `git diff --check`, 40 loader tests, and 108 cache tests. The filtered test runner also printed unrelated `LoginFacadeTest` initialization errors; both suites reported zero failures.

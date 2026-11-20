@@ -1,0 +1,259 @@
+diff --git a/api/client/inventory.go b/api/client/inventory.go
+index f34e5ba..6deab35 100644
+--- a/api/client/inventory.go
++++ b/api/client/inventory.go
+@@ -24,6 +24,7 @@ import (
+ 	"github.com/gravitational/teleport/api/client/proto"
+ 	"github.com/gravitational/trace"
+ 	"github.com/gravitational/trace/trail"
++	"google.golang.org/grpc/peer"
+ )
+ 
+ // DownstreamInventoryControlStream is the client/agent side of a bidirectional stream established
+@@ -66,25 +67,42 @@ type UpstreamInventoryControlStream interface {
+ 	// Error checks for any error associated with stream closure (returns `nil` if
+ 	// the stream is open, or io.EOF if the stream closed without error).
+ 	Error() error
++	// PeerAddr returns the TCP peer address associated with the stream, or an
++	// empty string when it is unavailable.
++	PeerAddr() string
++}
++
++// ICSPipeOption configures an in-memory inventory control stream pipe.
++type ICSPipeOption func(*pipeControlStream)
++
++// ICSPipePeerAddr sets the peer address reported by the upstream half of a pipe.
++func ICSPipePeerAddr(peerAddr string) ICSPipeOption {
++	return func(p *pipeControlStream) {
++		p.peerAddr = peerAddr
++	}
+ }
+ 
+ // InventoryControlStreamPipe creates the two halves of an inventory control stream over an in-memory
+ // pipe.
+-func InventoryControlStreamPipe() (UpstreamInventoryControlStream, DownstreamInventoryControlStream) {
++func InventoryControlStreamPipe(opts ...ICSPipeOption) (UpstreamInventoryControlStream, DownstreamInventoryControlStream) {
+ 	pipe := &pipeControlStream{
+ 		downC: make(chan proto.DownstreamInventoryMessage),
+ 		upC:   make(chan proto.UpstreamInventoryMessage),
+ 		doneC: make(chan struct{}),
+ 	}
++	for _, opt := range opts {
++		opt(pipe)
++	}
+ 	return upstreamPipeControlStream{pipe}, downstreamPipeControlStream{pipe}
+ }
+ 
+ type pipeControlStream struct {
+-	downC chan proto.DownstreamInventoryMessage
+-	upC   chan proto.UpstreamInventoryMessage
+-	mu    sync.Mutex
+-	err   error
+-	doneC chan struct{}
++	downC    chan proto.DownstreamInventoryMessage
++	upC      chan proto.UpstreamInventoryMessage
++	peerAddr string
++	mu       sync.Mutex
++	err      error
++	doneC    chan struct{}
+ }
+ 
+ func (p *pipeControlStream) Close() error {
+@@ -138,6 +156,10 @@ func (u upstreamPipeControlStream) Recv() <-chan proto.UpstreamInventoryMessage
+ 	return u.upC
+ }
+ 
++func (u upstreamPipeControlStream) PeerAddr() string {
++	return u.peerAddr
++}
++
+ type downstreamPipeControlStream struct {
+ 	*pipeControlStream
+ }
+@@ -359,6 +381,9 @@ func NewUpstreamInventoryControlStream(stream proto.AuthService_InventoryControl
+ 		recvC: make(chan proto.UpstreamInventoryMessage),
+ 		doneC: make(chan struct{}),
+ 	}
++	if p, ok := peer.FromContext(stream.Context()); ok && p != nil && p.Addr != nil {
++		ics.peerAddr = p.Addr.String()
++	}
+ 
+ 	go ics.runRecvLoop(stream)
+ 	go ics.runSendLoop(stream)
+@@ -375,11 +400,12 @@ type downstreamSend struct {
+ // upstreamICS is a helper which manages a proto.AuthService_InventoryControlStreamServer
+ // stream and wraps its API to use friendlier types and support select/cancellation.
+ type upstreamICS struct {
+-	sendC chan downstreamSend
+-	recvC chan proto.UpstreamInventoryMessage
+-	mu    sync.Mutex
+-	doneC chan struct{}
+-	err   error
++	sendC    chan downstreamSend
++	recvC    chan proto.UpstreamInventoryMessage
++	peerAddr string
++	mu       sync.Mutex
++	doneC    chan struct{}
++	err      error
+ }
+ 
+ // runRecvLoop waits for incoming messages, converts them to the friendlier UpstreamInventoryMessage
+@@ -482,6 +508,10 @@ func (i *upstreamICS) Recv() <-chan proto.UpstreamInventoryMessage {
+ 	return i.recvC
+ }
+ 
++func (i *upstreamICS) PeerAddr() string {
++	return i.peerAddr
++}
++
+ func (i *upstreamICS) Done() <-chan struct{} {
+ 	return i.doneC
+ }
+diff --git a/api/client/inventory_test.go b/api/client/inventory_test.go
+index fa99979..7207d0a 100644
+--- a/api/client/inventory_test.go
++++ b/api/client/inventory_test.go
+@@ -18,14 +18,59 @@ package client
+ 
+ import (
+ 	"context"
++	"io"
++	"net"
+ 	"testing"
+ 	"time"
+ 
+ 	"github.com/gravitational/teleport/api/client/proto"
+ 	"github.com/gravitational/trace"
+ 	"github.com/stretchr/testify/require"
++	"google.golang.org/grpc/peer"
+ )
+ 
++func TestInventoryControlStreamPipePeerAddr(t *testing.T) {
++	upstream, downstream := InventoryControlStreamPipe()
++	require.Empty(t, upstream.PeerAddr())
++	require.NoError(t, downstream.Close())
++
++	upstream, downstream = InventoryControlStreamPipe(ICSPipePeerAddr("192.0.2.10:44000"))
++	require.Equal(t, "192.0.2.10:44000", upstream.PeerAddr())
++	require.NoError(t, downstream.Close())
++}
++
++type peerAddrTestStream struct {
++	proto.AuthService_InventoryControlStreamServer
++	ctx context.Context
++}
++
++func (s peerAddrTestStream) Context() context.Context {
++	return s.ctx
++}
++
++func (s peerAddrTestStream) Recv() (*proto.UpstreamInventoryOneOf, error) {
++	return nil, io.EOF
++}
++
++func TestUpstreamInventoryControlStreamPeerAddr(t *testing.T) {
++	addr := &net.TCPAddr{IP: net.ParseIP("192.0.2.10"), Port: 44000}
++	for _, tt := range []struct {
++		name string
++		ctx  context.Context
++		want string
++	}{
++		{name: "peer available", ctx: peer.NewContext(context.Background(), &peer.Peer{Addr: addr}), want: addr.String()},
++		{name: "peer unavailable", ctx: context.Background()},
++		{name: "peer address unavailable", ctx: peer.NewContext(context.Background(), &peer.Peer{})},
++	} {
++		t.Run(tt.name, func(t *testing.T) {
++			stream := NewUpstreamInventoryControlStream(peerAddrTestStream{ctx: tt.ctx})
++			require.Equal(t, tt.want, stream.PeerAddr())
++			require.NoError(t, stream.Close())
++		})
++	}
++}
++
+ // TestInventoryControlStreamPipe is a sanity-check to make sure that the in-memory
+ // pipe version of the ICS works as expected.  This test is trivial but it helps to
+ // keep accidental breakage of the pipe abstraction from showing up in an obscure
+diff --git a/lib/inventory/controller.go b/lib/inventory/controller.go
+index 2ea7088..7ed4e02 100644
+--- a/lib/inventory/controller.go
++++ b/lib/inventory/controller.go
+@@ -259,6 +259,9 @@ func (c *Controller) handleSSHServerHB(handle *upstreamHandle, sshServer *types.
+ 		return trace.AccessDenied("incorrect ssh server ID (expected %q, got %q)", handle.Hello().ServerID, sshServer.GetName())
+ 	}
+ 
++	if peerAddr := handle.PeerAddr(); peerAddr != "" {
++		sshServer.SetAddr(utils.ReplaceLocalhost(sshServer.GetAddr(), peerAddr))
++	}
+ 	sshServer.SetExpiry(time.Now().Add(c.serverTTL).UTC())
+ 
+ 	lease, err := c.auth.UpsertNode(c.closeContext, sshServer)
+diff --git a/lib/inventory/controller_test.go b/lib/inventory/controller_test.go
+index 7f18cee..f983318 100644
+--- a/lib/inventory/controller_test.go
++++ b/lib/inventory/controller_test.go
+@@ -36,15 +36,17 @@ type fakeAuth struct {
+ 	failUpserts    int
+ 	failKeepAlives int
+ 
+-	upserts    int
+-	keepalives int
+-	err        error
++	upserts        int
++	keepalives     int
++	err            error
++	lastUpsertAddr string
+ }
+ 
+-func (a *fakeAuth) UpsertNode(_ context.Context, _ types.Server) (*types.KeepAlive, error) {
++func (a *fakeAuth) UpsertNode(_ context.Context, node types.Server) (*types.KeepAlive, error) {
+ 	a.mu.Lock()
+ 	defer a.mu.Unlock()
+ 	a.upserts++
++	a.lastUpsertAddr = node.GetAddr()
+ 	if a.failUpserts > 0 {
+ 		a.failUpserts--
+ 		return nil, trace.Errorf("upsert failed as test condition")
+@@ -52,6 +54,43 @@ func (a *fakeAuth) UpsertNode(_ context.Context, _ types.Server) (*types.KeepAli
+ 	return &types.KeepAlive{}, a.err
+ }
+ 
++func TestControllerSSHServerHeartbeatAddress(t *testing.T) {
++	const serverID = "test-server"
++	for _, tt := range []struct {
++		name     string
++		addr     string
++		peerAddr string
++		want     string
++	}{
++		{name: "IPv6 wildcard", addr: "[::]:3022", peerAddr: "192.0.2.10:44000", want: "192.0.2.10:3022"},
++		{name: "IPv4 wildcard", addr: "0.0.0.0:3022", peerAddr: "192.0.2.10:44000", want: "192.0.2.10:3022"},
++		{name: "loopback", addr: "127.0.0.1:3022", peerAddr: "192.0.2.10:44000", want: "192.0.2.10:3022"},
++		{name: "IPv6 peer", addr: "[::]:3022", peerAddr: "[2001:db8::10]:44000", want: "[2001:db8::10]:3022"},
++		{name: "routable address", addr: "10.0.0.5:3022", peerAddr: "192.0.2.10:44000", want: "10.0.0.5:3022"},
++		{name: "no peer", addr: "[::]:3022", want: "[::]:3022"},
++		{name: "invalid peer", addr: "[::]:3022", peerAddr: "invalid", want: "[::]:3022"},
++	} {
++		t.Run(tt.name, func(t *testing.T) {
++			auth := &fakeAuth{}
++			controller := NewController(auth)
++			defer controller.Close()
++
++			upstream, downstream := client.InventoryControlStreamPipe(client.ICSPipePeerAddr(tt.peerAddr))
++			defer downstream.Close()
++			handle := newUpstreamHandle(upstream, proto.UpstreamInventoryHello{
++				ServerID: serverID,
++				Services: []types.SystemRole{types.RoleNode},
++			})
++			server := &types.ServerV2{
++				Metadata: types.Metadata{Name: serverID},
++				Spec:     types.ServerSpecV2{Addr: tt.addr},
++			}
++			require.NoError(t, controller.handleSSHServerHB(handle, server))
++			require.Equal(t, tt.want, auth.lastUpsertAddr)
++		})
++	}
++}
++
+ func (a *fakeAuth) KeepAliveServer(_ context.Context, _ types.KeepAlive) error {
+ 	a.mu.Lock()
+ 	defer a.mu.Unlock()

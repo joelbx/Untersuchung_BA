@@ -1,0 +1,3 @@
+Task: implement token accounting for Chat.Complete and Agent.PlanAndExecute, including streaming and public model counters.
+Status: implementation complete. Added lib/ai/model/tokencount.go with cl100k_base counters and tests. Chat and Agent now return *model.TokenCount; Assist and web usage updated. Streaming counter increments as fragments are consumed.
+Verification: GOPROXY=off GOSUMDB=off go test ./lib/ai/model passed; git diff --check passed. Broader ./lib/ai/... ./lib/assist/... tests attempted but blocked by missing linux/hidraw.h and gnu/libc-version.h C headers; CGO_ENABLED=0 attempt blocked by github.com/flynn/u2f/u2fhid relying on disabled hid methods.

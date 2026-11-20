@@ -1,0 +1,3 @@
+Updated [validate.go](/app/internal/cue/validate.go) so validation returns all errors with field paths, descriptive messages, and YAML source locations. Text and JSON output use that structured result. Regression tests in [validate_test.go](/app/internal/cue/validate_test.go) cover multiple errors, JSON output, and syntax errors.
+
+`go test ./internal/cue ./cmd/flipt -count=1` passed. A CLI run against the invalid fixture returned JSON and exit status 1. YAML syntax errors expose a line but no column through the parser, so those reports use column 1 as a fallback.

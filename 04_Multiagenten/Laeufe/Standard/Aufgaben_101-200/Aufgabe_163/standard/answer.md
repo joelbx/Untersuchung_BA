@@ -1,0 +1,3 @@
+Implemented separate database settings for SQLite, Postgres, and MySQL. `db.url` takes precedence when present; otherwise the application validates the discrete fields and builds the connection target with engine-specific port defaults. Connections and migrations now use the same configuration path and pool settings, and URL parsing and opening errors omit credentials. The sample config and focused tests were updated.
+
+Verification passed: `GOPROXY=off go test ./config ./storage/db ./cmd/flipt` and `git diff --check`.

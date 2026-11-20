@@ -1,0 +1,3 @@
+Implemented the `storage.readOnly` config field and validation, config-driven UI readonly state with the `selectConfig` selector, storage backend icons in the header, and the auth bootstrap database skip for non-database storage. Added the requested invalid config fixture and its test case.
+
+Verification: `go test ./internal/config ./internal/cmd` passed; `git diff --check` passed. UI tests could not run because `npm` is unavailable.

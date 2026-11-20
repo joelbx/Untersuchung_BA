@@ -1,0 +1,3 @@
+Resolved the `DeviceConfig` overwrite issue in [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts:56). Loading a current config with a signup token now leaves storage untouched. Migrations preserve the recognized fields, convert credentials to a user ID keyed object for storage, and retain existing database keys.
+
+Added regression coverage in [DeviceConfigTest.ts](/app/test/client/misc/DeviceConfigTest.ts:96). Source and test type checks pass; the client suite passed with **3,092 assertions**.

@@ -1,0 +1,3 @@
+Fixed the Kubernetes exec session failure. The Kubernetes service now initializes the uploader that creates the streaming directory when it owns that responsibility. The forwarder now rebuilds request-specific sessions, caches only certificates with at least one minute of validity, and records audit events using its service context so client disconnects do not cancel them.
+
+I also updated the forwarder config names, added `ServeHTTP` delegation, used `AuthClient` for heartbeats, and improved exec response error logging. **Verification passed:** `go test ./lib/kube/proxy ./lib/service` and `git diff --check`.

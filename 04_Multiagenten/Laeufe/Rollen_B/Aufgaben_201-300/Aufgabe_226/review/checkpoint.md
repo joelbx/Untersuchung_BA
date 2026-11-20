@@ -1,0 +1,3 @@
+VERDICT: ACCEPT
+Reviewed the applied MIME patch against the issue. `resources/mime_types.yaml` contains the prior mappings and lossless entries; `mime.load` registers mappings, strips periods and sorts lossless extensions, and the hook runs from `conf.Load`. `resources.FS` supplies an embedded default with a DataFolder/resources overlay. Model imports the hook package, and server UI uses the loaded list. No code defects found.
+Tests passed: `GOPROXY=off GOSUMDB=off go test ./mime ./model ./server` and `GOPROXY=off GOSUMDB=off go test ./core ./server/subsonic`. No project code changes made by reviewer.

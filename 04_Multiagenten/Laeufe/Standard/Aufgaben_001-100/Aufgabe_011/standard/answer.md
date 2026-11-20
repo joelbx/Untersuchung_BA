@@ -1,0 +1,3 @@
+Implemented the repository fixes for `_UNSET` handling, module parameter and traceback errors, legacy YAML constructors, `None` templar overrides, lookup messages, deprecation display, Boolean `timedout` results, and early CLI errors. Added focused regression tests.
+
+Verification: **367 passed, 1 skipped**; `git diff --check` passed. The separate legacy module deprecation tests still have seven controller-mode fixture failures: they expect target-side warning storage but receive controller display output.

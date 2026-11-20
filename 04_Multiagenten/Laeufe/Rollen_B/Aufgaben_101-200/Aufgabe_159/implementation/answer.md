@@ -1,0 +1,3 @@
+Updated [CycloneDX PURL generation](/app/reporter/sbom/cyclonedx.go) to parse package names into namespace, name, and subpath for Maven, PyPI, Golang, npm, and Cocoapods. The builders also map scanner identifiers such as `pom`, `pip`, and `gomod` to the corresponding PURL types.
+
+Added [parser and builder tests](/app/reporter/sbom/cyclonedx_test.go). `go test ./reporter/sbom` passed with network access disabled.

@@ -1,0 +1,3 @@
+Removed `ListMixin` and consolidated its behavior in `List`. The owner method now parses `/people/{username}/lists/{list_id}` and returns `None` when it cannot resolve an owner. Added `register_models()` in [lists/model.py](/app/openlibrary/core/lists/model.py) to register `/type/list` and the `lists` changeset type.
+
+The focused suite passed **20 tests**; Ruff and `git diff --check` passed. The wider test run remains unverified: one test requires the unavailable `cookielib` module, and another fails because `web.ctx.env` is unset. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Added `/.well-known/webfinger` through a dedicated [controller](/app/src/controllers/well-known.js) and [route](/app/src/routes/well-known.js), mounted at startup. It validates the `acct:` resource and configured hostname, checks `view:users` using the Guest role for anonymous requests, and returns WebFinger JSON with the subject, UID and slug aliases, and an HTML profile link. Invalid, forbidden, and unknown-user requests return 400, 403, and 404 respectively.
+
+The five focused WebFinger tests, ESLint, and `git diff --check` passed. Database backed controller tests were not run because their fixture reads and logs a config file that may contain credentials; full startup integration remains unverified.

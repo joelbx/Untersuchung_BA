@@ -1,0 +1,3 @@
+Implemented reliable public page session retrieval in [lastActivePersistedUserSession.ts](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts). It selects the newest valid session by `persistedAt`, returns its UID and localID together, and reports invalid data or storage errors. The public session provider, user hook, and telemetry now use that session. I removed `LAST_ACTIVE_PING` dependencies and updated the synchronized `drive-store` copy.
+
+Both Drive test sets pass: **17 tests each**. Type checks remain blocked by an existing OpenPGP type conflict in [api.ts](/app/packages/crypto/lib/worker/api.ts:579); they reported no errors in the changed files.

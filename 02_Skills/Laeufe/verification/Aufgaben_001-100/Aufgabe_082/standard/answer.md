@@ -1,0 +1,3 @@
+Updated the auth event backend path so `stdout://` uses `WriterEmitter` and `MultiLog` fans out audit events. `NewMultiLog` now rejects backends that do not implement `Emitter`. Added tests for event writing, fan out, and a file plus stdout URI list.
+
+Verification passed: the full `lib/events` test suite, the focused service tests, and `git diff --check`. The DynamoDB combination was not run locally; the shared multi backend path was tested with file and stdout.

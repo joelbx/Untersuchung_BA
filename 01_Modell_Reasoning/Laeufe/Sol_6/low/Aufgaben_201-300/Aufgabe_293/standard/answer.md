@@ -1,0 +1,3 @@
+Resolved the OCI configuration issue in the checked-out repository. Configuration now parses `bundles_directory`, authentication credentials, and duration strings for `poll_interval`; requires a repository; and returns the specified error for unsupported schemes. The OCI store uses the directory passed to `NewStore`, `DefaultBundleDir` creates the default bundle path, and gRPC startup passes the configuration through to the OCI backend.
+
+I registered `fs/oci` in the integration suite and CI matrix and added a fixture generator using the existing read only test data. The targeted Go tests passed, and the fixture generator ran successfully. The Dagger integration suite itself was not run.

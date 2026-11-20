@@ -1,0 +1,3 @@
+Added `VulnInfo.KEVs` as a first-class field with CISA and VulnCheck types and source-specific details. [FillWithKEVuln](/app/detector/kevuln.go:51) now populates it from both sources, normalizes placeholder due dates, and accepts older CISA-only HTTP responses. KEV counts, stable JSON ordering, and reporter/TUI visibility are included. `AlertDict.CISA` remains for older JSON reports.
+
+I delegated the model, detector, and focused test work to three agents, then integrated and checked their changes. The offline tests for models, detector, reporter, TUI, server, and subcommands passed; formatting and `git diff --check` passed.

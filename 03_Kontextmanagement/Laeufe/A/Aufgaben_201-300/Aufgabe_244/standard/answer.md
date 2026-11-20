@@ -1,0 +1,3 @@
+Fixed the dark mode foreground threshold. `colors.webpage.darkmode.threshold.foreground` is now an Int option with default `256`; saved settings using `...threshold.text` migrate to it. The backend uses `TextBrightnessThreshold` before QtWebEngine 6.4 and `ForegroundBrightnessThreshold` from 6.4 onward. The settings reference is updated.
+
+Verification: 304 relevant tests passed, 1 skipped, using Qt’s offscreen platform.

@@ -1,0 +1,3 @@
+Updated [pip.py](/app/lib/ansible/modules/pip.py:354) to run `sys.executable -m pip` when pip is available but no executable is specified. Launchers now use argv lists, package listing retains its fallback and returns a command string for logging, and the virtualenv path prefix uses `os.path.join`.
+
+A delegated reviewer checked the module change, and a second agent added [regression tests](/app/test/units/modules/test_pip.py:30). I verified the combined patch: **11 focused tests passed**, and `git diff --check` is clean.

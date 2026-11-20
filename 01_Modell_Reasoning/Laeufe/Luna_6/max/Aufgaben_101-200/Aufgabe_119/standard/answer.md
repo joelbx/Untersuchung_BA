@@ -1,0 +1,3 @@
+Refactored [Pill.tsx](/app/src/components/views/elements/Pill.tsx) into a functional component with named exports and extracted permalink, profile, avatar, and user action resolution into [usePermalink.tsx](/app/src/hooks/usePermalink.tsx). Updated named imports in [ReplyChain.tsx](/app/src/components/views/elements/ReplyChain.tsx), [BridgeTile.tsx](/app/src/components/views/settings/BridgeTile.tsx), and [pillify.tsx](/app/src/utils/pillify.tsx).
+
+The pillification tests passed (3/3), as did focused ESLint, Prettier, and `git diff --check`. The full TypeScript check reports SDK API mismatch errors in `LoginWithQR.tsx`, `Notifications.tsx`, and `VectorPushRulesDefinitions.ts`; none reference the changed files.

@@ -1,0 +1,3 @@
+Syslog configuration now lives in [config/syslog](/app/config/syslog/types.go) as the public `Conf` struct. Its public `Validate()` method preserves the existing non-Windows checks and error counts; the Windows implementation returns the specified error when syslog is enabled. Configuration and reporting use the new type, while `config.SyslogConf` remains a compatibility alias.
+
+Tests passed for `config/syslog`, `config`, `reporter`, and `subcmds`. The Windows syslog and config tests compiled successfully; they were not run.

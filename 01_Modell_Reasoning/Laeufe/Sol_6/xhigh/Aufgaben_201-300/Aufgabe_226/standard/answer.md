@@ -1,0 +1,3 @@
+MIME mappings and lossless formats now load at startup from [mime_types.yaml](/app/resources/mime_types.yaml). Operators can override it at `<DataFolder>/resources/mime_types.yaml`. The [loader](/app/mime/mime.go) registers the mappings through a `conf.AddHook` startup hook, and the UI now renders `mime.LosslessFormats` as a comma-separated uppercase string. The old definitions in `consts/mime_types.go` are removed.
+
+Tests passed for `mime`, `model`, `server`, `core`, `server/subsonic`, `cmd`, and `scanner`.

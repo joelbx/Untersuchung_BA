@@ -1,0 +1,2 @@
+Task: implement ansible-galaxy collection install --upgrade/-U, upgrade-aware dependency resolution, opt-in pre-releases, constraints, requirements-file semantics, and tests.
+Status: complete. CLI and resolver changes implemented, upgrade.yml integration tasks added, focused unit tests passed (192 tests with ANSIBLE_DEVEL_WARNING=False). YAML parsed and git diff --check passed. Integration tasks were not run because they require configured Galaxy services. No delegation used.

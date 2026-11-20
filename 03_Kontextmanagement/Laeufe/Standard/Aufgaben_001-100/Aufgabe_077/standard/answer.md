@@ -1,0 +1,3 @@
+Implemented date based module deprecations across Python module results, argument specs, display warnings, validator logic, and the C# `DateTime` overload. The C# deprecated alias checks now produce the requested internal error messages.
+
+Verification: 102 focused Python tests passed; Python syntax checks and `git diff --check` passed. I could not run validator tests because `voluptuous` is absent locally, or compile C# because no compiler is installed.

@@ -1,0 +1,3 @@
+Added `splitBySeparator` to [recipient.ts](/app/packages/shared/lib/mail/recipient.ts). It splits on commas and semicolons, trims tokens, removes angle brackets, and drops empty results. Bracketed emails now produce the bare email in both `Name` and `Address`. Both address autocomplete components discard empty completed entries while preserving display names on named addresses.
+
+The focused recipient tests passed (3/3), both package type checks passed, and formatting and diff checks passed. The full shared Karma suite could not launch because its configured Playwright Chromium binary is missing.

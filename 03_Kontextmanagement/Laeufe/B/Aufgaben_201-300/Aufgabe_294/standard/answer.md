@@ -1,0 +1,3 @@
+Resolved the collection symlink issue. Builds now preserve internal file and directory symlinks without expanding linked directories; external file links are stored as regular files. Installation restores links only when their targets resolve within the destination, and the tar helpers expose both the member and its stream.
+
+Updated [collection.py](/app/lib/ansible/galaxy/collection.py) and the [unit tests](/app/test/units/galaxy/test_collection.py). All **103 relevant tests passed**, and `git diff --check` passed.

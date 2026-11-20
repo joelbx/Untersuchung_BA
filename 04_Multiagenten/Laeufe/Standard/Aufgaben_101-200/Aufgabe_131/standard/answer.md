@@ -1,0 +1,3 @@
+Added bounded event polling for new Chargebee card and PayPal payment methods. The [polling hook](/app/packages/components/payments/client-extensions/usePollEvents.ts) exports `interval = 5000` and `maxPollingSteps = 5`, stops early on a matching property and action, and clears its timer and subscription when finished.
+
+Verification passed: 6 relevant tests, the components type check, and `git diff --check`.

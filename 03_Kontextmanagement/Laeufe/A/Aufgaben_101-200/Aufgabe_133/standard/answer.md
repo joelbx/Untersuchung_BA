@@ -1,0 +1,3 @@
+Updated the OSS migration to downgrade the existing `admin` role in place, mark it with `OSSMigratedV6`, and keep users and trusted cluster mappings on `admin`. Legacy user creation now assigns `admin` too. The downgraded role has read-only event and session permissions.
+
+The focused migration test passed. The services test passed, and the tctl package compiled; no tctl tests matched the selected test filter.

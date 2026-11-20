@@ -1,0 +1,3 @@
+Resolved the OCI storage configuration issue in `/app`. Validation now requires a repository and returns the specified error for unsupported schemes. The loader and schemas accept the bundle directory, credentials, and duration poll interval; the server passes them to the OCI backend. `DefaultBundleDir` creates the default bundle path, and `fs/oci` is registered in both integration matrices.
+
+The focused Go tests and `git diff --check` pass. The Dagger integration suite was registered but was not run locally because it requires external services.

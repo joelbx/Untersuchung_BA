@@ -1,0 +1,1 @@
+Completed: retained unified *sql.DB, added requested SQLite DSN options, kept persistence transactions on supplied connection, and routed scrobbler writes through tx. Verified: go test ./db ./persistence ./core/scrobbler passed.

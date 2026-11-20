@@ -1,0 +1,3 @@
+Updated the author import system to match by Open Library key first, then external identifiers, then name and dates. It now merges new identifiers into matched authors, preserves them on new authors, raises a clear error for conflicting identifiers, and uses a consistent tie break when multiple authors match. I also added the `wikisource` suspect date exemption.
+
+Verification: 125 relevant tests passed; Ruff and `git diff --check` passed.

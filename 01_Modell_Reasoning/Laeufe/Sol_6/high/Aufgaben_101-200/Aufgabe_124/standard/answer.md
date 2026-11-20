@@ -1,0 +1,3 @@
+The DynamoDB backend now accepts `billing_mode`, defaulting to `pay_per_request`. New on-demand tables use `PAY_PER_REQUEST` with nil provisioned throughput; provisioned tables use the configured capacity units. Startup checks an existing table’s billing mode and ignores configured auto scaling for on-demand tables, with a log message explaining why.
+
+I updated the [backend code](/app/lib/backend/dynamo/dynamodbbk.go), [configuration docs](/app/docs/pages/reference/backends.mdx), and [tests](/app/lib/backend/dynamo/billing_mode_test.go). The regular DynamoDB package tests and focused AWS tagged tests pass. AWS-dependent integration tests were not run.

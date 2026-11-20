@@ -1,0 +1,3 @@
+Implemented date based module deprecations across Python and C#. `removed_at_date` and dated aliases now produce date entries in module output; Display shows the removal date, and validation checks date format and expired dates. The C# `DateTime` overload formats event log dates as `yyyy-MM-dd` and validates alias entries.
+
+The focused Python suite passed: **101 tests**. Syntax compilation and `git diff --check` passed. I could not run the validator tests because `voluptuous` is absent, or the C# integration tests because this environment has no PowerShell or .NET runtime.

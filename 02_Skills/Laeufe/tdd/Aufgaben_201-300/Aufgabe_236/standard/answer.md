@@ -1,0 +1,3 @@
+Deprecated both `safe_eval` entry points with a runtime notice targeting 2.21, added the changelog entries, and changed `check_type_dict` to use JSON, restricted literals, and validated `key=value` pairs without evaluation.
+
+The affected-area tests pass: **108 passed**. The full test command stopped during integration-test collection. The broader `module_utils` run had 29 remaining failures involving shared warning state and a timeout test; those results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

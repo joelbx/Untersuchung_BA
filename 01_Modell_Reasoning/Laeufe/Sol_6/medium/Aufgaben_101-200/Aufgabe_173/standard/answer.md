@@ -1,0 +1,3 @@
+Updated the proxy to shuffle all matching database services, retry when a tunnel has a connection problem, and return a specific error if none can be reached. Added a deterministic `Shuffle` hook, offline tunnel simulation, HostID in server logs and sorting, and deduplication for `tsh db ls`.
+
+Tests passed for the API types, reverse tunnel, database proxy, and `tsh` packages, including fallback and all-offline cases.

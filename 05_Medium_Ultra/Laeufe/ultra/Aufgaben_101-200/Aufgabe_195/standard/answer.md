@@ -1,0 +1,3 @@
+Updated [config.Load](/app/internal/config/config.go) to return `*Result` with separate `Config` and `Warnings` fields. Deprecation warnings now depend on keys explicitly present in the file and are checked before defaults, including the new `ui.enabled` warning. The [CLI caller](/app/cmd/flipt/main.go) logs warnings from `Result`.
+
+Two subagents handled the caller and test updates; I reviewed the combined patch. Offline verification passed: `go test -count=1 ./internal/config ./cmd/flipt`. The CLI package has no test files.

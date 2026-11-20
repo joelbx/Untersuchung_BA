@@ -1,0 +1,3 @@
+Implemented namespace access evaluation in both authorization engines. `ListNamespaces` now uses the accessible namespaces passed through middleware context to filter its response and total count. The UI selects an authorized namespace and redirects stale namespace URLs.
+
+Relevant Go tests and `git diff --check` pass. UI tests could not run because `ui/node_modules` is absent and downloads are disallowed.

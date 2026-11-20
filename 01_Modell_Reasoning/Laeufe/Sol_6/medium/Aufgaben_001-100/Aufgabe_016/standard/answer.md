@@ -1,0 +1,3 @@
+Implemented host-scoped monitoring jobs in the checked-out repository. [utils.py](/app/scripts/monitoring/utils.py) now exposes `OlAsyncIOScheduler`, uses `HOSTNAME` for exact, prefix wildcard, and short-name matching, and gives scheduled jobs function-name IDs. [monitor.py](/app/scripts/monitoring/monitor.py) runs the async scheduler and registers the HAProxy job on allowed hosts. The new [haproxy_monitor.py](/app/scripts/monitoring/haproxy_monitor.py) collects HAProxy CSV metrics and emits Graphite events.
+
+Verification: all 5 existing monitoring tests pass; Ruff, `git diff --check`, and a mocked HAProxy CSV check pass.

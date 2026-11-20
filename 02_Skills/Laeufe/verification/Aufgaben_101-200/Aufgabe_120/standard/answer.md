@@ -1,0 +1,3 @@
+Implemented zip-based cover archival in [archive.py](/app/openlibrary/coverstore/archive.py), with zero-padded paths and URLs, upload verification, database reconciliation, and per-batch locking. Updated retrieval and schema handling, documented the layout, and added focused tests.
+
+Verification: the coverstore suite reported **23 passed, 7 skipped**. Ruff and `git diff --check` passed. The skipped webapp tests and an actual Internet Archive upload were not verified.

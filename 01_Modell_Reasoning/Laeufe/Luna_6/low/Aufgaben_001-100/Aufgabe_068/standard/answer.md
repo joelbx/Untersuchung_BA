@@ -1,0 +1,3 @@
+Implemented owner-encrypted session key propagation through entity loaders and the default cache, including mail detail loading in `MailFacade` and `MailIndexer`.
+
+Verification: `npm run types` passed, and the `EntityRestClient` test filter passed 38 tests. The runner also logged unrelated crypto initialization errors while loading other suites; those did not prevent the filtered tests from passing. `git diff --check` passed.

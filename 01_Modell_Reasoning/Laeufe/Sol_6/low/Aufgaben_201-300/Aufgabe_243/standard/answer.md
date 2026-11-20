@@ -1,0 +1,3 @@
+Updated Kubernetes session creation to use configured local credentials first, return a clear `trace.NotFound` error when a local cluster name is missing, and record the selected cluster address. Remote sessions use the reverse tunnel; kube_service sessions dial a discovered endpoint through `dialEndpoint`.
+
+Added assertions for the recorded address and the no-endpoint error. `go test ./lib/kube/proxy -count=1` passed.

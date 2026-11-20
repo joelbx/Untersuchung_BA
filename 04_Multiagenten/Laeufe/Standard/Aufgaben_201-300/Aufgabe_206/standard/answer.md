@@ -1,0 +1,3 @@
+Added a per-user or guest-session posting lock to topic creation and replies. Overlapping requests now receive HTTP 400 with `status.code: "bad-request"`; the accepted topic request returns 200 with `status.code: "ok"`. The lock is released when processing finishes or fails.
+
+The regression test passed with six concurrent requests: one topic was created, and the category, user, and global topic counters each increased by one. ESLint and `git diff --check` also passed.

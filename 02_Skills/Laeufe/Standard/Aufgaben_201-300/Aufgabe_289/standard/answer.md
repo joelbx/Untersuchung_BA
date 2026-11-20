@@ -1,0 +1,3 @@
+Exported `DefaultConfig()` and `DecodeHooks`, and updated `Load` to compose the exported hooks. Storage Local and Git now use pointers, with validation for missing sub-configurations. Added a test for decoding duration fields through the hooks.
+
+Offline tests passed for `./internal/config`, `./internal/cue`, and `./internal/cmd`. This checkout has no `internal/config/schema_test.go`, so that specific validation test could not be run.

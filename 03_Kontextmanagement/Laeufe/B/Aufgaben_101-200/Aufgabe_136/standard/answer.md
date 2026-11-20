@@ -1,0 +1,3 @@
+Updated the WebKit certificate wrapper to accept `reply` and `errors`, render one error as an escaped paragraph and multiple errors as an escaped list, and access the reply only when accepting a certificate. Added the shared decision methods and Qt5/Qt6 WebEngine wrappers and factory.
+
+All 7 focused WebKit tests passed, as did syntax and wrapper checks. The WebEngine tab suite exited before reporting a result, so its outcome remains unverified.

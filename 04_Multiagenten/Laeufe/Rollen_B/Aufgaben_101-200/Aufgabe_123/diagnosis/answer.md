@@ -1,0 +1,7 @@
+I traced the issue to three files:
+
+- [Container.tsx](/app/packages/components/containers/notifications/Container.tsx:19) renders string `text` as React text, which escapes HTML. String content needs sanitization before HTML rendering, with every link forced to `target="_blank"` and `rel="noopener noreferrer"`. React elements should continue rendering directly.
+- [manager.tsx](/app/packages/components/containers/notifications/manager.tsx:63) assigns the ID as the key and deduplicates by string text. It needs to compare a key chosen in this order: explicit key, string text, then ID. Deduplication should apply only to non-success notifications and should not replace an existing success notification.
+- [interfaces.ts](/app/packages/components/containers/notifications/interfaces.ts:14) excludes `key` from creation options, so callers cannot provide the explicit key required by the contract.
+
+DOMPurify is already a dependency, and the existing [calendar sanitizer](/app/packages/shared/lib/calendar/sanitize.ts:1) shows an HTML allowlist and link attributes. Its global hook makes direct reuse worth checking. I found no notification-specific tests. I recorded the diagnosis in `.codex-role-output/checkpoint.md`; the assigned fault-localization scope prohibited source and test edits, so the issue remains unresolved in the checked-out code.

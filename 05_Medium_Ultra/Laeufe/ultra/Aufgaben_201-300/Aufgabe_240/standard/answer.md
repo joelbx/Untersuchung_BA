@@ -1,0 +1,3 @@
+Added [netapp_e_drive_firmware](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py) with firmware upload, compatible drive selection, online or offline upgrades, targeted status polling, and check mode reporting. I also fixed [E-Series request logging](/app/lib/ansible/module_utils/netapp.py) so firmware payloads are not logged, and added [focused tests](/app/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py).
+
+Two subagents reviewed local API patterns and wrote tests; I integrated and verified the patch. The runnable NetApp storage suite had **137 passed, 590 skipped**; the shared utility tests had **6 passed**. Three existing test files could not be collected because the local `mock` package is unavailable.

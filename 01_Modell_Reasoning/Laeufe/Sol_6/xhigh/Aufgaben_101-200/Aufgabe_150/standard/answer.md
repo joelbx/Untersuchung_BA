@@ -1,0 +1,3 @@
+Updated collection manifest handling. A missing `manifest` now uses `Sentinel`, while explicit `manifest: {}` and `manifest: null` select the default manifest directives. The `Sentinel` path still applies `build_ignore`, excludes symlinks pointing outside the collection, and retains internal links once.
+
+The relevant Galaxy and Galaxy CLI unit suites passed: **237 tests**. `distlib` is unavailable locally, so the tests verified directive selection with a mock rather than a full directive build.

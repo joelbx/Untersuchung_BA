@@ -1,0 +1,3 @@
+Updated the `List` and `Seed` type annotations, added `SeedDict`, normalized subject keys and seed membership comparisons, and made exports return all three categories with loaded, type-filtered entries. Added regression tests for mixed seed formats and exports.
+
+The relevant local tests pass: **15 passed**. `test_listapi.py` could not be collected because it imports the unavailable Python 2 `cookielib` module.

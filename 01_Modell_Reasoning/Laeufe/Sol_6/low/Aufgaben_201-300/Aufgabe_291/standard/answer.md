@@ -1,0 +1,3 @@
+NVD CVSS v4.0 metrics are now converted into `CveContent` by metric source and surfaced by `Cvss40Scores()` in **Mitre, Nvd** order. The three model fields already existed, so no struct change was needed. I updated the dictionary dependency to a locally cached version that exposes `Nvd.Cvss40` and added focused conversion and aggregation tests.
+
+The full `models` test suite passed with network access disabled.

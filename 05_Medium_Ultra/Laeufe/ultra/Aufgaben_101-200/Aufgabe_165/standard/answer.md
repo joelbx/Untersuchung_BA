@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` support. The new [policy helper](/app/src/utils/room/shouldForceDisableEncryption.ts) reads the flag strictly, and [createRoom.ts](/app/src/createRoom.ts) resolves conflicts in favor of the server policy. [CreateRoomDialog.tsx](/app/src/components/views/dialogs/CreateRoomDialog.tsx) keeps encryption controls locked while that decision loads, shows any enforced value, and submits the value shown.
+
+Two delegated agents added dialog and policy tests; I integrated their work and reran it. All 43 tests across four suites pass, as do focused ESLint and Prettier checks. The full TypeScript check still reports an unrelated error in unchanged [Unread.ts](/app/src/Unread.ts:167).

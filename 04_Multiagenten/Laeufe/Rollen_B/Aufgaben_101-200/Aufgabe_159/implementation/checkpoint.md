@@ -1,0 +1,1 @@
+Implementer progress: confirmed malformed PURLs came from both SBOM dependency builders passing unsplit names. Added canonical PURL type mapping and parsePkgName for Maven, PyPI, Golang, npm, and Cocoapods; both builders now use the parsed namespace/name/subpath. Added parser and builder tests. GOPROXY=off GOSUMDB=off go test ./reporter/sbom passed; git diff --check passed.

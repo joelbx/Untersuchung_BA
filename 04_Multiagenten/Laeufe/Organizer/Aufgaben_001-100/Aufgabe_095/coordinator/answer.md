@@ -1,0 +1,3 @@
+Added the module-level `make_date_string` formatter and `patron_check_ins.is_valid` in [checkins.py](/app/openlibrary/plugins/upstream/checkins.py). Check-in creation now uses the formatter, while the existing method remains available for callers. Added tests for partial dates, zero-padding, and required update fields.
+
+The check-in test file passed: **7 tests**. `git diff --check` passed. No delegation was used.

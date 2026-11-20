@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) so completion messages name the process’s own PID, crashes name the signal, and SIGTERM sets the state to `terminated`. SIGTERM shows no completion message unless verbose mode is enabled. Added real-process regression coverage in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py).
+
+Verification: 43 GUIProcess tests and 121 nearby consumer tests passed. The full suite could not complete because end-to-end Chromium tests refuse to run as root without `--no-sandbox`; this is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

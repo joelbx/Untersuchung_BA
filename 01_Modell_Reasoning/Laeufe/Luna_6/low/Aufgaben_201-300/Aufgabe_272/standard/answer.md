@@ -1,0 +1,3 @@
+Implemented `ciphers` support across `get_url`, `uri`, and `lookup('url')`, threading it through `fetch_url`, `open_url`, and `Request`. Added shared `make_context` and `get_ca_certs` helpers, cipher validation, redirect propagation, and TLS context handling that preserves certificate validation by default and excludes SSLv2/SSLv3 when validation is disabled.
+
+Verification: 120 relevant unit tests passed; compile and `git diff --check` passed. Updated existing mock expectations for the required explicit `ciphers=None` argument.

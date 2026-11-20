@@ -1,0 +1,3 @@
+Implemented the diff report change. New CVEs carry `+`, resolved CVEs carry `-`, and unchanged CVEs are excluded. Users can select either type or both with `-diff-plus` and `-diff-minus`; package details come from the corresponding scan.
+
+The model and report changes are in [vulninfos.go](/app/models/vulninfos.go) and [util.go](/app/report/util.go). Relevant tests passed with `GOPROXY=off go test ./config ./models ./report ./subcmds`.

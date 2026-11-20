@@ -1,0 +1,3 @@
+Added duration units to `:later`. It now accepts values such as `5s`, `2m30s`, and `1.5h`; bare integers still mean milliseconds. The new [parse_duration function](/app/qutebrowser/utils/utils.py:255) handles decimal components and rejects invalid input, and the [command help](/app/doc/help/commands.asciidoc:788) reflects the new syntax.
+
+Verification: 347 relevant tests passed, 1 skipped. `flake8` was unavailable locally.

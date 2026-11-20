@@ -1,0 +1,2 @@
+Implementation complete: hook returns string | undefined and starts undefined; all identified consumers use a single country value; country-only loading gates removed while user-settings gates remain; PhoneInput empty and late-default semantics implemented.
+Verification: yarn workspace @proton/components test --runInBand components/v2/phone/PhoneInput.test.tsx hooks/useMyCountry.test.ts (2 suites, 15 tests passed).

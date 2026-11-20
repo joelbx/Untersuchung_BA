@@ -1,0 +1,7 @@
+Task: expression AST and interpolation rewrite.
+Status: implementation complete; affected package tests pass; srv and repository-wide checks blocked/incomplete as recorded below.
+Tooling: rg unavailable (/bin/sh: rg: not found); using find/grep.
+Implementation: AST nodes and predicate-backed parser added; nested interpolation, matcher AST, namespace/arity/type validation, service and PAM callbacks updated.
+Checks: go test ./lib/utils/parse -count=1 passed; go test ./lib/services -run TestApplyValueTraitsRejectsNestedUnsupportedInternalTrait -count=1 passed; go test ./lib/utils/parse ./lib/services ./lib/srv -count=1: parse and services passed, srv build failed. Exact blockers: github.com/flynn/hid fatal error linux/hidraw.h: No such file or directory; github.com/mattn/go-sqlite3 pread64/pwrite64 undeclared and off64_t unknown. srv behavior remains unverified in this environment.
+Repository-wide check: exact command `timeout 120 go test ./... > /tmp/teleport-go-test.log 2>&1; result=$?; tail -40 /tmp/teleport-go-test.log; exit "$result"` exited 143 after timeout termination. Output included linux/hidraw.h missing and sqlite3-binding.c pread64/pwrite64/off64_t build errors; integration and several auth packages were marked build failed. Suite was incomplete at timeout; remaining packages are unverified. Parser test rerun after latest edits passed.
+Final checks: `git diff --check` passed; `go test ./lib/utils/parse ./lib/services -count=1` passed after final edits.

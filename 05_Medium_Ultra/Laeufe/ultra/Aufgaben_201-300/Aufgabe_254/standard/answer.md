@@ -1,0 +1,3 @@
+Updated [ec2.go](/app/lib/utils/ec2.go) so `IsAvailable` retrieves `instance-id` through the IMDS client within 250 ms and accepts only valid EC2 instance IDs. `NewInstanceMetadataClient` now accepts functional options, including `WithIMDSClient`. Added captive portal, ID validation, option, and timeout tests in [ec2_test.go](/app/lib/utils/ec2_test.go).
+
+`go test ./lib/utils ./lib/labels/ec2` passed. A `lib/service` compile check failed because the container lacks required C headers. I delegated a call-site review and test implementation to two agents, then integrated and verified the patch.

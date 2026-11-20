@@ -1,0 +1,1 @@
+Implemented optional FormatString encoding validation and ASCII user-agent constraint. Added type-level tests for ASCII, Latin-1, and no encoding, plus config-data integration test. Verified: test_configtypes.py 1106 passed, 10 xfailed; test_configdata.py 32 passed; git diff --check clean.

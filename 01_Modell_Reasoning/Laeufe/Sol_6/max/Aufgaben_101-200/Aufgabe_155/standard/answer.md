@@ -1,0 +1,3 @@
+Implemented digest support across image configuration, scanning, scan results, logging, and report identifiers. Image validation now requires a name and exactly one of tag or digest. Image server names use a stable numeric index.
+
+Relevant package tests pass offline. The run disabled vet because of an existing warning in `models/library.go` and skipped `models.TestScan` because the local Trivy database is not populated.

@@ -1,0 +1,3 @@
+Updated [RPM parsing](/app/scanner/redhatbase.go:577) so an unparseable source filename adds a warning and skips only the source package; the binary package remains available and the scan continues. Epoch prefixed filenames now produce the correct source name and version, with the `src` architecture and binary link.
+
+Added [regression tests](/app/scanner/redhatbase_test.go:407). The focused scanner tests passed, and `git diff --check` was clean.

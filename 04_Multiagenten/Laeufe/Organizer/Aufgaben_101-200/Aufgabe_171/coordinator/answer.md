@@ -1,0 +1,3 @@
+Implemented the `x-flipt-accept-server-version` gRPC interceptor and wired it into the server. It stores the parsed version in the request context, accepts versions with or without a `v` prefix, and falls back to `1.0.0` when the header is missing or invalid. Added tests for those cases and the context helpers.
+
+`go test ./internal/server/middleware/grpc ./internal/cmd` passed. No delegation was used.

@@ -1,0 +1,1 @@
+Implementation complete: config defaults/validation/schema, provider sampling, gRPC propagator selection, and tests added. gofmt, JSON parse, and git diff --check pass. Go tests attempted with GOPROXY=off; blocked before compilation by uncached existing x/sync, x/net, x/crypto, x/sys modules. Fixed a local import name collision during source review.

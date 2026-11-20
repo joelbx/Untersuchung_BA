@@ -1,0 +1,3 @@
+Fortinet advisories now participate in FortiOS CPE detection and CVE enrichment. Results include advisory IDs and URLs, CVSS v3 data, CWE IDs, references, and timestamps. The detector selects the highest confidence signal across Fortinet, NVD, and JVN, and reports include Fortinet content in the requested display order.
+
+The `go-cve-dictionary` dependency was updated to a Fortinet-capable version. Regression tests cover Fortinet-only detection, multiple advisories, confidence, and metadata conversion. **Verification passed:** `GOPROXY=off GOSUMDB=off go test -mod=mod ./...` and `git diff --check`.

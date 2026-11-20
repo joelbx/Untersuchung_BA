@@ -1,0 +1,3 @@
+Updated [the config schema](/app/qutebrowser/config/configdata.yml) to accept `always`, `auto`, and `never`, with `auto` as the default. [The WebEngine argument code](/app/qutebrowser/config/qtargs.py) now adds the canvas flag in `auto` mode only on Qt 6 with a known Chromium major version below 111.
+
+Added boundary coverage in [the existing tests](/app/tests/unit/config/test_qtargs.py). All 147 focused tests passed using Qt’s offscreen platform; the Qt 6 cases were simulated because this environment runs Qt 5.

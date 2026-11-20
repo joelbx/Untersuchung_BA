@@ -1,0 +1,3 @@
+Implemented `billing_mode` in [dynamodbbk.go](/app/lib/backend/dynamo/dynamodbbk.go). It accepts `pay_per_request` and `provisioned`, defaults to on-demand, and sends provisioned throughput only for provisioned tables. Initialization also skips configured autoscaling for on-demand tables and logs why. Updated the [backend README](/app/lib/backend/dynamo/README.md) with the new setting.
+
+`go test ./lib/backend/dynamo` passed. The tagged test package could not compile because existing `configure_test.go` has incompatible UUID concatenation and DynamoDB client types. `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented the token lifecycle utilities under `api.utils.tokens` in [src/api/utils.js](/app/src/api/utils.js:23), including persistence, indexes, hydration, and validation. Authentication checks internally stored tokens while retaining legacy settings support in [authentication.js](/app/src/routes/authentication.js:48); usage logging and admin last-seen lookup now use the shared utilities.
+
+ESLint and `git diff --check` pass. The focused authentication tests could not start because Redis was unavailable, so no test cases ran.

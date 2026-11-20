@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) to show stdout and stderr live, then publish a separate final message for each nonempty stream. Stdout uses informational severity; stderr uses error severity; final stdout appears first.
+
+Updated the [tests](/app/tests/unit/misc/test_guiprocess.py) for live output, ordering, empty streams, and carriage-return handling. All 43 relevant tests pass.

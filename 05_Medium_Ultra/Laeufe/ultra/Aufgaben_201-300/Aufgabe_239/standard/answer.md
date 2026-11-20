@@ -1,0 +1,3 @@
+Resolved the user scoping issue. [UserPropsRepository](/app/model/user_props.go) now requires a user ID for every read and write; the SQL repository and mock use that ID directly. LastFM agent operations pass the selected user ID, while link status and unlink use the authenticated request user. The callback verifies a five-minute signed state issued during an authenticated link start, so a browser-supplied `uid` cannot select another user.
+
+I delegated the repository, LastFM agent, and router changes to three subagents, then integrated the UI flow and reviewed the patch. Two-user regression tests were added. **Verification passed:** `GOPROXY=off GOSUMDB=off go test ./...`, ESLint and Prettier for the changed UI file, and `git diff --check`.

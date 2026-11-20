@@ -1,0 +1,3 @@
+Implemented the token lifecycle interface in [src/api/utils.js](/app/src/api/utils.js). It supports creation, lookup, updates, deletion, usage logging, and creation-order listing. [Bearer authentication](/app/src/routes/authentication.js) now recognizes tokens from the new store.
+
+The [focused tests](/app/test/api-utils-tokens.js) pass (2 tests), as do ESLint, syntax checks, and `git diff --check`. The full API suite was not run because its database mock reads and prints configuration credentials.

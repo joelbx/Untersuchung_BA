@@ -1,0 +1,3 @@
+Added `GET /.well-known/webfinger` through the [router](/app/src/routes/well-known.js) and [controller](/app/src/controllers/well-known.js). It validates the `acct:` resource and hostname, checks `view:users` with anonymous requests evaluated as Guest, resolves the user slug, and returns a WebFinger JSON response with UID and profile aliases.
+
+Added [integration cases](/app/test/controllers.js). ESLint and isolated HTTP checks pass. The integration run stopped during test database setup because the connection was refused; its endpoint cases could not run.

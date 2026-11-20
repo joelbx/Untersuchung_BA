@@ -1,0 +1,3 @@
+Updated [collection.py](/app/lib/ansible/galaxy/collection.py) so collection builds preserve internal file and directory symlinks with relative targets, omit linked directory contents from the manifest, and copy external file links as regular files. Installation now validates destination paths and link targets before restoring symlinks. The tar extract helpers return both the member and its stream.
+
+Added coverage in [test_collection.py](/app/test/units/galaxy/test_collection.py). All **63 collection tests pass**, and `git diff --check` passes. Four CLI warning-count tests still fail when run independently; they do not exercise the changed symlink paths.

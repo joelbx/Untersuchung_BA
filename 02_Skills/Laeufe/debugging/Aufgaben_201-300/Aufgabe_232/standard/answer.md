@@ -1,0 +1,3 @@
+Added the canonical OS EOL lookup in [config/os.go](/app/config/os.go), per-target lifecycle warnings in [scan/eol.go](/app/scan/eol.go), and ordered `Warning: ` lines in the [scan summary](/app/report/util.go). Major-version parsing is shared through [util.Major](/app/util/util.go), and Amazon Linux `2` is classified correctly.
+
+Verification: `GOPROXY=off go test ./config ./util ./scan ./report ./oval ./gost -count=1` passed.

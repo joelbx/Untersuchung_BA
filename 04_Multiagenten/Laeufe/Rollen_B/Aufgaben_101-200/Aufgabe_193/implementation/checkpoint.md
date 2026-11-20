@@ -1,0 +1,1 @@
+Verified mixed requirements are parsed once, role and collection installs run independently, and custom role paths skip collections with the required warning/verbose behavior. Fixed selected-role dependency processing so appended dependencies are installed. CLI unit tests: 113 passed with ANSIBLE_DEVEL_WARNING=False. Patch touches galaxy CLI and its unit tests.

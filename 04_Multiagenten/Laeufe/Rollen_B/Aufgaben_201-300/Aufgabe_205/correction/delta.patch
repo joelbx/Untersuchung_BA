@@ -1,0 +1,307 @@
+diff --git a/src/api/users.js b/src/api/users.js
+index 9b37d84..328c207 100644
+--- a/src/api/users.js
++++ b/src/api/users.js
+@@ -18,7 +18,7 @@ const plugins = require('../plugins');
+ const events = require('../events');
+ const translator = require('../translator');
+ const sockets = require('../socket.io');
+-const utils = require('../utils');
++const tokenUtils = require('./utils').tokens;
+ 
+ const usersAPI = module.exports;
+ 
+@@ -313,19 +313,8 @@ usersAPI.generateToken = async (caller, { uid, description }) => {
+ 		throw new Error('[[error:invalid-uid]]');
+ 	}
+ 
+-	const settings = await meta.settings.get('core.api');
+-	settings.tokens = settings.tokens || [];
+-
+-	const newToken = {
+-		token: utils.generateUUID(),
+-		uid: caller.uid,
+-		description: description || '',
+-		timestamp: Date.now(),
+-	};
+-	settings.tokens.push(newToken);
+-	await meta.settings.set('core.api', settings);
+-
+-	return newToken;
++	const token = await tokenUtils.generate({ uid: caller.uid, description });
++	return await tokenUtils.get(token);
+ };
+ 
+ usersAPI.deleteToken = async (caller, { uid, token }) => {
+@@ -334,14 +323,11 @@ usersAPI.deleteToken = async (caller, { uid, token }) => {
+ 		throw new Error('[[error:invalid-uid]]');
+ 	}
+ 
+-	const settings = await meta.settings.get('core.api');
+-	const beforeLen = settings.tokens.length;
+-	settings.tokens = settings.tokens.filter(tokenObj => tokenObj.token !== token);
+-	if (beforeLen !== settings.tokens.length) {
+-		await meta.settings.set('core.api', settings);
++	const existing = await tokenUtils.get(token);
++	if (existing) {
++		await tokenUtils.delete(token);
+ 		return true;
+ 	}
+-
+ 	return false;
+ };
+ 
+diff --git a/src/api/utils.js b/src/api/utils.js
+index 567aa8a..b9dd3dd 100644
+--- a/src/api/utils.js
++++ b/src/api/utils.js
+@@ -2,6 +2,7 @@
+ 
+ const db = require('../database');
+ const user = require('../user');
++const meta = require('../meta');
+ const { generateUUID } = require('../utils');
+ 
+ const utils = module.exports;
+@@ -10,10 +11,34 @@ utils.tokens = tokens;
+ 
+ // Internal token management utilities only.
+ tokens.list = async () => {
++	await tokens.importLegacy();
+ 	const ids = await db.getSortedSetRange('tokens:createtime', 0, -1);
+ 	return await tokens.get(ids);
+ };
+ 
++// Move tokens created by older releases into the indexed store without changing their IDs.
++tokens.importLegacy = async () => {
++	const { tokens: legacy = [] } = await meta.settings.get('core.api');
++	await Promise.all(legacy.map(async (item) => {
++		if (!item || !item.token || await db.getObject(`token:${item.token}`)) {
++			return;
++		}
++		const uid = Number(item.uid);
++		const oldTimestamp = Number(item.timestamp);
++		const timestamp = Number.isFinite(oldTimestamp) && oldTimestamp > 0 ? oldTimestamp : Date.now();
++		if (!Number.isInteger(uid) || uid < 0) {
++			return;
++		}
++		await db.setObject(`token:${item.token}`, {
++			uid, description: item.description || '', timestamp,
++		});
++		await Promise.all([
++			db.sortedSetAdd('tokens:createtime', timestamp, item.token),
++			db.sortedSetAdd('tokens:uid', uid, item.token),
++		]);
++	}));
++};
++
+ tokens.generate = async ({ uid, description } = {}) => {
+ 	const numericUid = Number(uid);
+ 	if (uid === null || uid === undefined || !Number.isInteger(numericUid) || numericUid < 0) {
+@@ -49,10 +74,14 @@ tokens.get = async (ids) => {
+ 	if (tokenIds.some(id => typeof id !== 'string')) {
+ 		throw new Error('[[error:invalid-data]]');
+ 	}
+-	const [objects, lastSeen] = await Promise.all([
++	let [objects, lastSeen] = await Promise.all([
+ 		db.getObjects(tokenIds.map(id => `token:${id}`)),
+ 		tokens.getLastSeen(tokenIds),
+ 	]);
++	if (objects.some(obj => !obj)) {
++		await tokens.importLegacy();
++		objects = await db.getObjects(tokenIds.map(id => `token:${id}`));
++	}
+ 	const result = objects.map((obj, index) => (obj ? {
+ 		...obj,
+ 		token: tokenIds[index],
+@@ -67,7 +96,7 @@ tokens.update = async (token, { description } = {}) => {
+ 	if (description === undefined) {
+ 		throw new Error('[[error:invalid-data]]');
+ 	}
+-	if (!await db.getObject(`token:${token}`)) {
++	if (!await tokens.get(token)) {
+ 		return null;
+ 	}
+ 	await db.setObjectField(`token:${token}`, 'description', description === null ? '' : description);
+@@ -75,6 +104,11 @@ tokens.update = async (token, { description } = {}) => {
+ };
+ 
+ tokens.delete = async (token) => {
++	const settings = await meta.settings.get('core.api');
++	if (Array.isArray(settings.tokens) && settings.tokens.some(item => item.token === token)) {
++		settings.tokens = settings.tokens.filter(item => item.token !== token);
++		await meta.settings.set('core.api', settings);
++	}
+ 	await Promise.all([
+ 		db.delete(`token:${token}`),
+ 		db.sortedSetRemove('tokens:createtime', token),
+diff --git a/src/controllers/admin/settings.js b/src/controllers/admin/settings.js
+index 08ecbd0..50ca409 100644
+--- a/src/controllers/admin/settings.js
++++ b/src/controllers/admin/settings.js
+@@ -111,12 +111,12 @@ settingsController.social = async function (req, res) {
+ };
+ 
+ settingsController.api = async (req, res) => {
+-	const { tokens } = await meta.settings.get('core.api');
+-	const scores = await api.utils.tokens.getLastSeen(tokens.map(t => t.token));
++	const tokens = await api.utils.tokens.list();
++	const scores = tokens.map(t => t.lastSeen);
+ 
+ 	const [lastSeen, lastSeenISO] = tokens.reduce((memo, cur, idx) => {
+ 		memo[0][cur.token] = scores[idx];
+-		memo[1][cur.token] = new Date(scores[idx]).toISOString();
++		memo[1][cur.token] = scores[idx] === null ? null : new Date(scores[idx]).toISOString();
+ 		return memo;
+ 	}, [{}, {}]);
+ 
+diff --git a/src/routes/authentication.js b/src/routes/authentication.js
+index 0f7d20c..35c795b 100644
+--- a/src/routes/authentication.js
++++ b/src/routes/authentication.js
+@@ -6,7 +6,6 @@ const passportLocal = require('passport-local').Strategy;
+ const BearerStrategy = require('passport-http-bearer').Strategy;
+ const winston = require('winston');
+ 
+-const meta = require('../meta');
+ const tokenUtils = require('../api/utils').tokens;
+ const controllers = require('../controllers');
+ const helpers = require('../controllers/helpers');
+@@ -46,11 +45,7 @@ Auth.getLoginStrategies = function () {
+ };
+ 
+ Auth.verifyToken = async function (token, done) {
+-	let tokenObj = await tokenUtils.get(token);
+-	if (!tokenObj) {
+-		const { tokens = [] } = await meta.settings.get('core.api');
+-		tokenObj = tokens.find(t => t.token === token);
+-	}
++	const tokenObj = await tokenUtils.get(token);
+ 	const uid = tokenObj ? tokenObj.uid : undefined;
+ 
+ 	if (uid !== undefined) {
+diff --git a/src/socket.io/admin/settings.js b/src/socket.io/admin/settings.js
+index 89208af..98ba7e9 100644
+--- a/src/socket.io/admin/settings.js
++++ b/src/socket.io/admin/settings.js
+@@ -2,14 +2,48 @@
+ 
+ const meta = require('../../meta');
+ const events = require('../../events');
++const { tokens } = require('../../api/utils');
+ 
+ const Settings = module.exports;
+ 
+ Settings.get = async function (socket, data) {
+-	return await meta.settings.get(data.hash);
++	const values = await meta.settings.get(data.hash);
++	if (data.hash === 'core.api') {
++		values.tokens = await tokens.list();
++		values.tokens.forEach((item) => {
++			item.timestampISO = new Date(item.timestamp).toISOString();
++		});
++	}
++	return values;
+ };
+ 
+ Settings.set = async function (socket, data) {
++	if (data.hash === 'core.api' && Array.isArray(data.values.tokens)) {
++		const previous = await tokens.list();
++		const incoming = data.values.tokens;
++		const retained = new Set(incoming.filter(item => item.token).map(item => item.token));
++		for (const item of previous) {
++			if (!retained.has(item.token)) {
++				// Each deletion also removes the matching legacy settings entry.
++				/* eslint-disable-next-line no-await-in-loop */
++				await tokens.delete(item.token);
++			}
++		}
++		for (const item of incoming) {
++			if (!item.token) {
++				/* eslint-disable-next-line no-await-in-loop */
++				item.token = await tokens.generate({ uid: item.uid, description: item.description });
++			} else {
++				const old = previous.find(entry => entry.token === item.token);
++				if (old && old.description !== item.description) {
++					/* eslint-disable-next-line no-await-in-loop */
++					await tokens.update(item.token, { description: item.description });
++				}
++			}
++		}
++		// Clear the old settings list once its tokens have been imported.
++		data.values.tokens = [];
++	}
+ 	await meta.settings.set(data.hash, data.values);
+ 	const eventData = data.values;
+ 	eventData.type = 'settings-change';
+diff --git a/test/authentication.js b/test/authentication.js
+index 7bb9968..13535b4 100644
+--- a/test/authentication.js
++++ b/test/authentication.js
+@@ -591,6 +591,7 @@ describe('authentication', () => {
+ 	});
+ 
+ 	describe('api tokens', () => {
++		const tokenUtils = require('../src/api/utils').tokens;
+ 		let newUid;
+ 		let userToken;
+ 		let masterToken;
+@@ -670,5 +671,58 @@ describe('authentication', () => {
+ 			assert.strictEqual(res.statusCode, 200);
+ 			assert.strictEqual(body.username, 'apiUserTarget');
+ 		});
++
++		it('should manage indexed tokens and import legacy tokens', async () => {
++			const token = await tokenUtils.generate({ uid: newUid, description: 'initial' });
++			const created = await tokenUtils.get(token);
++			assert.strictEqual(created.uid, newUid);
++			assert.strictEqual(created.description, 'initial');
++			assert(Number.isFinite(created.timestamp));
++			assert.strictEqual(created.lastSeen, null);
++			assert.deepStrictEqual(await tokenUtils.get([]), []);
++			assert((await tokenUtils.list()).some(item => item.token === userToken.token));
++			assert((await tokenUtils.list()).some(item => item.token === token));
++			const settings = await meta.settings.get('core.api');
++			const olderToken = utils.generateUUID();
++			settings.tokens.push({ token: olderToken, uid: newUid, description: 'older token' });
++			await meta.settings.set('core.api', settings);
++			assert(Number.isFinite((await tokenUtils.get(olderToken)).timestamp));
++
++			await tokenUtils.log(token);
++			const updated = await tokenUtils.update(token, { description: 'changed' });
++			assert.strictEqual(updated.description, 'changed');
++			assert.strictEqual(updated.timestamp, created.timestamp);
++			assert(Number.isFinite(updated.lastSeen));
++			await tokenUtils.delete(token);
++			assert.strictEqual(await tokenUtils.get(token), null);
++			assert.strictEqual(await db.sortedSetScore('tokens:createtime', token), null);
++			assert.strictEqual(await db.sortedSetScore('tokens:uid', token), null);
++			assert.strictEqual(await db.sortedSetScore('tokens:lastSeen', token), null);
++			await tokenUtils.delete(userToken.token);
++			assert.strictEqual(await tokenUtils.get(userToken.token), null);
++			assert(!(await tokenUtils.list()).some(item => item.token === userToken.token));
++			await tokenUtils.delete(olderToken);
++		});
++
++		it('should keep user routes and admin settings in the indexed store', async () => {
++			const groups = require('../src/groups');
++			const usersAPI = require('../src/api/users');
++			const adminSettings = require('../src/socket.io/admin/settings');
++			await groups.join('administrators', newUid);
++			const caller = { uid: newUid };
++			const created = await usersAPI.generateToken(caller, { uid: newUid, description: 'route token' });
++			assert((await tokenUtils.list()).some(item => item.token === created.token));
++			assert.strictEqual(await usersAPI.deleteToken(caller, { uid: newUid, token: created.token }), true);
++			assert.strictEqual(await tokenUtils.get(created.token), null);
++
++			const values = await adminSettings.get({}, { hash: 'core.api' });
++			values.tokens.push({ token: '', uid: newUid, description: 'admin token' });
++			await adminSettings.set({ uid: newUid, ip: '127.0.0.1' }, { hash: 'core.api', values });
++			const saved = await adminSettings.get({}, { hash: 'core.api' });
++			const adminToken = saved.tokens.find(item => item.description === 'admin token');
++			assert(adminToken && adminToken.token);
++			assert.strictEqual((await tokenUtils.get(adminToken.token)).uid, newUid);
++			await tokenUtils.delete(adminToken.token);
++		});
+ 	});
+ });

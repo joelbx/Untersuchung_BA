@@ -1,0 +1,3 @@
+Updated [ansible-galaxy](/app/lib/ansible/cli/galaxy.py:970) so an implicit `install -r` installs both roles and collections. Custom role paths and explicit subcommands skip the other type with the requested messages. Empty requirements files now skip installation, and selected roles still install their transitive dependencies.
+
+Updated the [unit tests](/app/test/units/cli/test_galaxy.py:1036) and the [integration assertion](/app/test/integration/targets/ansible-galaxy-collection/tasks/download.yml:103). **Verification:** 290 unit tests passed; compilation and `git diff --check` passed. The integration suite was not run.

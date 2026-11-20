@@ -1,0 +1,3 @@
+Promise-item imports now look up staged metadata **before validation** when title, authors, or publish date is missing. They prefer ISBN-10, then a B-prefixed ASIN, and fill only empty fields. Validation accepts either a complete record or one with a strong identifier. The batch script stages only incomplete items, removes placeholder values, and reports total and incomplete gauges when a stats client is available.
+
+Verification: **178 tests passed, 1 expected failure**; Ruff and `git diff --check` passed.

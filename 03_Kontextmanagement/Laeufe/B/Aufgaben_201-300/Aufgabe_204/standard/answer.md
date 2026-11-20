@@ -1,0 +1,3 @@
+Implemented contact date parsing in [property.ts](/app/packages/shared/lib/contacts/property.ts) and updated [csvFormat.ts](/app/packages/shared/lib/contacts/helpers/csvFormat.ts) to use it. Valid text dates become `Date` objects; unparseable vCard dates remain unset. Tests cover the requested formats and vCard calendar values.
+
+The type check and 20 focused tests passed. The full shared suite had 869 passes and two unrelated failures in cookie and base64 tests.

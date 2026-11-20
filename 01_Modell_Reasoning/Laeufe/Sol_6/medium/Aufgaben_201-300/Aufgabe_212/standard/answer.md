@@ -1,0 +1,3 @@
+Updated [WordPress ingestion](/app/detector/wordpress.go) to produce one record per vulnerability using the first CVE reference. It now preserves ordered links, classification, fix version, and UTC timestamps, and maps Enterprise summary, proof of concept, introduced version, and CVSS fields when present. Missing optional metadata remains an empty map.
+
+Added [regression tests](/app/detector/wordpress_test.go) for enriched, null, and omitted fields. The relevant detector tests and `git diff --check` passed.

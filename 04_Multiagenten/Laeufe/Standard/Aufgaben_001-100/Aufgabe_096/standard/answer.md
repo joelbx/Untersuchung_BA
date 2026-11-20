@@ -1,0 +1,3 @@
+Updated `atomic_move()` so newly created files receive `0600` under umask `0022`. Modules that accept `mode` now warn when it was omitted, and `set_mode_if_different()` clears the warning for that path.
+
+The affected tests passed: **67 passed**. The full `module_utils/basic` run had 22 failures caused by shared warning and deprecation state from earlier tests; its first failure occurred before the atomic move tests.

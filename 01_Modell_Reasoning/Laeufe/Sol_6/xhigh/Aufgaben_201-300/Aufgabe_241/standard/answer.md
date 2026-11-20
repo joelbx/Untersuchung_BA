@@ -1,0 +1,3 @@
+Resolved the pre-recording controls in [VoiceBroadcastPreRecordingPip.tsx](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx:32). “Go live” is now a native button that disables immediately and ignores repeated clicks or key activations until the start attempt finishes. Device selection remains anchored to the pip, closes after selection, and updates the header label. The [close control](/app/src/voice-broadcast/components/atoms/VoiceBroadcastHeader.tsx:68) now has an accessible name.
+
+All 20 focused tests and 5 snapshots pass. ESLint and Prettier pass. The repository-wide type check still fails on Matrix client type errors in untouched files.

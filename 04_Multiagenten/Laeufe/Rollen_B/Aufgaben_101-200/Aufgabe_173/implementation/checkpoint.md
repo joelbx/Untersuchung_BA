@@ -1,0 +1,4 @@
+Implementer progress: verified current proxy selects one matching server and dials once. Database type sorting and tsh listing do not deduplicate; fake tunnel has no outage hook. Next: implement candidate retry, ordering, fake outage, display helper, then run focused local tests.
+Implemented: server logging/sorting/deduplication, fake tunnel outage hook, proxy candidate list and clock-seeded shuffle with dial retry, tsh list deduplication. Verifying via local tests; TLS handshakes still happen after Connect returns.
+Focused tests pass: api/types dedup/order test and lib/srv/db failover plus existing Postgres access test. Adjusted tsh sort to use SortedDatabaseServers so duplicate selection is deterministic by HostID. Full db suite and tsh compile check running.
+Verification complete: full lib/srv/db suite passed; tool/tsh compile check passed; lib/reversetunnel suite passed earlier; api/types focused test passed. git diff --check clean.

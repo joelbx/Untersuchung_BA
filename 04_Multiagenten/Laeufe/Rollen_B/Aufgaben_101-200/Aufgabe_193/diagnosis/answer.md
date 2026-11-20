@@ -1,0 +1,5 @@
+I found the fault in [galaxy.py](/app/lib/ansible/cli/galaxy.py:964): `execute_install` selects one type, reads only that type from the requirements file, and returns after a collection install. A mixed file therefore cannot install both in one run.
+
+The fix should retain whether `role` was supplied explicitly before the CLI inserts it, then handle roles and collections independently. It should use that distinction to give a warning for collections skipped by an implicit `install -p`, but a verbose message for an explicit `role install -p`. The parser also needs a `requirements=None` context key for role installs. Existing role code already validates `.yml`/`.yaml` and appends unresolved dependencies; those paths need to be preserved.
+
+Existing tests cover separate installs, but I found no mixed file or skip message coverage. I did not run tests or edit project source or tests: this run was restricted to fault localization. I recorded the diagnosis in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

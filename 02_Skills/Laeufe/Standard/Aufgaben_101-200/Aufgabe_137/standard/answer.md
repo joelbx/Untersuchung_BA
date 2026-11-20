@@ -1,0 +1,3 @@
+Added configurable trace sampling and propagators. `TracingConfig` now defaults to a sampling ratio of 1 and the tracecontext and baggage propagators, preserves values loaded from configuration, and returns the required errors for invalid values. The tracing setup applies both settings, and the schema and tests have been updated.
+
+Formatting, JSON syntax, and diff checks passed. Go tests could not compile because required modules are missing from the local cache; the offline test command and error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Fixed the IA import path so `London ; New York ; Paris : Berlitz Publishing` produces `publish_places: ["London", "New York", "Paris"]` and `publishers: ["Berlitz Publishing"]`. The parser now handles bracketed values and multiple location–publisher pairs. ISBN classification now lives in [isbn.py](/app/openlibrary/utils/isbn.py) and uses trimmed string length.
+
+The relevant test suite passed: **58 tests**. Ruff and Black checks could not run because those tools are not installed; the commands and errors are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Centralized storage units in [size.ts](/app/packages/shared/lib/helpers/size.ts) and updated the member, organization, CSV, shared, offer, and referral code to use them. Removed the duplicate `GIGA` and `BASE_SIZE` definitions from shared constants.
+
+The CSV suite passed (64 tests, 5 snapshots), and formatting and diff checks passed. Both package type checks are blocked by the same unrelated `openpgp` type error in [api.ts](/app/packages/crypto/lib/worker/api.ts:579).

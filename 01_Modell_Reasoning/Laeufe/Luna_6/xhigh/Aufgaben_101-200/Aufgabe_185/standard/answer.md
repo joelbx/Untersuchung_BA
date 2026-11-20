@@ -1,0 +1,5 @@
+Updated the expiry utility to accept a cancellation context and use the active term’s date and plan name when cancellation is active or renewal is disabled. Free-plan results and enabled-renewal behavior remain unchanged. Cancellation confirmation and post-cancellation screens now get their displayed dates from the utility.
+
+Relevant tests passed: **3 suites, 38 tests**. The `@proton/components` type check passed. Targeted ESLint reported two testing-library warnings in existing test code.
+
+Key changes: [expiry utility](</app/packages/components/containers/payments/subscription/helpers/payment.ts>), [B2C cancellation dates](</app/packages/components/containers/payments/subscription/cancellationFlow/config/b2cCommonConfig.tsx>), [B2B cancellation dates](</app/packages/components/containers/payments/subscription/cancellationFlow/config/b2bCommonConfig.tsx>), and [cancellation modal](</app/packages/components/containers/payments/subscription/cancelSubscription/CancelSubscriptionModal.tsx>).

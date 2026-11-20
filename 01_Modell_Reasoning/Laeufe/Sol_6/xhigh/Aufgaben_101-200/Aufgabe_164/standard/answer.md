@@ -1,0 +1,3 @@
+Fixed the import failure. YAML imports now use the v3 decoder, so nested metadata reaches protobuf in a compatible form. JSON imports skip one leading line only when its first character is `#`. Variant attachments serialize directly from the decoded data.
+
+Added roundtrip tests for nested metadata, namespace key/name/description, YAML and JSON exports, and the JSON header rule. `go test ./internal/ext ./cmd/flipt` and `git diff --check` passed. The CLI package has no test files.

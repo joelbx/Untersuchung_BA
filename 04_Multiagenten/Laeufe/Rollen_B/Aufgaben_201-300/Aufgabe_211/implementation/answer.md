@@ -1,0 +1,3 @@
+Implemented upload cleanup on post and topic purge. Files are deleted only after their last post association is removed; the new ACP **preserve orphaned uploads** setting retains them when enabled. `Posts.uploads.deleteFromDisk` accepts a path or an array, rejects other input types, and ignores paths outside the uploads directory.
+
+ESLint passed, and the upload and thumbnail test files passed together: **56 tests**.

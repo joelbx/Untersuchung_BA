@@ -1,0 +1,3 @@
+Implemented Best Book Awards in the checked-out repository: persisted nominations with read-status and uniqueness validation, award and count JSON endpoints, Work accessors, and redirect and account anonymization updates.
+
+**Verification:** 52 relevant tests pass; Ruff and `git diff --check` pass. Existing databases need the included [migration script](/app/scripts/migrate-bestbook-awards.sql) applied when deploying.

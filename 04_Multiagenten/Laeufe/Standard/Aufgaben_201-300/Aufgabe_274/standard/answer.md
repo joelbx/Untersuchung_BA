@@ -1,0 +1,3 @@
+Updated `qt.workarounds.disable_accelerated_2d_canvas` to accept `always`, `auto`, and `never`, with `auto` as the default. In `auto`, the flag is added only on Qt 6 when the detected Chromium major version is below 111.
+
+Added coverage for the Qt 5.15.2, Qt 6.5.3, and Qt 6.6.0 behavior and the Chromium version boundary. All 113 argument tests and 31 config schema tests passed with Qt’s offscreen platform.

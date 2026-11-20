@@ -1,0 +1,3 @@
+Implemented `flipt.is_auth_method(input, method)` in [extentions.go](/app/internal/server/authz/engine/ext/extentions.go). It accepts the seven requested identifiers, maps them to the protobuf method codes, returns a boolean for matches, and reports the specified errors. The built-in is registered for both local and bundle policy engines.
+
+Added tests for every method, the `k8s` alias, mismatches, errors, and use in a Rego policy. All relevant engine tests pass; `git diff --check` is clean.

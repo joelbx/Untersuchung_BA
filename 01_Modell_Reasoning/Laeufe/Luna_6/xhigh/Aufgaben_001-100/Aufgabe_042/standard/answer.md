@@ -1,0 +1,3 @@
+Implemented `GET /.well-known/webfinger` with resource validation, Guest-aware `groups:view:users` authorization, user lookup, and a JRD JSON response containing the subject, UID and slug aliases, and HTML profile link. The route is registered in the app’s core route composition.
+
+ESLint and the focused controller smoke test passed. The full controller suite had 140 passing tests and one unrelated failure in the user data export test (`test/controllers.js:1692`). `git diff --check` passed.

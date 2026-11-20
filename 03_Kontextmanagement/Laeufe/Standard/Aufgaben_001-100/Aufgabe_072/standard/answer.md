@@ -1,0 +1,3 @@
+Implemented hostname-only Punycode conversion in [url.ts](/app/packages/components/helpers/url.ts), including `getHostnameWithRegex`. The [link handler](/app/packages/components/hooks/useLinkHandler.tsx) now converts HTTP(S) links before processing them and shows an error notification when a URL is missing or invalid.
+
+Verification passed: 15 URL helper tests, component type checking, ESLint on edited files, and `git diff --check`.

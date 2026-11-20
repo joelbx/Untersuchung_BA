@@ -1,0 +1,3 @@
+Updated the Drive member view and both store copies so members, internal invitations, and external invitations are kept and displayed by share ID. The view also reloads when the selected link changes. Added `getExistingEmails` and tests for share isolation.
+
+The three focused tests passed, both TypeScript checks passed, and `git diff --check` passed. An additional existing shares store suite produced no result after about 90 seconds and was interrupted; its status remains unknown.

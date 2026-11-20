@@ -1,0 +1,5 @@
+The fault is in [iptables.py](/app/lib/ansible/modules/iptables.py:681): its argument specification does not accept `match_set` or `match_set_flags`, and `construct_rule()` at [line 551](/app/lib/ansible/modules/iptables.py:551) has no path to emit the set clause. The existing [iptables tests](/app/test/units/modules/test_iptables.py:743) cover similar extension matching, but no ipset case.
+
+A fix should validate that both parameters are supplied together, restrict flags to `src`, `dst`, `src,dst`, or `dst,src`, and emit one `-m set --match-set <name> <flags>` clause whether `match: ['set']` is explicit or omitted. It should also cover inversion and combinations with ports, jump, and comment. The exact placement of the new clause has not been verified against an installed `iptables` binary.
+
+I recorded the diagnosis in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were not changed; this was a fault localization pass.

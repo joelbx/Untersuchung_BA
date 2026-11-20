@@ -1,0 +1,1615 @@
+#!/usr/bin/env python3
+"""Separate, auditable V2 runner. Official evaluator is imported without changes.
+
+Configurable no-model-deadline runner. --tasks/--next, --batch and --setup
+select explicit trials. Prior model results are never supplied to agents.
+"""
+from __future__ import annotations
+
+import argparse
+import ast
+import asyncio
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import secrets
+import shutil
+import shlex
+import tempfile
+import time
+import uuid
+import fcntl
+from types import SimpleNamespace
+
+from runner_helpers import select_tasks, review_test_evidence
+from mas_orchestrator import DelegationBroker, COORDINATOR_INSTRUCTIONS
+
+from agentcompass.benchmarks.swebench_pro_verified.swebench_pro_verified import (
+    SWEBenchProVerifiedBenchmark, SWEBenchProVerifiedBenchmarkPlan)
+from agentcompass.environments.docker import DockerSession, _run_subprocess
+from agentcompass.harnesses.codex import CodexHarness
+from agentcompass.harnesses.codex_roles_b import instructions as original_instructions
+
+SOURCE_DIR = Path(__file__).resolve().parent
+LAB = SOURCE_DIR
+HERE = LAB / "experiment-luna-01"
+DATA = LAB / "data/swe_bench_pro_verified"
+UPSTREAM = LAB / "AgentCompass/src/agentcompass"
+BINARY = (Path.home() / ".npm-global/lib/node_modules/@openai/codex/node_modules/"
+          "@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex")
+AUTH = Path.home() / ".codex/auth.json"
+BENCHMARK = SWEBenchProVerifiedBenchmark()
+PLAN = SWEBenchProVerifiedBenchmarkPlan(
+    scripts_dir=str(DATA / "run_scripts"), dockerfiles_dir=str(DATA / "dockerfiles"))
+CONTROL_PATCH = ("diff --git a/.swebench-v2-control-marker.txt b/.swebench-v2-control-marker.txt\n"
+                 "new file mode 100644\n--- /dev/null\n+++ b/.swebench-v2-control-marker.txt\n"
+                 "@@ -0,0 +1 @@\n+Nonfunctional evaluator control; repository code unchanged.\n")
+ALLOWLIST = {"network_mode": "allowlist", "allowed_hosts": [
+    {"host": "chatgpt.com", "port": 443}, {"host": "auth.openai.com", "port": 443}], "denied_hosts": []}
+SECRET_VALUES: set[str] = set()
+RUN_MODEL = "gpt-6-luna"
+RUN_REASONING = "medium"
+PINNED_NATIVE = None
+
+
+def now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def learn_secrets(value):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if any(part in key.lower() for part in ("token", "key", "secret")) and isinstance(item, str):
+                if len(item) >= 12:
+                    SECRET_VALUES.add(item)
+            learn_secrets(item)
+    elif isinstance(value, list):
+        for item in value:
+            learn_secrets(item)
+
+
+def redact(text):
+    text = str(text)
+    for secret in sorted(SECRET_VALUES, key=len, reverse=True):
+        text = text.replace(secret, "<redacted>")
+    text = re.sub(r"(https?://agentcompass:)[^@\s]+@", r"\1<redacted>@", text)
+    return text
+
+
+def save(path, value):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not isinstance(value, str):
+        value = json.dumps(value, indent=2, ensure_ascii=False, default=str) + "\n"
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(redact(value))
+    temporary.replace(path)
+
+
+async def host(argv, *, timeout=120, check=True):
+    result = await _run_subprocess(list(map(str, argv)), timeout=timeout)
+    if check and result.returncode:
+        raise RuntimeError(redact(f"{argv[0]} failed ({result.returncode}): {result.stderr[-1500:]}"))
+    return result
+
+
+def check_storage_reserve():
+    """MAS study guard: fail technically before new disk-heavy operations."""
+    config = HERE / 'experiment.json'
+    reserve = json.loads(config.read_text()).get('storage_reserve_gib', 0) if config.is_file() else 0
+    if not reserve:
+        return
+    for path in (LAB, Path('/mnt/c')):
+        if path.exists() and shutil.disk_usage(path).free < reserve * 1024 ** 3:
+            raise RuntimeError(f'Storage reserve below {reserve} GiB on {path}; stop and free space before resuming. Not an agent failure.')
+
+
+class LoggedSession(DockerSession):
+    def __init__(self, container_id, log):
+        super().__init__(container_id, workdir="/app")
+        self.log = Path(log)
+        self.sequence = 0
+
+    async def exec(self, command, **kwargs):
+        self.sequence += 1
+        started = time.monotonic()
+        result = await super().exec(command, **kwargs)
+        record = {"sequence": self.sequence, "at": now(), "command": command,
+                  "cwd": kwargs.get("cwd"), "elapsed_seconds": time.monotonic() - started,
+                  "exit_code": result.returncode, "timed_out": result.timed_out,
+                  "stdout": result.stdout, "stderr": result.stderr}
+        # cat of the refreshed credential is used by custody only, never archived.
+        if isinstance(command, list) and command == ["cat", "/opt/v2-codex/auth.json"]:
+            record["stdout"] = "<credential omitted>"
+        with self.log.open("a") as output:
+            output.write(redact(json.dumps(record, default=str)) + "\n")
+        return result
+
+    async def checked(self, command, **kwargs):
+        result = await self.exec(command, **kwargs)
+        if result.returncode or result.timed_out:
+            raise RuntimeError(redact(f"Container preparation failed: {command[0]} "
+                                      f"({result.returncode}): {result.stderr[-1500:]}"))
+        return result
+
+
+@asynccontextmanager
+async def container(image, directory, *, agent=False):
+    check_storage_reserve()
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    suffix = uuid.uuid4().hex[:12]
+    name = f"swe-v2-{suffix}"
+    network, proxy, cid = None, None, None
+    policy_dir = None
+    try:
+        args = ["docker", "run", "-d", "--name", name, "--cap-drop", "ALL",
+                "--cap-add", "CHOWN", "--cap-add", "DAC_OVERRIDE", "--cap-add", "FOWNER",
+                "--security-opt", "no-new-privileges", "--pids-limit", "512",
+                "--cpus", "4", "--memory", "8192m", "--workdir", "/app",
+                "--entrypoint", "/bin/sh"]
+        if agent:
+            network = name + "-net"
+            proxy = name + "-proxy"
+            await host(["docker", "network", "create", "--internal", network])
+            policy_dir = Path(tempfile.mkdtemp(prefix="swe-v2-policy-"))
+            policy_dir.chmod(0o755)
+            (policy_dir / "policy.json").write_text(json.dumps(ALLOWLIST))
+            token = secrets.token_urlsafe(24)
+            SECRET_VALUES.add(token)
+            await host(["docker", "run", "-d", "--name", proxy, "--read-only",
+                        "--user", "65534:65534", "--cap-drop", "ALL",
+                        "--security-opt", "no-new-privileges", "--memory", "128m",
+                        "--pids-limit", "64", "-e", "PYTHONDONTWRITEBYTECODE=1",
+                        "-e", f"AGENTCOMPASS_PROXY_TOKEN={token}",
+                        "-e", "AGENTCOMPASS_POLICY_PATH=/opt/policy/policy.json",
+                        "-v", f"{policy_dir}:/opt/policy:ro",
+                        "-v", f"{UPSTREAM}/environments/docker_egress_proxy.py:/opt/upstream_proxy.py:ro",
+                        "-v", f"{SOURCE_DIR}/egress_proxy.py:/opt/proxy.py:ro",
+                        "python:3.12-alpine", "python", "/opt/proxy.py"])
+            await host(["docker", "network", "connect", network, proxy])
+            proxy_url = f"http://agentcompass:{token}@{proxy}:8080"
+            args.extend(["--network", network, "--dns", "127.0.0.1",
+                         "--mount", f"type=bind,source={BINARY},target=/usr/local/bin/codex,readonly",
+                         "--mount", f"type=bind,source={BINARY.parent}/codex-code-mode-host,target=/usr/local/bin/codex-code-mode-host,readonly",
+                         "--mount", f"type=bind,source={SOURCE_DIR}/requirements.toml,target=/etc/codex/requirements.toml,readonly"])
+            for key in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"):
+                args.extend(["-e", f"{key}={proxy_url}"])
+            for key, value in {"NO_PROXY": "localhost,127.0.0.1,::1", "no_proxy": "localhost,127.0.0.1,::1",
+                               "GOPROXY": "off", "GOSUMDB": "off"}.items():
+                args.extend(["-e", f"{key}={value}"])
+        else:
+            args.extend(["--network", "none"])
+        args.extend([image, "-c", "exec tail -f /dev/null"])
+        cid = (await host(args)).stdout.strip()
+        env = LoggedSession(cid, directory / "commands.jsonl")
+        inspect = json.loads((await host(["docker", "inspect", cid])).stdout)[0]
+        save(directory / "container.json", {"image": inspect["Image"],
+             "networks": list(inspect["NetworkSettings"]["Networks"]),
+             "cap_drop": inspect["HostConfig"]["CapDrop"],
+             "cap_add": inspect["HostConfig"]["CapAdd"],
+             "security_opt": inspect["HostConfig"]["SecurityOpt"],
+             "mounts": [{"destination": x["Destination"], "writable": x["RW"]} for x in inspect["Mounts"]]})
+        if agent:
+            for _ in range(40):
+                ready = await host(["docker", "exec", proxy, "python", "-c",
+                                    "import socket;socket.create_connection(('127.0.0.1',8080),1).close()"], check=False)
+                if ready.returncode == 0:
+                    break
+                await asyncio.sleep(0.25)
+            else:
+                raise RuntimeError("Network proxy did not become ready")
+        yield env
+    finally:
+        if proxy:
+            logs = await host(["docker", "logs", proxy], check=False)
+            save(directory / "network.jsonl", logs.stdout + logs.stderr)
+        if cid:
+            await host(["docker", "rm", "-f", cid], check=False)
+        if proxy:
+            await host(["docker", "rm", "-f", proxy], check=False)
+        if network:
+            await host(["docker", "network", "rm", network], check=False)
+        if policy_dir:
+            shutil.rmtree(policy_dir, ignore_errors=True)
+
+
+async def evaluate(instance, image, patch, directory):
+    async with container(image, directory) as env:
+        started = time.monotonic()
+        result = await BENCHMARK._evaluate_patch(env, instance, PLAN, patch, 3600)
+        result["elapsed_seconds"] = time.monotonic() - started
+        save(Path(directory) / "evaluation.json", result)
+        return result
+
+
+async def verify_toolchain(env, language):
+    profile = "js" if language == "ts" else language
+    commands = {
+        "go": "command -v go; go version; command -v gofmt",
+        "python": "command -v python; python --version; python -c 'import pytest; print(pytest.__version__)'",
+        # npm ships with Node. Do not probe an unused Corepack yarn shim first:
+        # merely asking for its version can trigger a blocked registry lookup.
+        "js": "command -v node; node --version; if command -v npm >/dev/null; then npm --version; elif command -v yarn >/dev/null; then COREPACK_ENABLE_NETWORK=0 COREPACK_DEFAULT_TO_LATEST=0 yarn --version; elif command -v pnpm >/dev/null; then COREPACK_ENABLE_NETWORK=0 COREPACK_DEFAULT_TO_LATEST=0 pnpm --version; else exit 1; fi",
+    }
+    if profile not in commands:
+        raise RuntimeError(f"No validated environment profile for language {language}")
+    result = await env.checked(["/bin/bash", "-lc", "set -e; command -v python; python --version; " + commands[profile]])
+    return result.stdout
+
+
+async def prepare_toolchain(env, language):
+    profile = "js" if language == "ts" else language
+    if profile not in ("go", "python", "js"):
+        raise RuntimeError(f"Unsupported language profile: {language}")
+    tools = ["python", "python3"]
+    tools += {"go": ["go", "gofmt"], "python": ["pytest"], "js": ["node", "npm", "yarn", "pnpm"]}[profile]
+    paths = {}
+    # Capture image-installed tools before the Codex login shell rewrites PATH.
+    # No installation or dependency downloads; aliases are common to both setups.
+    for tool in tools:
+        located = await env.exec(["/bin/sh", "-c", "command -v " + tool])
+        if located.returncode == 0 and located.stdout.strip().startswith("/"):
+            paths[tool] = located.stdout.strip()
+    if "python" not in paths and "python3" in paths:
+        paths["python"] = paths["python3"]
+    for tool, path in paths.items():
+        alias = "/usr/bin/" + tool
+        # Do not replace existing /usr/bin symlink targets with themselves.
+        target = (await env.checked(["readlink", "-f", path])).stdout.strip()
+        if path != alias and target != alias:
+            await env.checked(["ln", "-sf", path, alias])
+    return {"language": language, "image_tool_paths": paths}
+
+
+async def ensure_image(image, directory):
+    """Fetch missing official images on the host, then resolve an immutable ID."""
+    started = time.monotonic()
+    record = {"requested_image": image, "at": now(), "pulled": False, "model_tokens": 0}
+    path = Path(directory) / "image-acquisition.json"
+    try:
+        inspected = await host(["docker", "image", "inspect", image], check=False)
+        if inspected.returncode:
+            if "no such image" not in inspected.stderr.lower():
+                raise RuntimeError(redact(f"docker image inspect failed: {inspected.stderr[-1500:]}"))
+            check_storage_reserve()
+            print(f"Downloading missing official Docker image: {image}", flush=True)
+            record.update(pull_started_at=now())
+            save(path, record)
+            await host(["docker", "pull", image], timeout=None)
+            record["pulled"] = True
+            inspected = await host(["docker", "image", "inspect", image])
+        details = json.loads(inspected.stdout)[0]
+        record.update(image_id=details["Id"], completed=True, elapsed_seconds=time.monotonic() - started)
+        save(path, record)
+        return details
+    except Exception as error:
+        record.update(completed=False, error=redact(str(error)), elapsed_seconds=time.monotonic() - started)
+        save(path, record)
+        raise
+
+
+def go_manifest_patch(reference):
+    """Only root Go manifests may enter trusted dependency preparation."""
+    blocks = re.split(r"(?m)(?=^diff --git )", reference)
+    allowed = {("a/go.mod", "b/go.mod"), ("a/go.sum", "b/go.sum")}
+    selected = []
+    for block in blocks:
+        if not block.startswith("diff --git "):
+            continue
+        header = shlex.split(block.splitlines()[0])
+        if len(header) == 4 and tuple(header[2:]) in allowed:
+            selected.append(block)
+    return "".join(selected)
+
+
+async def warm_go_dependency_cache(case, instance, directory):
+    """Trusted Go downloads only; never compile or execute project/reference code.
+
+    Probe both manifest sets with GOPROXY=off. Commit an overlay only if a
+    download was needed. Restore tracked AND initially untracked manifests,
+    and delete all temporary manifest material before committing the cache.
+    """
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    locks = DATA / ".dependency-cache-locks"
+    locks.mkdir(exist_ok=True)
+    lock_name = hashlib.sha256(case["instance_id"].encode()).hexdigest()
+    with (locks / (lock_name + ".lock")).open("a") as cache_lock:
+        while True:
+            try:
+                fcntl.flock(cache_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                await asyncio.sleep(0.1)
+        return await _warm_go_dependency_cache(case, instance, directory)
+
+
+async def _warm_go_dependency_cache(case, instance, directory):
+    image = await ensure_image("jefzda/sweap-images:" + case["dockerhub_tag"], directory)
+    output = DATA / "dependency-cache-overrides.json"
+    overrides = json.loads(output.read_text()) if output.exists() else {}
+    existing = overrides.get(case["instance_id"])
+    if existing:
+        if (existing["official_image_id"] != image["Id"] or existing["base_commit"] != case["base_commit"]
+                or existing["dataset_sha256"] != sha(DATA / "swebench_pro_verified.jsonl")):
+            raise RuntimeError("Existing Go cache does not match the pinned task")
+        await host(["docker", "image", "inspect", existing["cached_image_id"]])
+    source = existing["cached_image_id"] if existing else image["Id"]
+    patch_text = go_manifest_patch(str(instance.get("patch", "")))
+    save(directory / "reference-manifests.patch", patch_text)
+    record = {"at": now(), "official_image_id": image["Id"], "source_image_id": source,
+              "manifest_patch_sha256": hashlib.sha256(patch_text.encode()).hexdigest(),
+              "download_command": ["go", "mod", "download", "all"],
+              "model_tokens": 0, "reference_code_applied": False,
+              "reference_source_executed": False, "downloads_needed": False}
+    commands = []
+    cid = None
+    scratch = "/tmp/swe-go-prefetch-" + uuid.uuid4().hex
+    manifest_names = ("go.mod", "go.sum", "go.work", "go.work.sum")
+
+    async def command(argv, *, check=True, timeout=120):
+        result = await host(["docker", "exec", cid, *argv], timeout=timeout, check=False)
+        commands.append({"at": now(), "command": argv, "exit_code": result.returncode,
+                         "stdout": result.stdout, "stderr": result.stderr})
+        save(directory / "commands.json", commands)
+        if check and result.returncode:
+            raise RuntimeError(redact(f"Go dependency preparation failed ({argv[0]}): {result.stderr[-1500:]}"))
+        return result
+
+    async def reset_manifests(original_files):
+        await command(["git", "-c", "core.hooksPath=/dev/null", "reset", "--hard", case["base_commit"]])
+        for name in manifest_names:
+            if name in original_files:
+                await command(["cp", "-p", scratch + "/" + name, "/app/" + name])
+            else:
+                await command(["rm", "-f", "/app/" + name])
+
+    try:
+        # Network access exists only in this trusted host-controlled preparation
+        # container. Evaluation and agent containers retain their offline policy.
+        cid = (await host(["docker", "run", "-d", "--network", "bridge", "--cpus", "4", "--memory", "8192m",
+                           "--name", "swe-dependency-prefetch-" + uuid.uuid4().hex[:12], "--workdir", "/app",
+                           "--entrypoint", "/bin/sh", source, "-c", "exec tail -f /dev/null"])).stdout.strip()
+        await command(["git", "-c", "core.hooksPath=/dev/null", "reset", "--hard", case["base_commit"]])
+        before = (await command(["git", "write-tree"])).stdout.strip()
+        await command(["mkdir", "-p", scratch])
+        original_files = set()
+        for name in manifest_names:
+            if (await command(["test", "-f", "/app/" + name], check=False)).returncode == 0:
+                original_files.add(name)
+                await command(["cp", "-p", "/app/" + name, scratch + "/" + name])
+        if patch_text:
+            with tempfile.TemporaryDirectory(prefix="swe-go-manifests-") as temporary:
+                patch_path = Path(temporary) / "manifests.patch"
+                patch_path.write_text(patch_text)
+                await host(["docker", "cp", str(patch_path), cid + ":" + scratch + "/manifests.patch"])
+        for phase in (["base", "reference"] if patch_text else ["base"]):
+            await reset_manifests(original_files)
+            if phase == "reference":
+                await command(["git", "apply", "--include=go.mod", "--include=go.sum", scratch + "/manifests.patch"])
+            common = ["env", "GOTOOLCHAIN=local", "GOFLAGS=", "GONOPROXY=none", "GONOSUMDB=none", "GOPRIVATE="]
+            offline = common + ["GOPROXY=off", "GOSUMDB=off", "go", "mod", "download", "all"]
+            probe = await command(offline, check=False, timeout=None)
+            if probe.returncode:
+                record["downloads_needed"] = True
+                save(directory / "prefetch.json", record)
+                print(f"Go cache {case['instance_id']}: downloading {phase} manifest dependencies; no model calls", flush=True)
+                # A probe can update sums; restore the exact input before download.
+                await reset_manifests(original_files)
+                if phase == "reference":
+                    await command(["git", "apply", "--include=go.mod", "--include=go.sum", scratch + "/manifests.patch"])
+                await command(common + ["GOPROXY=https://proxy.golang.org", "GOSUMDB=sum.golang.org",
+                                         "go", "mod", "download", "all"], timeout=None)
+                await command(offline, timeout=None)
+        await reset_manifests(original_files)
+        await command(["rm", "-rf", scratch])
+        after = (await command(["git", "write-tree"])).stdout.strip()
+        if before != after:
+            raise RuntimeError("Go dependency preparation changed canonical tracked source")
+        await command(["git", "diff", "--exit-code", case["base_commit"]])
+        record["canonical_tree"] = before
+        if record["downloads_needed"]:
+            check_storage_reserve()
+            cached = (await host(["docker", "commit", cid], timeout=300)).stdout.strip()
+            entry = {"official_image_id": image["Id"], "cached_image_id": cached,
+                     "base_commit": case["base_commit"], "canonical_tree": before,
+                     "dataset_sha256": sha(DATA / "swebench_pro_verified.jsonl"), "at": now(),
+                     "reference_code_applied": False, "reference_source_executed": False,
+                     "model_tokens": 0, "dependency_kind": "go-module-cache",
+                     "manifest_patch_sha256": record["manifest_patch_sha256"]}
+            # Merge under a short interprocess lock: concurrent experiments must
+            # not overwrite cache entries for unrelated tasks.
+            with (DATA / ".dependency-cache-metadata.lock").open("a") as metadata_lock:
+                fcntl.flock(metadata_lock, fcntl.LOCK_EX)
+                overrides = json.loads(output.read_text()) if output.exists() else {}
+                overrides[case["instance_id"]] = entry
+                save(output, overrides)
+            record["cached_image_id"] = cached
+        else:
+            record["cached_image_id"] = source
+        record.update(completed=True, completed_at=now())
+        save(directory / "prefetch.json", record)
+        return record
+    except BaseException as error:
+        record.update(completed=False, error=redact(str(error)))
+        save(directory / "prefetch.json", record)
+        raise
+    finally:
+        if cid:
+            await host(["docker", "rm", "-f", cid], check=False)
+
+
+async def prefetch_go_control_dependencies(numbers, selection, root, *, repair_controls=False, exclusions=None):
+    """Run before freezing source hashes; existing passed controls stay untouched."""
+    pending = []
+    manifest_path = Path(root) / "manifest.json"
+    previous = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+    excluded = previous.get('control_exclusions', []) if exclusions is None else exclusions
+    for number in numbers:
+        case = selection["scored_tasks"][number - 1]
+        if case.get("repo_language") != "go" or number in excluded:
+            continue
+        controls = Path(root) / f"task-{number:02d}" / "controls.json"
+        if controls.exists() and json.loads(controls.read_text()).get("passed"):
+            continue
+        pending.append((number, case))
+    if not pending:
+        return
+    if previous:
+        if previous.get("execution_started_at") or any(Path(root).glob("task-*/*/started.json")):
+            raise RuntimeError("Go prefetch cannot change an environment after model trials already started")
+        if not repair_controls:
+            raise RuntimeError("Existing batch needs explicit --repair-controls before pending Go dependency preparation")
+    rows = {r["instance_id"]: r for r in map(json.loads, (DATA / "swebench_pro_verified.jsonl").read_text().splitlines())}
+    for number, case in pending:
+        print(f"Task {number}: checking base/reference Go dependency cache before offline controls", flush=True)
+        await warm_go_dependency_cache(case, rows[case["instance_id"]], Path(root) / "dependency-prefetch" / f"task-{number:02d}")
+
+
+async def prepare(case, directory):
+    original_image = "jefzda/sweap-images:" + case["dockerhub_tag"]
+    inspected = await ensure_image(original_image, directory)
+    original_image_id = inspected["Id"]
+    official_image_id = original_image_id
+    cache_overrides = DATA / "dependency-cache-overrides.json"
+    if cache_overrides.is_file():
+        override = json.loads(cache_overrides.read_text()).get(case["instance_id"])
+        if override:
+            if override["official_image_id"] != official_image_id or override["base_commit"] != case["base_commit"]:
+                raise RuntimeError("Dependency cache overlay does not match the pinned official source")
+            await host(["docker", "image", "inspect", override["cached_image_id"]])
+            original_image_id = override["cached_image_id"]
+    # Pin existing official image; never pull a different tag between paired runs.
+    async with container(original_image_id, directory) as env:
+        await env.checked(["git", "-c", "core.hooksPath=/dev/null", "reset", "--hard", case["base_commit"]])
+        original_tree = (await env.checked(["git", "write-tree"])).stdout.strip()
+        tracked = (await env.checked(["git", "ls-files", "--stage"])).stdout
+        save(Path(directory) / "canonical-tracked-files.txt", tracked)
+        excludes = ""
+        if (await env.exec(["test", "-f", "/app/.git/info/exclude"])).returncode == 0:
+            excludes = await env.read_text("/app/.git/info/exclude")
+        # Copy ONLY a shallow canonical Git database, retaining the entire installed
+        # working environment. Reconstructing an index with git add --all can
+        # flatten gitlinks or accidentally track previously ignored dependencies.
+        await env.checked(["git", "-c", "core.hooksPath=/dev/null", "clone", "--quiet",
+                           "--no-local", "--depth", "1", "--single-branch", "--no-tags",
+                           "file:///app", "/tmp/v2-canonical-clone"], timeout=180)
+        cloned_head = (await env.checked(["git", "-C", "/tmp/v2-canonical-clone", "rev-parse", "HEAD"])).stdout.strip()
+        if cloned_head != case["base_commit"]:
+            raise RuntimeError("Shallow clone did not preserve the canonical base commit")
+        await env.checked(["rm", "-rf", "/app/.git"])
+        await env.checked(["find", "/app", "-name", ".git", "-exec", "rm", "-rf", "--", "{}", "+"])
+        await env.checked(["mv", "/tmp/v2-canonical-clone/.git", "/app/.git"])
+        await env.checked(["rm", "-rf", "/tmp/v2-canonical-clone"])
+        await env.checked(["git", "remote", "remove", "origin"])
+        await env.checked(["git", "config", "core.hooksPath", "/dev/null"])
+        count = (await env.checked(["git", "rev-list", "--all", "--count"])).stdout.strip()
+        if count != "1":
+            raise RuntimeError("Additional source history remained accessible")
+        new_tree = (await env.checked(["git", "write-tree"])).stdout.strip()
+        if original_tree != new_tree:
+            raise RuntimeError("Prepared tracked source differs from the canonical original tree")
+        await env.checked(["mkdir", "-p", "/app/.codex-role-output"])
+        await env.write_text("/app/.git/info/exclude", excludes + "\n.codex-role-output/\n")
+        toolchains = await prepare_toolchain(env, case["repo_language"])
+        login_toolchains = await verify_toolchain(env, case["repo_language"])
+        check_storage_reserve()
+        image_id = (await host(["docker", "commit", env.container_id], timeout=300)).stdout.strip()
+    snapshot = {"original_image": original_image, "official_image_id": official_image_id, "original_image_id": original_image_id,
+                "prepared_image_id": image_id, "canonical_tree": original_tree,
+                "repo_language": case["repo_language"], "toolchains": toolchains, "login_shell_toolchains": login_toolchains, "at": now()}
+    save(Path(directory) / "snapshot.json", snapshot)
+    return snapshot
+
+
+async def network_checks(env, directory):
+    # Test both cooperative proxy use and attempts to bypass it, including raw IP.
+    script = r'''import json, os, socket, urllib.request
+out = {}
+for name, url in [('github', 'https://github.com'), ('search', 'https://www.google.com'), ('ip_via_proxy','https://1.1.1.1')]:
+    try:
+        urllib.request.urlopen(url, timeout=8)
+        out[name] = 'UNEXPECTED_ALLOWED'
+    except Exception as error:
+        out[name] = str(error)
+opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+try:
+    opener.open('https://github.com', timeout=5)
+    out['without_proxy'] = 'UNEXPECTED_ALLOWED'
+except Exception as error:
+    out['without_proxy'] = str(error)
+try:
+    socket.create_connection(('1.1.1.1',443), timeout=3).close()
+    out['direct_ip'] = 'UNEXPECTED_ALLOWED'
+except Exception as error:
+    out['direct_ip'] = str(error)
+try:
+    response = urllib.request.urlopen('https://chatgpt.com', timeout=15)
+    out['model_host'] = response.status
+except urllib.error.HTTPError as error:
+    out['model_host'] = error.code
+except Exception as error:
+    out['model_host'] = str(error)
+print(json.dumps(out))
+'''
+    result = await env.checked(["python", "-c", script], timeout=90)
+    checks = json.loads(result.stdout)
+    save(Path(directory) / "network-checks.json", checks)
+    if any(value == "UNEXPECTED_ALLOWED" for value in checks.values()):
+        raise RuntimeError("An external research route unexpectedly worked")
+    if not isinstance(checks["model_host"], int):
+        raise RuntimeError("Allowed model host could not be reached")
+
+
+def role_instructions(role):
+    common = ("External research is technically blocked. Use local repository code and existing tests only. "
+              "Do not request downloads or delegate. Do not read credentials, private process files, "
+              "benchmark solutions or evaluator artifacts. Write/update .codex-role-output/checkpoint.md "
+              "early. Never change git history, the index baseline, or harness configuration. ")
+    if role == "standard":
+        return common + "Resolve the issue by editing the repository and run relevant existing tests."
+    text = original_instructions(role)
+    if role == "review":
+        text = text.replace("Run existing local tests when feasible.",
+                            "You MUST attempt relevant existing local tests and report the exact commands and results.")
+        text = text.replace("Choose FIX only for a concrete correctness or regression issue;",
+                            "Choose FIX for a correctness/regression issue OR any failed, unavailable, interrupted, "
+                            "or unexecutable relevant test. ACCEPT requires relevant tests successfully executed. "
+                            "Separate code defects from TEST_ENVIRONMENT_PROBLEM; never claim tests passed without execution;")
+    if role == "correction":
+        text += (" Rerun the exact tests flagged by the reviewer after fixing. No new downloads. "
+                 "Report remaining failures and use TEST_ENVIRONMENT_PROBLEM for missing prepared dependencies.")
+    return common + text
+
+
+async def export_patch(env, baseline_path):
+    return (await env.checked(['python', '/tmp/swe-patch-export.py', 'export',
+                               '--baseline', baseline_path])).stdout
+
+
+async def capture_export_baseline(env, name, directory):
+    path = '/tmp/swe-export-' + name + '.json'
+    result = await env.checked(['python', '/tmp/swe-patch-export.py', 'capture', '--baseline', path])
+    save(Path(directory) / (name + '-baseline.json'), json.loads(result.stdout))
+    return path
+
+
+def persist_partial_stage(directory, role, started, process, error, setup, delegation_wait=0):
+    """Retain observed usage on cancellation; never turn unknown usage into zero."""
+    events_path = Path(directory) / 'events.jsonl'
+    events = CodexHarness._parse_json_events(events_path.read_text()) if events_path.exists() else []
+    turns = [event for event in events if event.get('type') == 'turn.completed']
+    usage = {key: sum(int((event.get('usage') or {}).get(key) or 0) for event in turns)
+             for key in ('input_tokens', 'cached_input_tokens', 'output_tokens', 'reasoning_output_tokens')} if turns else None
+    elapsed = time.monotonic() - started
+    stage = {'role': role, 'elapsed_seconds': max(0, elapsed - delegation_wait),
+             'wall_elapsed_seconds': elapsed, 'delegation_wait_seconds': delegation_wait,
+             'exit_code': process.returncode, 'timed_out': False, 'timeout_seconds': None,
+             'usage': usage, 'usage_complete': False, 'known_usage_only': True,
+             'reported_error_count': sum(e.get('type') in ('error', 'turn.failed') for e in events),
+             'handoff': CodexHarness._extract_final_answer(events, '')[:6000],
+             'interruption': type(error).__name__, 'error': redact(str(error)),
+             'note': 'Partial observations only. Missing usage is unknown, not zero; inspect preserved native events.'}
+    save(Path(directory) / 'answer.md', CodexHarness._extract_final_answer(events, ''))
+    save(Path(directory) / 'stage.json', stage)
+    siblings = [json.loads(p.read_text()) for p in Path(directory).parent.glob('*/stage.json')]
+    save(Path(directory).parent / 'result.json', {'setup': setup, 'model': RUN_MODEL, 'auth_mode': 'chatgpt',
+         'status': 'technical_interruption', 'resolved': None, 'stages': siblings,
+         'interrupted_role': role, 'elapsed_codex_seconds': sum(s.get('elapsed_seconds', 0) for s in siblings)})
+    return stage
+
+
+async def valid_patch(image, patch, directory):
+    async with container(image, directory) as env:
+        if patch:
+            await env.write_text("/tmp/candidate.patch", patch)
+            result = await env.exec(["git", "apply", "--check", "--binary", "/tmp/candidate.patch"])
+            return result.returncode == 0
+        return True
+
+
+async def model_stage(image, role, prompt, patch, directory, credential, *,
+                      developer_override=None, broker=None, result_setup=None):
+    if PINNED_NATIVE is not None:
+        current = {'binary_sha256': sha(BINARY), 'code_mode_host_sha256': sha(BINARY.parent / 'codex-code-mode-host')}
+        if current != PINNED_NATIVE:
+            raise RuntimeError('Native Codex executable changed during the MAS batch; no new model stage started')
+    directory = Path(directory)
+    developer = developer_override if developer_override is not None else role_instructions(role)
+    save(directory / "prompt.txt", prompt)
+    save(directory / "developer-instructions.txt", developer)
+    async with container(image, directory, agent=True) as env:
+        await network_checks(env, directory)
+        await verify_toolchain(env, IMAGE_LANGUAGES[image])
+        await env.upload(str(SOURCE_DIR / 'patch_export.py'), '/tmp/swe-patch-export.py')
+        baseline = await capture_export_baseline(env, 'environment', directory)
+        if patch:
+            await env.write_text("/tmp/handoff.patch", patch)
+            await env.checked(["git", "apply", "--binary", "/tmp/handoff.patch"])
+            await env.checked(["rm", "-f", "/tmp/handoff.patch"])
+        incoming_baseline = await capture_export_baseline(env, 'input', directory)
+        if broker:
+            broker.baseline_path = baseline
+            await env.upload(str(SOURCE_DIR / 'delegate_agent.py'), '/usr/local/bin/delegate-agent')
+            await env.checked(['mkdir', '-p', '/app/.codex-role-output/delegation-mailbox'])
+        await env.checked(["test", "-x", "/usr/local/bin/codex-code-mode-host"])
+        await env.checked(["mkdir", "-p", "/opt/v2-codex"])
+        await env.upload(str(credential), "/opt/v2-codex/auth.json")
+        await env.checked(["chmod", "600", "/opt/v2-codex/auth.json"])
+        runtime_env = {"CODEX_HOME": "/opt/v2-codex", "OPENAI_API_KEY": "", "CODEX_API_KEY": "",
+                       "AZURE_OPENAI_API_KEY": "", "ANTHROPIC_API_KEY": "", "OPENAI_BASE_URL": ""}
+        login = await env.checked(["codex", "login", "status"], required_env=runtime_env)
+        if "Logged in using ChatGPT" not in login.stdout + login.stderr:
+            raise RuntimeError("Subscription authentication was not verified")
+        argv = ["codex", "exec", "--json",
+                "--ephemeral", "--ignore-user-config", "--cd", "/app", "--model", RUN_MODEL,
+                "--dangerously-bypass-approvals-and-sandbox", "-c", 'forced_login_method="chatgpt"',
+                "-c", 'web_search="disabled"', "-c", "model_reasoning_effort=" + json.dumps(RUN_REASONING),
+                "-c", "agents.enabled=false", "-c", "features.multi_agent=false",
+                "-c", "features.apps=false", "-c", "features.remote_plugin=false",
+                "-c", "developer_instructions=" + json.dumps(developer), "--", prompt]
+        save(directory / "invocation.json", {"argv": argv, "auth_mode": "chatgpt",
+                                             "timeout_seconds": None})
+        docker_argv = ["docker", "exec", "-w", "/app"]
+        for key, value in runtime_env.items():
+            docker_argv.extend(["-e", f"{key}={value}"])
+        docker_argv.extend([env.container_id, *argv])
+        started = time.monotonic()
+        process = await asyncio.create_subprocess_exec(*docker_argv, stdout=asyncio.subprocess.PIPE,
+                                                       stderr=asyncio.subprocess.PIPE, limit=64 * 1024 * 1024)
+        async def stream(reader, path):
+            # Persist events immediately on the trusted host; no log mount in the agent container.
+            with path.open("w") as output:
+                while True:
+                    line = await reader.readline()
+                    if not line:
+                        break
+                    output.write(redact(line.decode(errors="replace")))
+                    output.flush()
+        streams = asyncio.gather(stream(process.stdout, directory / "events.jsonl"),
+                                 stream(process.stderr, directory / "stderr.log"))
+        waiter = asyncio.create_task(process.wait())
+        service = asyncio.create_task(broker.serve(env, process)) if broker else None
+        interrupted = None
+        try:
+            if service:
+                done, _ = await asyncio.wait([waiter, service], return_when=asyncio.FIRST_COMPLETED)
+                if service in done:
+                    await service
+            await waiter
+            await streams
+            if broker and any(r.get('action') == 'delegate' and r.get('status') != 'completed' for r in broker.records):
+                raise RuntimeError('Coordinator ended with an unfinished/interrupted worker')
+        except BaseException as error:
+            interrupted = error
+            raise
+        finally:
+            if service:
+                service.cancel()
+                await asyncio.gather(service, return_exceptions=True)
+            if process.returncode is None:
+                try:
+                    process.terminate()
+                except ProcessLookupError:
+                    pass
+            waiter.cancel()
+            streams.cancel()
+            await asyncio.gather(waiter, streams, return_exceptions=True)
+            if interrupted is not None:
+                # Refresh custody before scrubbing partial logs as well; do not
+                # let a failing credential read hide the original interruption.
+                try:
+                    refreshed = await env.read_text('/opt/v2-codex/auth.json')
+                    learn_secrets(json.loads(refreshed)); credential.write_text(refreshed)
+                except Exception:
+                    pass
+                for log in directory.glob('*'):
+                    if log.is_file() and log.suffix in ('.jsonl', '.log'):
+                        save(log, redact(log.read_text()))
+                persist_partial_stage(directory, role, started, process, interrupted,
+                    result_setup or ('standard' if role == 'standard' else 'roles-b'),
+                    broker.waiting_seconds if broker else 0)
+        elapsed = time.monotonic() - started
+        refreshed = await env.read_text("/opt/v2-codex/auth.json")
+        parsed_auth = json.loads(refreshed)
+        learn_secrets(parsed_auth)
+        credential.write_text(refreshed)
+        # A refresh can create a new secret during execution; scrub retained logs
+        # again now that custody knows its values.
+        for log_path in directory.glob("*"):
+            if log_path.is_file() and log_path.suffix in (".jsonl", ".log"):
+                save(log_path, redact(log_path.read_text()))
+        events = CodexHarness._parse_json_events((directory / "events.jsonl").read_text())
+        reported_errors = [event for event in events if event.get("type") in ("error", "turn.failed")]
+        save(directory / "reported-errors.json", reported_errors)
+        final = CodexHarness._extract_final_answer(events, "")
+        checkpoint = ""
+        if (await env.exec(["test", "-f", "/app/.codex-role-output/checkpoint.md"])).returncode == 0:
+            checkpoint = await env.read_text("/app/.codex-role-output/checkpoint.md")
+        save(directory / "checkpoint.md", checkpoint)
+        save(directory / "answer.md", final)
+        diff = await export_patch(env, baseline)
+        save(directory / 'delta.patch', await export_patch(env, incoming_baseline))
+        # Diagnosis/review edits are never forwarded, but recorded for audit.
+        save(directory / "repository.patch", diff)
+        usage = {key: 0 for key in ("input_tokens", "cached_input_tokens", "output_tokens", "reasoning_output_tokens")}
+        completed = False
+        for event in events:
+            if event.get("type") == "turn.completed":
+                completed = True
+                for key in usage:
+                    usage[key] += int((event.get("usage") or {}).get(key) or 0)
+        unexpected_tools = [event for event in events if "web_search" in str(event.get("item", {}).get("type", ""))]
+        metadata = {"role": role, "elapsed_seconds": elapsed, "exit_code": process.returncode,
+                    "timed_out": False, "timeout_seconds": None,
+                    "reported_error_count": len(reported_errors), "usage": usage if completed else None,
+                    "usage_complete": completed and process.returncode == 0, "handoff": (final or checkpoint)[:6000],
+                    "patch_bytes": len(diff.encode()), "unexpected_web_tools": len(unexpected_tools)}
+        metadata['thread_ids'] = [event['thread_id'] for event in events
+                                  if event.get('type') == 'thread.started' and event.get('thread_id')]
+        if role == "review":
+            metadata["test_evidence"] = review_test_evidence(events)
+        save(directory / "stage.json", metadata)
+        if not completed or process.returncode != 0:
+            save(directory.parent / "result.json", {
+                "setup": result_setup or ("standard" if role == "standard" else "roles-b"), "model": RUN_MODEL,
+                "auth_mode": "chatgpt", "status": "technical_interruption", "resolved": None,
+                "interrupted_role": role, "stages": [metadata],
+                "elapsed_codex_seconds": elapsed, "reported_errors": reported_errors,
+                "note": "Not a demonstrated functional failure. No automatic retry. Other role logs remain preserved."})
+            raise RuntimeError("Technical model interruption; batch paused; inspect preserved logs before a new attempt")
+        if CodexHarness._first_error_event(events) is not None or re.search(
+                r"failed to spawn .*host", (directory / "stderr.log").read_text()):
+            raise RuntimeError("Native Codex/tool startup error; trial is a harness problem, not a solution failure")
+        if not completed and not metadata["timed_out"]:
+            raise RuntimeError("Codex returned no completed turn; inspect native events before continuing")
+        if unexpected_tools:
+            raise RuntimeError("A prohibited web tool appeared in the event log")
+        if process.returncode not in (0, 124, 137):
+            raise RuntimeError(f"Codex stage {role} failed (exit {process.returncode}); see saved logs")
+        return metadata, diff if role in ("standard", "implementation", "correction", "coordinator", "self-organizing-worker") else ""
+
+
+def issue_prompt(instance):
+    return ("Resolve the issue in the repository at /app. Edit checked-out files; the coordinator exports changes.\n\n"
+            "ISSUE:\n" + instance["problem_statement"] + "\n\nREQUIREMENTS:\n" + str(instance.get("requirements", ""))
+            + "\n\nINTERFACES:\n" + str(instance.get("interface", "")))
+
+
+async def trial(instance, image, setup, directory, credential):
+    directory = Path(directory)
+    stages = []
+    issue = issue_prompt(instance)
+    correction_started = False
+    wall_started = time.monotonic()
+    if setup == "standard":
+        stage, patch = await model_stage(image, "standard", issue, "", directory / "standard", credential)
+        stages.append(stage)
+    elif setup == 'self-organizing':
+        api = SimpleNamespace(save=save, now=now, redact=redact, export_patch=export_patch,
+                              role_instructions=role_instructions, model_stage=model_stage)
+        broker = DelegationBroker(api, image, directory, credential)
+        developer = role_instructions('standard').replace('Do not request downloads or delegate.',
+                                                        'Do not request downloads.')
+        try:
+            stage, patch = await model_stage(image, 'coordinator', issue, '', directory / 'coordinator', credential,
+                developer_override=developer + '\n' + COORDINATOR_INSTRUCTIONS, broker=broker,
+                result_setup=setup)
+        except BaseException:
+            # Preserve worker usage even when the coordinator is interrupted.
+            parent = directory / 'result.json'
+            partial = json.loads(parent.read_text()) if parent.exists() else {}
+            if not partial.get('stages') and (directory / 'coordinator/stage.json').exists():
+                partial['stages'] = [json.loads((directory / 'coordinator/stage.json').read_text())]
+            save(parent, {**partial, 'setup': setup, 'model': RUN_MODEL, 'auth_mode': 'chatgpt',
+                          'status': 'technical_interruption', 'resolved': None,
+                          'stages': broker.stages + partial.get('stages', [])})
+            raise
+        finally:
+            broker.finalize()
+        stage['agent_id'] = 'coordinator'
+        stage['wall_elapsed_seconds'] = stage['elapsed_seconds']
+        stage['delegation_wait_seconds'] = broker.waiting_seconds
+        stage['elapsed_seconds'] = max(0, stage['elapsed_seconds'] - broker.waiting_seconds)
+        save(directory / 'coordinator/stage.json', stage)
+        stages.extend([stage, *broker.stages])
+    elif setup == 'roles-b':
+        diagnosis, _ = await model_stage(image, "diagnosis", issue, "", directory / "diagnosis", credential)
+        stages.append(diagnosis)
+        implementation, patch = await model_stage(image, "implementation",
+            issue + "\n\nDIAGNOSIS (hypothesis only):\n" + diagnosis["handoff"], "",
+            directory / "implementation", credential)
+        stages.append(implementation)
+        if not await valid_patch(image, patch, directory / "implementation-patch-check"):
+            save(directory / "result.json", {"status": "invalid_submission", "stages": stages})
+            return
+        review, _ = await model_stage(image, "review", issue +
+            "\n\nIndependently review the already-applied patch. Run relevant existing tests.\n",
+            patch, directory / "review", credential)
+        stages.append(review)
+        claimed_accept = bool(re.match(r"\s*VERDICT:\s*ACCEPT\b", review["handoff"], re.I))
+        accepted = claimed_accept and review["test_evidence"]["accept_supported"]
+        review["effective_verdict"] = "ACCEPT" if accepted and not review["timed_out"] else "FIX"
+        review["verdict_overridden_for_missing_test_evidence"] = claimed_accept and not accepted
+        save(directory / "review/stage.json", review)
+        if not accepted or review["timed_out"]:
+            correction_started = True
+            correction, candidate = await model_stage(image, "correction",
+                issue + "\n\nREVIEW:\n" + review["handoff"] +
+                ("\n\nCoordinator: effective VERDICT: FIX. The event log did not establish successful "
+                 "execution of relevant existing tests; verify and rerun them." if claimed_accept and not accepted else ""), patch,
+                directory / "correction", credential)
+            stages.append(correction)
+            if await valid_patch(image, candidate, directory / "correction-patch-check"):
+                patch = candidate
+    else:
+        raise ValueError('Unknown architecture: ' + setup)
+    save(directory / "submission.patch", patch)
+    applicable = await valid_patch(image, patch, directory / "final-patch-check")
+    result = {"setup": setup, "model": RUN_MODEL, "auth_mode": "chatgpt",
+              "stages": stages, "correction_started": correction_started, "patch_applicable": applicable,
+              "elapsed_codex_seconds": sum(x["elapsed_seconds"] for x in stages)}
+    problem_markers = [match.group(1).strip().lower() for stage in stages for match in
+                       re.finditer(r"TEST_ENVIRONMENT_PROBLEM\s*:\s*([^\n]*)", stage["handoff"])]
+    result["test_environment_problem_reported"] = any(
+        not re.match(r"(?:none|no(?:ne)?\b|not observed)\b", marker) for marker in problem_markers)
+    if not applicable:
+        result["status"] = "invalid_submission"
+    elif not patch.strip():
+        result["status"] = "empty_submission"
+        result["resolved"] = False
+    else:
+        evaluation = await evaluate(instance, image=ORIGINAL_IMAGES[instance["instance_id"]], patch=patch,
+                                    directory=directory / "evaluation")
+        result.update(status="completed" if evaluation.get("completed") and not evaluation.get("error")
+                      else "evaluation_problem", resolved=evaluation.get("resolved", False))
+    result['trial_wall_seconds'] = time.monotonic() - wall_started
+    save(directory / "result.json", result)
+
+
+IMAGE_LANGUAGES = {}
+ORIGINAL_IMAGES = {}
+BASE_COMMITS = {}
+
+
+
+
+
+
+
+
+async def parallel_trials(jobs, manifest, manifest_path, credential_root, credential_bytes, workers=None):
+    """Bound whole trial pipelines; technical failures do not cancel siblings."""
+    if workers is not None and workers < 1:
+        raise ValueError("Model workers must be positive")
+    semaphore = asyncio.Semaphore(workers or max(1, len(jobs)))
+    manifest["active_trials"] = []
+    manifest["technical_errors"] = []
+
+    async def active_worker(number, case, setup, directory, instance, image):
+        identity = {"task": number, "setup": setup}
+        credential = credential_root / f"task-{number:02d}-{setup}-auth.json"
+        credential.write_bytes(credential_bytes)
+        credential.chmod(0o600)
+        save(directory / "started.json", {"at": now(), **identity, "execution_mode": "parallel"})
+        manifest["active_trials"].append(identity)
+        save(manifest_path, manifest)
+        print(f"Task {number}: starting {setup}, {RUN_MODEL} / subscription (parallel)", flush=True)
+        try:
+            await trial(instance, image, setup, directory, credential)
+            result_path = directory / "result.json"
+            if result_path.exists() and json.loads(result_path.read_text()).get("status") in ("technical_interruption", "evaluation_problem"):
+                raise RuntimeError("Trial reported a technical interruption or evaluation problem; see saved result")
+        except Exception as error:
+            failure = {**identity, "error": redact(str(error)), "interrupted_at": now()}
+            manifest["technical_errors"].append(failure)
+            save(directory / "technical-interruption.json", failure)
+            print(f"Task {number}: {setup} technical interruption; other trials continue", flush=True)
+        else:
+            print(f"Task {number}: {setup} complete", flush=True)
+        finally:
+            manifest["active_trials"].remove(identity)
+            save(manifest_path, manifest)
+
+    async def worker(*job):
+        async with semaphore:
+            if (manifest_path.parent / 'STOP_AFTER_ACTIVE.json').exists():
+                return
+            await active_worker(*job)
+
+    # Also wait for siblings when an exception occurs before/after trial().
+    outcomes = await asyncio.gather(*(worker(*job) for job in jobs), return_exceptions=True)
+    for job, outcome in zip(jobs, outcomes):
+        if isinstance(outcome, Exception):
+            manifest["technical_errors"].append({"task": job[0], "setup": job[2],
+                "error": redact(str(outcome)), "interrupted_at": now()})
+        elif isinstance(outcome, BaseException):
+            raise outcome
+    manifest["active_trials"] = []
+    if manifest["technical_errors"]:
+        manifest.update(status="technical_interruption", interrupted_at=now())
+        save(manifest_path, manifest)
+        return 2
+    if (manifest_path.parent / 'STOP_AFTER_ACTIVE.json').exists():
+        pending = [{'task': n, 'setup': setup} for n, _, setup, directory, _, _ in jobs
+                   if not (directory / 'result.json').exists()]
+        manifest.update(status='paused' if pending else 'completed', pending_trials=pending,
+                        paused_at=now(), pause_reason='Stop after active trials; no active trial was cancelled')
+        if not pending:
+            manifest['completed_at'] = now()
+        save(manifest_path, manifest)
+        print(f'Stopped after active trials; {len(pending)} trials pending. Resume explicitly with --resume-from.', flush=True)
+        return 75
+    return 0
+
+
+async def ensure_evaluation_scripts(task_numbers, selection):
+    """Materialize both official evaluator files before recording their hashes."""
+    plan = SWEBenchProVerifiedBenchmarkPlan(scripts_dir=str(DATA / "run_scripts"))
+    for number in task_numbers:
+        instance_id = selection["scored_tasks"][number - 1]["instance_id"]
+        for name in ("run_script.sh", "parser.py"):
+            path = DATA / "run_scripts" / instance_id / name
+            if not path.is_file():
+                print(f"Task {number}: downloading official evaluator file {name}", flush=True)
+            await asyncio.to_thread(BENCHMARK._load_local_script, plan, instance_id, name)
+            if not path.is_file() or not path.stat().st_size:
+                raise RuntimeError(f"Official evaluator file missing or empty: {path}")
+
+
+async def validate_task_controls(number, case, instance, root):
+    """One isolated preparation/control pipeline; no model or credential access."""
+    task_dir = root / f"task-{number:02d}"
+    controls_path = task_dir / "controls.json"
+    if controls_path.exists():
+        controls = json.loads(controls_path.read_text())
+        if not controls["passed"]:
+            raise RuntimeError(f"Task {number} previously failed controls; inspect before proceeding")
+        return json.loads((task_dir / "preparation/snapshot.json").read_text()), True
+    print(f"Task {number}: preparing identical offline snapshot", flush=True)
+    snapshot = await prepare(case, task_dir / "preparation")
+    print(f"Task {number}: running no-model original/reference controls", flush=True)
+    # Keep original and reference sequential within a task: at most one control
+    # container per worker. Different tasks use different containers/directories.
+    base = await evaluate(instance, snapshot["original_image_id"], CONTROL_PATCH, task_dir / "controls-original")
+    gold = await evaluate(instance, snapshot["original_image_id"], str(instance["patch"]), task_dir / "controls-reference")
+    required_fails = set(BENCHMARK._list_field(instance, "fail_to_pass"))
+    base_passed = {test["name"] for test in base.get("tests", []) if test["status"] == "PASSED"}
+    passed = bool(base.get("completed") and not base.get("error") and required_fails
+                  and required_fails.isdisjoint(base_passed) and not base.get("pass_to_pass_missing")
+                  and gold.get("completed") and gold.get("resolved") and not gold.get("error"))
+    save(controls_path, {"passed": passed, "original_completed": base.get("completed"),
+                        "original_resolved": base.get("resolved"), "reference_resolved": gold.get("resolved"),
+                        "model_tokens": 0, "at": now()})
+    print(f"Task {number}: controls {'PASS' if passed else 'BLOCKED'}", flush=True)
+    return snapshot, passed
+
+
+async def task_controls(cases, instances, root, manifest, manifest_path, workers=1):
+    """Bound control concurrency; wait for siblings and gate every model start."""
+    semaphore = asyncio.Semaphore(workers)
+    snapshots, failures = {}, []
+
+    async def worker(number, case):
+        async with semaphore:
+            try:
+                snapshot, passed = await validate_task_controls(number, case, instances[case["instance_id"]], root)
+                snapshots[number] = snapshot
+                if not passed:
+                    failures.append({"task": number, "kind": "control_failed"})
+            except Exception as error:
+                failure = {"task": number, "kind": "technical_interruption", "error": redact(str(error)), "at": now()}
+                save(root / f"task-{number:02d}" / "controls-interruption.json", failure)
+                failures.append(failure)
+                print(f"Task {number}: control technical interruption", flush=True)
+
+    if workers == 1:
+        for number, case in cases:
+            await worker(number, case)
+            if failures:
+                break
+    else:
+        await asyncio.gather(*(worker(number, case) for number, case in cases))
+    if failures:
+        manifest.update(status="control_problem", control_errors=sorted(failures, key=lambda x: x["task"]))
+        save(manifest_path, manifest)
+        return None
+    return snapshots
+
+
+def load_selection(directory, requested=None, *, pin=False):
+    """New experiment pools are immutable; legacy experiments retain their pool."""
+    local = directory / "selection.json"
+    source = local if local.is_file() else LAB / "selection.json"
+    if requested:
+        if not re.fullmatch(r"selection(?:-[A-Za-z0-9_-]+)?\.json", requested):
+            raise ValueError("Use a lab selection filename such as selection-extended.json")
+        source = (LAB / requested).resolve()
+        if source.parent != LAB.resolve():
+            raise ValueError("Selection must be inside the laboratory")
+        if local.exists() and sha(local) != sha(source):
+            raise ValueError("Experiment task pool is frozen; use a new experiment")
+        if not local.exists() and any(directory.glob("batch-*/manifest.json")):
+            raise ValueError("Existing experiment uses the original task pool; use a new experiment")
+    selection = json.loads(source.read_text())
+    ids = [case["instance_id"] for case in selection["scored_tasks"]]
+    if not ids or len(ids) != len(set(ids)) or selection["smoke_test"]["instance_id"] in ids:
+        raise ValueError("Selection must contain unique tasks and exclude the smoke test")
+    if requested and pin and not local.exists():
+        save(local, selection)
+        source = local
+    return source, selection
+
+
+def repair_control_attempt(root, manifest, source_hashes, policy, exclusions=()):
+    """Explicit, pre-model repair. Preserve passed controls and archive failures."""
+    if manifest["status"] not in ("validating", "control_problem", "controls_passed", "technical_interruption"):
+        raise RuntimeError("Control repair is only allowed before model execution")
+    if manifest.get("execution_started_at") or any(root.glob("task-*/*/started.json")):
+        raise RuntimeError("Model trials already started; control repair requires a separate experiment")
+    if not set(exclusions) <= set(manifest["tasks"]):
+        raise ValueError("Excluded controls must belong to this batch")
+    for number in exclusions:
+        path = root / f"task-{number:02d}" / "controls.json"
+        if not path.exists() or json.loads(path.read_text()).get("passed"):
+            raise RuntimeError("Control repair exclusions require existing failed controls")
+    prior = manifest["source_hashes"]
+    changed = {k for k in prior.keys() | source_hashes.keys() if prior.get(k) != source_hashes.get(k)}
+    cache_key = str((DATA / "dependency-cache-overrides.json").relative_to(LAB))
+    if changed - {str((SOURCE_DIR / "run.py").relative_to(LAB)), cache_key}:
+        raise RuntimeError("Control repair may only change the runner; dataset, evaluator and other sources must remain frozen")
+    old_script = root / "source-snapshot" / str((SOURCE_DIR / "run.py").relative_to(LAB))
+    old_ast, new_ast = ast.parse(old_script.read_text()), ast.parse((SOURCE_DIR / "run.py").read_text())
+    protected = ("evaluate", "container", "trial", "model_stage", "role_instructions", "issue_prompt",
+                 "network_checks", "valid_patch", "validate_task_controls", "task_controls")
+    for name in protected:
+        def body(tree):
+            return next(n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == name)
+        if ast.dump(body(old_ast)) != ast.dump(body(new_ast)):
+            raise RuntimeError(f"Protected control/model behavior changed: {name}")
+    if cache_key in changed:
+        selection = json.loads((HERE / "selection.json" if (HERE / "selection.json").is_file() else LAB / "selection.json").read_text())
+        overrides = json.loads((DATA / "dependency-cache-overrides.json").read_text())
+        for n in manifest["tasks"]:
+            p = root / f"task-{n:02d}" / "controls.json"
+            override = overrides.get(selection["scored_tasks"][n - 1]["instance_id"])
+            if p.exists() and json.loads(p.read_text()).get("passed") and override:
+                snapshot = json.loads((p.parent / "preparation/snapshot.json").read_text())
+                if snapshot["original_image_id"] != override["cached_image_id"]:
+                    raise RuntimeError("A passing control would receive a different dependency image; use a new batch")
+    archive = root / "technical-interruptions" / ("control-repair-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:6])
+    archive.mkdir(parents=True)
+    shutil.copy2(root / "manifest.json", archive / "manifest.json")
+    shutil.move(str(root / "source-snapshot"), str(archive / "source-snapshot"))
+    retried, reused = [], []
+    for n in manifest["tasks"]:
+        task = root / f"task-{n:02d}"
+        path = task / "controls.json"
+        if n in exclusions:
+            shutil.copytree(task, archive / task.name)
+        elif path.exists() and json.loads(path.read_text()).get("passed"):
+            reused.append(n)
+        else:
+            retried.append(n)
+            if task.exists():
+                shutil.move(str(task), str(archive / task.name))
+    audit = {"at": now(), "reason": "Explicit pre-model technical repair; no task replacement or score-based selection",
+             "archive": str(archive.relative_to(root)), "retry_tasks": retried, "reused_control_tasks": reused,
+             "retained_excluded_control_tasks": list(exclusions),
+             "prior_source_hashes": prior, "new_source_hashes": source_hashes,
+             "protected_functions_unchanged": list(protected), "control_execution_policy": policy, "model_tokens": 0}
+    save(archive / "repair.json", audit)
+    manifest.setdefault("control_repairs", []).append(audit)
+    manifest.update(status="validating", source_hashes=source_hashes, control_execution_policy=policy,
+                    version="harness-v8-control-repair")
+    manifest.pop("control_errors", None)
+    save(root / "manifest.json", manifest)
+    for key in source_hashes:
+        destination = root / "source-snapshot" / key
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(LAB / key, destination)
+    print(f"Control repair: preserve {len(reused)} passed tasks; retry {retried}; originals archived", flush=True)
+
+
+def resume_batch(source, root, source_hashes, task_numbers, setups, model, reasoning):
+    """Explicit new attempt: reuse controls/results, never partial model context."""
+    if root.exists():
+        raise RuntimeError("Resume destination must be a new batch")
+    prior = json.loads((source / "manifest.json").read_text())
+    if (prior["tasks"], prior["setups"], prior["model"], prior["reasoning"]) != (task_numbers, setups, model, reasoning):
+        raise RuntimeError("Resume must preserve task/setup/model selection")
+    old_hashes = prior.get("execution_source_hashes", prior["source_hashes"])
+    runner_key = str((SOURCE_DIR / "run.py").relative_to(LAB))
+    changed = {k for k in old_hashes.keys() | source_hashes.keys() if old_hashes.get(k) != source_hashes.get(k)}
+    if changed - {runner_key}:
+        raise RuntimeError("Resume requires unchanged evaluator, dataset, prompts and dependency images")
+    old_directory = source / ("execution-source-snapshot" if (source / "execution-source-snapshot").exists() else "source-snapshot")
+    old_ast = ast.parse((old_directory / runner_key).read_text())
+    new_ast = ast.parse((SOURCE_DIR / "run.py").read_text())
+    protected = ("evaluate", "container", "trial", "model_stage", "role_instructions", "issue_prompt", "network_checks", "valid_patch", "validate_task_controls", "task_controls")
+    for name in protected:
+        def body(tree):
+            return next(n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == name)
+        if ast.dump(body(old_ast)) != ast.dump(body(new_ast)):
+            raise RuntimeError(f"Resume protected behavior changed: {name}")
+    excluded = prior.get("control_exclusions", [])
+    carried, retry = [], []
+    for n in task_numbers:
+        task = source / f"task-{n:02d}"
+        controls = json.loads((task / "controls.json").read_text())
+        if not controls.get("passed") and n not in excluded:
+            raise RuntimeError(f"Task {n}: controls not passed or explicitly excluded")
+        if n not in excluded and not (task / "preparation/snapshot.json").is_file():
+            raise RuntimeError(f"Task {n}: missing prepared snapshot")
+        for selected in setups:
+            result = task / selected / "result.json"
+            done = result.is_file() and json.loads(result.read_text()).get("status") not in ("technical_interruption", "evaluation_problem")
+            (carried if done else retry).append({"task": n, "setup": selected})
+    # Validate every input before creating the destination. Preserve original batch.
+    root.mkdir(mode=0o700)
+    for n in task_numbers:
+        task = source / f"task-{n:02d}"
+        destination = root / task.name; destination.mkdir()
+        for name in ("controls.json", "controls-original", "controls-reference", "preparation"):
+            item = task / name
+            if item.is_dir(): shutil.copytree(item, destination / name)
+            elif item.is_file(): shutil.copy2(item, destination / name)
+        for entry in carried:
+            if entry["task"] == n:
+                shutil.copytree(task / entry["setup"], destination / entry["setup"])
+    manifest = {k: prior[k] for k in ("tasks", "setups", "model", "reasoning", "auth_mode", "network_policy", "model_timeout_seconds", "evaluation_timeout_seconds", "control_marker_patch_sha256", "selection_file", "selection_size", "control_execution_policy", "control_exclusions", "architecture_protocol", "native_codex") if k in prior}
+    manifest.update(version="harness-v9-model-workers", created_at=now(), status="controls_passed", source_hashes=source_hashes,
+        resume={"source_batch": source.name, "at": now(), "source_hashes": old_hashes,
+                "carried_results": carried, "fresh_trials": retry, "controls_reexecuted": False,
+                "reason": "Explicit restart after technical interruption; partial model stages are not reused"})
+    save(root / "manifest.json", manifest)
+    for key in source_hashes:
+        dest = root / "source-snapshot" / key; dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(LAB / key, dest)
+    print(f"Resume: reuse controls and {len(carried)} recorded results; {len(retry)} fresh trials; source preserved", flush=True)
+
+
+def resume_in_place(root, source_hashes, task_numbers, setups, model, reasoning):
+    """Validate first, archive incomplete trials; retain original controls/results."""
+    with tempfile.TemporaryDirectory(prefix="swe-resume-plan-", dir=root.parent) as temporary:
+        plan = Path(temporary) / "plan"
+        resume_batch(root, plan, source_hashes, task_numbers, setups, model, reasoning)
+        manifest = json.loads((plan / "manifest.json").read_text())
+        old_bytes = (root / "manifest.json").read_bytes()
+        archive = root / "technical-interruptions" / ("model-resume-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:6])
+        archive.mkdir(parents=True)
+        (archive / "manifest.json").write_bytes(old_bytes)
+        moved = []
+        installed_snapshot = False
+        try:
+            for name in ("source-snapshot", "execution-source-snapshot", "STOP_AFTER_ACTIVE.json"):
+                source = root / name
+                if source.exists():
+                    destination = archive / name
+                    shutil.move(str(source), str(destination)); moved.append((source, destination))
+            for entry in manifest["resume"]["fresh_trials"]:
+                source = root / f"task-{entry['task']:02d}" / entry["setup"]
+                if source.exists():
+                    destination = archive / source.relative_to(root)
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(source), str(destination)); moved.append((source, destination))
+            shutil.move(str(plan / "source-snapshot"), str(root / "source-snapshot"))
+            installed_snapshot = True
+            manifest["resume"].update(in_place=True, archive=str(archive.relative_to(root)))
+            previous = json.loads(old_bytes)
+            manifest["resume_history"] = previous.get("resume_history", []) + [manifest["resume"]]
+            save(archive / "resume.json", manifest["resume"])
+            save(root / "manifest.json", manifest)
+        except BaseException:
+            if installed_snapshot:
+                shutil.rmtree(root / "source-snapshot", ignore_errors=True)
+            for source, destination in reversed(moved):
+                if destination.exists():
+                    source.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(destination), str(source))
+            (root / "manifest.json").write_bytes(old_bytes)
+            raise
+    print(f"Resume in {root.name}: controls/results retained; incomplete attempts archived under {archive.relative_to(root)}", flush=True)
+
+
+def recorded_execution_mode(root, manifest):
+    if manifest.get("execution_mode") is not None:
+        return manifest["execution_mode"]
+    carried = {(x["task"], x["setup"]) for x in manifest.get("resume", {}).get("carried_results", [])}
+    modes = set()
+    for marker in root.glob("task-*/*/started.json"):
+        identity = (int(marker.parent.parent.name.removeprefix("task-")), marker.parent.name)
+        if identity in carried:
+            continue
+        modes.add(json.loads(marker.read_text()).get("execution_mode", "sequential"))
+    if len(modes) > 1:
+        raise RuntimeError("Conflicting execution modes in model start markers")
+    return next(iter(modes), None)
+
+
+async def main(run_models, task_numbers, batch, setup="both", parallel=False, model="gpt-6-luna", reasoning="medium",
+               parallel_controls=False, control_workers=2, repair_controls=False, exclude_invalid_controls=None,
+               model_workers=None, resume_from=None):
+    global RUN_MODEL, RUN_REASONING, PINNED_NATIVE
+    PINNED_NATIVE = None
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", model):
+        raise ValueError("Use a native Codex model ID, for example gpt-6-luna")
+    if reasoning not in ("low", "medium", "high", "xhigh", "max"):
+        raise ValueError("Unsupported reasoning level")
+    RUN_MODEL, RUN_REASONING = model, reasoning
+    if repair_controls and run_models:
+        raise ValueError("--repair-controls cannot be combined with --run; validate repairs before starting models")
+    if control_workers < 1:
+        raise ValueError("Control workers must be positive")
+    selection_path, selection = load_selection(HERE)
+    if sha(DATA / "swebench_pro_verified.jsonl") != selection["dataset_sha256"]:
+        raise RuntimeError("Preregistered dataset hash mismatch")
+    setups = (["standard", "roles-b", "self-organizing"] if setup == 'all' else
+              ["standard", "roles-b"] if setup == "both" else [setup])
+    root = HERE / batch
+    if resume_from and (not run_models or repair_controls):
+        raise ValueError("--resume-from requires --run and cannot repair controls")
+    if model_workers is not None and (model_workers < 1 or not parallel):
+        raise ValueError("--model-workers requires --parallel and a positive value")
+    if not resume_from:
+        root.mkdir(exist_ok=True, mode=0o700)
+    manifest_path = root / "manifest.json"
+    if manifest_path.exists():
+        recorded = json.loads(manifest_path.read_text())
+        if not resume_from:
+            if recorded["tasks"] != task_numbers or recorded["setups"] != setups:
+                raise RuntimeError("Batch task/setup selection differs; use a separate batch")
+            if recorded["model"] != model or recorded["reasoning"] != reasoning:
+                raise RuntimeError("Batch model/reasoning differs; use a separate batch")
+        if recorded['status'] == 'paused' and not resume_from:
+            print('Batch paused after active trials; resume explicitly with --resume-from', flush=True)
+            return 75
+        if (recorded["status"] == "completed" or
+                (recorded["status"] == "technical_interruption" and not repair_controls)) and not resume_from:
+            if recorded["tasks"] != task_numbers or recorded["setups"] != setups:
+                raise RuntimeError("Batch task/setup selection differs; use a separate batch")
+            if recorded["model"] != model or recorded["reasoning"] != reasoning:
+                raise RuntimeError("Batch model/reasoning differs; use a separate batch")
+            # No execution occurs: newer central sources cannot rewrite historical runs.
+            print(f"Batch already {recorded['status']}; no implicit repeats", flush=True)
+            return 0 if recorded["status"] == "completed" else 2
+    elif repair_controls:
+        raise RuntimeError("--repair-controls requires an existing batch")
+    await ensure_evaluation_scripts(task_numbers, selection)
+    if not run_models:
+        # Trusted downloads must finish before the immutable control provenance
+        # is recorded. Neither model starts nor offline evaluations download.
+        await prefetch_go_control_dependencies(task_numbers, selection, root, repair_controls=repair_controls,
+                                               exclusions=exclude_invalid_controls)
+    source_hashes = {str(path.relative_to(LAB)): sha(path) for path in
+        (SOURCE_DIR / "run.py", SOURCE_DIR / "runner_helpers.py", SOURCE_DIR / "report.py", SOURCE_DIR / "egress_proxy.py", SOURCE_DIR / "requirements.toml", selection_path,
+         UPSTREAM / "benchmarks/swebench_pro_verified/swebench_pro_verified.py",
+         UPSTREAM / "harnesses/codex.py", UPSTREAM / "harnesses/codex_roles_b.py",
+         UPSTREAM / "environments/docker.py", UPSTREAM / "environments/docker_egress_proxy.py")}
+    for filename in ('patch_export.py', 'mas_orchestrator.py', 'delegate_agent.py'):
+        path = SOURCE_DIR / filename
+        if path.is_file():
+            source_hashes[str(path.relative_to(LAB))] = sha(path)
+    if (HERE / "experiment.json").is_file():
+        source_hashes[str((HERE / "experiment.json").relative_to(LAB))] = sha(HERE / "experiment.json")
+    if (DATA / "dependency-cache-overrides.json").is_file():
+        source_hashes[str((DATA / "dependency-cache-overrides.json").relative_to(LAB))] = sha(DATA / "dependency-cache-overrides.json")
+    for number in task_numbers:
+        instance_id = selection["scored_tasks"][number - 1]["instance_id"]
+        for path in sorted((DATA / "run_scripts" / instance_id).rglob("*")):
+            if path.is_file():
+                source_hashes[str(path.relative_to(LAB))] = sha(path)
+    if resume_from:
+        if not re.fullmatch(r"batch-[A-Za-z0-9][A-Za-z0-9_-]*", resume_from):
+            raise ValueError("Resume source must be an existing batch name")
+        source = HERE / resume_from
+        if source == root:
+            resume_in_place(root, source_hashes, task_numbers, setups, model, reasoning)
+        else:
+            resume_batch(source, root, source_hashes, task_numbers, setups, model, reasoning)
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text())
+        if repair_controls:
+            if manifest["tasks"] != task_numbers or manifest["setups"] != setups or manifest["model"] != model or manifest["reasoning"] != reasoning:
+                raise RuntimeError("Control repair must preserve task/setup/model selection")
+            repair_control_attempt(root, manifest, source_hashes,
+                                   {"mode": "parallel" if parallel_controls else "sequential",
+                                    "workers": control_workers if parallel_controls else 1},
+                                   manifest.get("control_exclusions", []) if exclude_invalid_controls is None else exclude_invalid_controls)
+        if manifest["source_hashes"] != source_hashes:
+            raise RuntimeError("Versioned sources changed since validation; create a new batch or explicitly invalidate controls")
+        if manifest["model"] != model or manifest["reasoning"] != reasoning:
+            raise RuntimeError("Batch model/reasoning differs; use a separate batch")
+        if manifest.get("execution_source_hashes", source_hashes) != source_hashes:
+            raise RuntimeError("Execution sources changed since the first model start; use a new batch")
+        requested_mode = "parallel" if parallel else "sequential"
+        prior_mode = recorded_execution_mode(root, manifest)
+        if run_models and prior_mode is not None and prior_mode != requested_mode:
+            raise RuntimeError("Execution mode is frozen after the first model start; use a new batch")
+        if manifest["tasks"] != task_numbers or manifest["setups"] != setups:
+            raise RuntimeError("Batch task/setup selection differs; use a separate batch")
+        if manifest["status"] in ("completed", "technical_interruption"):
+            print(f"Batch already {manifest['status']}; no implicit repeats", flush=True)
+            return 0 if manifest["status"] == "completed" else 2
+    else:
+        if repair_controls:
+            raise RuntimeError("--repair-controls requires an existing batch")
+        manifest = {"version": "harness-v8-control-repair", "created_at": now(), "status": "validating",
+                    "tasks": task_numbers, "setups": setups, "model": RUN_MODEL,
+                    "selection_file": str(selection_path.relative_to(LAB)), "selection_size": len(selection["scored_tasks"]),
+                    "model_timeout_seconds": None, "evaluation_timeout_seconds": 3600,
+                    "reasoning": RUN_REASONING, "auth_mode": "chatgpt", "source_hashes": source_hashes,
+                    "network_policy": ALLOWLIST, "control_marker_patch_sha256": hashlib.sha256(CONTROL_PATCH.encode()).hexdigest()}
+        if 'self-organizing' in setups:
+            manifest['architecture_protocol'] = {
+                'version': 'mas-v1', 'max_delegations': 3, 'max_active_workers_per_trial': 1,
+                'recursive_delegation': False, 'free_role_prompts': True,
+                'fresh_context_and_container': True, 'patch_export': 'environment-baseline-v1',
+                'resource_policy': '4 CPUs / 8 GiB per container; self-organizing parent and at most one worker may coexist',
+                'budget_policy': 'Delegation cap, not equal token budgets; log all coordinator and worker usage'}
+        save(manifest_path, manifest)
+        for key in source_hashes:
+            source = LAB / key
+            destination = root / "source-snapshot" / key
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
+    cases = [(number, selection["scored_tasks"][number - 1]) for number in task_numbers]
+    wanted = {case["instance_id"] for _, case in cases}
+    instances = {}
+    with (DATA / "swebench_pro_verified.jsonl").open() as dataset:
+        for line in dataset:
+            item = json.loads(line)
+            if item["instance_id"] in wanted:
+                instances[item["instance_id"]] = item
+    # Reference solutions stay in host memory and trusted control containers only.
+    if wanted != instances.keys():
+        raise RuntimeError("Selected instances missing from the pinned dataset")
+    excluded = sorted(set(manifest.get("control_exclusions", []) if exclude_invalid_controls is None else exclude_invalid_controls))
+    if not set(excluded) <= set(task_numbers):
+        raise ValueError("Excluded controls must belong to this batch")
+    if manifest.get("execution_started_at") and excluded != manifest.get("control_exclusions", []):
+        raise RuntimeError("Control exclusions are frozen after the first model start")
+    for number in excluded:
+        task = root / f"task-{number:02d}"
+        controls = task / "controls.json"
+        if not controls.exists() or json.loads(controls.read_text()).get("passed"):
+            raise RuntimeError(f"Task {number}: explicit exclusion requires an existing failed control result")
+        for selected_setup in setups:
+            save(task / selected_setup / "result.json", {"status": "control_excluded", "resolved": None,
+                "setup": selected_setup, "model": model, "stages": [], "model_tokens": 0,
+                "reason": "Explicit symmetric exclusion after failed pre-model controls; not a model failure",
+                "control_result": "../controls.json"})
+    if excluded:
+        manifest["control_exclusions"] = excluded
+        save(manifest_path, manifest)
+        print(f"Explicit unscored control exclusions for both setups: {excluded}; no replacement tasks", flush=True)
+        cases = [(n, case) for n, case in cases if n not in excluded]
+    workers = control_workers if parallel_controls else 1
+    pending_controls = any(not (root / f"task-{n:02d}" / "controls.json").exists() for n, _ in cases)
+    policy = {"mode": "parallel" if parallel_controls else "sequential", "workers": workers}
+    if pending_controls:
+        if manifest.get("control_execution_policy", policy) != policy:
+            raise RuntimeError("Control execution policy is frozen; use a new batch")
+        manifest["control_execution_policy"] = policy
+        save(manifest_path, manifest)
+    if pending_controls:
+        print(f"Controls: {policy['mode']}, at most {workers} task pipelines; model tokens 0", flush=True)
+    else:
+        print("Controls: reusing recorded results; no new control executions", flush=True)
+    snapshots = await task_controls(cases, instances, root, manifest, manifest_path, workers)
+    if snapshots is None:
+        return 2
+    for number, case in cases:
+        ORIGINAL_IMAGES[case["instance_id"]] = snapshots[number]["original_image_id"]
+        BASE_COMMITS[snapshots[number]["prepared_image_id"]] = case["base_commit"]
+        IMAGE_LANGUAGES[snapshots[number]["prepared_image_id"]] = case["repo_language"]
+    manifest.pop("control_errors", None)
+    manifest.update(status="controls_passed", controls_at=now())
+    save(manifest_path, manifest)
+    if not run_models:
+        return 0
+    if not AUTH.is_file() or not BINARY.is_file():
+        raise RuntimeError("Subscription credential or native Codex executable missing")
+    config_path = HERE / 'experiment.json'
+    if config_path.exists() and json.loads(config_path.read_text()).get('protocol') == 'mas-v1':
+        helper = BINARY.parent / 'codex-code-mode-host'
+        if not helper.is_file():
+            raise RuntimeError('Native codex-code-mode-host helper missing; no model started')
+        native = {'binary_sha256': sha(BINARY), 'code_mode_host_sha256': sha(helper)}
+        if manifest.get('native_codex', native) != native:
+            raise RuntimeError('Native Codex executable changed within the MAS batch; do not mix runtime versions')
+        manifest['native_codex'] = native
+        PINNED_NATIVE = native
+    # Check the entire selection before starting any concurrent model process.
+    if parallel:
+        for number, case in cases:
+            for selected_setup in setups:
+                directory = root / f"task-{number:02d}" / selected_setup
+                if (directory / "started.json").exists() and not (directory / "result.json").exists():
+                    raise RuntimeError("An incomplete previous trial exists; no implicit model retry")
+    if manifest.get("execution_started_at") and "model_workers" in manifest and manifest["model_workers"] != (model_workers if parallel else 1):
+        raise RuntimeError("Model worker count is frozen; use a new resume batch")
+    manifest.update(model_workers=model_workers if parallel else 1, execution_mode="parallel" if parallel else "sequential",
+                    execution_runner_version="harness-v8-control-repair",
+                    execution_source_hashes=source_hashes,
+                    container_limits={"cpus": 4, "memory_mib": 8192})
+    if "execution_started_at" not in manifest:
+        manifest["execution_started_at"] = now()
+        for key in source_hashes:
+            destination = root / "execution-source-snapshot" / key
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(LAB / key, destination)
+    save(manifest_path, manifest)
+    # Credentials are temporary and outside all archived run directories.
+    with tempfile.TemporaryDirectory(prefix="swe-v2-credentials-") as private:
+        credential = Path(private) / "auth.json"
+        credential.write_bytes(AUTH.read_bytes())
+        credential.chmod(0o600)
+        learn_secrets(json.loads(credential.read_text()))
+        if parallel:
+            jobs = [(number, case, selected_setup, root / f"task-{number:02d}" / selected_setup,
+                     instances[case["instance_id"]], snapshots[number]["prepared_image_id"])
+                    for number, case in cases for selected_setup in setups
+                    if not (root / f"task-{number:02d}" / selected_setup / "result.json").exists()]
+            manifest.update(status="running")
+            save(manifest_path, manifest)
+            result = await parallel_trials(jobs, manifest, manifest_path, Path(private), credential.read_bytes(), model_workers)
+            if result:
+                return result
+        else:
+            for number, case in cases:
+                for setup in setups:
+                    directory = root / f"task-{number:02d}" / setup
+                    if (directory / "result.json").exists():
+                        continue
+                    if (root / 'STOP_AFTER_ACTIVE.json').exists():
+                        manifest.update(status='paused', paused_at=now(), pause_reason='Stop after active trial')
+                        save(manifest_path, manifest)
+                        print('Paused; no further trials started. Resume explicitly with --resume-from.', flush=True)
+                        return 75
+                    if (directory / "started.json").exists():
+                        raise RuntimeError("An incomplete previous trial exists; no implicit model retry")
+                    save(directory / "started.json", {"at": now(), "task": number, "setup": setup})
+                    manifest.update(status="running", active_task=number, active_setup=setup)
+                    save(manifest_path, manifest)
+                    print(f"Task {number}: starting {setup}, {RUN_MODEL} / subscription", flush=True)
+                    try:
+                        await trial(instances[case["instance_id"]], snapshots[number]["prepared_image_id"],
+                                    setup, directory, credential)
+                    except RuntimeError as error:
+                        manifest.update(status="technical_interruption", error=redact(str(error)), interrupted_at=now())
+                        save(manifest_path, manifest)
+                        raise
+                    print(f"Task {number}: {setup} complete", flush=True)
+    manifest.update(status="completed", completed_at=now())
+    manifest.pop("active_task", None)
+    manifest.pop("active_setup", None)
+    save(manifest_path, manifest)
+    return 75 if (root / 'STOP_AFTER_ACTIVE.json').exists() else 0
+
+
+def experiment_directory(name):
+    if not re.fullmatch(r"experiment-[A-Za-z0-9][A-Za-z0-9_-]*", name):
+        raise ValueError("Use an experiment directory name such as experiment-luna-01")
+    directory = (LAB / name).resolve()
+    if directory.parent != LAB.resolve():
+        raise ValueError("Experiment must be a direct directory inside the laboratory")
+    return directory
+
+
+def resolve_model_configuration(directory, batch, model=None, reasoning=None):
+    config_path = directory / "experiment.json"
+    config = json.loads(config_path.read_text()) if config_path.is_file() else {}
+    manifest_path = directory / batch / "manifest.json"
+    recorded = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
+    return (model or recorded.get("model") or config.get("model", "gpt-6-sol"),
+            reasoning or recorded.get("reasoning") or config.get("reasoning", "medium"))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Subscription benchmark; fixed preregistered selection, no model deadline")
+    parser.add_argument("--experiment", required=True, help="Output/selection directory inside the lab, for example experiment-luna-01")
+    parser.add_argument("--run", action="store_true", help="Run selected model trials after passing controls; consumes subscription capacity")
+    parser.add_argument("--parallel", action="store_true", help="With --run, run task/setup trials concurrently, bounded by --model-workers")
+    parser.add_argument("--model-workers", type=int, help="Maximum concurrent task/setup model trials with --parallel (default: 2)")
+    parser.add_argument("--resume-from", help="Stopped batch: reuse controls/results; same as --batch archives incomplete attempts in place, otherwise creates a new batch")
+    parser.add_argument("--parallel-controls", action="store_true", help="Prepare and validate tasks concurrently, bounded by --control-workers; no model tokens")
+    parser.add_argument("--control-workers", type=int, default=2, help="Maximum concurrent task preparation/control pipelines with --parallel-controls (default: 2)")
+    parser.add_argument("--selection", help="Pin a lab task pool for a new experiment, e.g. selection-extended.json; subsequent batches reuse it automatically")
+    parser.add_argument("--repair-controls", action="store_true", help="Before any models: archive failed/missing control attempts, retain passed controls, refreeze an unchanged evaluator with repaired runner")
+    parser.add_argument("--exclude-invalid-controls", help="Explicit symmetric, unscored exclusion of failed control tasks, e.g. 65; frozen before model execution; never replaces tasks")
+    parser.add_argument("--batch", help="Separate output directory, for example batch-02")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--tasks", help="Preregistered task numbers, for example 4-6 or 4,5,6")
+    group.add_argument("--next", type=int, dest="next_count", help="Reserve next N unassigned tasks; freeze selection in this batch")
+    parser.add_argument("--model", help="Native Codex subscription model; existing batch or experiment.json supplies the default")
+    parser.add_argument("--reasoning", choices=("low", "medium", "high", "xhigh", "max"))
+    parser.add_argument("--setup", choices=("standard", "roles-b", "self-organizing", "both", "all"), default="both")
+    parser.add_argument("--list", action="store_true", help="List fixed task order without preparation or model calls")
+    args = parser.parse_args()
+    try:
+        HERE = experiment_directory(args.experiment)
+    except ValueError as error:
+        parser.error(str(error))
+    if args.list:
+        try:
+            _, selection = load_selection(HERE, args.selection)
+        except (ValueError, FileNotFoundError) as error:
+            parser.error(str(error))
+        for number, case in enumerate(selection["scored_tasks"], 1):
+            print(f"{number:2d}  {case['repo_language']:6s}  {case['repo']}  {case['instance_id']}")
+        raise SystemExit(0)
+    if not args.batch or not re.fullmatch(r"batch-[A-Za-z0-9][A-Za-z0-9_-]*", args.batch):
+        parser.error("--batch is required and must be a separate name such as batch-02")
+    if not args.tasks and not args.next_count:
+        parser.error("Specify --tasks 4-6 or --next 3")
+    if args.next_count is not None and args.next_count < 1:
+        parser.error("--next must be positive")
+    if args.control_workers < 1:
+        parser.error("--control-workers must be positive")
+    if args.repair_controls and args.run:
+        parser.error("--repair-controls cannot be combined with --run")
+    if not args.parallel_controls and args.control_workers != 2:
+        parser.error("--control-workers requires --parallel-controls")
+    if args.model_workers is not None and (args.model_workers < 1 or not args.parallel):
+        parser.error("--model-workers requires --parallel and a positive value")
+    if args.parallel and args.model_workers is None:
+        args.model_workers = 2
+    if args.resume_from and (not args.run or args.repair_controls):
+        parser.error("--resume-from requires --run and cannot repair controls")
+    HERE.mkdir(exist_ok=True, mode=0o700)
+    args.model, args.reasoning = resolve_model_configuration(HERE, args.batch, args.model, args.reasoning)
+    with (HERE / ".runner.lock").open("a") as lock:
+        try:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            parser.error("Another coordinator is already running for this experiment; stop it before resuming")
+        try:
+            _, selection = load_selection(HERE, args.selection, pin=True)
+            numbers = select_tasks(args.tasks, args.next_count, selection, HERE, args.batch)
+            exclusions = select_tasks(args.exclude_invalid_controls, None, selection, HERE, args.batch) if args.exclude_invalid_controls else None
+        except (ValueError, FileNotFoundError) as error:
+            parser.error(str(error))
+        print(f"Experiment {HERE.name}; batch {args.batch}: tasks {numbers}, setup {args.setup}, {args.model}/{args.reasoning}, no model deadline", flush=True)
+        try:
+            result = asyncio.run(main(args.run, numbers, args.batch, args.setup, args.parallel, args.model, args.reasoning,
+                                      args.parallel_controls, args.control_workers, args.repair_controls, exclusions, args.model_workers, args.resume_from))
+        except KeyboardInterrupt:
+            path = HERE / args.batch / "manifest.json"
+            if path.is_file():
+                manifest = json.loads(path.read_text())
+                manifest.update(status="technical_interruption", interrupted_at=now(),
+                                interruption_reason="Coordinator stopped with Ctrl+C; preserve partial trials and use --resume-from")
+                save(path, manifest)
+            print("Stopped; logs and controls preserved. Use a new batch with --resume-from to restart incomplete trials.", flush=True)
+            raise SystemExit(130)
+        raise SystemExit(result)

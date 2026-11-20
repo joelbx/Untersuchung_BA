@@ -1,0 +1,3 @@
+Added public `DiagResult` and `Diag` interfaces and wired macOS Touch ID availability to signing, entitlement, biometric policy, and Secure Enclave checks. The existing registration and passwordless login test passes; I also added coverage for login with an allowed credential.
+
+`go test ./lib/auth/touchid ./lib/auth/webauthn -count=1` passed. The macOS native path could not be run on this Linux host.

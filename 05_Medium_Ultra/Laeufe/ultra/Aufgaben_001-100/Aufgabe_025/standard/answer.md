@@ -1,0 +1,3 @@
+Added support for exact `${VARIABLE_NAME}` references as the first configuration decode hook in [config.go](/app/internal/config/config.go:34). Resolved strings reach the existing type conversion hooks; invalid patterns, non-string values, and references to unset variables remain unchanged. Existing `FLIPT_*` overrides retain precedence.
+
+A parallel agent added the focused tests in [config_test.go](/app/internal/config/config_test.go:1448), and another reviewed hook placement. Both `./internal/config` and `./config` test suites passed.

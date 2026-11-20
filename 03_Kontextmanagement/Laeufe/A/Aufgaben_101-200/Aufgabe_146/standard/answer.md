@@ -1,0 +1,3 @@
+Added `/proc/sysinfo` support to [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py). When the file is present, setup now returns the five requested hardware facts, removes leading zeros from the sequence code, and uses `"NA"` for missing values. Added unit coverage for absent and partial sysinfo data and the DMI integration.
+
+Verification: all 20 hardware fact tests passed; `git diff --check` passed.

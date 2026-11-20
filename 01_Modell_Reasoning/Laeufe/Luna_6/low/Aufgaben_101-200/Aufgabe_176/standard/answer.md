@@ -1,0 +1,3 @@
+Updated [`incdec_number`](/app/qutebrowser/utils/urlutils.py:532) to scan the selected segments in path, query, anchor, host order, preserve fully encoded URL components, ignore digits within percent escapes, and reject invalid counts and decrements that would go below zero. The default scope is now path only, and port values are never modified.
+
+**Verification:** 17 focused existing tests passed; `py_compile` and `git diff --check` passed. The broader legacy `TestIncDecNumber` run has failures because its expectations conflict with the requested behavior: it expects port modification and reverse segment precedence.

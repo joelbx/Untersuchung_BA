@@ -1,0 +1,3 @@
+OCI bundles now use the configured `storage.oci.manifest_version`. The schema accepts `"1.0"` and `"1.1"`, defaults to `"1.1"`, and configuration loading rejects other values with the requested error. Both the storage backend and bundle command pass the selection through `WithManifestVersion`.
+
+Tests for configuration loading and the built manifest pass, along with the relevant OCI, schema, and command package tests.

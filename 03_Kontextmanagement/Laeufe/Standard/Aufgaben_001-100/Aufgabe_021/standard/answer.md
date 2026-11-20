@@ -1,0 +1,3 @@
+Updated the [List and Seed model](/app/openlibrary/core/lists/model.py) with typed seed values, consistent duplicate detection, resolved seed objects, and exports that always include authors, works, and editions. Added subject key normalization in [lists.py](/app/openlibrary/plugins/openlibrary/lists.py), annotated the URL helpers, and prevented missing covers from producing invalid URLs.
+
+Verification passed: 15 relevant tests, targeted mypy and ruff checks, and `git diff --check`.

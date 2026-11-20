@@ -1,0 +1,3 @@
+Implemented the concrete chat messaging requirements: the v3 PUT edit route and controller, message existence checks, request validation, the client’s PUT edit call, the error translation, and socket edit deprecation. Added regression tests for successful, invalid, unauthorized, and missing-message edits.
+
+`test/messaging.js` passes (74 tests). The edited client and messaging files pass ESLint. The repository’s broader lint check still reports pre-existing errors in unfinished stubs, commented routes, and unused imports.

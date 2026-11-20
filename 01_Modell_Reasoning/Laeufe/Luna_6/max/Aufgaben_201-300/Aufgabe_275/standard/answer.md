@@ -1,0 +1,3 @@
+Updated [forwarder.go](/app/lib/kube/proxy/forwarder.go:360) so `authenticate` preserves non-access errors from `setupContext` and only returns `AccessDenied` for access-denied failures. Expanded [forwarder_test.go](/app/lib/kube/proxy/forwarder_test.go:125) to check authorization, unsupported-user, unknown-cluster, and no-tunnel classifications.
+
+`go test ./lib/kube/proxy` and `git diff --check` passed. Checkpoint: [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

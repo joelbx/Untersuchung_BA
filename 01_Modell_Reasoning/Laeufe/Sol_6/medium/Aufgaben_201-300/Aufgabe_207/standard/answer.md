@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) so QtWebEngine combines user supplied CLI and config features with any required `OverlayScrollbar` feature into one `--enable-features=` argument. QtWebKit arguments remain unchanged. Added regression coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+Verification: 83 relevant tests passed. The full test file exits at the existing `test_new_chromium` version check in this environment.

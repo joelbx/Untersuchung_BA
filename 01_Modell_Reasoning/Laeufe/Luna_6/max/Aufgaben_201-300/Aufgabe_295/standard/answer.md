@@ -1,0 +1,3 @@
+Implemented the shared [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) and wired it into [CurrentDeviceSection](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx) and [DeviceDetails](/app/src/components/views/settings/devices/DeviceDetails.tsx). Updated the existing Device Details fixture and snapshots.
+
+**Validation:** 3 device settings suites passed (9 tests), ESLint passed, and `git diff --check` passed. Full TypeScript checking still reports Matrix SDK typing mismatches elsewhere; it reported no errors in the changed files.

@@ -1,0 +1,2 @@
+Task completed: iterative no_log value and key sanitization; uri response key sanitization with NO_MODIFY_KEYS; date JSON fallback adjusted; unit tests updated. sanitize_keys traverses root containers too so nested mappings in lists are covered.
+Verification: 32 focused tests passed; py_compile and git diff --check passed. Full basic suite had 22 failures due shared warning/deprecation state leaking between tests; separate deprecate_warn run had one such failure. No delegation used.

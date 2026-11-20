@@ -1,0 +1,3 @@
+Implemented a typed expression AST with nested evaluation, strict variable and function validation, and a shared regex pipeline for interpolation and matching. Updated trait and PAM interpolation to validate variables inside nested expressions.
+
+`go test ./lib/utils/parse` passes, and `git diff --check` is clean. The broader `lib/services` and `lib/srv` tests could not compile in this environment because `linux/hidraw.h` is missing; disabling CGO exposed unrelated BPF and U2F build errors.

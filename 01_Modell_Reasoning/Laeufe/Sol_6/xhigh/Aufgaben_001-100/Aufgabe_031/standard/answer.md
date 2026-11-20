@@ -1,0 +1,3 @@
+Fixed the default configuration path. `config.Load("")` now loads defaults and applies `FLIPT_` environment overrides, and startup calls `Load` even when no config file is found. File values still form the base when a path is supplied, with environment variables taking precedence.
+
+Added tests for default values and `FLIPT_LOG_LEVEL` and `FLIPT_SERVER_HTTP_PORT` overrides in [config_test.go](/app/internal/config/config_test.go). `go test ./internal/config ./cmd/flipt` passed.

@@ -1,0 +1,3 @@
+Updated [ansible-galaxy](/app/lib/ansible/cli/galaxy.py) so an implicit `install -r` installs both roles and collections with default paths. Custom role paths skip collections with a warning; explicit role and collection commands install their own type and report skipped items. Added coverage in [CLI tests](/app/test/units/cli/test_galaxy.py).
+
+Verification: 115 CLI tests and 40 collection tests passed when run separately. A combined run had display mock interference between the test files.

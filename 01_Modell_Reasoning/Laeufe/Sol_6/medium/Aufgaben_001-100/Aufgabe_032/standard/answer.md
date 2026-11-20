@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) so exit paths use a single JSON response, job records are written atomically, and records carry consistent job IDs and lifecycle fields. Timeout records now include the child PID, and the immediate response reflects the temporary directory cleanup policy.
+
+Added focused coverage in [test_async_wrapper.py](/app/test/units/modules/test_async_wrapper.py). All 7 tests pass; `git diff --check` passes.

@@ -1,0 +1,3 @@
+Updated the WebKit certificate wrapper to accept named `reply` and `errors` arguments without using the reply during construction. Its existing paragraph and list HTML rendering remains in place, with tests covering special character escaping. Added the shared certificate decision methods, `UndeferrableError`, and Qt5/Qt6 WebEngine wrappers with a factory.
+
+**Verification:** 10 focused tests passed; compilation and `git diff --check` passed. The broader WebEngine tab test run exited early in this environment, so that path remains unverified by that suite.

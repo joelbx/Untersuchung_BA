@@ -1,0 +1,3 @@
+Fixed the reviewer’s finding by mapping `node-pkg` and `javascript` to npm, `python-pkg` to PyPI, and `gobinary` to Golang in [cyclonedx.go](/app/reporter/sbom/cyclonedx.go). Added scanner-path coverage in [cyclonedx_test.go](/app/reporter/sbom/cyclonedx_test.go).
+
+Both exact test commands flagged by the reviewer passed. `git diff --check` also passed. No remaining failures or test environment problems.

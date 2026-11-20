@@ -1,0 +1,3 @@
+Updated both Help links in [HelpUserSettingsTab.tsx](/app/src/components/views/settings/tabs/user/HelpUserSettingsTab.tsx) with a localized accessible name that identifies Element Help and says the link opens in a new tab. Added the string to [en_EN.json](/app/src/i18n/strings/en_EN.json).
+
+The standalone i18n suite passed all 11 tests. ESLint, Stylelint, and `git diff --check` passed. **TEST_ENVIRONMENT_PROBLEM:** The combined Jest run could not start RoomSettings because `src/component-index` is missing; TypeScript still reports `ThreadEvent` errors in unchanged files.

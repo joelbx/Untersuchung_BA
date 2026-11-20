@@ -1,0 +1,3 @@
+Added `CalendarEventValidity` and `checkEventValidity` in [CalendarUtils.ts](/app/src/calendar/date/CalendarUtils.ts:52). It returns distinct results in the requested priority order: invalid dates, pre-1970 start, start at or after end, then valid.
+
+Verification: `npm run types` passed, and `npm test` passed all 7,981 root assertions. The standalone `fasttest` script could not resolve its configured entry point.

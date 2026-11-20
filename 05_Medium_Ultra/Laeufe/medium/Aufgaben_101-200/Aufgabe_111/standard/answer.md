@@ -1,0 +1,3 @@
+Updated the repository to recognize Amazon Linux 2023, 2025, 2027, and 2029, including dotted 2023 releases. Added their EOL dates, fixed scan detection for those releases, and added ALAS2023 advisory links. Unknown releases now return `found=false`.
+
+Added tests for version normalization and standard and extended support boundaries. `go test ./config ./scanner ./oval` passed with network access disabled.

@@ -1,0 +1,3 @@
+Updated [lastActivePersistedUserSession.ts](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts) so `getLastPersistedLocalID` returns `number | null`, considers only numeric `ps-` keys, and returns `null` for empty storage or parsing errors. The public bookmark flow now resumes only when it finds a persisted ID, then continues loading bookmarks.
+
+Updated the focused tests. **All 13 passed**, and `git diff --check` passed. The required checkpoint is at `.codex-role-output/checkpoint.md`.

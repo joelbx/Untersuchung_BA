@@ -1,0 +1,3 @@
+Implemented the chat allow and deny lists, the incoming chat disable setting, and server side checks for chat initiation and room creation. Added an idempotent upgrade that seeds allow lists from follows for accounts that used `restrictChat`. Account settings, API schema, and tests are updated.
+
+Verification passed: 78 messaging tests, 276 user tests, 3 federated private chat tests, ESLint, and `git diff --check`.

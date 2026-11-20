@@ -1,0 +1,3 @@
+Implemented zip based cover archival with zero-padded IDs and paths, upload verification, batch locking, and `failed` and `uploaded` database fields. Cover retrieval now uses verified remote URLs, while legacy tar records remain accessible. The path schema and workflow are documented in [README.md](/app/openlibrary/coverstore/README.md).
+
+Verification: lint passed; coverstore tests reported **21 passed, 7 skipped**.

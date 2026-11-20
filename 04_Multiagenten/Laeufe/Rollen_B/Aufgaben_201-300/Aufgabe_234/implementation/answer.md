@@ -1,0 +1,3 @@
+The repository already used a single `*sql.DB`. I completed the unified path: SQLite connections now receive the required settings, `persistence.WithTx()` uses the connection supplied to `New()`, and play counts and initial setup use the transaction store.
+
+The issue’s request to add a read/write interface conflicts with its stated goal of removing that split, so I followed the unified connection direction. Regression tests were added, and `go test ./db ./persistence ./core/scrobbler ./server` passes.

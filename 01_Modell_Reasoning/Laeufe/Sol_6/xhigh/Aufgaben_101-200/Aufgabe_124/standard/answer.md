@@ -1,0 +1,3 @@
+The DynamoDB backend now accepts `billing_mode: pay_per_request` or `provisioned` and defaults to on-demand for newly created tables. On-demand creation omits provisioned throughput and skips auto scaling. Existing tables keep their billing mode, which determines whether auto scaling runs. The chart explicitly selects provisioned mode when its auto-scaling setting is enabled.
+
+Local DynamoDB tests and focused tests under the `dynamodb` build tag pass. AWS integration tests were not run.

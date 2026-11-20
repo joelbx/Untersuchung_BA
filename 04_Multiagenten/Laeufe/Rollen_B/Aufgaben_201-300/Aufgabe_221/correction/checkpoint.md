@@ -1,0 +1,3 @@
+Correction round: reviewing the current awards patch and database migration conventions. Reviewer identified missing upgrade path for existing databases. Will add a deployable migration and rerun the specified tests.
+Added scripts/migrations/2026-10-21-bestbook.sql: transactional, repeatable DDL matching core/schema.sql, with explicit psql deployment command. PostgreSQL client/server tools are not installed here; proceeding with reviewer's existing local tests and static schema comparison.
+Verification: exact reviewer commands passed (3 and 29 tests). Migration DDL matches the fresh schema after normalizing IF NOT EXISTS; git diff --check passed. PostgreSQL tools unavailable, so migration execution against an existing PostgreSQL database could not be tested here.

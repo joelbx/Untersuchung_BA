@@ -1,0 +1,3 @@
+Voice broadcast liveness now follows the info state: Started and Resumed show **Live**, Paused shows **Grey**, and Stopped or an unset state shows **Not live**. Playback state and chunk changes no longer alter liveness independently. Liveness change events fire only when the value changes.
+
+The focused tests pass (49 tests), as do targeted ESLint, Prettier, and diff checks. The full TypeScript check still reports five unrelated MatrixClient typing errors in existing files.

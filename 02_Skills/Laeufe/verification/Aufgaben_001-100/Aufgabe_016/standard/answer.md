@@ -1,0 +1,3 @@
+Implemented host-scoped monitoring jobs. `OlAsyncIOScheduler` now supports function-name job IDs, and `limit_server` checks `HOSTNAME` against exact names, prefix wildcards, and short names for fully qualified hosts. I also added the HAProxy collector and scoped its scheduled job to `ol-www0`.
+
+Verification: all 9 monitoring tests passed; Ruff, syntax compilation, and `git diff --check` passed. Live HAProxy and Graphite endpoints were not exercised.

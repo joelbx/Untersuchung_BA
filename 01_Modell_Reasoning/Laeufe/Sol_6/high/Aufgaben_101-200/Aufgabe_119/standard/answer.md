@@ -1,0 +1,3 @@
+Refactored [Pill.tsx](/app/src/components/views/elements/Pill.tsx) into a functional component and added the public [usePermalink hook](/app/src/hooks/usePermalink.tsx). The module now exposes named `Pill`, `PillType`, and `@room` helper exports; its callers use named imports. The rendering rules, original message URL, avatars, tooltips, and user click action are covered by tests.
+
+Both relevant Jest suites pass (7 tests), and ESLint and Prettier pass. The full TypeScript check still reports existing SDK API errors in unrelated files; it reports none in the edited files.

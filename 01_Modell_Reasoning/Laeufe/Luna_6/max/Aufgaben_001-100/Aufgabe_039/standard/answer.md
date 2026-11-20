@@ -1,0 +1,3 @@
+Updated [booknotes.py](/app/openlibrary/core/booknotes.py:10) to roll back the full update when a destination key conflicts, preserving all records and returning the required count dictionary. The admin summary now retains that dictionary in [code.py](/app/openlibrary/plugins/admin/code.py:247).
+
+Validation passed: `openlibrary/tests/core/test_db.py` (2 tests), Python compilation, and `git diff --check`.

@@ -1,0 +1,3 @@
+Fixed the auth service crash when multiple audit event backends are configured. `MultiLog` now validates and fans out to event emitters, and `stdout://` uses the new `WriterEmitter`, which writes newline-delimited JSON events. Added regression tests for fanout, writer errors, and a file URI combined with `stdout://`.
+
+`go test -mod=vendor ./lib/events ./lib/service` passes. The repository-wide test run failed in integration, cgroup, certificate, and websocket tests; a second run timed out before it could capture a complete failure list. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

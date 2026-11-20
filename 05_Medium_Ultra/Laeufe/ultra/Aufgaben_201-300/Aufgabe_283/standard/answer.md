@@ -1,0 +1,3 @@
+Added [isFromProton](/app/applications/mail/src/app/helpers/elements.ts:44), which returns true only when `IsProton` is `1` for a message or conversation. The flag is now typed on both and preserved in encrypted search data. The column list uses it for the [VerifiedBadge](/app/applications/mail/src/app/components/list/VerifiedBadge.tsx:6) tooltip, while retaining the DMARC failure check.
+
+Verification passed: 23 helper tests, the mail TypeScript check, targeted lint, and `git diff --check`. Three agents audited tests and UI behavior and handled type propagation; I reviewed and verified the integrated patch. Cached messages without the flag will show no badge until refreshed.

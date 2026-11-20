@@ -1,0 +1,3 @@
+Updated [configtypes.py](/app/qutebrowser/config/configtypes.py) so HSV/HSVA hue percentages scale to 359, while other percentage components scale to 255. The parser validates supported function names and component counts before conversion. I updated the existing `QtColor` expectations in [test_configtypes.py](/app/tests/unit/config/test_configtypes.py).
+
+The targeted tests found one failure: `hsv(100%,100%,100%)` does not compare equal to `QColor.fromHsv(359, 255, 255)`. The other 24 `TestQtColor` cases passed; three were rerun by the test configuration. A broader filtered run also hit an unrelated Hypothesis fixture health check.

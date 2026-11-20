@@ -1,0 +1,3 @@
+Implemented a typed expression AST with nested string evaluation, boolean matchers, variable and namespace validation, and bounded parsing. Updated trait interpolation and PAM environment handling to use it.
+
+Parser tests and relevant service tests pass. The server package test could not build in this container because required C headers and SQLite symbols are missing; its non-CGo build also lacks dependency definitions.

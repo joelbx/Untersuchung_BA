@@ -1,0 +1,3 @@
+Windows SSH stderr now replaces complete embedded CLIXML blocks with readable UTF-8 bytes while preserving surrounding output and leaving invalid or incomplete blocks unchanged. The UTF-16-BE escape regex also preserves Unicode lookalikes. I delegated parser regression coverage and the SSH integration test to two agents, then integrated and verified the patch.
+
+**Verification:** 89 relevant PowerShell, SSH, and WinRM unit tests passed; `git diff --check` passed.

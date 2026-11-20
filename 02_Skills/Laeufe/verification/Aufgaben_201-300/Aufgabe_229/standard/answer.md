@@ -1,0 +1,3 @@
+Updated group cover, user cover, avatar, and account deletion cleanup to remove matching local upload files, including legacy and timestamped images. Explicit removal clears the related fields and preserves the socket action hooks.
+
+ESLint, `git diff --check`, and isolated file cleanup checks passed. The relevant Mocha test could not run because Redis at `127.0.0.1:6379` refused the connection, so database and socket integration remain unverified. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

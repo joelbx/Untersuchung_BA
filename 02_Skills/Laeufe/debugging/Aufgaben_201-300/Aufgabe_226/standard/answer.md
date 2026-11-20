@@ -1,0 +1,3 @@
+MIME mappings and lossless formats now load at startup from [mime_types.yaml](/app/resources/mime_types.yaml). Operators can override that resource at `DataFolder/resources/mime_types.yaml`. The startup hook registers the configured MIME types, keeps explicit `.js` and `.css` registrations, and supplies the UI’s uppercase, comma-separated lossless list. The hardcoded definitions in `consts/mime_types.go` were removed.
+
+The affected `mime`, `model`, `server`, `core`, `cmd`, `server/subsonic`, and `scanner` package checks pass with `GOPROXY=off`.

@@ -1,0 +1,3 @@
+Updated the assistant upsell config to use the shared Scribe addon resolver. Both paid flows now build a `planIDs` object that includes the selected plan and adds a Scribe addon only when the resolver finds one. I also exported `SelectedPlan` and the resolver from the payments/core public entrypoint and updated the internal-path imports.
+
+Verification: all 11 assistant upsell tests passed, including new cases for plans without a Scribe addon. Prettier and `git diff --check` passed.

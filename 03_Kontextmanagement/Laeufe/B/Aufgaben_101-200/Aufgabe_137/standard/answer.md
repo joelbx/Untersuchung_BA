@@ -1,0 +1,1 @@
+Completed the trace instrumentation update. Sampling ratio and propagators are configurable, with defaults and validation, and are applied at runtime. The relevant config, tracing, and command tests pass.

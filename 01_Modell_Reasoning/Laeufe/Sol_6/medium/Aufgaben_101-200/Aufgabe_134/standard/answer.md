@@ -1,0 +1,3 @@
+Added `id_project_runeberg` to every work search response as a list, using `[]` when absent. Existing identifier fields remain unchanged. I also registered `ProjectRunebergProvider` and added its [read button](/app/openlibrary/templates/book_providers/runeberg_read_button.html) and [download options](/app/openlibrary/templates/book_providers/runeberg_download_options.html) templates.
+
+All 5 relevant tests pass; both templates compile. Format options link to the Runeberg edition page because the repository does not document verified format specific download URLs.

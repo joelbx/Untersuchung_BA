@@ -1,0 +1,3 @@
+MIME mappings and lossless formats now load from [mime_types.yaml](/app/resources/mime_types.yaml) during configuration startup. Operators can override the file at `<DataFolder>/resources/mime_types.yaml`. The server UI uses `mime.LosslessFormats`.
+
+The MIME, model, core, and server tests pass. The full Go suite has two unrelated TagLib AAC gain-tag failures; details are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

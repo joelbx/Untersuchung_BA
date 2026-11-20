@@ -1,0 +1,3 @@
+Updated the repository so rule `segment` accepts a string or a keys/operator object. Parsing rejects invalid segments, single-key segments use `OR_SEGMENT_OPERATOR`, and exports use the canonical object form. Import, snapshots, SQL rule and rollout handling, and the requested fixtures are updated.
+
+Verification passed: `go test ./internal/ext ./internal/storage/fs ./internal/storage/sql -count=1` and `git diff --check`.

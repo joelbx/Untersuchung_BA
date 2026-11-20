@@ -1,0 +1,3 @@
+Implemented the XAttr refactor: added `DeepPartial` and `MaybeExtendedAttributes`, changed file creation and encryption to accept `XAttrCreateParams`, updated the upload worker and test caller, and made parsing handle malformed roots safely. Chunk sizes now omit a zero remainder, and digest output uses the canonical `SHA1` key.
+
+Verification passed: the extended attributes Jest suite (3 tests), Drive typecheck, and `git diff --check`.

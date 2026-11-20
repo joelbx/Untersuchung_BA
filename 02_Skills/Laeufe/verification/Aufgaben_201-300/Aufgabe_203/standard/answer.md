@@ -1,0 +1,3 @@
+Added a reusable [ExternalLink](/app/src/components/views/elements/ExternalLink.tsx) with secure new-tab defaults, a spoken new-tab cue, and a decorative CSS icon. Settings links now use it, including the hosting signup link. The Share dialog’s room link and social links have descriptive localized titles.
+
+Verification: 4 tests passed; ESLint, stylelint, and `git diff --check` passed. Repository type checking still fails on six errors in unchanged Thread files; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

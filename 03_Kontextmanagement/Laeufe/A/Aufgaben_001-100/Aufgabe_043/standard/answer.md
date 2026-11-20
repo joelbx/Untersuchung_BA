@@ -1,0 +1,3 @@
+Tracing setup now lives in [internal/tracing/tracing.go](/app/internal/tracing/tracing.go). The gRPC server creates the provider through `NewProvider`, obtains an exporter through `GetExporter` when tracing is enabled, and registers both shutdown functions. Exporters are constructed per call, so one configuration no longer controls later calls.
+
+Focused tests cover resource attributes, environment overrides, sampling, exporter types, repeated calls, and invalid OTLP endpoints. `go test ./internal/cmd ./internal/tracing` passes.

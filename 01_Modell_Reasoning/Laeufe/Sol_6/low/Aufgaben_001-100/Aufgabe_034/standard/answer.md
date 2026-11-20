@@ -1,0 +1,3 @@
+Updated the IA importer to put publisher names and publication places in separate fields, and to split ISBNs into `isbn_10` and `isbn_13`. The public utilities are in [utils.py](/app/openlibrary/plugins/upstream/utils.py); `get_ia_record` uses them in [code.py](/app/openlibrary/plugins/importapi/code.py). Empty or unusable values leave those fields out.
+
+The relevant existing tests and added normalization cases passed: **18 passed**.

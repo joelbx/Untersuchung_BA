@@ -1,0 +1,3 @@
+Implemented selective SSE delivery in the checked-out repository. The UI now generates a per-tab UUID and sends it on API and login requests. Server middleware carries that ID into request context and stores it in an HttpOnly cookie for the SSE connection. The broker now skips the originating client and delivers request-scoped events only to other sessions of the same user; server-originated events still broadcast.
+
+Updated the broker signature, diode API, cookie expiry constant, and event call sites. Added filtering and cookie middleware tests. The affected Go tests, UI ESLint checks, and `git diff --check` pass.

@@ -1,0 +1,3 @@
+Updated [addbook.py](/app/openlibrary/plugins/upstream/addbook.py:69): `make_author` now has the requested types and returns the object from `site.new`. `make_work` handles missing author fields, preserves a provided cover URL, and supplies defaults for missing metadata.
+
+Verification: the addbook test module passed (11 tests), and a focused smoke check passed. Checkpoint saved at [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

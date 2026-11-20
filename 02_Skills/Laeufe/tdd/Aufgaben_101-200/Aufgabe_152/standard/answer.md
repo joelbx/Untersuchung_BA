@@ -1,0 +1,3 @@
+Added the [icx_logging module](/app/lib/ansible/modules/network/icx/icx_logging.py) with aggregate configuration, IPv4 and IPv6 syslog hosts, UDP ports, facilities, console and buffered levels, persistence, RFC5424, global logging, and running-config comparison. Added [unit tests](/app/test/units/modules/network/icx/test_icx_logging.py).
+
+**Verification:** All 106 ICX tests pass. Bare `pytest` stopped during integration-test collection; the wider unit run also showed unrelated failures and setup errors. Details are in the [checkpoint](/app/.codex-role-output/checkpoint.md).

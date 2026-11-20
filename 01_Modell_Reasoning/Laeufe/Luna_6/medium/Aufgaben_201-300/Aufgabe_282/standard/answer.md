@@ -1,0 +1,3 @@
+Implemented source and message glob exclusions for JavaScript UI logs, with the new `content.javascript.log_message.levels` and `content.javascript.log_message.excludes` settings. The helper formats displayed messages as `JS: [source:line] message`; messages it doesn’t display go through the existing logger.
+
+Python compilation, YAML parsing, and `git diff --check` succeeded. The existing targeted test suite aborted during Qt `qapp` initialization, before tests ran. Updated [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

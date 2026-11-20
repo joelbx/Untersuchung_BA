@@ -1,0 +1,3 @@
+Updated `tsh` so `Run`, its command handlers, and `refuseArgs` return errors that tests can inspect. `Run` now applies runtime options after parsing, and `makeClient` passes an optional SSO login callback to the client.
+
+Auth and Proxy now propagate their bound listener addresses, including dynamically assigned ports, to dependent configuration and logs. Added focused tests; `go test ./tool/tsh ./lib/service ./lib/client -count=1` passes.

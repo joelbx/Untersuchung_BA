@@ -1,0 +1,3 @@
+Author import now matches by Open Library key first, then external IDs, then name and dates. It merges nonconflicting IDs into matched authors, preserves IDs on new author candidates, raises `AuthorRemoteIdConflictError` for conflicts, and uses shared ID count and OL key for deterministic ties. I also added `SUSPECT_DATE_EXEMPT_SOURCES = ["wikisource"]`.
+
+Verification: 181 relevant tests passed; lint and `git diff --check` passed.

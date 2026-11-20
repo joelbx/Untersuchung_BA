@@ -1,0 +1,3 @@
+Refactored [Pill](/app/src/components/views/elements/Pill.tsx) into a functional component and extracted permalink resolution into the public [usePermalink hook](/app/src/hooks/usePermalink.tsx). Pill now exposes named exports, preserves the supplied URL in message links, and omits unresolved pills and avatars. I updated the callers and the affected tests and snapshots.
+
+The focused checks passed: 21 tests and 5 snapshots, plus ESLint, Prettier, and `git diff --check`. The full Jest run had 4 failing suites: `Notifications`, `LoginWithQR`, and `StopGapWidget` have failures outside this change; `TextualBody` failed on two obsolete snapshots, which were updated and passed on rerun. Type checking remains blocked by SDK API errors outside the edited files.

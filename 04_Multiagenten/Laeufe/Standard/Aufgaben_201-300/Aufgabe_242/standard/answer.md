@@ -1,0 +1,3 @@
+Voice broadcast liveness now comes from the info state through `determineVoiceBroadcastLiveness`. `setInfoState` is the only playback path that updates it; playback, buffering, position, and chunk transitions no longer change it independently. I added regression coverage for the state mapping, initialization, first chunk, and event emissions.
+
+All 54 focused tests pass. ESLint and Prettier pass. The full TypeScript check still reports five unrelated errors in existing files.

@@ -1,0 +1,3 @@
+Added optional encoding validation to `FormatString`, using the same error behavior as `String`. The user agent setting now requires ASCII, while other `FormatString` settings without an encoding retain their existing behavior. Added tests for ASCII, UTF-8, and omitted encoding.
+
+Validation: `pytest -q tests/unit/config/test_configtypes.py tests/unit/config/test_configdata.py` — **1,138 passed, 10 xfailed**. `git diff --check` passed.

@@ -1,0 +1,3 @@
+Replaced the registered `:buffer` command with `:tab-select` and renamed its completion providers to `tabs` and `other_tabs`. Updated the `gt` binding, regenerated command and settings help, and revised the existing tests. The tab selection logic retains index and title/URL matching, count precedence, and cross-window activation.
+
+The completion suite reported **73 passed**, and a registry check confirmed `tab-select` is present while `buffer` is absent. The test process then exited with an X11 teardown error. End-to-end scenarios could not start because QtWebKit is unavailable in this environment.

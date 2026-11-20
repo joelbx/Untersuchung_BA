@@ -1,0 +1,3 @@
+Implemented `ZipArchive._valid_time_stamp` to parse ZIP timestamps with a regex, validate calendar fields and the 1980–2107 year range, and fall back to the required epoch tuple. `is_unarchived` now uses it before converting timestamps.
+
+Added unit coverage for valid, malformed, and out-of-range timestamps. Verification passed: `python -m pytest test/units/modules/test_unarchive.py -q` (9 passed), and `git diff --check` passed.

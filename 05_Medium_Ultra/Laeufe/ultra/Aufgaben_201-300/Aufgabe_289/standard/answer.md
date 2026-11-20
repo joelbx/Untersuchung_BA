@@ -1,0 +1,3 @@
+Added [DefaultConfig](/app/internal/config/config.go:63) and exported [DecodeHooks](/app/internal/config/config.go:18); `Load` now composes those hooks. Storage `Local` and `Git` use pointers with nil-safe validation. I also fixed the CUE `bool` type and made the default YAML templates parse as empty mappings.
+
+Two subagents reviewed the schema and updated the tests. `go test ./internal/config ./internal/cmd` passes with network access disabled. Local CUE checks validated both default YAML files and `config/production.yml`; a decode check covered durations and Git basic auth.

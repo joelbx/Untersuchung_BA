@@ -1,0 +1,3 @@
+Fixed module shebang handling in [module_common.py](/app/lib/ansible/executor/module_common.py:595). New-style Python modules now use their declared interpreter and arguments by default; explicit inventory or configuration overrides take precedence. Modules without a shebang fall back to `/usr/bin/python`, and the encoding line follows the shebang.
+
+Added regression coverage in [test_module_common.py](/app/test/units/executor/module_common/test_module_common.py:108) and [test_modify_module.py](/app/test/units/executor/module_common/test_modify_module.py:38). The relevant executor and action tests passed: **84 passed**.

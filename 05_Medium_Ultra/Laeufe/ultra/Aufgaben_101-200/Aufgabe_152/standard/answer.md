@@ -1,0 +1,3 @@
+Added [icx_logging.py](/app/lib/ansible/modules/network/icx/icx_logging.py) to manage ICX hosts, facilities, console, buffered levels, persistence, RFC5424, and global logging. It supports aggregate entries, IPv6 host syntax, running-config comparisons, environment fallback, and check mode.
+
+A delegated agent added [35 logging tests](/app/test/units/modules/network/icx/test_icx_logging.py); I integrated the module and verified the full ICX suite (**127 passed**). `ansible-doc` also renders the module. Device hardware was not available for testing.

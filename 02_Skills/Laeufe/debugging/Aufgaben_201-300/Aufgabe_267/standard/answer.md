@@ -1,0 +1,3 @@
+Fixed the room button update flow. `RoomView` now dispatches exactly `{ action: Action.RoomLoaded }` after loading a room, and `RoomViewStore` recomputes button options on that action, including when no `ViewRoom` action preceded it. `RoomView` also falls back to its current `initialEventId` when the store has none, preserving the permalink target.
+
+The relevant suites passed: 65 tests and 8 snapshots. Targeted ESLint, Prettier, and `git diff --check` passed. Full-project TypeScript checking remains unverified: the default run ran out of heap, and the larger-heap retry exhausted available memory. The commands and results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

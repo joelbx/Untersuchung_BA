@@ -1,0 +1,3 @@
+Fortinet advisories now participate in FortiOS CVE detection and enrichment. Results include advisory IDs and URLs, CVSS v3 data, CWE IDs, references, and dates; confidence and report ordering also account for Fortinet. The repository now uses a Fortinet-capable `go-cve-dictionary` version.
+
+The models and detector tests pass; the server package builds. Tests used a temporary offline module substitution for one uncached transitive dependency. The checked-out [go.mod](/app/go.mod) contains no substitution.

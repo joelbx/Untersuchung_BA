@@ -1,0 +1,3 @@
+Fixed Proton Drive public bookmark session restoration. The session lookup now returns `null` when no valid persisted ID is found, ignores unrelated or nonnumeric keys, and preserves a real ID `0`. The bookmark view resumes a session only when an ID exists and restores its saved key password.
+
+The two relevant Jest suites passed: **19 tests**. Targeted ESLint found no errors and one existing hook dependency warning.

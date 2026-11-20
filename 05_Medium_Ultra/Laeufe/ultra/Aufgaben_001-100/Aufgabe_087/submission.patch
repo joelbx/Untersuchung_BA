@@ -1,0 +1,909 @@
+diff --git a/build/Dockerfile b/build/Dockerfile
+index 0a5e5a8..d38077f 100644
+--- a/build/Dockerfile
++++ b/build/Dockerfile
+@@ -25,6 +25,8 @@ RUN addgroup flipt && \
+ EXPOSE 8080
+ EXPOSE 9000
+ 
++ENV XDG_CONFIG_HOME=/var/opt/flipt
++
+ USER flipt
+ 
+ CMD ["./flipt"]
+diff --git a/cmd/flipt/main.go b/cmd/flipt/main.go
+index 14d08b7..d5296c7 100644
+--- a/cmd/flipt/main.go
++++ b/cmd/flipt/main.go
+@@ -4,7 +4,6 @@ import (
+ 	"bytes"
+ 	"context"
+ 	"crypto/tls"
+-	"encoding/json"
+ 	"errors"
+ 	"fmt"
+ 	"io"
+@@ -26,6 +25,7 @@ import (
+ 	"github.com/go-chi/cors"
+ 	"github.com/google/go-github/v32/github"
+ 	"github.com/markphelps/flipt/config"
++	"github.com/markphelps/flipt/internal/info"
+ 	pb "github.com/markphelps/flipt/rpc/flipt"
+ 	"github.com/markphelps/flipt/server"
+ 	"github.com/markphelps/flipt/storage"
+@@ -35,6 +35,7 @@ import (
+ 	"github.com/markphelps/flipt/storage/sql/postgres"
+ 	"github.com/markphelps/flipt/storage/sql/sqlite"
+ 	"github.com/markphelps/flipt/swagger"
++	"github.com/markphelps/flipt/telemetry"
+ 	"github.com/markphelps/flipt/ui"
+ 	"github.com/phyber/negroni-gzip/gzip"
+ 	"github.com/prometheus/client_golang/prometheus/promhttp"
+@@ -267,6 +268,15 @@ func run(_ []string) error {
+ 		}
+ 	}
+ 
++	telemetry.FliptVersion = version
++	reporter, err := telemetry.NewReporter(cfg, l.WithField("component", "telemetry"))
++	if err != nil {
++		l.Warnf("initializing telemetry: %v", err)
++	}
++	if reporter != nil {
++		go reporter.Start(ctx)
++	}
++
+ 	g, ctx := errgroup.WithContext(ctx)
+ 
+ 	var (
+@@ -461,7 +471,7 @@ func run(_ []string) error {
+ 		r.Mount("/api/v1", api)
+ 		r.Mount("/debug", middleware.Profiler())
+ 
+-		info := info{
++		fliptInfo := info.Flipt{
+ 			Commit:          commit,
+ 			BuildDate:       date,
+ 			GoVersion:       goVersion,
+@@ -473,7 +483,7 @@ func run(_ []string) error {
+ 
+ 		r.Route("/meta", func(r chi.Router) {
+ 			r.Use(middleware.SetHeader("Content-Type", "application/json"))
+-			r.Handle("/info", info)
++			r.Handle("/info", fliptInfo)
+ 			r.Handle("/config", cfg)
+ 		})
+ 
+@@ -579,29 +589,6 @@ func isRelease() bool {
+ 	return true
+ }
+ 
+-type info struct {
+-	Version         string `json:"version,omitempty"`
+-	LatestVersion   string `json:"latestVersion,omitempty"`
+-	Commit          string `json:"commit,omitempty"`
+-	BuildDate       string `json:"buildDate,omitempty"`
+-	GoVersion       string `json:"goVersion,omitempty"`
+-	UpdateAvailable bool   `json:"updateAvailable"`
+-	IsRelease       bool   `json:"isRelease"`
+-}
+-
+-func (i info) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+-	out, err := json.Marshal(i)
+-	if err != nil {
+-		w.WriteHeader(http.StatusInternalServerError)
+-		return
+-	}
+-
+-	if _, err = w.Write(out); err != nil {
+-		w.WriteHeader(http.StatusInternalServerError)
+-		return
+-	}
+-}
+-
+ // jaegerLogAdapter adapts logrus to fulfill Jager's Logger interface
+ type jaegerLogAdapter struct {
+ 	*logrus.Entry
+diff --git a/config/config.go b/config/config.go
+index a0957f7..0826d95 100644
+--- a/config/config.go
++++ b/config/config.go
+@@ -116,7 +116,9 @@ type DatabaseConfig struct {
+ }
+ 
+ type MetaConfig struct {
+-	CheckForUpdates bool `json:"checkForUpdates"`
++	CheckForUpdates  bool   `json:"checkForUpdates"`
++	TelemetryEnabled bool   `json:"telemetryEnabled"`
++	StateDirectory   string `json:"-"`
+ }
+ 
+ type Scheme uint
+@@ -143,6 +145,8 @@ var (
+ )
+ 
+ func Default() *Config {
++	stateDirectory, _ := os.UserConfigDir()
++
+ 	return &Config{
+ 		Log: LogConfig{
+ 			Level: "INFO",
+@@ -188,7 +192,9 @@ func Default() *Config {
+ 		},
+ 
+ 		Meta: MetaConfig{
+-			CheckForUpdates: true,
++			CheckForUpdates:  true,
++			TelemetryEnabled: true,
++			StateDirectory:   stateDirectory,
+ 		},
+ 	}
+ }
+@@ -238,7 +244,9 @@ const (
+ 	dbProtocol        = "db.protocol"
+ 
+ 	// Meta
+-	metaCheckForUpdates = "meta.check_for_updates"
++	metaCheckForUpdates  = "meta.check_for_updates"
++	metaTelemetryEnabled = "meta.telemetry_enabled"
++	metaStateDirectory   = "meta.state_directory"
+ )
+ 
+ func Load(path string) (*Config, error) {
+@@ -385,6 +393,14 @@ func Load(path string) (*Config, error) {
+ 		cfg.Meta.CheckForUpdates = viper.GetBool(metaCheckForUpdates)
+ 	}
+ 
++	if viper.IsSet(metaTelemetryEnabled) {
++		cfg.Meta.TelemetryEnabled = viper.GetBool(metaTelemetryEnabled)
++	}
++
++	if viper.IsSet(metaStateDirectory) {
++		cfg.Meta.StateDirectory = viper.GetString(metaStateDirectory)
++	}
++
+ 	if err := cfg.validate(); err != nil {
+ 		return &Config{}, err
+ 	}
+diff --git a/config/config_test.go b/config/config_test.go
+index a942fc1..b02fb48 100644
+--- a/config/config_test.go
++++ b/config/config_test.go
+@@ -4,6 +4,7 @@ import (
+ 	"io/ioutil"
+ 	"net/http"
+ 	"net/http/httptest"
++	"os"
+ 	"testing"
+ 	"time"
+ 
+@@ -43,6 +44,8 @@ func TestScheme(t *testing.T) {
+ }
+ 
+ func TestLoad(t *testing.T) {
++	stateDirectory, _ := os.UserConfigDir()
++
+ 	tests := []struct {
+ 		name     string
+ 		path     string
+@@ -112,7 +115,9 @@ func TestLoad(t *testing.T) {
+ 				},
+ 
+ 				Meta: MetaConfig{
+-					CheckForUpdates: true,
++					CheckForUpdates:  true,
++					TelemetryEnabled: true,
++					StateDirectory:   stateDirectory,
+ 				},
+ 			},
+ 		},
+@@ -163,6 +168,7 @@ func TestLoad(t *testing.T) {
+ 				},
+ 				Meta: MetaConfig{
+ 					CheckForUpdates: false,
++					StateDirectory:  stateDirectory,
+ 				},
+ 			},
+ 		},
+@@ -191,6 +197,41 @@ func TestLoad(t *testing.T) {
+ 	}
+ }
+ 
++func TestLoadMetaEnvironment(t *testing.T) {
++	const telemetryKey = "FLIPT_META_TELEMETRY_ENABLED"
++	const directoryKey = "FLIPT_META_STATE_DIRECTORY"
++
++	previousTelemetry, hadTelemetry := os.LookupEnv(telemetryKey)
++	previousDirectory, hadDirectory := os.LookupEnv(directoryKey)
++	t.Cleanup(func() {
++		if hadTelemetry {
++			_ = os.Setenv(telemetryKey, previousTelemetry)
++		} else {
++			_ = os.Unsetenv(telemetryKey)
++		}
++		if hadDirectory {
++			_ = os.Setenv(directoryKey, previousDirectory)
++		} else {
++			_ = os.Unsetenv(directoryKey)
++		}
++	})
++
++	stateDirectory := t.TempDir()
++	require.NoError(t, os.Setenv(telemetryKey, "false"))
++	require.NoError(t, os.Setenv(directoryKey, stateDirectory))
++
++	cfg, err := Load("./testdata/default.yml")
++	require.NoError(t, err)
++	assert.False(t, cfg.Meta.TelemetryEnabled)
++	assert.Equal(t, stateDirectory, cfg.Meta.StateDirectory)
++
++	require.NoError(t, os.Setenv(telemetryKey, "true"))
++	cfg, err = Load("./testdata/advanced.yml")
++	require.NoError(t, err)
++	assert.True(t, cfg.Meta.TelemetryEnabled)
++	assert.Equal(t, stateDirectory, cfg.Meta.StateDirectory)
++}
++
+ func TestValidate(t *testing.T) {
+ 	tests := []struct {
+ 		name       string
+@@ -328,6 +369,7 @@ func TestServeHTTP(t *testing.T) {
+ 		req = httptest.NewRequest("GET", "http://example.com/foo", nil)
+ 		w   = httptest.NewRecorder()
+ 	)
++	cfg.Meta.StateDirectory = "/private/user/config"
+ 
+ 	cfg.ServeHTTP(w, req)
+ 
+@@ -338,4 +380,6 @@ func TestServeHTTP(t *testing.T) {
+ 
+ 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+ 	assert.NotEmpty(t, body)
++	assert.NotContains(t, string(body), cfg.Meta.StateDirectory)
++	assert.NotContains(t, string(body), "stateDirectory")
+ }
+diff --git a/config/default.yml b/config/default.yml
+index aabb6e2..b9ef4f0 100644
+--- a/config/default.yml
++++ b/config/default.yml
+@@ -38,3 +38,5 @@
+ 
+ # meta:
+ #   check_for_updates: true
++#   telemetry_enabled: true # Set to false to disable anonymous usage pings
++#   state_directory:         # Defaults to the user's OS configuration directory
+diff --git a/config/testdata/advanced.yml b/config/testdata/advanced.yml
+index a1761ac..9940698 100644
+--- a/config/testdata/advanced.yml
++++ b/config/testdata/advanced.yml
+@@ -38,3 +38,4 @@ db:
+ 
+ meta:
+   check_for_updates: false
++  telemetry_enabled: false
+diff --git a/internal/info/flipt.go b/internal/info/flipt.go
+new file mode 100644
+index 0000000..fad32e8
+--- /dev/null
++++ b/internal/info/flipt.go
+@@ -0,0 +1,31 @@
++package info
++
++import (
++	"encoding/json"
++	"net/http"
++)
++
++// Flipt describes the running Flipt build and its update status.
++type Flipt struct {
++	Version         string `json:"version,omitempty"`
++	LatestVersion   string `json:"latestVersion,omitempty"`
++	Commit          string `json:"commit,omitempty"`
++	BuildDate       string `json:"buildDate,omitempty"`
++	GoVersion       string `json:"goVersion,omitempty"`
++	UpdateAvailable bool   `json:"updateAvailable"`
++	IsRelease       bool   `json:"isRelease"`
++}
++
++// ServeHTTP writes the build information as JSON.
++func (i Flipt) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
++	out, err := json.Marshal(i)
++	if err != nil {
++		w.WriteHeader(http.StatusInternalServerError)
++		return
++	}
++
++	w.Header().Set("Content-Type", "application/json")
++	if _, err := w.Write(out); err != nil {
++		w.WriteHeader(http.StatusInternalServerError)
++	}
++}
+diff --git a/internal/info/flipt_test.go b/internal/info/flipt_test.go
+new file mode 100644
+index 0000000..e75f96c
+--- /dev/null
++++ b/internal/info/flipt_test.go
+@@ -0,0 +1,50 @@
++package info
++
++import (
++	"errors"
++	"net/http"
++	"net/http/httptest"
++	"strings"
++	"testing"
++)
++
++func TestFliptServeHTTP(t *testing.T) {
++	info := Flipt{
++		Version:         "1.2.3",
++		Commit:          "abc123",
++		IsRelease:       true,
++		UpdateAvailable: false,
++	}
++
++	w := httptest.NewRecorder()
++	info.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/meta/info", nil))
++
++	if w.Code != http.StatusOK {
++		t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
++	}
++	if got := w.Header().Get("Content-Type"); got != "application/json" {
++		t.Errorf("Content-Type = %q, want application/json", got)
++	}
++	for _, part := range []string{`"version":"1.2.3"`, `"commit":"abc123"`, `"isRelease":true`, `"updateAvailable":false`} {
++		if !strings.Contains(w.Body.String(), part) {
++			t.Errorf("body %q does not contain %q", w.Body.String(), part)
++		}
++	}
++}
++
++type failingWriter struct {
++	header http.Header
++	status int
++}
++
++func (w *failingWriter) Header() http.Header       { return w.header }
++func (w *failingWriter) WriteHeader(status int)    { w.status = status }
++func (w *failingWriter) Write([]byte) (int, error) { return 0, errors.New("write failed") }
++
++func TestFliptServeHTTPWriteError(t *testing.T) {
++	w := &failingWriter{header: make(http.Header)}
++	(Flipt{}).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/meta/info", nil))
++	if w.status != http.StatusInternalServerError {
++		t.Fatalf("status = %d, want %d", w.status, http.StatusInternalServerError)
++	}
++}
+diff --git a/telemetry/telemetry.go b/telemetry/telemetry.go
+new file mode 100644
+index 0000000..de226ec
+--- /dev/null
++++ b/telemetry/telemetry.go
+@@ -0,0 +1,282 @@
++// Package telemetry sends anonymous installation pings when enabled.
++package telemetry
++
++import (
++	"bytes"
++	"context"
++	"encoding/json"
++	"fmt"
++	"io"
++	"net/http"
++	"os"
++	"path/filepath"
++	"sync"
++	"time"
++
++	"github.com/gofrs/uuid"
++	"github.com/markphelps/flipt/config"
++	"github.com/sirupsen/logrus"
++)
++
++const (
++	schemaVersion  = "1.0"
++	stateFileName  = "telemetry.json"
++	reportInterval = 4 * time.Hour
++	// The collector accepts Segment-style track events without host metadata.
++	defaultEndpoint = "https://telemetry.flipt.io/v1/track"
++)
++
++// FliptVersion is set by the executable from its build version before it
++// creates a reporter. Reporters keep a copy of its value at construction.
++var FliptVersion = "dev"
++
++var stateInitMu sync.Mutex
++
++type state struct {
++	Version       string `json:"version"`
++	UUID          string `json:"uuid"`
++	LastTimestamp string `json:"lastTimestamp"`
++}
++
++type trackEvent struct {
++	AnonymousID string `json:"anonymousId"`
++	Event       string `json:"event"`
++	Properties  struct {
++		UUID    string `json:"uuid"`
++		Version string `json:"version"`
++		Flipt   struct {
++			Version string `json:"version"`
++		} `json:"flipt"`
++	} `json:"properties"`
++}
++
++// Reporter persists a stable anonymous ID and sends usage pings.
++type Reporter struct {
++	mu           sync.Mutex
++	state        state
++	statePath    string
++	fliptVersion string
++	endpoint     string
++	client       *http.Client
++	logger       logrus.FieldLogger
++	now          func() time.Time
++}
++
++// NewReporter returns nil without touching the filesystem when telemetry is
++// disabled. Initialization errors can be logged by the caller and ignored.
++func NewReporter(cfg *config.Config, logger logrus.FieldLogger) (*Reporter, error) {
++	if cfg == nil {
++		return nil, fmt.Errorf("telemetry: nil configuration")
++	}
++	if !cfg.Meta.TelemetryEnabled {
++		return nil, nil
++	}
++	if logger == nil {
++		logger = logrus.StandardLogger()
++	}
++	stateInitMu.Lock()
++	defer stateInitMu.Unlock()
++
++	dir := cfg.Meta.StateDirectory
++	if dir == "" {
++		var err error
++		dir, err = os.UserConfigDir()
++		if err != nil {
++			return nil, fmt.Errorf("telemetry: finding user configuration directory: %w", err)
++		}
++	}
++
++	if err := os.MkdirAll(dir, 0700); err != nil {
++		return nil, fmt.Errorf("telemetry: creating state directory: %w", err)
++	}
++
++	info, err := os.Stat(dir)
++	if err != nil {
++		return nil, fmt.Errorf("telemetry: checking state directory: %w", err)
++	}
++	if !info.IsDir() {
++		return nil, fmt.Errorf("telemetry: state path %q is not a directory", dir)
++	}
++
++	r := &Reporter{
++		statePath:    filepath.Join(dir, stateFileName),
++		fliptVersion: FliptVersion,
++		endpoint:     defaultEndpoint,
++		client: &http.Client{
++			Timeout: 10 * time.Second,
++			CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
++				return http.ErrUseLastResponse
++			},
++		},
++		logger: logger,
++		now:    time.Now,
++	}
++
++	for {
++		r.state = state{}
++		data, err := os.ReadFile(r.statePath)
++		missing := os.IsNotExist(err)
++		if err != nil && !missing {
++			return nil, fmt.Errorf("telemetry: reading state: %w", err)
++		}
++		if !missing {
++			if err := json.Unmarshal(data, &r.state); err != nil {
++				logger.Warnf("telemetry: malformed state file (%v); generating a new anonymous ID", err)
++				r.state = state{}
++			}
++		}
++
++		changed := false
++		parsedID, err := uuid.FromString(r.state.UUID)
++		if err != nil || parsedID == uuid.Nil {
++			parsedID, err = uuid.NewV4()
++			if err != nil {
++				return nil, fmt.Errorf("telemetry: generating anonymous ID: %w", err)
++			}
++			r.state.UUID = parsedID.String()
++			changed = true
++		}
++
++		if r.state.Version != schemaVersion {
++			r.state.Version = schemaVersion
++			changed = true
++		}
++		if _, err := time.Parse(time.RFC3339, r.state.LastTimestamp); err != nil {
++			r.state.LastTimestamp = time.Time{}.UTC().Format(time.RFC3339)
++			changed = true
++		}
++		if changed {
++			if err := r.writeState(missing); os.IsExist(err) && missing {
++				// Another process created the state first. Use its ID instead.
++				continue
++			} else if err != nil {
++				return nil, err
++			}
++		}
++		return r, nil
++	}
++}
++
++// Start reports when the last successful ping is due, then every four hours.
++// It runs until ctx is canceled and logs report failures without affecting the
++// application.
++func (r *Reporter) Start(ctx context.Context) {
++	if r == nil {
++		return
++	}
++
++	r.mu.Lock()
++	last, _ := time.Parse(time.RFC3339, r.state.LastTimestamp)
++	r.mu.Unlock()
++
++	next := last.Add(reportInterval)
++	for {
++		if err := ctx.Err(); err != nil {
++			return
++		}
++
++		now := r.now()
++		if next.After(now.Add(reportInterval)) {
++			next = now.Add(reportInterval)
++		}
++		if delay := next.Sub(now); delay > 0 {
++			timer := time.NewTimer(delay)
++			select {
++			case <-ctx.Done():
++				timer.Stop()
++				return
++			case <-timer.C:
++			}
++		}
++
++		if err := r.Report(ctx); err != nil && ctx.Err() == nil {
++			r.logger.Warnf("telemetry: sending ping: %v", err)
++		}
++		next = r.now().Add(reportInterval)
++	}
++}
++
++// Report sends one anonymous flipt.ping event and saves the time only after
++// the collector confirms the request succeeded.
++func (r *Reporter) Report(ctx context.Context) error {
++	if r == nil {
++		return nil
++	}
++
++	r.mu.Lock()
++	defer r.mu.Unlock()
++
++	if err := ctx.Err(); err != nil {
++		return err
++	}
++
++	event := trackEvent{AnonymousID: r.state.UUID, Event: "flipt.ping"}
++	event.Properties.UUID = r.state.UUID
++	event.Properties.Version = r.state.Version
++	event.Properties.Flipt.Version = r.fliptVersion
++
++	body, err := json.Marshal(event)
++	if err != nil {
++		return fmt.Errorf("telemetry: encoding ping: %w", err)
++	}
++
++	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.endpoint, bytes.NewReader(body))
++	if err != nil {
++		return fmt.Errorf("telemetry: preparing ping: %w", err)
++	}
++	req.Header.Set("Content-Type", "application/json")
++
++	resp, err := r.client.Do(req)
++	if err != nil {
++		return fmt.Errorf("telemetry: sending ping: %w", err)
++	}
++	defer resp.Body.Close()
++	_, _ = io.Copy(io.Discard, resp.Body)
++	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
++		return fmt.Errorf("telemetry: collector returned HTTP %d", resp.StatusCode)
++	}
++
++	r.state.LastTimestamp = r.now().UTC().Format(time.RFC3339)
++	return r.writeState(false)
++}
++
++func (r *Reporter) writeState(createOnly bool) error {
++	data, err := json.MarshalIndent(r.state, "", "  ")
++	if err != nil {
++		return fmt.Errorf("telemetry: encoding state: %w", err)
++	}
++	data = append(data, '\n')
++
++	f, err := os.CreateTemp(filepath.Dir(r.statePath), ".telemetry-*.tmp")
++	if err != nil {
++		return fmt.Errorf("telemetry: creating state file: %w", err)
++	}
++	defer os.Remove(f.Name())
++
++	if err := f.Chmod(0600); err != nil {
++		_ = f.Close()
++		return fmt.Errorf("telemetry: setting state permissions: %w", err)
++	}
++	if _, err := f.Write(data); err != nil {
++		_ = f.Close()
++		return fmt.Errorf("telemetry: writing state: %w", err)
++	}
++	if err := f.Close(); err != nil {
++		return fmt.Errorf("telemetry: closing state file: %w", err)
++	}
++	if createOnly {
++		// Linking publishes the complete file without replacing another
++		// process's freshly created state.
++		if err := os.Link(f.Name(), r.statePath); err == nil {
++			return nil
++		} else if os.IsExist(err) {
++			return err
++		}
++		// Some filesystems do not support links. Retain the ordinary atomic
++		// rename behavior there.
++	}
++	if err := os.Rename(f.Name(), r.statePath); err != nil {
++		return fmt.Errorf("telemetry: replacing state file: %w", err)
++	}
++	return nil
++}
+diff --git a/telemetry/telemetry_test.go b/telemetry/telemetry_test.go
+new file mode 100644
+index 0000000..2637eac
+--- /dev/null
++++ b/telemetry/telemetry_test.go
+@@ -0,0 +1,240 @@
++package telemetry
++
++import (
++	"context"
++	"encoding/json"
++	"net/http"
++	"net/http/httptest"
++	"os"
++	"path/filepath"
++	"sync"
++	"testing"
++	"time"
++
++	"github.com/gofrs/uuid"
++	"github.com/markphelps/flipt/config"
++	"github.com/sirupsen/logrus"
++	"github.com/stretchr/testify/require"
++)
++
++func testConfig(dir string) *config.Config {
++	cfg := config.Default()
++	cfg.Meta.StateDirectory = dir
++	return cfg
++}
++
++func readState(t *testing.T, dir string) state {
++	t.Helper()
++	data, err := os.ReadFile(filepath.Join(dir, stateFileName))
++	require.NoError(t, err)
++	var saved state
++	require.NoError(t, json.Unmarshal(data, &saved))
++	return saved
++}
++
++func TestNewReporterDisabled(t *testing.T) {
++	dir := filepath.Join(t.TempDir(), "state")
++	cfg := testConfig(dir)
++	cfg.Meta.TelemetryEnabled = false
++
++	reporter, err := NewReporter(cfg, logrus.New())
++	require.NoError(t, err)
++	require.Nil(t, reporter)
++	_, err = os.Stat(dir)
++	require.True(t, os.IsNotExist(err))
++}
++
++func TestNewReporterCreatesAndReusesState(t *testing.T) {
++	dir := filepath.Join(t.TempDir(), "nested", "state")
++	cfg := testConfig(dir)
++
++	reporter, err := NewReporter(cfg, logrus.New())
++	require.NoError(t, err)
++	require.NotNil(t, reporter)
++	saved := readState(t, dir)
++	require.Equal(t, schemaVersion, saved.Version)
++	_, err = uuid.FromString(saved.UUID)
++	require.NoError(t, err)
++	_, err = time.Parse(time.RFC3339, saved.LastTimestamp)
++	require.NoError(t, err)
++
++	again, err := NewReporter(cfg, logrus.New())
++	require.NoError(t, err)
++	require.Equal(t, saved, again.state)
++	require.Equal(t, saved, readState(t, dir))
++}
++
++func TestNewReporterConcurrentInitializationUsesOneUUID(t *testing.T) {
++	dir := filepath.Join(t.TempDir(), "state")
++	cfg := testConfig(dir)
++	const count = 10
++	reporters := make([]*Reporter, count)
++	errors := make([]error, count)
++	var wg sync.WaitGroup
++	for i := range reporters {
++		wg.Add(1)
++		go func(i int) {
++			defer wg.Done()
++			reporters[i], errors[i] = NewReporter(cfg, logrus.New())
++		}(i)
++	}
++	wg.Wait()
++	want := readState(t, dir).UUID
++	for i := range reporters {
++		require.NoError(t, errors[i])
++		require.Equal(t, want, reporters[i].state.UUID)
++	}
++}
++
++func TestInitialStateDoesNotReplaceExistingState(t *testing.T) {
++	dir := t.TempDir()
++	probe := filepath.Join(dir, "probe")
++	require.NoError(t, os.WriteFile(probe, nil, 0600))
++	if err := os.Link(probe, probe+"-link"); err != nil {
++		t.Skipf("filesystem does not support hard links: %v", err)
++	}
++	reporter, err := NewReporter(testConfig(dir), logrus.New())
++	require.NoError(t, err)
++	want := readState(t, dir)
++	reporter.state.UUID = uuid.Must(uuid.NewV4()).String()
++
++	require.True(t, os.IsExist(reporter.writeState(true)))
++	require.Equal(t, want, readState(t, dir))
++}
++
++func TestNewReporterRepairsMalformedUUID(t *testing.T) {
++	dir := t.TempDir()
++	path := filepath.Join(dir, stateFileName)
++	require.NoError(t, os.WriteFile(path, []byte(`{"version":"1.0","uuid":"bad","lastTimestamp":"2022-04-06T01:01:51Z"}`), 0600))
++
++	reporter, err := NewReporter(testConfig(dir), logrus.New())
++	require.NoError(t, err)
++	saved := readState(t, dir)
++	require.Equal(t, "2022-04-06T01:01:51Z", saved.LastTimestamp)
++	require.Equal(t, saved.UUID, reporter.state.UUID)
++	_, err = uuid.FromString(saved.UUID)
++	require.NoError(t, err)
++}
++
++func TestNewReporterRejectsFileAsStateDirectory(t *testing.T) {
++	path := filepath.Join(t.TempDir(), "state")
++	require.NoError(t, os.WriteFile(path, []byte("leave alone"), 0600))
++
++	reporter, err := NewReporter(testConfig(path), logrus.New())
++	require.Error(t, err)
++	require.Nil(t, reporter)
++	data, err := os.ReadFile(path)
++	require.NoError(t, err)
++	require.Equal(t, "leave alone", string(data))
++}
++
++func TestReportSendsAnonymousEventAndUpdatesTimestamp(t *testing.T) {
++	dir := t.TempDir()
++	reporter, err := NewReporter(testConfig(dir), logrus.New())
++	require.NoError(t, err)
++	reporter.fliptVersion = "1.2.3"
++	now := time.Date(2022, 4, 6, 5, 1, 51, 0, time.UTC)
++	reporter.now = func() time.Time { return now }
++
++	var received trackEvent
++	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		if r.Method != http.MethodPost || r.Header.Get("Content-Type") != "application/json" {
++			w.WriteHeader(http.StatusBadRequest)
++			return
++		}
++		if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
++			w.WriteHeader(http.StatusBadRequest)
++			return
++		}
++		w.WriteHeader(http.StatusAccepted)
++	}))
++	defer server.Close()
++	reporter.endpoint = server.URL
++
++	require.NoError(t, reporter.Report(context.Background()))
++	require.Equal(t, "flipt.ping", received.Event)
++	require.Equal(t, reporter.state.UUID, received.AnonymousID)
++	require.Equal(t, received.AnonymousID, received.Properties.UUID)
++	require.Equal(t, schemaVersion, received.Properties.Version)
++	require.Equal(t, "1.2.3", received.Properties.Flipt.Version)
++	require.Equal(t, now.Format(time.RFC3339), readState(t, dir).LastTimestamp)
++}
++
++func TestReportFailureKeepsTimestamp(t *testing.T) {
++	dir := t.TempDir()
++	reporter, err := NewReporter(testConfig(dir), logrus.New())
++	require.NoError(t, err)
++	previous := readState(t, dir)
++
++	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		w.WriteHeader(http.StatusInternalServerError)
++	}))
++	defer server.Close()
++	reporter.endpoint = server.URL
++
++	require.Error(t, reporter.Report(context.Background()))
++	require.Equal(t, previous, readState(t, dir))
++}
++
++func TestStartReportsWhenDueAndStopsOnCancellation(t *testing.T) {
++	reporter, err := NewReporter(testConfig(t.TempDir()), logrus.New())
++	require.NoError(t, err)
++	received := make(chan struct{}, 1)
++	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		received <- struct{}{}
++		w.WriteHeader(http.StatusOK)
++	}))
++	defer server.Close()
++	reporter.endpoint = server.URL
++
++	ctx, cancel := context.WithCancel(context.Background())
++	done := make(chan struct{})
++	go func() {
++		reporter.Start(ctx)
++		close(done)
++	}()
++
++	select {
++	case <-received:
++	case <-time.After(5 * time.Second):
++		t.Fatal("telemetry was not reported when due")
++	}
++	cancel()
++	select {
++	case <-done:
++	case <-time.After(5 * time.Second):
++		t.Fatal("telemetry loop did not stop")
++	}
++}
++
++func TestStartWaitsForNextInterval(t *testing.T) {
++	reporter, err := NewReporter(testConfig(t.TempDir()), logrus.New())
++	require.NoError(t, err)
++	reporter.state.LastTimestamp = time.Now().UTC().Format(time.RFC3339)
++
++	received := make(chan struct{}, 1)
++	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		received <- struct{}{}
++		w.WriteHeader(http.StatusOK)
++	}))
++	defer server.Close()
++	reporter.endpoint = server.URL
++
++	ctx, cancel := context.WithCancel(context.Background())
++	done := make(chan struct{})
++	go func() {
++		reporter.Start(ctx)
++		close(done)
++	}()
++	select {
++	case <-received:
++		t.Fatal("reported again before four hours elapsed")
++	case <-time.After(100 * time.Millisecond):
++	}
++	cancel()
++	select {
++	case <-done:
++	case <-time.After(5 * time.Second):
++		t.Fatal("telemetry loop did not stop")
++	}
++}

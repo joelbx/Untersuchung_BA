@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py) to follow the issue’s explicit first-match priority (`path`, `query`, `anchor`, `host`), leave ports untouched, skip encoded numeric sequences, preserve encoded URL data, and reject invalid counts or decrements below zero. Updated the [unit tests](/app/tests/unit/utils/test_urlutils.py) for those cases.
+
+Verification: **425 passed, 1 skipped** in the URL utility suite. `git diff --check` passed.

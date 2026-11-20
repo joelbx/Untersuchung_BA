@@ -1,0 +1,3 @@
+Implemented [`GetInstance[T]`](/app/utils/singleton/singleton.go), which returns the concrete type and caches `T` and `*T` independently. Its constructor runs once per type, including under concurrent calls. The existing `Get` API remains available.
+
+Added tests covering reuse, type separation, and 20,000 simultaneous calls. The singleton race test and `go test ./...` passed. The full suite emitted existing sqlite3 and taglib compiler warnings.

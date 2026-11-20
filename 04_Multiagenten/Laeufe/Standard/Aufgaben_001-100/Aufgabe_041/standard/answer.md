@@ -1,0 +1,3 @@
+Removed `ListMixin` and moved its methods onto `List`. Owner lookup now accepts `/people/{username}/lists/{list_id}` and returns `None` when the key is invalid or the user is missing. The new [register_models](/app/openlibrary/core/lists/model.py) function registers `List` as `/type/list` and `ListChangeset` as `lists`.
+
+The relevant run passed **27 tests**. One existing request context test was deselected; a separate legacy test module could not collect because `cookielib` is unavailable.

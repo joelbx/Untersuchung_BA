@@ -1,0 +1,3 @@
+Added date based module deprecations across Python warning collection, `AnsibleModule`, Display, argument specs, validate-modules, and the C# `DateTime` overload. `exit_json` preserves deprecation order and accepts date entries alongside the existing version forms.
+
+Verification: 131 Python tests passed; syntax compilation and `git diff --check` passed. Schema runtime checks and C# integration remain unverified because `voluptuous`, PowerShell, and .NET are unavailable locally. The commands and errors are recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

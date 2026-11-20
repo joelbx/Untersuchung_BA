@@ -1,0 +1,3 @@
+Added a `ciphers` option to `get_url`, `uri`, and `lookup('url')`, and passed it through `fetch_url`, `open_url`, and `Request`. The TLS context applies the selected ciphers to HTTPS connections, including redirects, proxies, and Unix sockets. Invalid or unsupported values produce an error without echoing the supplied value; omitted values pass through as `None`.
+
+All 29 relevant URL unit tests passed. The run produced one deprecation warning for the existing SSL protocol setting on Python 3.11.

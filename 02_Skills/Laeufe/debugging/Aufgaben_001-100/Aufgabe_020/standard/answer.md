@@ -1,0 +1,3 @@
+Implemented Redis cache TLS trust configuration. `RedisCacheConfig` now accepts `ca_cert_path`, `ca_cert_bytes`, and `insecure_skip_tls`; the new [NewClient](/app/internal/cache/redis/client.go) applies TLS 1.2, loads the selected CA, and rejects simultaneous CA inputs. YAML schemas and fixtures are updated, and `api/cachetls` is in the integration-test matrix.
+
+Redis, config, and command tests pass, including local TLS handshakes for inline CA, file CA, and insecure mode. The Dagger integration case compiled but could not run because Docker is unavailable (`docker version`: command not found). This limit is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented the `chat:privileged` gate for privileged targets, including direct chats and invitations. Global privilege checks now accept strings or arrays; chat middleware and messaging use the array result. The profile API exposes `canChat`, with an OpenAPI entry and an admin UI translation.
+
+Five focused tests pass. ESLint and `git diff --check` pass. The full suite stopped after 194 passing tests because the plugin catalog request failed with HTTP 403. The messaging suite also has failing mute and DND tests; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

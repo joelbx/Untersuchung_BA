@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts) to use `Anonymity` throughout, force anonymous mode under DNT, require valid PostHog configuration, guard capture during initialization, and apply the selected mode to identification, room events, and URL redaction. Added the requested state and logout methods and updated [the tests](/app/test/PosthogAnalytics-test.ts).
+
+All 12 focused tests pass; lint and `git diff --check` pass. The repository-wide TypeScript check still reports unrelated existing errors and none in `PosthogAnalytics.ts`.

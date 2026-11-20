@@ -1,0 +1,3 @@
+Implemented undefined handling for YAML dumping in [dumper.py](/app/lib/ansible/parsing/yaml/dumper.py) and added filter-specific `AnsibleFilterError` wrapping with the original exception preserved in [core.py](/app/lib/ansible/plugins/filter/core.py). Added tests for direct dumping and both filters.
+
+Verification: `14 passed` across the dumper and core filter unit tests; `git diff --check` passed.

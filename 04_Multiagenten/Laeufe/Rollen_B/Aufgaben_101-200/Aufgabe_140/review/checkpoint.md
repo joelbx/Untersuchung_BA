@@ -1,0 +1,3 @@
+VERDICT: FIX
+
+Review complete. Relevant command: `QT_QPA_PLATFORM=offscreen pytest -q tests/unit/components/test_hostblock.py tests/unit/utils/test_urlutils.py` exited 0 with 356 passed and 1 skipped. Code defect: `HostBlocker._read_hosts_line` retains a trailing dot in a blocked entry, while `_is_blocked` strips trailing dots from request hosts before matching. A stored `example.com.` entry therefore matches neither `https://example.com/` nor `https://example.com./` (confirmed with a local Python reproduction). Normalize blocked entries when loading them, or compare normalized forms on both sides. No test environment problem.

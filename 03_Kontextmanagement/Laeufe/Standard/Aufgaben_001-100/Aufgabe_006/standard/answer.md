@@ -1,0 +1,3 @@
+Implemented the generic concurrent fanout buffer in [buffer.go](/app/lib/utils/fanoutbuffer/buffer.go). It supports independent ordered cursors, blocking and nonblocking reads, overflow storage, grace period errors, notifications, and cleanup. Added focused tests in [buffer_test.go](/app/lib/utils/fanoutbuffer/buffer_test.go).
+
+Verification passed: the package tests under `go test -race` and the existing `lib/utils` circular buffer test.

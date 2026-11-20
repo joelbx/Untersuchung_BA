@@ -1,0 +1,3 @@
+Implemented referential validation for unknown variants and segments. `Validate` now returns one error that can be unwrapped into individual errors with file, line, and column details. Filesystem snapshots validate files before loading them, and import validates before making changes, so repeated imports of an invalid file fail consistently.
+
+The relevant tests pass, including new tests for reference errors, snapshot rejection, and repeated import attempts. The full suite could not complete because its Redis tests require an unavailable Docker daemon.

@@ -1,0 +1,3 @@
+U2F login now generates challenges for every registered token. The response keeps the legacy single challenge fields and adds a `challenges` list; the CLI accepts either format and can authenticate with any listed token. Web endpoints forward the enhanced response, and `tsh mfa` remains hidden.
+
+A new web test signs in with a token other than the one in the legacy field. The focused test and `go test ./lib/auth ./lib/client ./lib/web ./tool/tsh -count=1` passed. No delegation was used.

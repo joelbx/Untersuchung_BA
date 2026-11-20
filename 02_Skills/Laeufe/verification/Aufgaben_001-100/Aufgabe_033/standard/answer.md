@@ -1,0 +1,3 @@
+Updated U2F login to issue a challenge for every registered U2F device. The response keeps the legacy top-level challenge for older clients; the CLI uses the full challenge list and accepts legacy single-device responses. Web endpoints pass through the new format, and `tsh mfa` remains hidden.
+
+Verification passed: the focused auth JSON test, the web U2F login and password-change tests, package compilation for auth, client, web, and tsh, and `git diff --check`.

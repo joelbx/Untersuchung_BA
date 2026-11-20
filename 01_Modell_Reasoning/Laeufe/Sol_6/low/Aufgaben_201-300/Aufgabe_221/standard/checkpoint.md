@@ -1,0 +1,1 @@
+Implemented Bestbook persistence, eligibility and uniqueness rules, work helpers, award APIs, redirect and anonymization integration. Verified: pytest -q openlibrary/tests/core/test_ratings.py openlibrary/tests/accounts (5 passed); compileall and git diff --check passed.

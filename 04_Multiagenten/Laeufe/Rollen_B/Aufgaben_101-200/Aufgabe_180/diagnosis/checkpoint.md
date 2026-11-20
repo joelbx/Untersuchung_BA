@@ -1,0 +1,6 @@
+Fault localization complete (source/tests unchanged).
+- config/os.go: Fedora 37 cutoff is Dec 15 instead of Dec 5, 38 is May 14 instead of May 21, 40 missing; macOS 11 has empty EOL and 15 missing.
+- Requirement names SUSE Enterprise 13/14, but SUSE Desktop/Server maps contain no 13 or 14. The existing 13/14 dates cited by the issue occur in the FreeBSD map (Jan 31 2026, Nov 21 2028). This family mismatch needs resolution before any data edit.
+- scanner/windows.go windowsReleases: 19045 ends at revision 3636 / KB5031445; 22621 and 22631 end at 2506 / KB5031455; 20348 ends at 2031 / KB5031364. Requested newer KBs are absent. Existing windowsRelease entries use named revision/kb fields; added entries should follow that form and ascending revision.
+- DetectKBsFromKernelVersion selects branch by release/build and splits rollups by revision. Existing scanner/windows_test.go asserts exact old Applied/Unapplied arrays, including Server 2022 revision 9999, so expectations must grow with new rollups. config/os_test.go has old Fedora 37/38 dates and expects Fedora 40 absent.
+- Potential preexisting edge case: both client and server selection initialize index=0, so builds below the first listed revision treat the first KB as applied. This is separate from the requested modern additions.

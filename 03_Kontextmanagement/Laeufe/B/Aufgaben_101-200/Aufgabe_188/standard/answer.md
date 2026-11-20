@@ -1,0 +1,3 @@
+Resolved the storage size constants issue in `/app`. [size.ts](/app/packages/shared/lib/helpers/size.ts) now defines the shared units, and storage allocations and byte limits use them across the affected modules.
+
+The CSV import tests pass (64 tests, 5 snapshots); lint and formatting pass. Type checks stop on an unrelated crypto type error, and the shared test suite cannot launch its configured Chromium binary. The repository work item is complete.

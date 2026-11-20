@@ -1,0 +1,3 @@
+Implemented `flipt.is_auth_method` in the Rego engine with the requested labels, including the `k8s` alias, and support for numeric enum values and existing `METHOD_*` strings. Missing authentication and unsupported labels return the specified errors.
+
+The relevant tests pass: `go test ./internal/server/authz/engine/rego/...`. **The new direct built-in tests are not included yet**; their test harness needs correction before the requested cases are fully verified.

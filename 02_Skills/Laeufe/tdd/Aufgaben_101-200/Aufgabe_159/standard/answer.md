@@ -1,0 +1,3 @@
+Added `parsePkgName` and connected it to library and GitHub dependency PURL construction in [cyclonedx.go](/app/reporter/sbom/cyclonedx.go:311). It splits Maven, Go, npm, and Cocoapods names and normalizes PyPI names, with empty strings for fields that do not apply.
+
+The new [regression tests](/app/reporter/sbom/cyclonedx_test.go:12) failed before the patch and passed afterward. The full repository suite, `GOTOOLCHAIN=local GOPROXY=off go test ./...`, passed.

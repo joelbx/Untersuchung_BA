@@ -1,0 +1,3 @@
+Replaced the user-facing `:buffer` command with `:tab-select`, renamed its tab completion providers, and updated the default binding, help, and existing test references. The existing selection behavior remains in place, including title and URL matching, count precedence, and cross-window selection.
+
+Registry and diff checks passed. The completion suite reported 154 passed and 1 expected failure, then exited with an X11 teardown error. End-to-end tests could not start because QtWebKit is unavailable in this environment.

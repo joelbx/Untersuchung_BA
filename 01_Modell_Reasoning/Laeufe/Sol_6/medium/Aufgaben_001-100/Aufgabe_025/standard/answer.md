@@ -1,0 +1,3 @@
+Added an exact `${VARIABLE_NAME}` substitution hook at the start of `DecodeHooks`. Existing decode hooks can then convert resolved values to types such as ports and durations. Missing variables, non-string values, and strings that do not match the full pattern remain unchanged; existing `FLIPT_` overrides still take precedence.
+
+Added tests for those cases and multiple references in one YAML file. `go test ./internal/config ./config -count=1` passed.

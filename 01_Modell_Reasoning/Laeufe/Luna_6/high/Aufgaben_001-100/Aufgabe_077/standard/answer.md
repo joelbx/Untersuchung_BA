@@ -1,0 +1,3 @@
+Implemented date-based deprecations across the Python module utilities, argument deprecation discovery, validate-modules schema checks, and C# `Ansible.Basic`. Added coverage for date formatting, merge order, and the required assertion message.
+
+Verification: 37 focused tests passed; Python compilation and `git diff --check` passed. Validate-modules tests could not run because `voluptuous` is missing from the local environment. The C# integration test was added but not run here.

@@ -1,0 +1,1 @@
+Completed: Added first-class KEV model and source-specific details, mapped CISA and VulnCheck data from the cached newer go-kev dependency, normalized zero due dates, added KEV summary and deterministic JSON sorting. Added focused tests. Verified with GOPROXY=off GOSUMDB=off go test ./models ./detector and git diff --check.

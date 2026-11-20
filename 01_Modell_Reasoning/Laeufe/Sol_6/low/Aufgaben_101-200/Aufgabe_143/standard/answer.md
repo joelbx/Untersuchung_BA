@@ -1,0 +1,3 @@
+Centralized `add_db_name` in [catalog utilities](/app/openlibrary/catalog/utils/__init__.py) and made record expansion apply it to every author. Existing editions now pass author names and birth and death dates into expansion, which generates the identifier for comparison.
+
+Updated the relevant tests and fixtures. **Verification:** 71 passed, 2 expected failures, 1 unexpected pass; `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated [useLink.ts](/app/applications/drive/src/app/store/_links/useLink.ts) to reuse `NOT_FOUND`, `NOT_ALLOWED`, and `INVALID_ID` fetch errors for the same `(shareId, linkId)` across hook instances for 10 seconds. Other links and errors continue to fetch normally.
+
+Added coverage in [useLink.test.ts](/app/applications/drive/src/app/store/_links/useLink.test.ts). All 17 focused tests pass; targeted ESLint and `git diff --check` pass.

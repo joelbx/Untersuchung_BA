@@ -1,0 +1,3 @@
+Updated the Solr builder to select a public IA edition for `lending_edition_s` when one exists, with the matching `lending_identifier_s`. It now treats `lendinglibrary` editions as loanable rather than public. Tests cover the mixed-edition fields, including print-disabled IDs, IA identifiers, and collection aggregation.
+
+Verification: `python -m pytest openlibrary/tests/solr -q` passed (61 tests); `git diff --check` passed.

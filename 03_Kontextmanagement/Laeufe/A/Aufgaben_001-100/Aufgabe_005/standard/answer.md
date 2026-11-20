@@ -1,0 +1,3 @@
+Updated Qt startup so early initialization passes its `SelectionInfo` to the availability checker. The checker now records wrapper import results, reports when none is importable, and leaves blank lines after core import errors. Implicit initialization raises the new `NoWrapperAvailableError` when needed; `SelectionInfo` and debug output now show clearer details.
+
+Verification: 33 focused tests and 9 version output tests passed. The full version test file exited mid-run without a pytest summary, so that broader run remains unverified.

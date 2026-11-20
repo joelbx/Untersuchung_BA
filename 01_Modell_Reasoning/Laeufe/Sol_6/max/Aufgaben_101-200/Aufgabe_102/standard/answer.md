@@ -1,0 +1,3 @@
+Added the Linux fact `ansible_facts.locally_reachable_ips` with separate `ipv4` and `ipv6` lists. It collects host scope routes, normalizes prefixes, removes duplicates, and sorts results. Failed queries return an empty list with a warning while other facts continue to gather. The fact is also registered as a selectable subset and documented in [linux.py](/app/lib/ansible/module_utils/facts/network/linux.py), [setup.py](/app/lib/ansible/modules/setup.py), and the [facts guide](/app/docs/docsite/rst/playbook_guide/playbooks_vars_facts.rst).
+
+Verification: 197 relevant unit tests passed; 7 were skipped. The workspace has no `ip` executable, so live route collection could not be checked.

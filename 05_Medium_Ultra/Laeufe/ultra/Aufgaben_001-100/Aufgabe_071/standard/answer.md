@@ -1,0 +1,3 @@
+Fixed CLIXML decoding in [powershell.py](/app/lib/ansible/plugins/shell/powershell.py:32). The parser now filters by stream, decodes Unicode and control-character escapes, combines surrogate pairs, preserves unpaired surrogates, and joins nonempty `<Objs>` results with CRLF.
+
+Two subagents handled the parser and [focused tests](/app/test/units/plugins/shell/test_powershell.py:79); I reviewed the combined patch and added a [bugfix changelog fragment](/app/changelogs/fragments/powershell-clixml-escapes.yml). Validation: **15 PowerShell shell tests passed**, and `git diff --check` was clean.

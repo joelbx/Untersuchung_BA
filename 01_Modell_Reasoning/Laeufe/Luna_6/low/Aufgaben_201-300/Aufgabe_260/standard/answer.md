@@ -1,0 +1,3 @@
+Implemented selective SSE delivery by user and client ID, including UUID propagation from the UI, cookie middleware, context-aware broker events, and the diode API rename. Updated subsonic cookie expiry usage and relevant event producers.
+
+Verification passed: `go test ./server/events ./server ./server/subsonic ./scanner ./model/request` and `git diff --check`. The TagLib build emitted a deprecation warning.

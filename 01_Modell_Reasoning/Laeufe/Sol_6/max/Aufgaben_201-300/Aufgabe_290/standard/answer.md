@@ -1,0 +1,3 @@
+Call sounds now clear an audio element’s `muted` flag immediately before playback, including queued replays. Already unmuted elements are left alone. The four sound IDs are exported, and the requested `handleEvent` listener is available at [handleEvent.ts](/app/src/legacy/LegacyCallHandler/handleEvent.ts).
+
+The focused Jest suite passed (20 tests), along with TypeScript, ESLint, and whitespace checks. Browser autoplay restrictions can still reject playback; the existing warning handles that case.

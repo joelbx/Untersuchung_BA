@@ -1,0 +1,3 @@
+Added `content.javascript.log_message.levels` and `.excludes` so source and message glob patterns can keep repetitive CSP errors out of the UI while still showing other errors. Messages excluded from the UI continue through the existing JavaScript logger. The previous `content.javascript.log_message` setting is migrated to `.levels`.
+
+Updated the setting documentation and tests. **Validation:** 47 relevant tests passed; `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py:562) to skip digits in percent-encoded triplets, preserve encoded URL components, reject invalid counts and negative decrements, and leave ports unchanged. It now defaults to the path and applies the request’s explicit **first match** priority: path, query, anchor, then host.
+
+Updated the [tests](/app/tests/unit/utils/test_urlutils.py:618). The full URL utility test module passed: **351 passed, 1 skipped**.

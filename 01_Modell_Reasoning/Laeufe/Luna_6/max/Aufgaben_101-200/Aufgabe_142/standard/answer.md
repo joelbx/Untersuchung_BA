@@ -1,0 +1,3 @@
+Implemented the expression AST and parser in [ast.go](/app/lib/utils/parse/ast.go) and [parse.go](/app/lib/utils/parse/parse.go), including nested and constant expressions, strict variable and function validation, bounded parsing, and AST-backed matchers. Updated role interpolation and PAM namespace validation and claim-safe logging.
+
+Passed the focused parser, services, and PAM tests, plus `git diff --check`. The server package compile remains unverified because this environment lacks `linux/hidraw.h`; disabling CGO exposes unrelated PKCS#11/HID build errors.

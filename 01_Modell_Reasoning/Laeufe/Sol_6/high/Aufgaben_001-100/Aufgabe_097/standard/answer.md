@@ -1,0 +1,3 @@
+Updated the repository to require Python 3.12 or newer on the controller. The CLI and `ansible-test` now show the same version error, while Python 3.10 and 3.11 remain supported for managed nodes. Collection extraction now calls `tar.getmember(dirname)` unchanged, raises the required error for a missing member, and no longer uses `_ansible_normalized_cache`. I also simplified obsolete controller compatibility code and added a [breaking-change fragment](/app/changelogs/fragments/controller-python-3.12.yml).
+
+Verification: 94 focused tests passed, 1 skipped; syntax checks and `git diff --check` passed. Python 3.12 is unavailable locally, so the full controller test suite could not be run under the new minimum.

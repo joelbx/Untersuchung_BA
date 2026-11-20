@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` support for new rooms. The shared policy helper gives server force-enable precedence when policies conflict; the creation dialog displays and submits the effective encryption state, with the toggle disabled while the decision is pending or enforced.
+
+The CreateRoomDialog test suite passed (12 tests). Type checking remains blocked by an unrelated existing error in [Unread.ts](/app/src/Unread.ts:167).

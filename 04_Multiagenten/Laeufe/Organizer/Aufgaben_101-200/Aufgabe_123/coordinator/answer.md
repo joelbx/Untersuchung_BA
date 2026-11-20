@@ -1,0 +1,3 @@
+Notifications now render string HTML through DOMPurify, and links in notification content receive `target="_blank"` and `rel="noopener noreferrer"`. Non-success notifications deduplicate by an explicit key, string text, or notification ID; repeated success notifications remain visible.
+
+Verification: 10 relevant tests passed, the components TypeScript check passed, and formatting passed. No delegation was used.

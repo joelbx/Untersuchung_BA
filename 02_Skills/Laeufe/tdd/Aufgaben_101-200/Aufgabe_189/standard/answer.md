@@ -1,0 +1,3 @@
+Moved `extra_suffixes_workaround` to module scope in [webview.py](/app/qutebrowser/browser/webengine/webview.py). `chooseFiles` now calls it and passes a deduplicated union of the original and extra suffixes to `super().chooseFiles(...)`. Both functions handle one-pass iterables.
+
+The [webview tests](/app/tests/unit/browser/webengine/test_webview.py) pass: **24 passed**. Broader runs did not complete reliably: the full suite hit Chromium’s root sandbox restriction, and the unit and webengine package runs exited early without a pytest summary. The commands and results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented upload cleanup on post and topic purge. Files are deleted only when no other post references them, including resized copies. Administrators can retain them with the new ACP **Keep uploaded files after their posts are purged** setting. `Posts.uploads.deleteFromDisk` accepts a path or list of paths and rejects invalid input and paths outside the upload directory.
+
+Verification: 22 relevant tests passed; ESLint and `git diff --check` passed.

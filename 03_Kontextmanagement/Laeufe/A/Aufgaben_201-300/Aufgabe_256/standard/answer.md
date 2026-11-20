@@ -1,0 +1,3 @@
+Fixed the invalid `hosts` exception. [Play.load](/app/lib/ansible/playbook/play.py) now leaves `name` untouched, `get_name` derives it when needed, and host validation raises `AnsibleParserError` with the requested messages. Added regression coverage in [test_play.py](/app/test/units/playbook/test_play.py).
+
+Verification: all 247 playbook unit tests passed; the focused tests passed after the final additions.

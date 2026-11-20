@@ -1,0 +1,3 @@
+Token-only invitation registration now works. The [registration form](/app/public/src/client/register.js) puts the URL token in its hidden input. The [backend](/app/src/controllers/authentication.js) registers without an email, confirms it only when it matches the invitation, joins the token’s groups, and cleans up invitation records. [Invitation storage](/app/src/user/invite.js) is now keyed by token.
+
+Verification passed: 32 invitation tests, 30 authentication tests, targeted ESLint, and syntax checks. I delegated the form and invitation changes to two agents, used a third for read-only review, then integrated and verified the patch.

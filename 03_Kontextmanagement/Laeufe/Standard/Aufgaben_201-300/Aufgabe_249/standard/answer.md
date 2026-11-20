@@ -1,0 +1,3 @@
+Implemented structured Wikidata profiles and displayed them in the author infobox. Wikipedia links use the requested language with English fallback; Wikidata is always included; and each valid P1960 identifier produces a Google Scholar link. I also enabled the author’s Wikidata lookup and added the three icon assets.
+
+Verification: all 12 Wikidata tests passed, Ruff passed, and the infobox template compiled.

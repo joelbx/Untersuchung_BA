@@ -1,0 +1,3 @@
+Implemented `isoneof` and `isnotoneof` for string and number constraints, with typed JSON array validation and a 100 item limit on create and update requests. Added regression tests that failed before the change and now pass.
+
+Both affected packages pass their full test suites. The repository wide suite failed only in three Redis tests (`TestSet`, `TestGet`, `TestDelete`) because the Docker daemon is unavailable; the failure is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

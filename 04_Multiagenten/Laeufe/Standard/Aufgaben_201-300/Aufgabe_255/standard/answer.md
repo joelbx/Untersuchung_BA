@@ -1,0 +1,3 @@
+Fixed the password lookup in [password.py](/app/lib/ansible/plugins/lookup/password.py). It now initializes plugin options before parsing, applies inline `key=value` values over option defaults, and uses `seed` for deterministic output. `chars` accepts a list or a comma-separated string, including `,,` for a literal comma.
+
+Updated the [unit tests](/app/test/units/plugins/lookup/test_password.py). All 32 password lookup tests pass.

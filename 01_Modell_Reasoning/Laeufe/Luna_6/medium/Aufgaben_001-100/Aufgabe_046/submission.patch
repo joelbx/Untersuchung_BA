@@ -1,0 +1,147 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index 7f75e9a..355e8c9 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -519,12 +519,20 @@ class ModuleDepFinder(ast.NodeVisitor):
+         if node.level > 0:
+             if self.module_fqn:
+                 parts = tuple(self.module_fqn.split('.'))
++                # __init__.py is the package itself, rather than a child module
++                # within that package.  Relative imports from it therefore start
++                # one level higher than imports from ordinary modules.
++                if parts[-1:] == ('__init__',):
++                    parts = parts[:-1]
++                    relative_level = node.level - 1
++                else:
++                    relative_level = node.level
+                 if node.module:
+                     # relative import: from .module import x
+-                    node_module = '.'.join(parts[:-node.level] + (node.module,))
++                    node_module = '.'.join((parts[:-relative_level] if relative_level else parts) + (node.module,))
+                 else:
+                     # relative import: from . import x
+-                    node_module = '.'.join(parts[:-node.level])
++                    node_module = '.'.join(parts[:-relative_level] if relative_level else parts)
+             else:
+                 # fall back to an absolute import
+                 node_module = node.module
+@@ -678,6 +686,34 @@ class CollectionModuleInfo(ModuleInfo):
+ 
+         collection_pkg_name = '.'.join(split_name[0:3])
+         resource_base_path = os.path.join(*split_name[3:])
++        module_fqn = '.'.join(split_name)
++        module_short_name = '.'.join(split_name[5:])
++        collection_meta = _get_collection_metadata(collection_pkg_name)
++        route = collection_meta.get('plugin_routing', {}).get('module_utils', {}).get(module_short_name, {})
++        tombstone = route.get('tombstone')
++        if tombstone:
++            message = tombstone.get('warning_text') or tombstone.get('message') or 'module_utils has been removed'
++            removal = tombstone.get('removal_version') or tombstone.get('removal_date') or 'unspecified'
++            raise AnsibleError('%s (removed %s; collection %s)' % (message, removal, collection_pkg_name))
++        redirect = route.get('redirect')
++        if redirect:
++            if len(redirect.split('.')) == 3:
++                redirect = 'ansible_collections.%s.plugins.module_utils' % redirect
++            elif not redirect.startswith('ansible_collections.'):
++                redirect = 'ansible_collections.%s.plugins.module_utils.%s' % (collection_pkg_name.split('.')[1], redirect)
++            deprecation = route.get('deprecation')
++            if deprecation:
++                warning = deprecation.get('warning_text') or ('%s is deprecated' % module_fqn)
++                display.deprecated(warning, version=deprecation.get('removal_version'),
++                                   date=deprecation.get('removal_date'), collection_name=collection_pkg_name)
++            self._src = ("import sys\nimport %s as _redirected_module\n"
++                         "sys.modules[%r] = _redirected_module\n" % (redirect, module_fqn)).encode('utf-8')
++            self.path = module_fqn.replace('.', '/') + '.py'
++            self.pkg_dir = False
++            self.py_src = True
++            self.redirected = True
++            return
++        self.redirected = False
+         # look for package_dir first, then module
+ 
+         self._src = pkgutil.get_data(collection_pkg_name, to_native(os.path.join(resource_base_path, '__init__.py')))
+@@ -717,7 +753,35 @@ sys.modules['{0}'] = mod
+         return self._shim_src
+ 
+ 
+-def recursive_finder(name, module_fqn, data, py_module_names, py_module_cache, zf):
++class ModuleUtilLocatorBase:
++    """Common representation for a module_utils import candidate."""
++    def __init__(self, fq_name_parts, is_ambiguous=False, child_is_redirected=False):
++        self.fq_name_parts = tuple(fq_name_parts)
++        self.is_ambiguous = is_ambiguous
++        self.child_is_redirected = child_is_redirected
++        self.module_info = None
++        self.module_name_parts = self.fq_name_parts
++        self.found = False
++        self.redirected = False
++
++    def candidate_names_joined(self):
++        candidates = [self.fq_name_parts]
++        if self.is_ambiguous and len(self.fq_name_parts) > 5:
++            candidates.append(self.fq_name_parts[:-1])
++        return ['.'.join(candidate) for candidate in candidates]
++
++
++class LegacyModuleUtilLocator(ModuleUtilLocatorBase):
++    def __init__(self, fq_name_parts, is_ambiguous=False, mu_paths=None, child_is_redirected=False):
++        super(LegacyModuleUtilLocator, self).__init__(fq_name_parts, is_ambiguous, child_is_redirected)
++        self.mu_paths = mu_paths or []
++
++
++class CollectionModuleUtilLocator(ModuleUtilLocatorBase):
++    pass
++
++
++def _recursive_finder_one(name, module_fqn, data, py_module_names, py_module_cache, zf):
+     """
+     Using ModuleDepFinder, make sure we have all of the module_utils files that
+     the module and its module_utils files needs.
+@@ -811,12 +875,11 @@ def recursive_finder(name, module_fqn, data, py_module_names, py_module_cache, z
+ 
+         # Could not find the module.  Construct a helpful error message.
+         if module_info is None:
+-            msg = ['Could not find imported module support code for %s.  Looked for' % (name,)]
+-            if idx == 2:
+-                msg.append('either %s.py or %s.py' % (py_module_name[-1], py_module_name[-2]))
+-            else:
+-                msg.append(py_module_name[-1])
+-            raise AnsibleError(' '.join(msg))
++            attempted = ['.'.join(py_module_name)]
++            if idx == 2 and len(py_module_name) > 1:
++                attempted.append('.'.join(py_module_name[:-1]))
++            raise AnsibleError('Could not find imported module support code for %s. Looked for (%s)' %
++                               ('.'.join(py_module_name), ', '.join(attempted)))
+ 
+         if isinstance(module_info, CollectionModuleInfo):
+             if idx == 2:
+@@ -936,12 +999,23 @@ def recursive_finder(name, module_fqn, data, py_module_names, py_module_cache, z
+     # through recursive_finder()
+     py_module_names.update(unprocessed_py_module_names)
+ 
+-    for py_module_file in unprocessed_py_module_names:
+-        next_fqn = '.'.join(py_module_file)
+-        recursive_finder(py_module_file[-1], next_fqn, py_module_cache[py_module_file][0],
+-                         py_module_names, py_module_cache, zf)
+-        # Save memory; the file won't have to be read again for this ansible module.
+-        del py_module_cache[py_module_file]
++    return unprocessed_py_module_names
++
++
++def recursive_finder(name, module_fqn, data, py_module_names, py_module_cache, zf):
++    """Resolve module_utils dependencies iteratively to avoid recursive walks."""
++    pending = [(name, module_fqn, data)]
++    while pending:
++        current_name, current_fqn, current_data = pending.pop(0)
++        discovered = _recursive_finder_one(current_name, current_fqn, current_data,
++                                           py_module_names, py_module_cache, zf)
++        for module_name in discovered:
++            source, _path = py_module_cache[module_name]
++            pending.append((module_name[-1], '.'.join(module_name), source))
++            # Keep the cache entry until it has been scanned; the scanner also
++            # uses the cache when writing newly discovered files.
++        for module_name in discovered:
++            py_module_cache.pop(module_name, None)
+ 
+ 
+ def _is_binary(b_module_data):

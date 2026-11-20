@@ -1,0 +1,585 @@
+diff --git a/internal/cmd/grpc.go b/internal/cmd/grpc.go
+index 1519664..098028a 100644
+--- a/internal/cmd/grpc.go
++++ b/internal/cmd/grpc.go
+@@ -7,8 +7,6 @@ import (
+ 	"errors"
+ 	"fmt"
+ 	"net"
+-	"net/url"
+-	"strconv"
+ 	"sync"
+ 	"time"
+ 
+@@ -38,17 +36,11 @@ import (
+ 	"go.flipt.io/flipt/internal/storage/sql/mysql"
+ 	"go.flipt.io/flipt/internal/storage/sql/postgres"
+ 	"go.flipt.io/flipt/internal/storage/sql/sqlite"
++	"go.flipt.io/flipt/internal/tracing"
+ 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+ 	"go.opentelemetry.io/otel"
+-	"go.opentelemetry.io/otel/exporters/jaeger"
+-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+-	"go.opentelemetry.io/otel/exporters/zipkin"
+ 	"go.opentelemetry.io/otel/propagation"
+-	"go.opentelemetry.io/otel/sdk/resource"
+ 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+-	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+ 	"go.uber.org/zap"
+ 	"go.uber.org/zap/zapcore"
+ 	"google.golang.org/grpc"
+@@ -157,25 +149,15 @@ func NewGRPCServer(
+ 
+ 	logger.Debug("store enabled", zap.Stringer("store", store))
+ 
+-	traceResource, err := resource.New(ctx, resource.WithSchemaURL(semconv.SchemaURL), resource.WithAttributes(
+-		semconv.ServiceNameKey.String("flipt"),
+-		semconv.ServiceVersionKey.String(info.Version),
+-	),
+-		resource.WithFromEnv(),
+-	)
++	// A provider is also used by the analytics and audit span processors when
++	// the tracing exporter is disabled.
++	tracingProvider, err := tracing.NewProvider(ctx, info.Version)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+ 
+-	// Initialize tracingProvider regardless of configuration. No extraordinary resources
+-	// are consumed, or goroutines initialized until a SpanProcessor is registered.
+-	var tracingProvider = tracesdk.NewTracerProvider(
+-		tracesdk.WithResource(traceResource),
+-		tracesdk.WithSampler(tracesdk.AlwaysSample()),
+-	)
+-
+ 	if cfg.Tracing.Enabled {
+-		exp, traceExpShutdown, err := getTraceExporter(ctx, cfg)
++		exp, traceExpShutdown, err := tracing.GetExporter(ctx, &cfg.Tracing)
+ 		if err != nil {
+ 			return nil, fmt.Errorf("creating tracing exporter: %w", err)
+ 		}
+@@ -458,69 +440,6 @@ func (s *GRPCServer) onShutdown(fn errFunc) {
+ 	s.shutdownFuncs = append(s.shutdownFuncs, fn)
+ }
+ 
+-var (
+-	traceExpOnce sync.Once
+-	traceExp     tracesdk.SpanExporter
+-	traceExpFunc errFunc = func(context.Context) error { return nil }
+-	traceExpErr  error
+-)
+-
+-func getTraceExporter(ctx context.Context, cfg *config.Config) (tracesdk.SpanExporter, errFunc, error) {
+-	traceExpOnce.Do(func() {
+-		switch cfg.Tracing.Exporter {
+-		case config.TracingJaeger:
+-			traceExp, traceExpErr = jaeger.New(jaeger.WithAgentEndpoint(
+-				jaeger.WithAgentHost(cfg.Tracing.Jaeger.Host),
+-				jaeger.WithAgentPort(strconv.FormatInt(int64(cfg.Tracing.Jaeger.Port), 10)),
+-			))
+-		case config.TracingZipkin:
+-			traceExp, traceExpErr = zipkin.New(cfg.Tracing.Zipkin.Endpoint)
+-		case config.TracingOTLP:
+-			u, err := url.Parse(cfg.Tracing.OTLP.Endpoint)
+-			if err != nil {
+-				traceExpErr = fmt.Errorf("parsing otlp endpoint: %w", err)
+-				return
+-			}
+-
+-			var client otlptrace.Client
+-			switch u.Scheme {
+-			case "http", "https":
+-				client = otlptracehttp.NewClient(
+-					otlptracehttp.WithEndpoint(u.Host+u.Path),
+-					otlptracehttp.WithHeaders(cfg.Tracing.OTLP.Headers),
+-				)
+-			case "grpc":
+-				// TODO: support additional configuration options
+-				client = otlptracegrpc.NewClient(
+-					otlptracegrpc.WithEndpoint(u.Host+u.Path),
+-					otlptracegrpc.WithHeaders(cfg.Tracing.OTLP.Headers),
+-					// TODO: support TLS
+-					otlptracegrpc.WithInsecure(),
+-				)
+-			default:
+-				// because of url parsing ambiguity, we'll assume that the endpoint is a host:port with no scheme
+-				client = otlptracegrpc.NewClient(
+-					otlptracegrpc.WithEndpoint(cfg.Tracing.OTLP.Endpoint),
+-					otlptracegrpc.WithHeaders(cfg.Tracing.OTLP.Headers),
+-					// TODO: support TLS
+-					otlptracegrpc.WithInsecure(),
+-				)
+-			}
+-
+-			traceExp, traceExpErr = otlptrace.New(ctx, client)
+-			traceExpFunc = func(ctx context.Context) error {
+-				return traceExp.Shutdown(ctx)
+-			}
+-
+-		default:
+-			traceExpErr = fmt.Errorf("unsupported tracing exporter: %s", cfg.Tracing.Exporter)
+-			return
+-		}
+-	})
+-
+-	return traceExp, traceExpFunc, traceExpErr
+-}
+-
+ var (
+ 	cacheOnce sync.Once
+ 	cacher    cache.Cacher
+diff --git a/internal/cmd/grpc_test.go b/internal/cmd/grpc_test.go
+index 4dc416f..5484889 100644
+--- a/internal/cmd/grpc_test.go
++++ b/internal/cmd/grpc_test.go
+@@ -2,10 +2,8 @@ package cmd
+ 
+ import (
+ 	"context"
+-	"errors"
+ 	"fmt"
+ 	"path/filepath"
+-	"sync"
+ 	"testing"
+ 
+ 	"github.com/stretchr/testify/assert"
+@@ -14,116 +12,15 @@ import (
+ 	"go.uber.org/zap/zaptest"
+ )
+ 
+-func TestGetTraceExporter(t *testing.T) {
+-	tests := []struct {
+-		name    string
+-		cfg     *config.Config
+-		wantErr error
+-	}{
+-		{
+-			name: "Jaeger",
+-			cfg: &config.Config{
+-				Tracing: config.TracingConfig{
+-					Exporter: config.TracingJaeger,
+-					Jaeger: config.JaegerTracingConfig{
+-						Host: "localhost",
+-						Port: 6831,
+-					},
+-				},
+-			},
+-		},
+-		{
+-			name: "Zipkin",
+-			cfg: &config.Config{
+-				Tracing: config.TracingConfig{
+-					Exporter: config.TracingZipkin,
+-					Zipkin: config.ZipkinTracingConfig{
+-						Endpoint: "http://localhost:9411/api/v2/spans",
+-					},
+-				},
+-			},
+-		},
+-		{
+-			name: "OTLP HTTP",
+-			cfg: &config.Config{
+-				Tracing: config.TracingConfig{
+-					Exporter: config.TracingOTLP,
+-					OTLP: config.OTLPTracingConfig{
+-						Endpoint: "http://localhost:4317",
+-						Headers:  map[string]string{"key": "value"},
+-					},
+-				},
+-			},
+-		},
+-		{
+-			name: "OTLP HTTPS",
+-			cfg: &config.Config{
+-				Tracing: config.TracingConfig{
+-					Exporter: config.TracingOTLP,
+-					OTLP: config.OTLPTracingConfig{
+-						Endpoint: "https://localhost:4317",
+-						Headers:  map[string]string{"key": "value"},
+-					},
+-				},
+-			},
+-		},
+-		{
+-			name: "OTLP GRPC",
+-			cfg: &config.Config{
+-				Tracing: config.TracingConfig{
+-					Exporter: config.TracingOTLP,
+-					OTLP: config.OTLPTracingConfig{
+-						Endpoint: "grpc://localhost:4317",
+-						Headers:  map[string]string{"key": "value"},
+-					},
+-				},
+-			},
+-		},
+-		{
+-			name: "OTLP default",
+-			cfg: &config.Config{
+-				Tracing: config.TracingConfig{
+-					Exporter: config.TracingOTLP,
+-					OTLP: config.OTLPTracingConfig{
+-						Endpoint: "localhost:4317",
+-						Headers:  map[string]string{"key": "value"},
+-					},
+-				},
+-			},
+-		},
+-		{
+-			name: "Unsupported Exporter",
+-			cfg: &config.Config{
+-				Tracing: config.TracingConfig{},
+-			},
+-			wantErr: errors.New("unsupported tracing exporter: "),
+-		},
+-	}
+-
+-	for _, tt := range tests {
+-		t.Run(tt.name, func(t *testing.T) {
+-			traceExpOnce = sync.Once{}
+-			exp, expFunc, err := getTraceExporter(context.Background(), tt.cfg)
+-			if tt.wantErr != nil {
+-				assert.EqualError(t, err, tt.wantErr.Error())
+-				return
+-			}
+-			t.Cleanup(func() {
+-				err := expFunc(context.Background())
+-				assert.NoError(t, err)
+-			})
+-			assert.NoError(t, err)
+-			assert.NotNil(t, exp)
+-			assert.NotNil(t, expFunc)
+-
+-		})
+-	}
+-}
+-
+ func TestNewGRPCServer(t *testing.T) {
+ 	tmp := t.TempDir()
+ 	cfg := &config.Config{}
+ 	cfg.Database.URL = fmt.Sprintf("file:%s", filepath.Join(tmp, "flipt.db"))
++	cfg.Tracing = config.TracingConfig{
++		Enabled:  true,
++		Exporter: config.TracingJaeger,
++		Jaeger:   config.JaegerTracingConfig{Host: "localhost", Port: 6831},
++	}
+ 	ctx, cancel := context.WithCancel(context.Background())
+ 	t.Cleanup(cancel)
+ 	s, err := NewGRPCServer(ctx, zaptest.NewLogger(t), cfg, info.Flipt{}, false)
+diff --git a/internal/tracing/tracing.go b/internal/tracing/tracing.go
+new file mode 100644
+index 0000000..50c61b1
+--- /dev/null
++++ b/internal/tracing/tracing.go
+@@ -0,0 +1,153 @@
++// Package tracing constructs the trace provider and exporters used by the server.
++package tracing
++
++import (
++	"context"
++	"fmt"
++	"maps"
++	"net"
++	"net/url"
++	"strconv"
++	"strings"
++	"sync"
++
++	"go.flipt.io/flipt/internal/config"
++	"go.opentelemetry.io/otel/exporters/jaeger"
++	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
++	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
++	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
++	"go.opentelemetry.io/otel/exporters/zipkin"
++	"go.opentelemetry.io/otel/sdk/resource"
++	tracesdk "go.opentelemetry.io/otel/sdk/trace"
++	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
++)
++
++func newResource(ctx context.Context, fliptVersion string) (*resource.Resource, error) {
++	return resource.New(ctx,
++		resource.WithSchemaURL(semconv.SchemaURL),
++		resource.WithAttributes(semconv.ServiceNameKey.String("flipt")),
++		resource.WithFromEnv(),
++		resource.WithAttributes(semconv.ServiceVersionKey.String(fliptVersion)),
++	)
++}
++
++// NewProvider creates a Flipt tracer provider. Export processors can be
++// registered by the caller before the provider is used.
++func NewProvider(ctx context.Context, fliptVersion string) (*tracesdk.TracerProvider, error) {
++	res, err := newResource(ctx, fliptVersion)
++	if err != nil {
++		return nil, err
++	}
++
++	return tracesdk.NewTracerProvider(
++		tracesdk.WithResource(res),
++		tracesdk.WithSampler(tracesdk.AlwaysSample()),
++	), nil
++}
++
++// GetExporter creates an exporter for cfg and returns a shutdown function for
++// that exporter. Each call owns its exporter, so configurations do not leak
++// across server instances or tests.
++func GetExporter(ctx context.Context, cfg *config.TracingConfig) (tracesdk.SpanExporter, func(context.Context) error, error) {
++	if cfg == nil {
++		return nil, nil, fmt.Errorf("tracing configuration is nil")
++	}
++
++	var (
++		exporter tracesdk.SpanExporter
++		err      error
++	)
++
++	switch cfg.Exporter {
++	case config.TracingJaeger:
++		exporter, err = jaeger.New(jaeger.WithAgentEndpoint(
++			jaeger.WithAgentHost(cfg.Jaeger.Host),
++			jaeger.WithAgentPort(strconv.Itoa(cfg.Jaeger.Port)),
++		))
++	case config.TracingZipkin:
++		exporter, err = zipkin.New(cfg.Zipkin.Endpoint)
++	case config.TracingOTLP:
++		client, parseErr := otlpClient(cfg.OTLP.Endpoint, cfg.OTLP.Headers)
++		if parseErr != nil {
++			return nil, nil, parseErr
++		}
++		exporter, err = otlptrace.New(ctx, client)
++	default:
++		return nil, nil, fmt.Errorf("unsupported tracing exporter: %d", cfg.Exporter)
++	}
++	if err != nil {
++		return nil, nil, err
++	}
++
++	managed := &managedExporter{SpanExporter: exporter}
++	return managed, managed.Shutdown, nil
++}
++
++// The provider shuts down its span processors (and their exporters). The
++// server also calls the returned shutdown function, so both paths share the
++// same guard.
++type managedExporter struct {
++	tracesdk.SpanExporter
++	once sync.Once
++	err  error
++}
++
++func (e *managedExporter) Shutdown(ctx context.Context) error {
++	e.once.Do(func() { e.err = e.SpanExporter.Shutdown(ctx) })
++	return e.err
++}
++
++func otlpClient(endpoint string, headers map[string]string) (otlptrace.Client, error) {
++	headers = maps.Clone(headers)
++
++	if !strings.Contains(endpoint, "://") {
++		host, port, err := net.SplitHostPort(endpoint)
++		if err != nil || host == "" || !validPort(port) {
++			return nil, fmt.Errorf("parsing otlp endpoint %q: expected host:port", endpoint)
++		}
++		return otlptracegrpc.NewClient(
++			otlptracegrpc.WithEndpoint(endpoint),
++			otlptracegrpc.WithHeaders(headers),
++			otlptracegrpc.WithInsecure(),
++		), nil
++	}
++
++	u, err := url.Parse(endpoint)
++	if err != nil {
++		return nil, fmt.Errorf("parsing otlp endpoint %q: %w", endpoint, err)
++	}
++	if u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Port() != "" && !validPort(u.Port())) {
++		return nil, fmt.Errorf("parsing otlp endpoint %q: invalid URL", endpoint)
++	}
++
++	switch u.Scheme {
++	case "http", "https":
++		opts := []otlptracehttp.Option{
++			otlptracehttp.WithEndpoint(u.Host),
++			otlptracehttp.WithHeaders(headers),
++		}
++		if u.Path != "" {
++			opts = append(opts, otlptracehttp.WithURLPath(u.Path))
++		}
++		if u.Scheme == "http" {
++			opts = append(opts, otlptracehttp.WithInsecure())
++		}
++		return otlptracehttp.NewClient(opts...), nil
++	case "grpc":
++		if u.Path != "" && u.Path != "/" {
++			return nil, fmt.Errorf("parsing otlp endpoint %q: gRPC endpoint cannot have a path", endpoint)
++		}
++		return otlptracegrpc.NewClient(
++			otlptracegrpc.WithEndpoint(u.Host),
++			otlptracegrpc.WithHeaders(headers),
++			otlptracegrpc.WithInsecure(),
++		), nil
++	default:
++		return nil, fmt.Errorf("parsing otlp endpoint %q: unsupported scheme %q", endpoint, u.Scheme)
++	}
++}
++
++func validPort(port string) bool {
++	n, err := strconv.Atoi(port)
++	return err == nil && n > 0 && n <= 65535
++}
+diff --git a/internal/tracing/tracing_test.go b/internal/tracing/tracing_test.go
+new file mode 100644
+index 0000000..bc15d45
+--- /dev/null
++++ b/internal/tracing/tracing_test.go
+@@ -0,0 +1,151 @@
++package tracing
++
++import (
++	"context"
++	"net/http"
++	"net/http/httptest"
++	"strings"
++	"testing"
++	"time"
++
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++	"go.flipt.io/flipt/internal/config"
++	"go.opentelemetry.io/otel/attribute"
++	tracesdk "go.opentelemetry.io/otel/sdk/trace"
++)
++
++func TestNewResource(t *testing.T) {
++	t.Setenv("OTEL_SERVICE_NAME", "")
++	t.Setenv("OTEL_RESOURCE_ATTRIBUTES", "")
++
++	res, err := newResource(context.Background(), "v1.2.3")
++	require.NoError(t, err)
++	assert.Equal(t, "flipt", resourceValue(res.Attributes(), "service.name"))
++	assert.Equal(t, "v1.2.3", resourceValue(res.Attributes(), "service.version"))
++
++	t.Setenv("OTEL_RESOURCE_ATTRIBUTES", "service.name=from-attributes,service.version=from-environment,region=local")
++	res, err = newResource(context.Background(), "v1.2.3")
++	require.NoError(t, err)
++	assert.Equal(t, "from-attributes", resourceValue(res.Attributes(), "service.name"))
++	assert.Equal(t, "v1.2.3", resourceValue(res.Attributes(), "service.version"))
++	assert.Equal(t, "local", resourceValue(res.Attributes(), "region"))
++
++	t.Setenv("OTEL_SERVICE_NAME", "from-service-name")
++	res, err = newResource(context.Background(), "v1.2.3")
++	require.NoError(t, err)
++	assert.Equal(t, "from-service-name", resourceValue(res.Attributes(), "service.name"))
++}
++
++func resourceValue(attrs []attribute.KeyValue, key attribute.Key) string {
++	for _, attr := range attrs {
++		if attr.Key == key {
++			return attr.Value.AsString()
++		}
++	}
++	return ""
++}
++
++func TestNewProviderAlwaysSamples(t *testing.T) {
++	t.Setenv("OTEL_RESOURCE_ATTRIBUTES", "")
++	provider, err := NewProvider(context.Background(), "v1.2.3")
++	require.NoError(t, err)
++	t.Cleanup(func() { assert.NoError(t, provider.Shutdown(context.Background())) })
++
++	_, span := provider.Tracer("test").Start(context.Background(), "sampled")
++	assert.True(t, span.SpanContext().IsSampled())
++	span.End()
++}
++
++func TestNewProviderResourceError(t *testing.T) {
++	t.Setenv("OTEL_RESOURCE_ATTRIBUTES", "missing-value")
++	_, err := NewProvider(context.Background(), "v1.2.3")
++	require.Error(t, err)
++}
++
++func TestGetExporter(t *testing.T) {
++	tests := []struct {
++		name string
++		cfg  config.TracingConfig
++	}{
++		{"Jaeger", config.TracingConfig{Exporter: config.TracingJaeger, Jaeger: config.JaegerTracingConfig{Host: "localhost", Port: 6831}}},
++		{"Zipkin", config.TracingConfig{Exporter: config.TracingZipkin, Zipkin: config.ZipkinTracingConfig{Endpoint: "http://localhost:9411/api/v2/spans"}}},
++		{"OTLP HTTP", config.TracingConfig{Exporter: config.TracingOTLP, OTLP: config.OTLPTracingConfig{Endpoint: "http://localhost:4318", Headers: map[string]string{"key": "value"}}}},
++		{"OTLP HTTPS", config.TracingConfig{Exporter: config.TracingOTLP, OTLP: config.OTLPTracingConfig{Endpoint: "https://localhost:4318", Headers: map[string]string{"key": "value"}}}},
++		{"OTLP gRPC", config.TracingConfig{Exporter: config.TracingOTLP, OTLP: config.OTLPTracingConfig{Endpoint: "grpc://localhost:4317", Headers: map[string]string{"key": "value"}}}},
++		{"OTLP host:port", config.TracingConfig{Exporter: config.TracingOTLP, OTLP: config.OTLPTracingConfig{Endpoint: "localhost:4317", Headers: map[string]string{"key": "value"}}}},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			exporter, shutdown, err := GetExporter(context.Background(), &tt.cfg)
++			require.NoError(t, err)
++			require.NotNil(t, exporter)
++			require.NotNil(t, shutdown)
++			assert.NoError(t, shutdown(context.Background()))
++			assert.NoError(t, shutdown(context.Background()))
++		})
++	}
++}
++
++func TestGetExporterMultipleCalls(t *testing.T) {
++	bad := config.TracingConfig{Exporter: config.TracingExporter(255)}
++	_, _, err := GetExporter(context.Background(), &bad)
++	require.EqualError(t, err, "unsupported tracing exporter: 255")
++
++	good := config.TracingConfig{Exporter: config.TracingZipkin, Zipkin: config.ZipkinTracingConfig{Endpoint: "http://localhost:9411/api/v2/spans"}}
++	first, stopFirst, err := GetExporter(context.Background(), &good)
++	require.NoError(t, err)
++	second, stopSecond, err := GetExporter(context.Background(), &good)
++	require.NoError(t, err)
++	assert.NotSame(t, first, second)
++	assert.NoError(t, stopFirst(context.Background()))
++	assert.NoError(t, stopSecond(context.Background()))
++}
++
++func TestGetExporterInvalidOTLPEndpoint(t *testing.T) {
++	for _, endpoint := range []string{"", "localhost", "localhost:bad", "http://", "http://localhost:bad", "grpc://localhost:4317/path", "ftp://localhost:4317", "http://%"} {
++		t.Run(endpoint, func(t *testing.T) {
++			cfg := config.TracingConfig{Exporter: config.TracingOTLP, OTLP: config.OTLPTracingConfig{Endpoint: endpoint}}
++			exporter, shutdown, err := GetExporter(context.Background(), &cfg)
++			require.Error(t, err)
++			assert.True(t, strings.HasPrefix(err.Error(), "parsing otlp endpoint"), err.Error())
++			assert.Nil(t, exporter)
++			assert.Nil(t, shutdown)
++		})
++	}
++}
++
++func TestOTLPHTTPExporterUsesEndpointAndHeaders(t *testing.T) {
++	requests := make(chan *http.Request, 1)
++	collector := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		select {
++		case requests <- r:
++		default:
++		}
++		w.WriteHeader(http.StatusOK)
++	}))
++	defer collector.Close()
++
++	cfg := config.TracingConfig{Exporter: config.TracingOTLP, OTLP: config.OTLPTracingConfig{
++		Endpoint: collector.URL + "/custom/traces",
++		Headers:  map[string]string{"x-test-header": "configured"},
++	}}
++	exporter, shutdown, err := GetExporter(context.Background(), &cfg)
++	require.NoError(t, err)
++	defer func() { assert.NoError(t, shutdown(context.Background())) }()
++	cfg.OTLP.Headers["x-test-header"] = "changed-after-construction"
++
++	provider := tracesdk.NewTracerProvider(tracesdk.WithSyncer(exporter))
++	defer func() { assert.NoError(t, provider.Shutdown(context.Background())) }()
++	_, span := provider.Tracer("test").Start(context.Background(), "exported")
++	span.End()
++
++	select {
++	case request := <-requests:
++		assert.Equal(t, "/custom/traces", request.URL.Path)
++		assert.Equal(t, "configured", request.Header.Get("x-test-header"))
++	case <-time.After(5 * time.Second):
++		t.Fatal("OTLP HTTP collector did not receive a span")
++	}
++}

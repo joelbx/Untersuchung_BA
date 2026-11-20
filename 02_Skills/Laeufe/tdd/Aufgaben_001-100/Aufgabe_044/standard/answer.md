@@ -1,0 +1,3 @@
+Implemented namespace-aware authorization for `ListNamespaces`. Both authorization engines now evaluate `viewable_namespaces`; the middleware passes accessible namespace keys through request context, and the endpoint filters its response and counts unique accessible keys.
+
+The focused authorization and server tests pass. The full `go test ./...` run failed in two unrelated integration tests: Redis requires rootless Docker, and the Git submodule test received `Forbidden` from GitHub. Those failures and the commands are recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

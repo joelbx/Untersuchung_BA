@@ -1,0 +1,5 @@
+I found the missing behavior in [qtargs.py](/app/qutebrowser/config/qtargs.py:160): `_qtwebengine_args` builds Chromium flags before startup, but has no locale resource check or `--lang` override. The setting is also absent from [configdata.yml](/app/qutebrowser/config/configdata.yml:301). Existing flag tests are in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+A fix should add the default-false, QtWebEngine-only setting; check the exact locale `.pak` path; and emit `--lang` only on Linux with QtWebEngine 5.15.3 when that file is missing. It should cover the specified Chromium locale mappings and fall back to `en-US` when no mapped or base-language resource exists. The precise mapping order and Qt resource directory behavior remain to be verified.
+
+The existing 117 argument tests pass with `QT_QPA_PLATFORM=offscreen`; they do not cover this issue. I recorded the diagnosis in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). **No source or tests were changed:** this run was limited by the assigned fault-localization scope, so the issue remains unresolved.

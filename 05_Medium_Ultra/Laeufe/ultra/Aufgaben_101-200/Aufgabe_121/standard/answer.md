@@ -1,0 +1,3 @@
+Implemented [flipt.is_auth_method](/app/internal/server/authz/engine/ext/extentions.go:13) with the seven supported labels, enum based mappings, the `k8s` alias, and the required errors. Both Rego and bundle engines now load it and surface built-in errors.
+
+Two subagents added extension and Rego integration tests; I integrated those tests and added bundle coverage. Verified with `go test -p 1 ./internal/server/authz/...` and `git diff --check`.

@@ -1,0 +1,3 @@
+Updated [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts) so persisted fields live in one config object. Loading now restores credentials as a Map and writes only when migration or signup token creation changes the config. Migration preserves the recognized fields and converts old credential arrays to objects keyed by user ID.
+
+Added regression coverage in [DeviceConfigTest.ts](/app/test/client/misc/DeviceConfigTest.ts). A clean client run passed all 3,086 assertions; app and test TypeScript checks also passed. No delegation was used.

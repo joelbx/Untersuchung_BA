@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) so process error messages include the capitalized process name, the command in single quotes, error-specific wording, and the process error detail. On non-Windows platforms, missing or non-executable commands also receive the requested hint.
+
+Added coverage in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py). All 32 tests in that module pass. Flake8 was unavailable.

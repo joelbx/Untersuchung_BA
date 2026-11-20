@@ -1,0 +1,3 @@
+Implemented the QtWebEngine locale workaround in [qtargs.py](/app/qutebrowser/config/qtargs.py) and added `qt.workarounds.locale` in [configdata.yml](/app/qutebrowser/config/configdata.yml). The setting defaults to `false` and is available only for QtWebEngine. When enabled on Linux with QtWebEngine 5.15.3, it adds `--lang` if the system locale’s `.pak` file is missing, using Chromium locale fallbacks.
+
+Added [locale and version tests](/app/tests/unit/config/test_qtargs.py). All 179 relevant tests passed with Qt’s offscreen platform.

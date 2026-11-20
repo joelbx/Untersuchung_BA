@@ -1,0 +1,3 @@
+Implemented the gRPC version header interceptor and registered it in the server’s unary chain. Handlers can retrieve the parsed version through `FliptAcceptServerVersionFromContext`; missing or invalid headers fall back to `1.0.0`. Both `v1.0.0` and `1.0.0` formats are covered by tests.
+
+The middleware tests pass. The full `go test ./...` run failed in unrelated tests requiring Docker and a remote Git request; those results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

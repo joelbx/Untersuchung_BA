@@ -1,0 +1,3 @@
+Fixed the NULL scan errors by making the affected album, artist, and share fields nullable. Added [gg.P and gg.V](/app/utils/gg/gg.go:4), updated timestamp and image-file reads and assignments, and added a share test for unset timestamps.
+
+The affected package tests pass, and `git diff --check` is clean. The full `go test ./...` run fails only in TagLib tests on fixture, metadata, and file-permission expectations.

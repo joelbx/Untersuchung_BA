@@ -1,0 +1,3 @@
+Updated [the RPM parser](/app/scanner/redhatbase.go) so an unparseable source RPM filename adds a warning and leaves the binary package available for analysis. Epoch-prefixed source filenames now produce the correct source name and version without duplicating the epoch.
+
+Added regression tests in [redhatbase_test.go](/app/scanner/redhatbase_test.go). The targeted parser tests and the full `scanner` test suite pass.

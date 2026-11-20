@@ -1,0 +1,3 @@
+Added optional `ident` support to `password_hash` and the password lookup. BCrypt accepts `2`, `2a`, `2y`, and `2b`; the lookup defaults to `2a` and saves the choice alongside the salt for repeat runs. Calls without `ident` retain the filter’s existing default.
+
+The focused tests passed: **50 passed**. This system’s native `crypt` does not support `2`; that backend now raises an error for it, while passlib supports all four variants.

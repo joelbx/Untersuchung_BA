@@ -1,0 +1,3 @@
+Implemented Project Runeberg support. Work search now fetches `id_project_runeberg` and returns it as an array, including `[]` when absent, without changing the existing identifier mappings. I also registered `ProjectRunebergProvider` and added its Read and download templates.
+
+Verification: 4 focused tests passed; both templates rendered, and `git diff --check` passed. The external Runeberg download URLs could not be live verified under the local only research constraint.

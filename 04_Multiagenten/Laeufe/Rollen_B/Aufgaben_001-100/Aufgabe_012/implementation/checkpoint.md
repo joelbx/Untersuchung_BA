@@ -1,0 +1,1 @@
+Implemented URL-rule-only Accept-Language selection for XHR; non-XHR and URL-less calls retain global fallback. Added focused tests for fallback, domain override, and intercepted XHR/main-frame behavior. QT_QPA_PLATFORM=offscreen pytest -q tests/unit/browser/test_shared.py tests/unit/browser/webengine/test_webengineinterceptor.py: 29 passed.

@@ -1,0 +1,3 @@
+Implemented [removeTechnicalFields](/app/src/api/common/utils/EntityUtils.ts:226). It removes the three technical field prefixes from an entity and its nested objects and arrays, while leaving other attributes intact. Added [tests](/app/test/tests/api/common/utils/EntityUtilsTest.ts:41) for clean entities and root and nested fields.
+
+The full unit suite passed (8,688 assertions), along with TypeScript, ESLint, and Prettier checks.

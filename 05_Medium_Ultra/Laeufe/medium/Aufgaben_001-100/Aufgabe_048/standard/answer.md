@@ -1,0 +1,3 @@
+Resolved the plugin routing issue in the checked-out files. The loader now exposes `get_with_context`, including resolution metadata when a plugin is missing or removed. Tombstones raise `AnsiblePluginRemovedError` with context; deprecation messages use one formatter; and the connection, action, and Jinja callers use the updated behavior.
+
+Added focused tests and updated the action loader mock. Verification passed: 81 loader, template, collection, and display tests; 28 executor and action tests; and `git diff --check`.

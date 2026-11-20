@@ -1,0 +1,3 @@
+Calendar subscription URLs now use `MAX_LENGTHS_API.CALENDAR_URL` (10,000). Overlong URLs block submission, and the field shows one warning at a time in the requested priority order. I removed the character counter and input length attribute.
+
+ResizeObserver test mocks now live in the shared Jest setup files instead of individual tests. The modal regression tests, relevant calendar and mail suites, component type check, lint, and formatting checks passed.

@@ -1,0 +1,3 @@
+Added [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py) with firmware uploads, compatible drive selection, online or offline upgrades, optional completion polling, check mode, and `changed` and `upgrade_in_process` results. Added [unit tests](/app/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py).
+
+The focused module and existing E-Series volume tests passed: **30 tests**. The broader NetApp suite could not complete because three existing test files require the unavailable `mock` package; the exact command and errors are recorded in the [checkpoint](/app/.codex-role-output/checkpoint.md).

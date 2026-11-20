@@ -1,0 +1,1 @@
+Batch 5 is complete. The [JSON summary](/app/catalogue-5-summary.json) records 1,143 complete records and the two-column trailing fragment at line 1,145. A second local check validated the summary against the file.

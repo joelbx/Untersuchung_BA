@@ -1,0 +1,4 @@
+VERDICT: FIX
+CODE: No correctness defect found in the reviewed patch. RunAdmin preserves currentDev after registration; the fake service returns the requested AccessDenied error; printEnrollOutcome handles nil.
+TEST RESULTS: go test ./lib/devicetrust/enroll -run '^TestCeremony_RunAdmin$' -count=1 passed. go test ./lib/devicetrust/enroll ./lib/devicetrust/testenv ./tool/tsh/common -count=1: enroll passed; testenv has no test files; tsh common did not compile and the command was interrupted after build failures (exit 1).
+TEST_ENVIRONMENT_PROBLEM: tsh common dependencies cannot compile with this image: missing linux/hidraw.h and gnu/libc-version.h; go-sqlite3 also lacks pread64, pwrite64, and off64_t declarations. Install compatible Linux/libc development headers and toolchain, then rerun the tsh common tests.

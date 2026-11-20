@@ -1,0 +1,3 @@
+Moved tracing resource, provider, and exporter setup into [internal/tracing/tracing.go](/app/internal/tracing/tracing.go). The [gRPC server](/app/internal/cmd/grpc.go) now uses those helpers and shuts down the provider before its exporters.
+
+Isolated tests cover environment attributes, sampling, exporter selection, repeated calls, invalid endpoints, and OTLP HTTP headers. The focused tracing and gRPC tests passed, as did `git diff --check`.

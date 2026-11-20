@@ -1,0 +1,3 @@
+Author matching now compares extracted birth and death years across date formats and tries exact names, alternate names, then surname matches in order. Name searches treat `*` literally. Honorific removal accepts a string, handles the listed exceptions and honorific-only names, and unmatched author records retain their input fields.
+
+Verification: 246 tests passed, 1 expected failure; lint and whitespace checks passed.

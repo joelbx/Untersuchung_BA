@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) so process start errors show the capitalized process name, the command in single quotes, the error type, and Qt’s error detail. Missing or inaccessible commands also get the executable hint on non-Windows platforms. Detached starts use the same message.
+
+All 34 guiprocess unit tests pass. The targeted `:spawn` end-to-end test could not start because QtWebKit is unavailable in this environment.

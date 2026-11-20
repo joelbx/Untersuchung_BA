@@ -1,0 +1,3 @@
+Resolved in [VoiceBroadcastPreRecordingPip.tsx](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx). “Go live” is now a native button that disables immediately and ignores further activations while `start()` is pending. Repeated microphone activations keep one menu open; selecting a device closes it and updates the label.
+
+The component tests pass (**11 tests**), as do targeted ESLint and diff checks. The full TypeScript check still reports five errors in unrelated files; none are in the changed files.

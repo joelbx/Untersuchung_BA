@@ -1,0 +1,3 @@
+`GUIProcess` now shows stdout and stderr live when output messages are enabled. It publishes a final summary for each nonempty stream, with stdout as informational before stderr as an error. Captured output is cleared when the process is reused.
+
+A subagent added the focused tests, and another reviewed the stream behavior. I integrated the patch and verified it: **42 `GuiProcess` tests pass**, and `git diff --check` passes.

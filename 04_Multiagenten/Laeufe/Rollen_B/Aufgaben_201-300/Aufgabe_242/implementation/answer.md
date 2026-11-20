@@ -1,0 +1,3 @@
+Liveness now follows the broadcast info state through [determineVoiceBroadcastLiveness.ts](/app/src/voice-broadcast/utils/determineVoiceBroadcastLiveness.ts). [VoiceBroadcastPlayback.ts](/app/src/voice-broadcast/models/VoiceBroadcastPlayback.ts) applies that mapping only in `setInfoState()`, so playback controls and chunk boundaries no longer change the indicator independently.
+
+All 50 focused tests pass. Formatting and ESLint pass. The repository-wide TypeScript check still reports five unrelated `MatrixClient` API errors in files outside this patch.

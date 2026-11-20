@@ -1,0 +1,3 @@
+Implemented owner-encrypted session key propagation through the single and batch entity loaders and `DefaultEntityRestCache`. The loaders apply supplied keys before decryption. Mail detail loading, draft reply-to loading, and search indexing now pass the parent mail’s key when available.
+
+`git diff --check` passed. I invoked the TypeScript check and focused REST tests, but the commands returned without a completion summary, so I can’t confirm those checks passed.

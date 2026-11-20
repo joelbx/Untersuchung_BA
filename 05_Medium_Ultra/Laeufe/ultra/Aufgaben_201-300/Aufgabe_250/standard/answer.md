@@ -1,0 +1,3 @@
+Added [luqum_replace_child](/app/openlibrary/solr/query_utils.py:35). It replaces all equal direct children for supported parent types, leaves children unchanged when there is no match, and raises the required `ValueError` for unsupported parents.
+
+A subagent added focused tests in [test_query_utils.py](/app/openlibrary/tests/solr/test_query_utils.py:37); I reviewed the combined patch. The relevant test file passed (12 tests), and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented the `chat:privileged` gate. Chat creation and invitations now reject users who lack that privilege when the target is an administrator or moderator, using `[[error:no-privileges]]`. Global privilege checks accept strings or arrays, chat access checks recognize either chat privilege, and the profile API exposes a documented boolean `canChat` field. The admin privilege label and chat visibility were updated.
+
+Verification passed: ESLint, `git diff --check`, and the messaging suite (79 tests).

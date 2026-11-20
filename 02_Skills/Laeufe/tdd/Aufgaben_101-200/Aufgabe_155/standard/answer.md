@@ -1,0 +1,3 @@
+Implemented digest-based image references across configuration, scanning, scan results, and report identifiers. Validation now requires a name and exactly one of tag or digest. Image scan server names use `<index>@<originalServerName>`.
+
+The new regression tests pass in `config`, `scan`, and `report`. The full suite remains red on existing `models/library.go` vet warnings; with vet disabled, `models.TestScan` fails because its vulnerability scan returns no findings. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

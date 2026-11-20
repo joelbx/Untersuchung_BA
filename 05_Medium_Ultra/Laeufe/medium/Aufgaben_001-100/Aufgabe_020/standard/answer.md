@@ -1,0 +1,3 @@
+Implemented Redis cache TLS configuration in `/app`. `RedisCacheConfig` now accepts `ca_cert_path`, `ca_cert_bytes`, and `insecure_skip_tls`; validation rejects both CA options together. The new [NewClient](/app/internal/cache/redis/client.go) applies those options and requires TLS 1.2 when TLS is enabled. I also updated the schemas, YAML fixtures, and the `api/cachetls` integration matrix entry.
+
+Config, command, and new client tests pass. The Docker based Redis tests and integration suite could not run because this environment has no Docker daemon.

@@ -1,0 +1,3 @@
+Implemented `'none'` and `'vaulted'` cache modes in [dataloader.py](/app/lib/ansible/parsing/dataloader.py). `'none'` leaves the cache untouched; `'vaulted'` caches encrypted files and reuses the parsed result. Updated `vars_files` loading to use `'vaulted'`, keeping ordinary variable files uncached.
+
+Added focused tests. `python -m pytest -q test/units/parsing/test_dataloader.py` passed (33 tests), and `git diff --check` passed.

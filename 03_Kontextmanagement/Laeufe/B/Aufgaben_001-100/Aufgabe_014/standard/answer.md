@@ -1,0 +1,3 @@
+Resolved the NodeBB dropdown and related issues in `/app`. Notifications now refresh asynchronously from the dropdown trigger, with stale responses ignored. Fork and move selectors render as dropups; quick search, hash fields, redirects, email sender formatting, and the requested admin and chat UI were also updated.
+
+Targeted ESLint, syntax, template, hash, and notification race checks passed. Database integration tests were not run because their test mock reads and prints `config.json`. This work item is complete.

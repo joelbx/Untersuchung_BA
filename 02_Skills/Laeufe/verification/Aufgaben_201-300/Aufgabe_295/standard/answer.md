@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) to provide the same localized verified or unverified status copy in [CurrentDeviceSection](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx) and [DeviceDetails](/app/src/components/views/settings/devices/DeviceDetails.tsx). Device Details now shows the card immediately after its heading, including when metadata is absent.
+
+Verification: 49 device-related tests and 22 snapshots passed; ESLint passed for the changed files. The repository-wide type check remains failing on unrelated Matrix SDK and widget typing errors, recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

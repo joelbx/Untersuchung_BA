@@ -1,0 +1,3 @@
+Centralized byte units in [size.ts](/app/packages/shared/lib/helpers/size.ts) and updated storage allocations, CSV imports, bonus constants, and other production size calculations to use them. Drive plans now start at `sizeUnits.TB`.
+
+The CSV import suite passed (64 tests), and formatting checks passed. Shared and component type checks both stopped on an OpenPGP type mismatch in the untouched [crypto worker](/app/packages/crypto/lib/worker/api.ts:579).

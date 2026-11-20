@@ -1,0 +1,3 @@
+Updated the OCI configuration and backend wiring. The loader now reports the required error for unsupported repository schemes, requires a repository, and parses `poll_interval` alongside the bundle directory and credentials. `NewStore` accepts the bundle root, and `DefaultBundleDir` creates and returns the default path. I also registered `fs/oci` in the integration test matrix and CI workflow.
+
+The focused Go tests passed for config, OCI, the OCI filesystem source, server wiring, CLI, and build testing. The Dagger integration suite was registered but was not run locally.

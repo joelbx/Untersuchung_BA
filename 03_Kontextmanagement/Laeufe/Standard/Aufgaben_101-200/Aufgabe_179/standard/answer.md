@@ -1,0 +1,3 @@
+RemoteCluster now persists its status and last heartbeat. Auth reads set it Offline when no tunnels remain, keep the newest recorded heartbeat when connections are removed, and write changes to storage only when the values change. The new `Presence.UpdateRemoteCluster` method preserves expiry.
+
+Regression tests cover tunnel creation, updates, partial and final deletion, and storage persistence. The focused auth and local service tests pass.

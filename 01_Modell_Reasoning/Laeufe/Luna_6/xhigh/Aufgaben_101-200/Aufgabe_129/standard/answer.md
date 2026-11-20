@@ -1,0 +1,5 @@
+Implemented the current-session kebab menu with accessible states, localized sign-out options, destructive focus styling, and focus return after interaction. Bulk sign-out targets only non-current sessions. The shared close behavior also uses an explicit close callback in the message composer to avoid reopening its menu.
+
+Validation: 111 relevant tests passed; targeted ESLint, Stylelint, and diff checks passed. `yarn lint:types` remains blocked by existing matrix-js-sdk/API type errors in unrelated files.
+
+Key files: [KebabContextMenu.tsx](/app/src/components/views/context_menus/KebabContextMenu.tsx), [CurrentDeviceSection.tsx](/app/src/components/views/settings/devices/CurrentDeviceSection.tsx), [ContextMenu.tsx](/app/src/components/structures/ContextMenu.tsx), and [SessionManagerTab.tsx](/app/src/components/views/settings/tabs/user/SessionManagerTab.tsx).

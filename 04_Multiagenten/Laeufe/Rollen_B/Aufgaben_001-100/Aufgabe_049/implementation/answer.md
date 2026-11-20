@@ -1,0 +1,3 @@
+Implemented the email confirmation fix. Confirmations now use a user ID lookup key and a record with an explicit expiry timestamp. ACP validation actions can recover a missing profile email from that record, deleted users have both confirmation keys cleaned up, and the user list shows **Validated**, **Validation Pending**, **Validation Expired**, or **(no email)**.
+
+Focused email tests passed (6), ACP socket tests passed (2), and ESLint and `git diff --check` passed. The full user test file reached 173 passing tests before stopping at an invitation group assertion outside this change.

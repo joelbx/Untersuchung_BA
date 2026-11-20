@@ -1,0 +1,3 @@
+Refactored `reversetunnel.server` to hold one `localSite`, initialized once from the server’s existing auth client, access point, and peer client. Connection registration, lookups, reconnect advisories, close handling, and proxy fan-out now use that instance. Local agent validation reports empty or mismatching cluster names with the tunnel type.
+
+Validation passed: `go test ./lib/reversetunnel/...` and `git diff --check`.

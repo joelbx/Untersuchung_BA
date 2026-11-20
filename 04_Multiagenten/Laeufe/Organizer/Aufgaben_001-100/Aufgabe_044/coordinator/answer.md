@@ -1,0 +1,3 @@
+Namespace listing now evaluates each authenticated user’s viewable namespaces through the bundle or Rego engine. The middleware passes that list to the endpoint, which filters namespaces before pagination and reports the accessible total count. Malformed policy decisions return errors.
+
+The relevant tests passed: `go test ./internal/server/authz/... ./internal/server -count=1`. `git diff --check` also passed. No delegation was used.

@@ -1,0 +1,3 @@
+Implemented the Kubernetes session fixes. The service creates the async streaming directory at startup, and `Forwarder` now exposes `ServeHTTP`, uses the named auth and reverse tunnel config fields, and keeps audit emission alive after client disconnects. Cached state now holds Kubernetes credentials rather than request scoped `clusterSession` objects.
+
+Relevant tests pass: `go test ./lib/kube/proxy ./lib/service`. `git diff --check` is clean.

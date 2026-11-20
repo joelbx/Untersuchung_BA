@@ -1,0 +1,3 @@
+Diff reports now mark newly detected CVEs with `+` and resolved CVEs with `-`. The diff function accepts plus/minus booleans, excludes unchanged CVEs, and uses package data from the scan where each change appeared. Report and TUI users can select changes with `-diff-plus` and `-diff-minus`; one-line summaries show both counts.
+
+Added `DiffStatus`, `CveIDDiffFormat`, and `CountDiff`. Offline tests passed: `go test ./models ./report ./subcmds`.

@@ -1,0 +1,3 @@
+Updated the Trivy parser to store `Metadata.OS.Name` in `Release`, use `ArtifactName` as `ServerName`, append `:latest` to untagged container images, and leave `Optional` nil. Package CVE detection now checks the requested conditions before calling OVAL or GOST, and Trivy CVE reuse checks `ScannedBy`.
+
+The parser and detector tests passed with network access disabled. `git diff --check` also passed.

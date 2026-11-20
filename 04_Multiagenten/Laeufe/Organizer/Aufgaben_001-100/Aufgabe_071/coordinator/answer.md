@@ -1,0 +1,3 @@
+Updated [_parse_clixml](/app/lib/ansible/plugins/shell/powershell.py) to decode CLIXML UTF-16 escapes, including surrogate pairs, while preserving control characters and unpaired surrogates. It now filters by stream, handles empty `<S>` elements, and separates results from different `<Objs>` blocks without adding a trailing newline. Updated the [unit tests](/app/test/units/plugins/shell/test_powershell.py) for these cases.
+
+Verification: all 9 focused tests passed; `git diff --check` passed. No delegation was used.

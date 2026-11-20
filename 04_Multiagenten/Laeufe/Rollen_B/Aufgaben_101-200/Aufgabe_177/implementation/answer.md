@@ -1,0 +1,3 @@
+Implemented chat allow and deny lists, an incoming chat disable setting, and server side checks for direct chats, room creation, and invitations. Added an idempotent upgrade that migrates restricted accounts from their follow lists; accounts with no follows remain closed to incoming chats.
+
+The account settings controls, admin default, and settings schema are updated. Validation passed: 79 messaging tests, 276 user tests, ESLint, and `git diff --check`.

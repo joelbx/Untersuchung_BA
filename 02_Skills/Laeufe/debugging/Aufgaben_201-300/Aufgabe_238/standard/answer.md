@@ -1,0 +1,3 @@
+Replaced `:buffer` with `:tab-select` in command registration, tab completion providers, the default `gt` binding, help pages, and examples. The existing selection behavior is preserved, including counts, title and URL matching, and cross-window tab references.
+
+Verification: 75 completion unit tests and 31 configuration unit tests passed. The relevant QtWebEngine scenarios finished with 15 passed and 1 skipped. QtWebKit could not be tested because it is unavailable locally.

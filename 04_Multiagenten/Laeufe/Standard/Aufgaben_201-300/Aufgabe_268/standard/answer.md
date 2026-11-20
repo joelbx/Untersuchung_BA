@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) so process errors identify the capitalized process name, the quoted command, the error type, and Qt’s error detail. Failed starts caused by a missing or non-executable command also show the requested hint on non-Windows platforms.
+
+Added coverage in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py). The relevant suite passed: **30 tests**.

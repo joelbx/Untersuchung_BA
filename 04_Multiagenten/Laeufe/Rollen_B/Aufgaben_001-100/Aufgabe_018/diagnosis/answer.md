@@ -1,0 +1,5 @@
+The fault is in [config.go](/app/internal/config/config.go:15): `decodeHooks` splits scalar strings on commas, so a whitespace-separated `cors.allowed_origins` value remains one entry. `Load` uses that hook for both YAML and ENV.
+
+The likely fix is a decode hook that applies only when the source is a string and the target is `[]string`, using whitespace fields and returning a non-nil empty slice for empty input. Existing sequences should pass through unchanged.
+
+The current [advanced.yml](/app/internal/config/testdata/advanced.yml:11) fixture uses commas, and [config_test.go](/app/internal/config/config_test.go:357) expects that behavior in YAML and ENV. Whether comma support must remain is unspecified; the fixture or compatibility behavior needs a deliberate choice. Existing `go test ./internal/config` passes. I recorded the diagnosis in `.codex-role-output/checkpoint.md`; project source and tests were left untouched under the fault-localization instruction.

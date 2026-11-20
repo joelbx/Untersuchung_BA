@@ -1,0 +1,3 @@
+The checked-out patch already exports `DefaultConfig` and `DecodeHooks`, uses those hooks in `Load`, and has the requested pointer fields for storage. I found no concrete code defect, so I made no further patch changes.
+
+`go test ./internal/config` and `go test ./internal/cmd ./internal/cue` pass. `go test ./...` fails only in the Redis cache tests: **TEST_ENVIRONMENT_PROBLEM** — no Docker daemon is available at `/var/run/docker.sock`. The referenced `internal/config/schema_test.go` is absent from this checkout, so its specific validation test could not be run.

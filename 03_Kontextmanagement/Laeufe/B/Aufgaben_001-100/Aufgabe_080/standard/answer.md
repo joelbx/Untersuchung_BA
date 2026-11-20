@@ -1,0 +1,3 @@
+The AlbumGrid fix is complete. Square cover requests now produce centered square PNGs with distinct cache keys; the grid requests them, while other cover requests keep their original shape. Relevant Go tests, ESLint, Prettier, and `git diff --check` passed.
+
+I did not create the listed OCI `Source` interface: this Navidrome checkout has no corresponding storage packages, and that interface is unrelated to the AlbumGrid issue.

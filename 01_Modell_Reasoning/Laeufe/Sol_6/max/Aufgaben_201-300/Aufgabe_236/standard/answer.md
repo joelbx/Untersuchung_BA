@@ -1,0 +1,3 @@
+Updated [validation.py](/app/lib/ansible/module_utils/common/validation.py) so `check_type_dict` uses JSON, safe literal parsing, and validated `key=value` pairs. Both `safe_eval` entry points now emit an Ansible deprecation notice targeting 2.21, and the [changelog fragment](/app/changelogs/fragments/deprecate-safe-eval.yml) records both.
+
+The relevant validation, parameters, and `safe_eval` tests pass: **118 total**. A broader basic test run had 24 failures involving accumulated global warnings; representative failures passed in isolation.

@@ -1,0 +1,3 @@
+Implemented configurable topic backlinks. New and edited posts synchronize references through the public `Topics.syncBacklinks(postData)` method. Referenced topics receive a localized “Referenced by” timeline event linking to the referencing post, and admins can control event visibility with the `topicBacklinks` setting.
+
+Syntax, ESLint, and diff checks passed. The existing topic event test could not run because Redis was unavailable at `127.0.0.1:6379`.

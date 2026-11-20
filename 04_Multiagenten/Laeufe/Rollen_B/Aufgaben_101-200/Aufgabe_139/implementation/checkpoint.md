@@ -1,0 +1,1 @@
+Implemented and verified: pre-validation promise augmentation, staged metadata backfill, incomplete-only ISBN-10/ASIN staging, strong-identifier validation, placeholder handling, and StatsD gauges. Relevant local suite: 135 passed; git diff --check clean.

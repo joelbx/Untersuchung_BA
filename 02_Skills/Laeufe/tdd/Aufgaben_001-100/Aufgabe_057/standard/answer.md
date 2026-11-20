@@ -1,0 +1,3 @@
+Implemented YAML-native variant attachments in the new `internal/ext` importer and exporter, and connected both CLI commands to them. Export renders nested attachment data as YAML; import converts it to JSON strings for storage. Empty attachments are handled.
+
+`go test ./...` passes. The named YAML fixtures are absent from this checkout, so an exact fixture comparison was unavailable; the added tests verify the parsed YAML and import results.

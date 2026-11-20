@@ -1,0 +1,3 @@
+Moved Qt wrapper initialization into `early_init()`, passed its `SelectionInfo` to the availability checker, and added `NoWrapperAvailableError` with the requested diagnostic format. Autoselection now records exception types, checker errors end with two blank lines, and initialization returns its `INFO` object.
+
+The focused tests pass: **42 passed**. The full suite is not green: an end-to-end insert-mode test failed to detect a focused element, and the unit run stopped after 7,312 passes on an unrelated strict XPASS in `test_urlmatch.py`. These limits are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

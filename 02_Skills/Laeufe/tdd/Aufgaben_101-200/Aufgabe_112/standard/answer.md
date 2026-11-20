@@ -1,0 +1,3 @@
+Fortinet advisories are now used for FortiOS CPE detection and CVE enrichment. Results retain advisory IDs, URLs, CVSS v3 details, CWEs, references, and dates, and report selection includes Fortinet content. The repository now uses a Fortinet-capable `go-cve-dictionary` version.
+
+Regression tests cover Fortinet-only detection, enrichment, confidence, and multiple advisories. **Verification passed:** `GOPROXY=off GOSUMDB=off go test -mod=readonly ./...` and `git diff --check`.

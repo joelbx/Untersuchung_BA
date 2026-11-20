@@ -1,0 +1,1 @@
+Implemented and verified backup configuration, online SQLite backup/restore, retention pruning, CLI commands, and periodic scheduling. Focused DB test covers WAL backup, restore, and pruning; go test ./db ./conf ./cmd passed.

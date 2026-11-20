@@ -1,0 +1,624 @@
+diff --git a/cmd/flipt/validate.go b/cmd/flipt/validate.go
+index e5471da..5677296 100644
+--- a/cmd/flipt/validate.go
++++ b/cmd/flipt/validate.go
+@@ -2,6 +2,7 @@ package main
+ 
+ import (
+ 	"errors"
++	"fmt"
+ 	"os"
+ 
+ 	"github.com/spf13/cobra"
+@@ -30,14 +31,15 @@ func newValidateCommand() *cobra.Command {
+ 		&v.format,
+ 		"format", "F",
+ 		"text",
+-		"output format",
++		"output format (text or json)",
+ 	)
+ 
+ 	return cmd
+ }
+ 
+ func (v *validateCommand) run(cmd *cobra.Command, args []string) {
+-	if err := cue.ValidateFiles(os.Stdout, args, v.format); err != nil {
++	if err := cue.ValidateFiles(cmd.OutOrStdout(), args, v.format); err != nil {
++		fmt.Fprintln(cmd.ErrOrStderr(), err)
+ 		if errors.Is(err, cue.ErrValidationFailed) {
+ 			os.Exit(v.issueExitCode)
+ 		}
+diff --git a/internal/cue/validate.go b/internal/cue/validate.go
+index fe050a4..15d8e76 100644
+--- a/internal/cue/validate.go
++++ b/internal/cue/validate.go
+@@ -7,11 +7,14 @@ import (
+ 	"fmt"
+ 	"io"
+ 	"os"
++	"strconv"
+ 	"strings"
+ 
+ 	"cuelang.org/go/cue"
++	"cuelang.org/go/cue/ast"
+ 	"cuelang.org/go/cue/cuecontext"
+ 	cueerror "cuelang.org/go/cue/errors"
++	"cuelang.org/go/cue/token"
+ 	"cuelang.org/go/encoding/yaml"
+ )
+ 
+@@ -26,145 +29,321 @@ var (
+ 	ErrValidationFailed = errors.New("validation failed")
+ )
+ 
+-// ValidateBytes takes a slice of bytes, and validates them against a cue definition.
+-func ValidateBytes(b []byte) error {
+-	cctx := cuecontext.New()
+-
+-	return validate(b, cctx)
++// Result contains all errors found while validating a YAML document.
++type Result struct {
++	Errors []Error `json:"errors"`
+ }
+ 
+-func validate(b []byte, cctx *cue.Context) error {
+-	v := cctx.CompileBytes(cueFile)
+-
+-	f, err := yaml.Extract("", b)
+-	if err != nil {
+-		return err
+-	}
+-
+-	yv := cctx.BuildFile(f, cue.Scope(v))
+-	yv = v.Unify(yv)
+-
+-	return yv.Validate()
+-}
+-
+-// Location contains information about where an error has occurred during cue
+-// validation.
++// Location identifies a position in the original YAML document.
+ type Location struct {
+ 	File   string `json:"file,omitempty"`
+ 	Line   int    `json:"line"`
+ 	Column int    `json:"column"`
+ }
+ 
+-// Error is a collection of fields that represent positions in files where the user
+-// has made some kind of error.
++// Error describes a validation failure at a field path and source location.
+ type Error struct {
++	Path     string   `json:"path"`
+ 	Message  string   `json:"message"`
+ 	Location Location `json:"location"`
+ }
+ 
+-func writeErrorDetails(format string, cerrs []Error, w io.Writer) error {
+-	var sb strings.Builder
++// FeaturesValidator holds the compiled feature configuration schema.
++type FeaturesValidator struct {
++	cue *cue.Context
++	v   cue.Value
++}
++
++// NewFeaturesValidator compiles the embedded feature configuration schema.
++func NewFeaturesValidator() (*FeaturesValidator, error) {
++	cctx := cuecontext.New()
++	v := cctx.CompileBytes(cueFile)
++	if err := v.Err(); err != nil {
++		return nil, fmt.Errorf("compile feature schema: %w", err)
++	}
+ 
+-	buildErrorMessage := func() {
+-		sb.WriteString("❌ Validation failure!\n\n")
++	return &FeaturesValidator{cue: cctx, v: v}, nil
++}
+ 
+-		for i := 0; i < len(cerrs); i++ {
+-			errString := fmt.Sprintf(`
+-- Message: %s
+-  File   : %s
+-  Line   : %d
+-  Column : %d
+-`, cerrs[i].Message, cerrs[i].Location.File, cerrs[i].Location.Line, cerrs[i].Location.Column)
++// Validate checks a YAML document and returns every schema validation failure.
++// Invalid input returns both a populated Result and ErrValidationFailed.
++func (v *FeaturesValidator) Validate(file string, b []byte) (Result, error) {
++	result := Result{Errors: make([]Error, 0)}
++	sourceName := file
++	if sourceName == "" {
++		sourceName = "<input>"
++	}
+ 
+-			sb.WriteString(errString)
++	f, err := yaml.Extract(sourceName, b)
++	if err != nil {
++		result.Errors = append(result.Errors, yamlError(file, sourceName, err))
++		return result, ErrValidationFailed
++	}
++	if len(f.Decls) == 1 {
++		if _, ok := f.Decls[0].(*ast.EmbedDecl); ok {
++			result.Errors = append(result.Errors, Error{
++				Path:     "$",
++				Message:  "$: YAML document must be a mapping",
++				Location: sourceLocation(file, f.Pos()),
++			})
++			return result, ErrValidationFailed
+ 		}
+ 	}
+ 
+-	switch format {
+-	case jsonFormat:
+-		allErrors := struct {
+-			Errors []Error `json:"errors"`
+-		}{
+-			Errors: cerrs,
++	yv := v.cue.BuildFile(f, cue.Scope(v.v))
++	if err := v.v.Unify(yv).Validate(cue.Concrete(true)); err != nil {
++		result.Errors = validationErrors(file, sourceName, f, err)
++		return result, ErrValidationFailed
++	}
++
++	return result, nil
++}
++
++func validationErrors(file, sourceName string, source *ast.File, err error) []Error {
++	var result []Error
++	byPath := make(map[string]int)
++	seenMessages := make(map[string]map[string]bool)
++	cueErrors := cueerror.Errors(err)
++	if len(cueErrors) == 0 {
++		return []Error{{Message: err.Error(), Location: sourceLocation(file, source.Pos())}}
++	}
++	detailPaths := make(map[string]bool)
++	for _, ce := range cueErrors {
++		format, args := ce.Msg()
++		if !strings.HasSuffix(fmt.Sprintf(format, args...), "errors in empty disjunction:") {
++			detailPaths[strings.Join(ce.Path(), ".")] = true
+ 		}
++	}
+ 
+-		if err := json.NewEncoder(os.Stdout).Encode(allErrors); err != nil {
+-			fmt.Fprintln(w, "Internal error.")
+-			return err
++	for _, ce := range cueErrors {
++		format, args := ce.Msg()
++		message := fmt.Sprintf(format, args...)
++		path := strings.Join(ce.Path(), ".")
++		// CUE emits this summary before its individual disjunction failures.
++		// Keep it only when CUE supplied no details at or below that field.
++		if strings.HasSuffix(message, "errors in empty disjunction:") && hasDetailAtOrBelow(detailPaths, path) {
++			continue
+ 		}
+ 
+-		return nil
+-	case textFormat:
+-		buildErrorMessage()
+-	default:
+-		sb.WriteString("Invalid format chosen, defaulting to \"text\" format...\n")
+-		buildErrorMessage()
++		pos := inputPosition(ce, sourceName)
++		if !pos.IsValid() {
++			pos = positionForPath(source, ce.Path())
++		}
++
++		location := sourceLocation(file, pos)
++		if i, ok := byPath[path]; ok {
++			// Alternatives of a CUE disjunction can fail at the same YAML field.
++			// Report that field once while retaining each distinct explanation.
++			if !seenMessages[path][message] {
++				result[i].Message += "; " + message
++				seenMessages[path][message] = true
++			}
++			continue
++		}
++
++		fullMessage := message
++		if path != "" {
++			fullMessage = path + ": " + message
++		}
++		byPath[path] = len(result)
++		seenMessages[path] = map[string]bool{message: true}
++		result = append(result, Error{Path: path, Message: fullMessage, Location: location})
+ 	}
+ 
+-	fmt.Fprint(w, sb.String())
++	return result
++}
+ 
+-	return nil
++func hasDetailAtOrBelow(paths map[string]bool, path string) bool {
++	for candidate := range paths {
++		if candidate == path || path == "" || strings.HasPrefix(candidate, path+".") {
++			return true
++		}
++	}
++	return false
+ }
+ 
+-// ValidateFiles takes a slice of strings as filenames and validates them against
+-// our cue definition of features.
+-func ValidateFiles(dst io.Writer, files []string, format string) error {
+-	cctx := cuecontext.New()
++// inputPosition prefers the source document over CUE schema positions. The
++// schema position often appears first for unknown fields.
++func inputPosition(err cueerror.Error, sourceName string) token.Pos {
++	for _, pos := range err.InputPositions() {
++		if pos.Filename() == sourceName && pos.IsValid() {
++			return pos
++		}
++	}
++	return token.NoPos
++}
+ 
+-	cerrs := make([]Error, 0)
++func sourceLocation(file string, pos token.Pos) Location {
++	location := Location{File: file, Line: pos.Line(), Column: pos.Column()}
++	if !pos.IsValid() {
++		location.Line, location.Column = 1, 1
++	} else {
++		// CUE's YAML extraction adds one to the source's one-based column.
++		// This applies to error input positions and to the extracted YAML AST.
++		location.Column--
++		if location.Column < 1 {
++			location.Column = 1
++		}
++	}
++	return location
++}
+ 
+-	for _, f := range files {
+-		b, err := os.ReadFile(f)
+-		// Quit execution of the cue validating against the yaml
+-		// files upon failure to read file.
+-		if err != nil {
+-			fmt.Print("❌ Validation failure!\n\n")
+-			fmt.Printf("Failed to read file %s", f)
++// positionForPath locates the field in the original YAML AST. A missing field
++// has no token, so its closest existing parent is used instead.
++func positionForPath(source *ast.File, path []string) token.Pos {
++	var node ast.Node = source
++	pos := source.Pos()
++	for _, part := range path {
++		switch n := node.(type) {
++		case *ast.File:
++			field := fieldByName(n.Decls, part)
++			if field == nil {
++				return pos
++			}
++			pos, node = field.Pos(), field.Value
++		case *ast.StructLit:
++			field := fieldByName(n.Elts, part)
++			if field == nil {
++				return pos
++			}
++			pos, node = field.Pos(), field.Value
++		case *ast.ListLit:
++			i, err := strconv.Atoi(part)
++			if err != nil || i < 0 || i >= len(n.Elts) {
++				return pos
++			}
++			node = n.Elts[i]
++			pos = node.Pos()
++		default:
++			return pos
++		}
++	}
++	return pos
++}
+ 
+-			return ErrValidationFailed
++func fieldByName(decls []ast.Decl, name string) *ast.Field {
++	for _, decl := range decls {
++		field, ok := decl.(*ast.Field)
++		if !ok {
++			continue
+ 		}
+-		err = validate(b, cctx)
+-		if err != nil {
++		label, _, err := ast.LabelName(field.Label)
++		if err == nil && label == name {
++			return field
++		}
++	}
++	return nil
++}
+ 
+-			ce := cueerror.Errors(err)
+-
+-			for _, m := range ce {
+-				ips := m.InputPositions()
+-				if len(ips) > 0 {
+-					fp := ips[0]
+-					format, args := m.Msg()
+-
+-					cerrs = append(cerrs, Error{
+-						Message: fmt.Sprintf(format, args...),
+-						Location: Location{
+-							File:   f,
+-							Line:   fp.Line(),
+-							Column: fp.Column(),
+-						},
+-					})
++func yamlError(file, sourceName string, err error) Error {
++	message := err.Error()
++	location := Location{File: file}
++	for _, ce := range cueerror.Errors(err) {
++		if pos := inputPosition(ce, sourceName); pos.IsValid() {
++			location = sourceLocation(file, pos)
++			break
++		}
++	}
++	// YAML syntax errors may only carry a line in their message. Preserve that
++	// line without inventing a column when the parser does not provide one.
++	if rest, ok := strings.CutPrefix(message, sourceName+":"); ok {
++		lineText, detail, found := strings.Cut(rest, ":")
++		if found {
++			if line, parseErr := strconv.Atoi(lineText); parseErr == nil {
++				if location.Line == 0 {
++					location.Line = line
++				}
++				if columnText, remaining, found := strings.Cut(detail, ":"); found {
++					if column, parseErr := strconv.Atoi(columnText); parseErr == nil {
++						if location.Column == 0 {
++							location.Column = column
++						}
++						detail = remaining
++					}
+ 				}
++				message = strings.TrimSpace(detail)
+ 			}
+ 		}
+ 	}
++	return Error{Path: "$", Message: "$: " + message, Location: location}
++}
+ 
+-	if len(cerrs) > 0 {
+-		if err := writeErrorDetails(format, cerrs, dst); err != nil {
+-			return err
++// ValidateBytes checks YAML without a filename.
++func ValidateBytes(b []byte) error {
++	v, err := NewFeaturesValidator()
++	if err != nil {
++		return err
++	}
++	result, err := v.Validate("", b)
++	if errors.Is(err, ErrValidationFailed) && len(result.Errors) > 0 {
++		messages := make([]string, 0, len(result.Errors))
++		for _, issue := range result.Errors {
++			messages = append(messages, issue.Message)
+ 		}
+-
+-		return ErrValidationFailed
++		return fmt.Errorf("%w: %s", ErrValidationFailed, strings.Join(messages, "; "))
+ 	}
++	return err
++}
+ 
+-	// For json format upon success, return no output to the user
+-	if format == jsonFormat {
+-		return nil
++func writeResult(dst io.Writer, format string, result Result) error {
++	switch format {
++	case jsonFormat:
++		encoder := json.NewEncoder(dst)
++		encoder.SetEscapeHTML(false)
++		return encoder.Encode(result)
++	case textFormat:
++		// Continue below.
++	default:
++		if _, err := fmt.Fprintln(dst, "Invalid format chosen, defaulting to \"text\" format..."); err != nil {
++			return err
++		}
+ 	}
+ 
+-	if format != textFormat {
+-		fmt.Print("Invalid format chosen, defaulting to \"text\" format...\n")
++	if len(result.Errors) == 0 {
++		_, err := fmt.Fprintln(dst, "✅ Validation success!")
++		return err
+ 	}
++	if _, err := fmt.Fprintln(dst, "❌ Validation failed:"); err != nil {
++		return err
++	}
++	for _, issue := range result.Errors {
++		position := issue.Location.File
++		if issue.Location.Line > 0 {
++			position += fmt.Sprintf(":%d", issue.Location.Line)
++		}
++		if issue.Location.Column > 0 {
++			position += fmt.Sprintf(":%d", issue.Location.Column)
++		}
++		if _, err := fmt.Fprintf(dst, "- %s: %s\n", position, issue.Message); err != nil {
++			return err
++		}
++	}
++	return nil
++}
+ 
+-	fmt.Println("✅ Validation success!")
+-
++// ValidateFiles checks each named YAML file and writes the combined result.
++func ValidateFiles(dst io.Writer, files []string, format string) error {
++	v, err := NewFeaturesValidator()
++	if err != nil {
++		return err
++	}
++	result := Result{Errors: make([]Error, 0)}
++	for _, file := range files {
++		b, err := os.ReadFile(file)
++		if err != nil {
++			return fmt.Errorf("read %s: %w", file, err)
++		}
++		fileResult, err := v.Validate(file, b)
++		if err != nil && !errors.Is(err, ErrValidationFailed) {
++			return err
++		}
++		result.Errors = append(result.Errors, fileResult.Errors...)
++	}
++	if err := writeResult(dst, format, result); err != nil {
++		return err
++	}
++	if len(result.Errors) > 0 {
++		return ErrValidationFailed
++	}
+ 	return nil
+ }
+diff --git a/internal/cue/validate_test.go b/internal/cue/validate_test.go
+index 2111fc4..1522f37 100644
+--- a/internal/cue/validate_test.go
++++ b/internal/cue/validate_test.go
+@@ -1,29 +1,143 @@
+ package cue
+ 
+ import (
++	"bytes"
++	"encoding/json"
+ 	"os"
++	"path/filepath"
+ 	"testing"
+ 
+-	"cuelang.org/go/cue/cuecontext"
+ 	"github.com/stretchr/testify/require"
+ )
+ 
+-func TestValidate_Success(t *testing.T) {
+-	b, err := os.ReadFile("fixtures/valid.yaml")
++func TestFeaturesValidatorValidate(t *testing.T) {
++	v, err := NewFeaturesValidator()
+ 	require.NoError(t, err)
+-	cctx := cuecontext.New()
+ 
+-	err = validate(b, cctx)
++	valid, err := os.ReadFile("fixtures/valid.yaml")
++	require.NoError(t, err)
++	result, err := v.Validate("valid.yaml", valid)
++	require.NoError(t, err)
++	require.Empty(t, result.Errors)
++
++	invalid, err := os.ReadFile("fixtures/invalid.yaml")
++	require.NoError(t, err)
++	result, err = v.Validate("invalid.yaml", invalid)
++	require.ErrorIs(t, err, ErrValidationFailed)
++	require.Len(t, result.Errors, 1)
++	require.Equal(t, "flags.0.rules.0.distributions.0.rollout", result.Errors[0].Path)
++	require.Contains(t, result.Errors[0].Message, "rollout: invalid value 110 (out of bound <=100)")
++	require.Equal(t, Location{File: "invalid.yaml", Line: 17, Column: 16}, result.Errors[0].Location)
++}
++
++func TestFeaturesValidatorValidateMultipleFields(t *testing.T) {
++	v, err := NewFeaturesValidator()
++	require.NoError(t, err)
++
++	input := []byte(`namespace: default
++flags:
++- key: flag
++  ey: wrong
++  name: flag
++  nabled: true
++  escription: wrong
++  variants: []
++  rules:
++  - segment: users
++    rank: 1
++    distributions:
++    - variant: on
++      rollout: 110
++segments: []
++`)
++	result, err := v.Validate("input.yaml", input)
++	require.ErrorIs(t, err, ErrValidationFailed)
++	require.Len(t, result.Errors, 4)
++
++	byPath := make(map[string]Error)
++	for _, issue := range result.Errors {
++		byPath[issue.Path] = issue
++		require.Contains(t, issue.Message, issue.Path)
++	}
++	require.Equal(t, Location{File: "input.yaml", Line: 4, Column: 3}, byPath["flags.0.ey"].Location)
++	require.Equal(t, Location{File: "input.yaml", Line: 6, Column: 3}, byPath["flags.0.nabled"].Location)
++	require.Equal(t, Location{File: "input.yaml", Line: 7, Column: 3}, byPath["flags.0.escription"].Location)
++	rollout := byPath["flags.0.rules.0.distributions.0.rollout"]
++	require.Equal(t, Location{File: "input.yaml", Line: 14, Column: 16}, rollout.Location)
++	require.Contains(t, rollout.Message, "out of bound <=100")
++}
+ 
++func TestFeaturesValidatorMissingFieldUsesParentLocation(t *testing.T) {
++	v, err := NewFeaturesValidator()
+ 	require.NoError(t, err)
++	result, err := v.Validate("missing.yaml", []byte("flags:\n- name: flag\n  variants: []\n  rules: []\nsegments: []\n"))
++	require.ErrorIs(t, err, ErrValidationFailed)
++	require.Len(t, result.Errors, 1)
++	require.Equal(t, "flags.0.key", result.Errors[0].Path)
++	require.Equal(t, Location{File: "missing.yaml", Line: 2, Column: 3}, result.Errors[0].Location)
+ }
+ 
+-func TestValidate_Failure(t *testing.T) {
+-	b, err := os.ReadFile("fixtures/invalid.yaml")
++func TestFeaturesValidatorGroupsDisjunctionErrors(t *testing.T) {
++	v, err := NewFeaturesValidator()
+ 	require.NoError(t, err)
++	input := []byte("flags:\n- key: flag\n  name: flag\n  enabled: maybe\n  variants: []\n  rules: []\nsegments: []\n")
++	result, err := v.Validate("enabled.yaml", input)
++	require.ErrorIs(t, err, ErrValidationFailed)
++	require.Len(t, result.Errors, 1)
++	require.Equal(t, "flags.0.enabled", result.Errors[0].Path)
++	require.Equal(t, Location{File: "enabled.yaml", Line: 4, Column: 12}, result.Errors[0].Location)
++	require.Contains(t, result.Errors[0].Message, "bool")
++}
++
++func TestFeaturesValidatorReportsYAMLSyntaxError(t *testing.T) {
++	v, err := NewFeaturesValidator()
++	require.NoError(t, err)
++	result, err := v.Validate("syntax.yaml", []byte("flags: [\nsegments: []\n"))
++	require.ErrorIs(t, err, ErrValidationFailed)
++	require.Len(t, result.Errors, 1)
++	require.Equal(t, "$", result.Errors[0].Path)
++	require.Equal(t, Location{File: "syntax.yaml", Line: 2, Column: 0}, result.Errors[0].Location)
++	require.Contains(t, result.Errors[0].Message, "expected")
++}
++
++func TestFeaturesValidatorRequiresMapping(t *testing.T) {
++	v, err := NewFeaturesValidator()
++	require.NoError(t, err)
++	for _, input := range []string{"", "null\n", "[]\n"} {
++		result, err := v.Validate("root.yaml", []byte(input))
++		require.ErrorIs(t, err, ErrValidationFailed)
++		require.Len(t, result.Errors, 1)
++		require.Equal(t, "$", result.Errors[0].Path)
++		require.Equal(t, Location{File: "root.yaml", Line: 1, Column: 1}, result.Errors[0].Location)
++		require.Contains(t, result.Errors[0].Message, "must be a mapping")
++	}
++}
++
++func TestValidateFilesFormats(t *testing.T) {
++	file := filepath.Join(t.TempDir(), "bad.yaml")
++	require.NoError(t, os.WriteFile(file, []byte("flags:\n- key: flag\n  name: flag\n  nabled: true\n  variants: []\n  rules: []\nsegments: []\n"), 0o600))
++	files := []string{"fixtures/invalid.yaml", file}
++
++	var output bytes.Buffer
++	err := ValidateFiles(&output, files, "json")
++	require.ErrorIs(t, err, ErrValidationFailed)
++	var result Result
++	require.NoError(t, json.Unmarshal(output.Bytes(), &result))
++	require.Contains(t, output.String(), "<=100")
++	require.Len(t, result.Errors, 2)
++	require.Equal(t, "fixtures/invalid.yaml", result.Errors[0].Location.File)
++	require.Equal(t, file, result.Errors[1].Location.File)
++	require.Equal(t, "flags.0.nabled", result.Errors[1].Path)
++	require.Equal(t, Location{File: file, Line: 4, Column: 3}, result.Errors[1].Location)
+ 
+-	cctx := cuecontext.New()
++	output.Reset()
++	err = ValidateFiles(&output, files, "text")
++	require.ErrorIs(t, err, ErrValidationFailed)
++	require.Contains(t, output.String(), "Validation failed")
++	require.Contains(t, output.String(), "fixtures/invalid.yaml:17:16: flags.0.rules.0.distributions.0.rollout")
++	require.Contains(t, output.String(), file+":4:3: flags.0.nabled: field not allowed")
+ 
+-	err = validate(b, cctx)
+-	require.EqualError(t, err, "flags.0.rules.0.distributions.0.rollout: invalid value 110 (out of bound <=100)")
++	output.Reset()
++	require.NoError(t, ValidateFiles(&output, []string{"fixtures/valid.yaml"}, "json"))
++	require.JSONEq(t, `{"errors":[]}`, output.String())
+ }

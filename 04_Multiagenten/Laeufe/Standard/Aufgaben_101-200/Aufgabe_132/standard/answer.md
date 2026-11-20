@@ -1,0 +1,3 @@
+Added configurable `meta.config.systemTags` and reserved tag checks for topic creation, editing, queued posts, and the tag write API. Unprivileged users receive “You can not use this system tag.” The `isTagAllowed` check also rejects reserved tags. Tag names are normalized before comparison so changes in case or spacing cannot bypass the restriction.
+
+The topic and post suites passed (**264 tests**). ESLint and `git diff --check` passed.

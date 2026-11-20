@@ -1,0 +1,3 @@
+Updated [MerakiModule.request](/app/lib/ansible/module_utils/network/meraki/meraki.py) to retry HTTP 429, 500, and 502 up to three times. It raises the new public exception classes when appropriate, exposes the latest HTTP status, and warns with the number of rate limit retries.
+
+The [Meraki tests](/app/test/units/module_utils/network/meraki/test_meraki.py) pass: **14 passed**. The repository-wide run stopped during integration test collection, and the broad unit run had missing dependencies and unrelated failures. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

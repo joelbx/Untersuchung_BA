@@ -1,0 +1,3 @@
+Implemented the Trivy parsing changes in [parser.go](/app/contrib/trivy/parser/v2/parser.go): `Release` comes from OS metadata, `ServerName` comes from the artifact name with `:latest` for untagged container images, and `Optional` is nil. In [detector.go](/app/detector/detector.go), OVAL and GOST run only for eligible package scans, and their errors are logged and returned. [util.go](/app/detector/util.go) now identifies Trivy results through `ScannedBy`.
+
+Parser and detector work was delegated to two agents, then integrated and reviewed. The relevant tests passed offline: `go test ./contrib/trivy/parser/v2 ./detector`. Formatting and diff checks also passed.

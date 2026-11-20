@@ -1,0 +1,3 @@
+Implemented `override-validation=true` for the import API. It passes through `load()` to `validate_record()`, bypassing the publication year, independently published, and missing ISBN checks only when requested. Required-field checks still apply. Added the case-insensitive `is_promise_item()` utility.
+
+The relevant tests passed: **147 passed, 1 expected failure**. Ruff passed with an existing `UP035` warning excluded. Black could not run because it is not installed; that check is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

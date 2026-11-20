@@ -1,0 +1,3 @@
+Added `@proton/metrics` to the mail app’s [manifest](/app/applications/mail/package.json) and [lockfile](/app/yarn.lock). The new [mailMetricsHelper.ts](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts) preserves built-in mailbox IDs, returns `custom` for other IDs, and formats page sizes as `50`, `100`, or `200`, defaulting to `50`.
+
+Verification passed: 5 new helper tests, 24 existing label tests, the mail app type check, Prettier, and `git diff --check`.

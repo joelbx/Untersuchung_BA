@@ -1,0 +1,3 @@
+Resolved the TaskExecutor issue in `/app`. Loop items are evaluated once, delegation is resolved before iterations, and the loop cache workaround is removed. `VariableManager` now provides `get_delegated_vars_and_hostname`; `Task.get_play()` handles nested blocks.
+
+Validation passed: 371 unit tests passed, 1 skipped, and the existing delegation integration playbooks passed. This work item is complete.

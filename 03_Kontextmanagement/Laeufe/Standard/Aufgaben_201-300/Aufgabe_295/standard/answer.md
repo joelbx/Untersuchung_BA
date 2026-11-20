@@ -1,0 +1,3 @@
+Added and exported `DeviceVerificationStatusCard` with localized copy for verified and unverified sessions. `CurrentDeviceSection` now uses it, and `DeviceDetails` shows it directly below the heading.
+
+The relevant tests pass: 48 tests and 22 snapshots across 12 suites. ESLint and `git diff --check` pass. The full TypeScript check still reports errors in unrelated SDK, widget, and receipt files; none point to the changed files.

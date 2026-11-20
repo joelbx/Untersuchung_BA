@@ -1,0 +1,3 @@
+Added [SimpleCache[V]](/app/utils/cache/simple_cache.go) with typed values, TTL expiration, loader support, and active key listing. Migrated the now playing, genre, and HTTP caches to use it, preserved the HTTP cache’s 100 entry limit, and removed the unused `ttlcache` dependency.
+
+The affected package tests pass with modules locked: `go test -mod=readonly ./utils/cache ./core/scrobbler ./scanner`.

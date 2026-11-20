@@ -1,0 +1,160 @@
+diff --git a/internal/oci/file.go b/internal/oci/file.go
+index ed1425d..fb919d7 100644
+--- a/internal/oci/file.go
++++ b/internal/oci/file.go
+@@ -22,6 +22,7 @@ import (
+ 	"oras.land/oras-go/v2/content/oci"
+ 	"oras.land/oras-go/v2/registry"
+ 	"oras.land/oras-go/v2/registry/remote"
++	"oras.land/oras-go/v2/registry/remote/auth"
+ )
+ 
+ // Store is a type which can retrieve Flipt feature files from a target repository and reference
+@@ -57,7 +58,15 @@ func NewStore(conf *config.OCI) (*Store, error) {
+ 			return nil, err
+ 		}
+ 
+-		remote.PlainHTTP = scheme == "http"
++		remote.PlainHTTP = scheme == "http" || conf.Insecure
++		if conf.Authentication != nil {
++			client := *auth.DefaultClient
++			client.Credential = auth.StaticCredential(ref.Registry, auth.Credential{
++				Username: conf.Authentication.Username,
++				Password: conf.Authentication.Password,
++			})
++			remote.Client = &client
++		}
+ 
+ 		store.store = remote
+ 	case "flipt":
+diff --git a/internal/oci/file_test.go b/internal/oci/file_test.go
+index 5b71ac8..73dbf31 100644
+--- a/internal/oci/file_test.go
++++ b/internal/oci/file_test.go
+@@ -16,9 +16,30 @@ import (
+ 	"go.flipt.io/flipt/internal/config"
+ 	"oras.land/oras-go/v2"
+ 	"oras.land/oras-go/v2/content/oci"
++	"oras.land/oras-go/v2/registry/remote"
++	"oras.land/oras-go/v2/registry/remote/auth"
+ )
+ 
+ func TestNewStore(t *testing.T) {
++	t.Run("remote settings", func(t *testing.T) {
++		store, err := NewStore(&config.OCI{
++			Repository: "registry.example.com/features:latest",
++			Insecure:   true,
++			Authentication: &config.OCIAuthentication{
++				Username: "user", Password: "password",
++			},
++		})
++		require.NoError(t, err)
++		repo, ok := store.store.(*remote.Repository)
++		require.True(t, ok)
++		assert.True(t, repo.PlainHTTP)
++		client, ok := repo.Client.(*auth.Client)
++		require.True(t, ok)
++		credential, err := client.Credential(context.Background(), "registry.example.com")
++		require.NoError(t, err)
++		assert.Equal(t, auth.Credential{Username: "user", Password: "password"}, credential)
++	})
++
+ 	t.Run("unexpected scheme", func(t *testing.T) {
+ 		_, err := NewStore(&config.OCI{
+ 			Repository: "fake://local/something:latest",
+diff --git a/internal/storage/fs/oci/source.go b/internal/storage/fs/oci/source.go
+index 292c073..19484f7 100644
+--- a/internal/storage/fs/oci/source.go
++++ b/internal/storage/fs/oci/source.go
+@@ -46,6 +46,12 @@ func (*Source) String() string { return "oci" }
+ // Get rechecks the tracked reference on every call and reuses the snapshot
+ // when the manifest content is unchanged.
+ func (s *Source) Get(ctx context.Context) (*storagefs.StoreSnapshot, error) {
++	snap, _, err := s.get(ctx)
++	return snap, err
++}
++
++// get returns the snapshot and its digest from the same fetch under one lock.
++func (s *Source) get(ctx context.Context) (*storagefs.StoreSnapshot, digest.Digest, error) {
+ 	s.mu.Lock()
+ 	defer s.mu.Unlock()
+ 
+@@ -53,24 +59,27 @@ func (s *Source) Get(ctx context.Context) (*storagefs.StoreSnapshot, error) {
+ 	resp, err := s.store.Fetch(ctx, fliptoci.IfNoMatch(s.digest))
+ 	if err != nil {
+ 		s.logger.Error("failed fetching OCI snapshot", zap.Error(err))
+-		return nil, err
++		return nil, "", err
+ 	}
+ 	if resp.Matched && s.snapshot != nil {
+-		return s.snapshot, nil
++		return s.snapshot, s.digest, nil
+ 	}
+ 
+ 	snap, err := storagefs.SnapshotFromFiles(resp.Files...)
+ 	if err != nil {
+ 		s.logger.Error("failed building OCI snapshot", zap.Error(err))
+-		return nil, err
++		return nil, "", err
+ 	}
+ 	s.snapshot, s.digest = snap, resp.Digest
+-	return snap, nil
++	return snap, s.digest, nil
+ }
+ 
+ // Subscribe sends snapshots only when the tracked manifest changes.
+ func (s *Source) Subscribe(ctx context.Context, ch chan<- *storagefs.StoreSnapshot) {
+ 	defer close(ch)
++	s.mu.Lock()
++	lastDelivered := s.digest
++	s.mu.Unlock()
+ 	ticker := time.NewTicker(s.interval)
+ 	defer ticker.Stop()
+ 	for {
+@@ -78,10 +87,7 @@ func (s *Source) Subscribe(ctx context.Context, ch chan<- *storagefs.StoreSnapsh
+ 		case <-ctx.Done():
+ 			return
+ 		case <-ticker.C:
+-			s.mu.Lock()
+-			previous := s.digest
+-			s.mu.Unlock()
+-			snap, err := s.Get(ctx)
++			snap, current, err := s.get(ctx)
+ 			if err != nil {
+ 				if ctx.Err() != nil {
+ 					return
+@@ -89,13 +95,11 @@ func (s *Source) Subscribe(ctx context.Context, ch chan<- *storagefs.StoreSnapsh
+ 				s.logger.Error("failed polling OCI snapshot", zap.Error(err))
+ 				continue
+ 			}
+-			s.mu.Lock()
+-			changed := s.digest != previous
+-			s.mu.Unlock()
+-			if changed {
++			if current != lastDelivered {
+ 				s.logger.Debug("sending updated OCI snapshot")
+ 				select {
+ 				case ch <- snap:
++					lastDelivered = current
+ 				case <-ctx.Done():
+ 					return
+ 				}
+diff --git a/internal/storage/fs/oci/source_test.go b/internal/storage/fs/oci/source_test.go
+index 8ccb9c7..9b9d2e0 100644
+--- a/internal/storage/fs/oci/source_test.go
++++ b/internal/storage/fs/oci/source_test.go
+@@ -72,4 +72,14 @@ func TestLocalSourceRefreshAndSubscribe(t *testing.T) {
+ 	again, err = source.Get(ctx)
+ 	require.NoError(t, err)
+ 	require.Same(t, second, again)
++	write("flags:\n  - key: newer\n    name: Newer\n    type: BOOLEAN_FLAG_TYPE\n")
++	third, err := source.Get(ctx)
++	require.NoError(t, err)
++	require.NotSame(t, second, third)
++	select {
++	case update := <-updates:
++		require.Same(t, third, update)
++	case <-time.After(time.Second):
++		t.Fatal("snapshot fetched concurrently with subscription was not sent")
++	}
+ }

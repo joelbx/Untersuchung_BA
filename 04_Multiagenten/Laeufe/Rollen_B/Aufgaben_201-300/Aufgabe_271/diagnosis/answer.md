@@ -1,0 +1,7 @@
+The failure is in the fallback import path: [get_ia_record](/app/openlibrary/plugins/importapi/code.py:338) calls [get_publisher_and_place](/app/openlibrary/plugins/upstream/utils.py:1195), which splits only on the exact text ` : ` and never separates semicolon-delimited locations.
+
+For the exact example in the issue, this checkout produces `publishers: ["Berlitz Publishing"]` and `publish_places: ["London ; New York ; Paris"]`. The reported result with the entire string in `publishers` is reproducible when the colon lacks surrounding spaces. That formatting difference remains uncertain.
+
+The required `get_location_and_publisher` and `get_colon_only_loc_pub` helpers are absent. The ISBN length classifier exists in upstream `utils.py`, but must be placed in [utils/isbn.py](/app/openlibrary/utils/isbn.py) and imported there by `get_ia_record`. The fix should also cover ordered locations and publishers, brackets, multiple pairs, malformed colons, and the specified fallback cases.
+
+Nine selected existing tests pass; they do not cover the compound publisher value. I updated [checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were not changed because this run was restricted to fault localization.

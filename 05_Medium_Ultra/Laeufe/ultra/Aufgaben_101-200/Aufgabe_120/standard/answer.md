@@ -1,0 +1,5 @@
+Implemented the coverstore archival changes in [archive.py](/app/openlibrary/coverstore/archive.py). New batches use uncompressed ZIPs and zero-padded IDs. The archiver keeps local images available until all four size ZIPs are verified, then updates the database to archive.org URLs and removes local files. Item locks prevent overlapping runs, and a cleanup manifest makes finalization safe to retry after a crash.
+
+Updated the [schemas](/app/openlibrary/coverstore/schema.sql), [retrieval code](/app/openlibrary/coverstore/code.py), and [path documentation](/app/openlibrary/coverstore/README.md). Historical tar records remain readable; converting their contents requires staging and verifying the corresponding ZIPs.
+
+I delegated schema and documentation, retrieval, and archival test work to three agents, then integrated and verified their changes. **Tests:** 56 passed, 7 existing database dependent tests skipped; Ruff and `git diff --check` passed.

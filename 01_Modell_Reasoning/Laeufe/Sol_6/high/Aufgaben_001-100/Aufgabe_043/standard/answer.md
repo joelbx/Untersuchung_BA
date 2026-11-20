@@ -1,0 +1,3 @@
+Extracted resource, provider, and exporter setup into [internal/tracing/tracing.go](/app/internal/tracing/tracing.go). The gRPC server now uses those functions and registers provider and exporter shutdown in its lifecycle. Isolated tests cover environment attributes, sampling, supported exporters, repeated calls, invalid endpoints, and OTLP HTTP headers.
+
+`go test ./internal/tracing ./internal/cmd` and `git diff --check` pass.

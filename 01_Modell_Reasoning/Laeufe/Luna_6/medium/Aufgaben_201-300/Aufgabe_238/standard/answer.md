@@ -1,0 +1,3 @@
+Replaced the user-facing `:buffer` command with `:tab-select`, renamed the completion providers to `tabs` and `other_tabs`, and updated the default `gt` binding, help documentation, and related tests. Tab selection behavior, including count precedence and cross-window focus, remains in the renamed command.
+
+The focused completion model suite passed: **73 passed**. A scan found no remaining live `:buffer` references in the command, help, config, or relevant tests. Historical changelog references were left intact.

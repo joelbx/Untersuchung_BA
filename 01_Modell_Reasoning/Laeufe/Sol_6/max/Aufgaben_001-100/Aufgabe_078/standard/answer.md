@@ -1,0 +1,3 @@
+Updated voice broadcast liveness so the badge is grey while buffering or paused, red while live, and hidden when stopped or ended. [VoiceBroadcastPlayback.ts](/app/src/voice-broadcast/models/VoiceBroadcastPlayback.ts) now emits liveness changes for the [playback hook](/app/src/voice-broadcast/hooks/useVoiceBroadcastPlayback.ts); the [header](/app/src/voice-broadcast/components/atoms/VoiceBroadcastHeader.tsx) and recording views use the shared liveness type.
+
+All 225 voice broadcast tests passed. After the final recording badge change, its 10 focused tests also passed. Lint and stylelint passed. The full type check still reports one unrelated error in unchanged [notifications.ts](/app/src/utils/notifications.ts:79).

@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) to use one JSON exit routine and atomic job-file writes. Responses and job records now carry consistent job IDs and lifecycle fields; fork and setup failures return structured errors, and timeout records include the child PID. The immediate response also reflects the temporary-directory cleanup policy.
+
+Added coverage in [test_async_wrapper.py](/app/test/units/modules/test_async_wrapper.py). **All 6 tests passed**, including a process-level timeout test; `git diff --check` passed. I completed the work directly, with no delegation.

@@ -1,0 +1,3 @@
+Implemented consistent confirmation expiry and resend eligibility in [email.js](/app/src/user/email.js). Pending checks now return strict booleans and match the optional email; TTL comes from the live confirmation record; expiration clears both related keys. Both keys use the configured lifetime, with a one-day default in [defaults.json](/app/install/data/defaults.json).
+
+Verification: focused confirmation tests passed (12 passing), ESLint passed, and `git diff --check` passed. The tests logged a non-failing `sendmail-not-found` warning during registration.

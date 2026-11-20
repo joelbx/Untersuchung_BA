@@ -1,0 +1,3 @@
+Restored vaulted file caching in [DataLoader](/app/lib/ansible/parsing/dataloader.py): `cache='vaulted'` reuses parsed vaulted files, while `cache='none'` reads the file without adding a cache entry. Host/group vars and play `vars_files` now request vaulted caching. Regression tests cover both modes and existing boolean callers.
+
+Verification: 43 relevant unit tests passed; `git diff --check` passed. The [checkpoint](/app/.codex-role-output/checkpoint.md) records the work.

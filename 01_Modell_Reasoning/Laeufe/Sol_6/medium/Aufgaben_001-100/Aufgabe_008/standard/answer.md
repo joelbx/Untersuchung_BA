@@ -1,0 +1,3 @@
+Updated [useLink.ts](/app/applications/drive/src/app/store/_links/useLink.ts) to reuse `NOT_FOUND`, `NOT_ALLOWED`, and `INVALID_ID` fetch errors for the same share and link pair for 30 seconds. Other links continue to fetch normally, and successful responses follow the existing path.
+
+Added [focused tests](/app/applications/drive/src/app/store/_links/useLink.fetchErrors.test.ts). The existing and new `useLink` suites passed (17 tests); the refined new suite also passed. ESLint and `git diff --check` passed.

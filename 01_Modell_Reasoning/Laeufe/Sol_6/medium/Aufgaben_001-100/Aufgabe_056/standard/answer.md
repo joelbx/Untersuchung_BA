@@ -1,0 +1,3 @@
+Added HEIC and JXL image support for macOS and iOS Safari 17+, including the `image/jxl` MIME type and extension mapping. Updated both Drive MIME parsers to use a specific `File.type` first and fall back to the filename extension, removing the file reader check.
+
+The focused tests and existing media tests pass (18 tests total). Lint and formatting checks pass. Package type checks remain blocked by errors outside the edited files, including an OpenPGP type conflict and missing Drive symbols.

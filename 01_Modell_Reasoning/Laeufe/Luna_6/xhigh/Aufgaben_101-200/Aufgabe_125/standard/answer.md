@@ -1,0 +1,3 @@
+Implemented topic backlinks. [Topics.syncBacklinks](/app/src/topics/posts.js) detects valid topic references, updates per post associations, adds backlink timeline events, and removes stale ones. New posts and edits trigger synchronization. Added the default-off admin setting, timeline visibility gate, localized “Referenced by” event, and working event links.
+
+ESLint, JSON parsing, and `git diff --check` passed. The existing topic tests could not start because Redis at `127.0.0.1:6379` refused the connection.

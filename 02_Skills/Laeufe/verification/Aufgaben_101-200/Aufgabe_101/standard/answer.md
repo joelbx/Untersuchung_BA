@@ -1,0 +1,3 @@
+Updated `listRemoveAll` in the Redis, MongoDB, and PostgreSQL implementations to accept an array of values. The new test checks that one call removes every requested value, preserves the order of the remaining elements, and is reflected in the next read.
+
+Verification: the Redis list suite passed (20 tests), targeted ESLint passed, and `git diff --check` passed. MongoDB and PostgreSQL integration behavior remains untested because those services were unavailable.

@@ -1,0 +1,395 @@
+diff --git a/lib/utils/prompt/context_reader.go b/lib/utils/prompt/context_reader.go
+index 01d4371..0db5c01 100644
+--- a/lib/utils/prompt/context_reader.go
++++ b/lib/utils/prompt/context_reader.go
+@@ -20,6 +20,7 @@ import (
+ 	"bufio"
+ 	"context"
+ 	"errors"
++	"fmt"
+ 	"io"
+ 	"os"
+ 	"sync"
+@@ -207,14 +208,10 @@ func (cr *ContextReader) fireCleanRead() error {
+ 		cr.cond.Broadcast()
+ 	case readerStateClean: // OK, ongoing read.
+ 	case readerStatePassword: // OK, ongoing read.
+-		// Attempt to reset terminal state to non-password.
+-		if cr.previousTermState != nil {
+-			state := cr.previousTermState
+-			cr.previousTermState = nil
+-			if err := cr.term.Restore(cr.fd, state); err != nil {
+-				return trace.Wrap(err)
+-			}
++		if err := cr.maybeRestoreTerm(); err != nil {
++			return trace.Wrap(err)
+ 		}
++		cr.state = readerStateClean
+ 	case readerStateClosed:
+ 		return ErrReaderClosed
+ 	}
+@@ -243,7 +240,36 @@ func (cr *ContextReader) ReadPassword(ctx context.Context) ([]byte, error) {
+ 		return nil, trace.Wrap(err)
+ 	}
+ 
+-	return cr.waitForRead(ctx)
++	value, err := cr.waitForRead(ctx)
++	if ctx.Err() == nil || !errors.Is(err, ctx.Err()) {
++		return value, err
++	}
++
++	// A canceled password read may still be blocked in ReadPassword. Restore
++	// the terminal now so the caller can use it while that read finishes.
++	cr.mu.Lock()
++	restoreErr := cr.maybeRestoreTerm()
++	if restoreErr == nil && cr.state == readerStatePassword {
++		cr.state = readerStateClean
++	}
++	cr.mu.Unlock()
++	if restoreErr != nil {
++		return nil, fmt.Errorf("%w; failed to restore terminal: %v", err, restoreErr)
++	}
++	return nil, err
++}
++
++// maybeRestoreTerm restores the state saved before an ongoing password read.
++// The caller must hold cr.mu.
++func (cr *ContextReader) maybeRestoreTerm() error {
++	if cr.state != readerStatePassword || cr.previousTermState == nil {
++		return nil
++	}
++	if err := cr.term.Restore(cr.fd, cr.previousTermState); err != nil {
++		return err
++	}
++	cr.previousTermState = nil
++	return nil
+ }
+ 
+ func (cr *ContextReader) firePasswordRead() error {
+@@ -252,8 +278,8 @@ func (cr *ContextReader) firePasswordRead() error {
+ 
+ 	switch cr.state {
+ 	case readerStateIdle: // OK, transition and broadcast.
+-		// Save present terminal state, so it may be restored in case the read goes
+-		// from password to clean.
++		// Save the terminal state so cancellation, a clean read, or Close can
++		// restore it while the password read is still blocked.
+ 		state, err := cr.term.GetState(cr.fd)
+ 		if err != nil {
+ 			return trace.Wrap(err)
+@@ -277,14 +303,17 @@ func (cr *ContextReader) firePasswordRead() error {
+ // doesn't guarantee a release of all resources.
+ func (cr *ContextReader) Close() error {
+ 	cr.mu.Lock()
++	defer cr.mu.Unlock()
+ 	switch cr.state {
+ 	case readerStateClosed: // OK, already closed.
+ 	default:
++		if err := cr.maybeRestoreTerm(); err != nil {
++			return trace.Wrap(err)
++		}
+ 		cr.state = readerStateClosed
+ 		close(cr.closed) // interrupt blocked sends.
+ 		cr.cond.Broadcast()
+ 	}
+-	cr.mu.Unlock()
+ 	return nil
+ }
+ 
+diff --git a/lib/utils/prompt/context_reader_test.go b/lib/utils/prompt/context_reader_test.go
+index 83b26b1..c9b149c 100644
+--- a/lib/utils/prompt/context_reader_test.go
++++ b/lib/utils/prompt/context_reader_test.go
+@@ -18,8 +18,10 @@ package prompt
+ 
+ import (
+ 	"context"
++	"errors"
+ 	"io"
+ 	"os"
++	"sync"
+ 	"testing"
+ 	"time"
+ 
+@@ -152,7 +154,7 @@ func TestContextReader_ReadPassword(t *testing.T) {
+ 		assert.Equal(t, want2, string(got), "ReadContext mismatch")
+ 	})
+ 
+-	t.Run("password read turned clean", func(t *testing.T) {
++	t.Run("canceled password read turned clean", func(t *testing.T) {
+ 		require.False(t, term.restoreCalled, "restoreCalled sanity check failed")
+ 
+ 		cancelCtx, cancel := context.WithCancel(ctx)
+@@ -163,12 +165,17 @@ func TestContextReader_ReadPassword(t *testing.T) {
+ 		got, err := cr.ReadPassword(cancelCtx)
+ 		require.ErrorIs(t, err, context.Canceled, "ReadPassword returned unexpected error")
+ 		require.Empty(t, got, "ReadPassword mismatch")
++		require.True(t, term.restoreCalled, "term.Restore not called on cancellation")
++		cr.mu.Lock()
++		state := cr.state
++		cr.mu.Unlock()
++		require.Equal(t, readerStateClean, state)
+ 
+ 		// Reclaim as clean read.
+ 		const want = "abandoned pwd read"
+ 		go func() {
+ 			// Once again, give ReadContext time to block.
+-			// This way we force a restore.
++			// This lets the abandoned password read finish first.
+ 			time.Sleep(1 * time.Millisecond)
+ 			write(t, want)
+ 		}()
+@@ -186,9 +193,130 @@ func TestContextReader_ReadPassword(t *testing.T) {
+ 	})
+ }
+ 
++func TestContextReader_PasswordDeadline(t *testing.T) {
++	cr, term, pr, pw := newPasswordTestReader(t)
++	defer pr.Close()
++	defer pw.Close()
++
++	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
++	defer cancel()
++	result := make(chan readOutcome, 1)
++	go func() {
++		value, err := cr.ReadPassword(ctx)
++		result <- readOutcome{value: value, err: err}
++	}()
++	<-term.readStarted
++
++	got := <-result
++	require.ErrorIs(t, got.err, context.DeadlineExceeded)
++	require.Empty(t, got.value)
++	require.Equal(t, 1, term.restoreCalls)
++	cr.mu.Lock()
++	state := cr.state
++	cr.mu.Unlock()
++	require.Equal(t, readerStateClean, state)
++
++	writeDone := make(chan error, 1)
++	go func() {
++		_, err := pw.Write([]byte("next read"))
++		writeDone <- err
++	}()
++	value, err := cr.ReadContext(context.Background())
++	require.NoError(t, err)
++	require.Equal(t, "next read", string(value))
++	require.NoError(t, <-writeDone)
++}
++
++func TestContextReader_CloseRestoresPassword(t *testing.T) {
++	cr, term, pr, pw := newPasswordTestReader(t)
++	defer pr.Close()
++	defer pw.Close()
++
++	result := make(chan readOutcome, 1)
++	go func() {
++		value, err := cr.ReadPassword(context.Background())
++		result <- readOutcome{value: value, err: err}
++	}()
++	<-term.readStarted
++
++	require.NoError(t, cr.Close())
++	require.Equal(t, 1, term.restoreCalls)
++	got := <-result
++	require.ErrorIs(t, got.err, ErrReaderClosed)
++	require.Empty(t, got.value)
++	require.NoError(t, cr.Close())
++	require.Equal(t, 1, term.restoreCalls)
++}
++
++func TestContextReader_CloseRestoreError(t *testing.T) {
++	cr, mockTerm, pr, pw := newPasswordTestReader(t)
++	defer pr.Close()
++	defer pw.Close()
++
++	result := make(chan readOutcome, 1)
++	go func() {
++		value, err := cr.ReadPassword(context.Background())
++		result <- readOutcome{value: value, err: err}
++	}()
++	<-mockTerm.readStarted
++
++	restoreErr := errors.New("restore failed")
++	mockTerm.restoreErr = restoreErr
++	require.ErrorIs(t, cr.Close(), restoreErr)
++	cr.mu.Lock()
++	state := cr.state
++	cr.mu.Unlock()
++	require.Equal(t, readerStatePassword, state)
++	mockTerm.restoreErr = nil
++	require.NoError(t, cr.Close())
++	require.ErrorIs(t, (<-result).err, ErrReaderClosed)
++}
++
++func TestContextReader_MaybeRestoreTerm(t *testing.T) {
++	restoreErr := errors.New("restore failed")
++	mockTerm := &fakeTerm{restoreErr: restoreErr}
++	savedState := &term.State{}
++	cr := &ContextReader{
++		term:              mockTerm,
++		fd:                1,
++		mu:                &sync.Mutex{},
++		previousTermState: savedState,
++	}
++	cr.mu.Lock()
++	defer cr.mu.Unlock()
++
++	require.NoError(t, cr.maybeRestoreTerm()) // idle, despite saved state
++	require.Zero(t, mockTerm.restoreCalls)
++	cr.state = readerStatePassword
++	cr.previousTermState = nil
++	require.NoError(t, cr.maybeRestoreTerm()) // password, without saved state
++	require.Zero(t, mockTerm.restoreCalls)
++	cr.previousTermState = savedState
++	require.ErrorIs(t, cr.maybeRestoreTerm(), restoreErr)
++	require.Equal(t, 1, mockTerm.restoreCalls)
++	require.NotNil(t, cr.previousTermState) // allow a retry
++	mockTerm.restoreErr = nil
++	require.NoError(t, cr.maybeRestoreTerm())
++	require.Equal(t, 2, mockTerm.restoreCalls)
++	require.Nil(t, cr.previousTermState)
++}
++
++func newPasswordTestReader(t *testing.T) (*ContextReader, *fakeTerm, *io.PipeReader, *io.PipeWriter) {
++	t.Helper()
++	pr, pw := io.Pipe()
++	term := &fakeTerm{reader: pr, readStarted: make(chan struct{}, 1)}
++	cr := NewContextReader(pr)
++	cr.term = term
++	cr.fd = 1 // arbitrary; the terminal functions are mocked
++	return cr, term, pr, pw
++}
++
+ type fakeTerm struct {
+ 	reader        io.Reader
+ 	restoreCalled bool
++	restoreCalls  int
++	restoreErr    error
++	readStarted   chan struct{}
+ }
+ 
+ func (t *fakeTerm) GetState(fd int) (*term.State, error) {
+@@ -200,6 +328,12 @@ func (t *fakeTerm) IsTerminal(fd int) bool {
+ }
+ 
+ func (t *fakeTerm) ReadPassword(fd int) ([]byte, error) {
++	if t.readStarted != nil {
++		select {
++		case t.readStarted <- struct{}{}:
++		default:
++		}
++	}
+ 	const bufLen = 1024 // arbitrary, big enough for test data
+ 	data := make([]byte, bufLen)
+ 	n, err := t.reader.Read(data)
+@@ -209,5 +343,6 @@ func (t *fakeTerm) ReadPassword(fd int) ([]byte, error) {
+ 
+ func (t *fakeTerm) Restore(fd int, oldState *term.State) error {
+ 	t.restoreCalled = true
+-	return nil
++	t.restoreCalls++
++	return t.restoreErr
+ }
+diff --git a/lib/utils/prompt/stdin.go b/lib/utils/prompt/stdin.go
+index 39d9646..ff57008 100644
+--- a/lib/utils/prompt/stdin.go
++++ b/lib/utils/prompt/stdin.go
+@@ -17,8 +17,11 @@ limitations under the License.
+ package prompt
+ 
+ import (
++	"io"
+ 	"os"
+ 	"sync"
++
++	log "github.com/sirupsen/logrus"
+ )
+ 
+ var (
+@@ -52,3 +55,15 @@ func SetStdin(rd StdinReader) {
+ 	defer stdinMU.Unlock()
+ 	stdin = rd
+ }
++
++// NotifyExit closes the global stdin reader so an active password read can
++// restore the terminal before the program exits.
++func NotifyExit() {
++	stdinMU.Lock()
++	defer stdinMU.Unlock()
++	if closer, ok := stdin.(io.Closer); ok {
++		if err := closer.Close(); err != nil {
++			log.WithError(err).Warn("failed to close stdin prompt reader")
++		}
++	}
++}
+diff --git a/lib/utils/prompt/stdin_test.go b/lib/utils/prompt/stdin_test.go
+new file mode 100644
+index 0000000..b27304a
+--- /dev/null
++++ b/lib/utils/prompt/stdin_test.go
+@@ -0,0 +1,49 @@
++/*
++Copyright 2021 Gravitational, Inc.
++
++Licensed under the Apache License, Version 2.0 (the "License");
++you may not use this file except in compliance with the License.
++You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++*/
++
++package prompt
++
++import (
++	"context"
++	"testing"
++
++	"github.com/stretchr/testify/require"
++)
++
++func TestNotifyExitRestoresPassword(t *testing.T) {
++	stdinMU.Lock()
++	previous := stdin
++	stdinMU.Unlock()
++	t.Cleanup(func() { SetStdin(previous) })
++
++	cr, mockTerm, pr, pw := newPasswordTestReader(t)
++	defer pr.Close()
++	defer pw.Close()
++	SetStdin(cr)
++
++	result := make(chan readOutcome, 1)
++	go func() {
++		value, err := cr.ReadPassword(context.Background())
++		result <- readOutcome{value: value, err: err}
++	}()
++	<-mockTerm.readStarted
++
++	NotifyExit()
++	require.Equal(t, 1, mockTerm.restoreCalls)
++	require.ErrorIs(t, (<-result).err, ErrReaderClosed)
++	NotifyExit() // repeated exit notifications are harmless
++	require.Equal(t, 1, mockTerm.restoreCalls)
++}
+diff --git a/tool/tsh/tsh.go b/tool/tsh/tsh.go
+index 4a6c4fa..f643c68 100644
+--- a/tool/tsh/tsh.go
++++ b/tool/tsh/tsh.go
+@@ -392,7 +392,9 @@ func main() {
+ 	default:
+ 		cmdLine = cmdLineOrig
+ 	}
+-	if err := Run(ctx, cmdLine); err != nil {
++	err := Run(ctx, cmdLine)
++	prompt.NotifyExit()
++	if err != nil {
+ 		var exitError *exitCodeError
+ 		if errors.As(err, &exitError) {
+ 			os.Exit(exitError.code)

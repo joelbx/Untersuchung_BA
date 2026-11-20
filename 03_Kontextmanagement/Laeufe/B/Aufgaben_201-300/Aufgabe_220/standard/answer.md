@@ -1,0 +1,1 @@
+Added `qcolor_to_qsscolor` in [qtutils.py](/app/qutebrowser/utils/qtutils.py) to format a QColor’s RGB and alpha values as `rgba(r, g, b, a)`. Added tests for named colors, RGB, and RGBA input. The relevant test module passed: **123 tests**.

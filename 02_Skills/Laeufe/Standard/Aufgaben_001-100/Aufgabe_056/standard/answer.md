@@ -1,0 +1,3 @@
+Added JXL MIME support and Safari 17+ capability checks for HEIC, HEIF, and JXL on macOS and iOS. MIME detection now uses a specific file type when available, then falls back to the extension; it no longer uses `ChunkFileReader`.
+
+The focused and existing image upload tests pass: 14 tests across 2 suites. Prettier and `git diff --check` pass. The package type check still fails on errors in untouched files; the command and diagnostics are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

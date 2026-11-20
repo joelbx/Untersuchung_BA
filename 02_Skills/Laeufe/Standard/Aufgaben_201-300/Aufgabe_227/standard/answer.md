@@ -1,0 +1,3 @@
+Updated the MIME suffix workaround to check **runtime Qt only** at both bounds: 6.2.3 inclusive and 6.7.0 exclusive. Documented `compiled=False` in [qtutils.py](/app/qutebrowser/utils/qtutils.py) and changed the `compiled=True, exact=True` error to `RuntimeError`.
+
+The 34 focused tests pass. The full affected modules had 196 passes and two unrelated failures caused by this environment’s Qt status values and a `QSaveFile` warning. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

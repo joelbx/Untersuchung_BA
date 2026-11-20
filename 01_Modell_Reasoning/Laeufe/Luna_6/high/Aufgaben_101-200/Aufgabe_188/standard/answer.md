@@ -1,0 +1,3 @@
+Implemented centralized storage sizing in [size.ts](/app/packages/shared/lib/helpers/size.ts). Member and organization flows, CSV imports, bonus storage, shared size formatting, and other storage calculations now use `sizeUnits` or `BASE_SIZE` from that module.
+
+The existing CSV import suite passed: 64 tests and 5 snapshots. ESLint and `git diff --check` passed. Both package type checks hit the same unrelated existing OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts:579`.

@@ -1,0 +1,3 @@
+Implemented token accounting for `Chat.Complete` and `Agent.PlanAndExecute`. Both now return a non-nil `*model.TokenCount`; the agent aggregates prompt and completion usage across its steps, including streamed output. Updated the assist caller and existing chat tests for the new return values.
+
+`go test ./lib/ai/model -run '^$'` passed, and `git diff --check` found no formatting errors. The broader AI and assist tests could not run: this container lacks native HID and libc headers, while a CGO-disabled run encounters a HID build error.

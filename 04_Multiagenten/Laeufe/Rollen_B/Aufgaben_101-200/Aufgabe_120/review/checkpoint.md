@@ -1,0 +1,5 @@
+VERDICT: FIX
+Review completed. Code defect: archive() can append newly staged covers to a previously uploaded batch zip; Batch.process_pending() checks only the remote zip filename, skips reupload, then update_completed_batch() publishes URLs for members absent remotely and deletes the local zip. See archive.py:149-166, 267-280, 112-129, 228-238. Correct by validating remote zip content or checksum against the staged zip before marking uploaded and deleting local data; freeze completed batches or support safe reupload with version verification.
+TEST_ENVIRONMENT_PROBLEM: Existing PostgreSQL integration tests in test_webapp.py are skipped because they require a running DB and openlibrary user. They were not executed.
+Tests: python -m pytest -q openlibrary/coverstore/tests/test_archive_zip.py => 3 passed. python -m pytest -q openlibrary/coverstore/tests => 21 passed, 7 skipped. python -m pytest -q -rs openlibrary/coverstore/tests/test_webapp.py => 1 passed, 7 skipped.
+No project code or tests changed in this review.

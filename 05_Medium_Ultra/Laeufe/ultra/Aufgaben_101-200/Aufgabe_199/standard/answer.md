@@ -1,0 +1,3 @@
+Migrated [get_ia.py](/app/openlibrary/catalog/get_ia.py) from urllib to `requests`, including retries, status checks, UTF-8 fallback, Range headers, and Response content handling. Updated the deprecated callers in [marc_subject.py](/app/openlibrary/catalog/marc/marc_subject.py).
+
+I delegated the caller update and focused test update to two agents, then reviewed and verified the combined patch. The two relevant suites passed **99 tests**; compilation and `git diff --check` also passed.

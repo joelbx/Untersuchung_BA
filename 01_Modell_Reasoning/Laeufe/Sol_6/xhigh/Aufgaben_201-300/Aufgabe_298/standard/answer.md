@@ -1,0 +1,3 @@
+Implemented opportunistic eviction in `SimpleCache` using an atomic expiration deadline. `Add`, `Get`, loader calls, `Keys`, and the new `Values` method now exclude expired entries. Loaded values retain their TTL, and expired entries are removed before capacity decisions. `playTracker` now reads active values directly.
+
+Verified with the cache and scrobbler test suites, the cache race test, and `git diff --check`.

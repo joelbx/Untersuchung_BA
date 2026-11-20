@@ -1,0 +1,3 @@
+Implemented the parsing fix in [recipient.ts](/app/packages/shared/lib/mail/recipient.ts): `splitBySeparator` trims tokens, removes angle brackets, drops empty entries, and preserves order. Bracketed address-only inputs now use the bare address for both `Name` and `Address`.
+
+The shared package type check completed without reported errors. The test bundle compiled, but Karma could not run because its Playwright Chromium binary is missing. `git diff --check` passed.

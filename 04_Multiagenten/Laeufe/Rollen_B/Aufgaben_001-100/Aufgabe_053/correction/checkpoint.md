@@ -1,0 +1,1 @@
+Correction round complete: oval.major already handles empty input and has a regression case. Added the three required report entry points using existing detection paths. The reviewer's three Go test targets all pass with GOFLAGS=-p=1, GOPROXY=off, and GOSUMDB=off. Initial parallel attempt exceeded the container process limit. git diff --check passes.

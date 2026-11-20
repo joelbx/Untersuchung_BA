@@ -1,0 +1,1 @@
+Implemented ciphers propagation for get_url, uri, and url lookup through fetch_url/open_url/Request and TLS handlers. Added public make_context and get_ca_certs, cipher validation, and tests for default None propagation, redirects, direct and Unix handler contexts, and lookup errors. Final verification: 134 relevant tests passed; py_compile and git diff --check passed.

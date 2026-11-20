@@ -1,0 +1,3 @@
+Implemented notification HTML sanitization and safe link attributes in [Notification.tsx](/app/packages/components/containers/notifications/Notification.tsx:24). Added stable-key deduplication for non-success notifications, with success messages excluded, in [manager.tsx](/app/packages/components/containers/notifications/manager.tsx:63). Success notifications use unique IDs for React list keys.
+
+Validation passed: TypeScript check, lint, and all 32 existing component test suites (119 passed, 1 skipped).

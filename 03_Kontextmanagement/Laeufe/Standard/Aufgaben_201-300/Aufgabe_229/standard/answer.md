@@ -1,0 +1,3 @@
+Implemented disk cleanup for group covers and thumbnails, user covers and avatars, and account deletion. The user image layer now validates local upload paths, removes legacy and timestamped files across `.png`, `.jpeg`, `.jpg`, and `.bmp`, and handles missing files. Socket removal hooks remain in place.
+
+ESLint and `git diff --check` passed. The complete user and group test suites passed: **337 tests**.

@@ -1,0 +1,3 @@
+Implemented opt-out telemetry with a persistent UUID, four-hour `flipt.ping` reporting, configuration and environment overrides, and startup wiring. Added the `Flipt` HTTP handler and set the advanced example to disable telemetry.
+
+`GOPROXY=off go test ./...` and `git diff --check` passed. The repository contains no telemetry receiver contract, so delivery to the configured endpoint remains unverified. Send failures are logged without stopping Flipt.

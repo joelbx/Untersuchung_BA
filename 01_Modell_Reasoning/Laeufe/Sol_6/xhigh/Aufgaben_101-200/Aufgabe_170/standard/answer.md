@@ -1,0 +1,3 @@
+Edition matching now accepts raw import records. I added the expansion and author-name helpers to `merge_marc`, kept the existing utility imports working, and updated add-book matching to pass raw records through. Comparisons now handle missing titles or ISBNs and recognize equivalent author and contributor names in catalog and natural order.
+
+Validation: 113 relevant tests passed; 1 was skipped and 1 remains an unrelated expected failure. Ruff and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Syslog configuration now has a public [`syslog.Conf`](/app/config/syslog/types.go) type and `Validate()` method in `config/syslog`. [`Config.Syslog`](/app/config/config.go) uses that type, while `config.SyslogConf` remains an alias for existing callers. The Unix validation behavior is preserved, and Windows validation returns the specified error when syslog is enabled.
+
+Verification: `go test ./config/syslog ./config ./reporter ./subcmds` passed with downloads disabled. The Windows syslog test package cross-compiled; its tests were not run.

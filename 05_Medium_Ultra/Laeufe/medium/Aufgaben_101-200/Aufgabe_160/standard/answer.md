@@ -1,0 +1,3 @@
+Fixed the Direct Dial heartbeat address. Upstream inventory streams now expose `PeerAddr()`, and `InventoryControlStreamPipe` accepts `ICSPipePeerAddr(...)`. Before `UpsertNode`, the controller replaces a wildcard or loopback heartbeat host with the peer host while preserving the node’s original port.
+
+The focused API client tests and the full `lib/inventory` suite pass. The full API client suite was stopped after a long run without output.

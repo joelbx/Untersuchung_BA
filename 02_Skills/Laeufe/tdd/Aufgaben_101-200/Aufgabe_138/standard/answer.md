@@ -1,0 +1,3 @@
+OCI `manifest_version` is now configurable as `"1.0"` or `"1.1"`, with `"1.1"` as the default. Configuration loading rejects other values with the requested error, and bundle creation uses `WithManifestVersion` to apply the selected version.
+
+The targeted configuration, schema, and OCI tests pass. The full suite has unrelated failures: Redis tests cannot reach Docker, and the Git submodule test receives `Forbidden` from GitHub.

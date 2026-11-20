@@ -1,0 +1,3 @@
+Added HEIC and JXL image support for Safari 17+ on macOS and iOS. MIME detection now uses the file’s reported type first, then its extension when the type is missing or generic. Both Drive parser copies were updated.
+
+Verification: 12 Jest tests passed across the new MIME tests and existing media tests; formatting, ESLint, and `git diff --check` passed. The shared type check remains unverified because it fails in an untouched crypto worker on conflicting installed OpenPGP types. Details are in `.codex-role-output/checkpoint.md`.

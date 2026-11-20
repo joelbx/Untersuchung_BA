@@ -1,0 +1,3 @@
+Updated inventory streams to report their peer address and added `ICSPipePeerAddr` for in-memory streams. SSH heartbeat handling now uses that peer’s host for wildcard or loopback node addresses while preserving the node’s original port before `UpsertNode`.
+
+Focused controller and pipe tests passed. The full API client suite was interrupted; running it from the standalone API module was blocked by an uncached dependency in offline mode. The exact commands and results are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

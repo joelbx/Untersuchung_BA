@@ -1,0 +1,1 @@
+Implemented current-session kebab menu, bulk action, close-on-interaction, styles, localization, and tests. 53 relevant tests pass; ESLint passes. Repository-wide tsc reports existing unrelated SDK typing errors.

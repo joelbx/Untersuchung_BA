@@ -1,0 +1,1 @@
+Implementer progress: added LinuxHardware.get_sysinfo_facts for /proc/sysinfo, returning {} when absent and exactly five fields with NA defaults when present. populate merges it after DMI, so IBM Z values replace DMI NA. Added focused tests for absence, parsing, missing fields, and populate merge. Relevant local tests passed (18 passed); git diff --check passed.

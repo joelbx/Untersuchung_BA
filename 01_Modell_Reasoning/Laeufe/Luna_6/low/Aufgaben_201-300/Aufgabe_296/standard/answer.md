@@ -1,0 +1,3 @@
+Implemented token based invitation registration in [invite.js](/app/src/user/invite.js), [authentication.js](/app/src/controllers/authentication.js), and [register.js](/app/public/src/client/register.js). Invitations are validated and joined by token; matching invited emails are confirmed; registration cleans up invitation records by email or token.
+
+ESLint and `git diff --check` pass. The invitation tests could not run because Redis at `127.0.0.1:6379` was unavailable. Checkpoint: [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

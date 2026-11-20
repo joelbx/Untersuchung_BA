@@ -1,0 +1,3 @@
+Moved the MIME mappings and lossless extensions from `consts/mime_types.go` into [mime_types.yaml](/app/resources/mime_types.yaml). A new [mime loader](/app/mime/mime.go) reads the resource during startup through `conf.AddHook`, registers the configured extensions and explicit `.js` and `.css` types, and exposes `mime.LosslessFormats` to the UI.
+
+The affected package tests pass: `GOPROXY=off go test ./mime ./model ./server -count=1`.

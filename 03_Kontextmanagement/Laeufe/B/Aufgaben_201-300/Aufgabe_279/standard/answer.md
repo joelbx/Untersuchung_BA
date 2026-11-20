@@ -1,0 +1,3 @@
+Completed the payment verification refactor in `/app`. Token creation now accepts an injectable verifier, and the payment flows use the reusable modal verifier. Polling stops and cleans up on closure, cancellation, abort, or a terminal status.
+
+The component and account type checks passed, as did the targeted payment tests, `PaymentStep` tests, ESLint, and `git diff --check`. Two `CreditsModal` test assertions still fail because they expect `PaymentMethodID` in the buy-credit request. This work item is complete; no further work is pending.

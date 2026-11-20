@@ -1,0 +1,3 @@
+Updated `TaskExecutor` to resolve delegation before running loop iterations and evaluate loop items once. Item-dependent targets are prepared from that single item list. Added `VariableManager.get_delegated_vars_and_hostname()` and `Task.get_play()`, changed `get_vars()` so delegation is no longer resolved by default, deprecated its legacy delegation path, and removed the loop cache.
+
+Validation: 23 focused unit tests and two delegation integration playbooks passed. A separate loop-control integration test still fails because strategy code strips `_ansible_delegated_vars` from registered results.

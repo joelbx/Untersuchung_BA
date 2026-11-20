@@ -1,0 +1,3 @@
+Implemented the shared verification status card and updated both device views to use it. `DeviceDetails` now accepts `DeviceWithVerification` and shows the status card directly below the session heading.
+
+The focused Jest suites passed (7 tests), and ESLint passed for the changed files. `yarn lint:types` remains blocked by unrelated `matrix-js-sdk` API/type mismatches. Updated snapshots reflect the new card placement.

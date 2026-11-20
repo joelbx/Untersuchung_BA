@@ -1,0 +1,3 @@
+Implemented `RoleMixin._build_doc` to return `(fqcn, doc)` or `(fqcn, None)` when no entry points match. `_create_role_doc` now delegates to it, preserving the document keys and input specification objects.
+
+Added direct unit tests for filtering, FQCNs, passthrough values, and empty results. Validation passed: `PYTHONPATH=lib python -m pytest -q test/units/cli/test_doc.py` (17 passed); `git diff --check` passed.

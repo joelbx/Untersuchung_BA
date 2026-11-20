@@ -1,0 +1,3 @@
+Updated [forwarder.go](/app/lib/kube/proxy/forwarder.go) so session creation returns `trace.NotFound` for a missing or unknown Kubernetes cluster, prefers local credentials, routes remote clusters through `reversetunnel.LocalKubernetes`, and discovers registered `kube_service` endpoints. Session dialing now uses `teleportClusterClient.dialEndpoint` and records the selected address on the session, including after failover.
+
+Extended [forwarder_test.go](/app/lib/kube/proxy/forwarder_test.go) for those paths. The full proxy package tests and `git diff --check` pass.

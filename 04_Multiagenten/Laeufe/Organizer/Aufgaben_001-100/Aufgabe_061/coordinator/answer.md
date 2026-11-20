@@ -1,0 +1,3 @@
+Implemented shared `pkgPs` process-to-package mapping and updated Debian and Red Hat post-scan to use it. RPM ownership now matches packages by name, so multiple installed versions or architectures do not trigger spurious exact-version lookup warnings. It skips the three specified file errors and reports malformed output; `needsRestarting` uses the same lookup.
+
+`GOPROXY=off GOSUMDB=off go test ./scan -count=1` and `git diff --check` passed. No delegation was used.

@@ -1,0 +1,3 @@
+Updated `Validate` to return one error whose individual validation errors include the message, file, line, and column. It now catches unknown variant and segment references. Both exported snapshot constructors validate files, and import checks references before writing resources, so repeated attempts reject the same invalid file.
+
+The affected package tests passed with `go test ./internal/cue ./internal/ext ./internal/storage/fs ./cmd/flipt -count=1 -timeout=60s`. `git diff --check` also passed.

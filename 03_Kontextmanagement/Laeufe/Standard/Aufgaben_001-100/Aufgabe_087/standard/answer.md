@@ -1,0 +1,3 @@
+Implemented opt-out anonymous telemetry. Enabled installations persist a stable UUID and send a `flipt.ping` every four hours with the telemetry schema and Flipt versions. The state directory is configurable, failed reporting is logged without stopping the server, and the advanced config example disables telemetry. Added the `Flipt` JSON HTTP handler.
+
+Verification: `go test ./...` and `git diff --check` passed.

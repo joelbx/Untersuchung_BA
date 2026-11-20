@@ -1,0 +1,5 @@
+**Diagnosis:** [get_ia_record](/app/openlibrary/plugins/importapi/code.py:336) copies IA’s `publisher` into a singular `publisher` field and its mixed `isbn` value into `isbn`. The requested split utilities are absent from [upstream/utils.py](/app/openlibrary/plugins/upstream/utils.py). The edition builder’s examples and field mapping use `publishers`, `publish_places`, `isbn_10`, and `isbn_13` as lists.
+
+The fix should add the two public utilities, call them from `get_ia_record`, trim and classify string or list inputs, and omit empty normalized fields and the raw `publisher` and `isbn` keys. It should preserve the other field mappings and the existing `imagecount` page rule. The requirements leave treatment of hyphenated ISBNs, duplicates, and malformed `Place: Publisher` entries unspecified.
+
+[The existing import test](/app/openlibrary/plugins/importapi/tests/test_code.py:7) asserts the old output; all 6 focused tests pass, so they do not cover the requested behavior. I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). This specialist run was restricted to diagnosis, so I did not edit project source or tests.

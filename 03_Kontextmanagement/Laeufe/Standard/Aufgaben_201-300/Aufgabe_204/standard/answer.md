@@ -1,0 +1,3 @@
+Implemented `guessDateFromText` and wired it into CSV and vCard contact import. It parses the requested date formats, preserves valid existing `Date` values, and leaves unparseable dates unset. Tests also confirm that imported calendar dates serialize correctly to vCard.
+
+TypeScript, ESLint, and formatting checks pass. All contact date tests pass; the full shared suite has two unrelated failures in cookie and base64 tests.

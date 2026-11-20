@@ -1,0 +1,3 @@
+Implemented Amazon Linux 2023 detection, EOL lookup, OVAL routing, and ALAS2023 advisory links. Release parsing now handles bare `2023` safely; unrecognized releases remain unknown. Added regression tests for supported versions and standard and extended support boundaries.
+
+`go test ./config ./scanner ./oval` and `git diff --check` pass. The repository has no vendor source for the 2025–2029 EOL dates, so those entries follow the assumed five-year release cadence.

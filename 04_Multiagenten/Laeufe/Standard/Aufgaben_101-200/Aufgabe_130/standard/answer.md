@@ -1,0 +1,3 @@
+Fixed the current-device enrollment crash. When the device limit is reached, the fake service returns an `AccessDenied` error; `RunAdmin` returns the registered device with `DeviceRegistered`, and CLI output handles a nil device safely. The test environment now exposes `E.Service` so tests can toggle the limit.
+
+The enrollment and testenv tests pass, as does `git diff --check`. The `tsh/common` build check could not complete because this container lacks `linux/hidraw.h` and `gnu/libc-version.h`.

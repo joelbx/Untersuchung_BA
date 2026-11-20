@@ -1,0 +1,3 @@
+Updated [db.go](/app/detector/vuls2/db.go) to validate metadata and schema version when opening a Vuls2 database, with errors that include the database path. A schema mismatch now forces a download when updates are allowed and returns an error when `SkipUpdate` is enabled. Added mismatch cases in [db_test.go](/app/detector/vuls2/db_test.go).
+
+`go test ./detector/vuls2` and `git diff --check` passed. No delegation was used.

@@ -1,0 +1,3 @@
+Implemented `guessDateFromText` and updated CSV and vCard date conversion to use it. Invalid text now returns `undefined`, and an existing valid `Date` is returned unchanged.
+
+The shared package test command could not start: npm failed with `Cannot read properties of undefined (reading 'stdin')`. The existing property tests also expect invalid dates to default to today, so those expectations no longer match the requested behavior.

@@ -1,0 +1,1 @@
+Completed: upstream gRPC streams capture peer address; in-memory pipes accept ICSPipePeerAddr; controller replaces local SSH heartbeat host while preserving port before upsert. Focused API/client and lib/inventory tests pass from root module. git diff --check passes.

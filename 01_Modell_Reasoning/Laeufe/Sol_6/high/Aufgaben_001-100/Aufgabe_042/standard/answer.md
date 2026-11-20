@@ -1,0 +1,3 @@
+Implemented `GET /.well-known/webfinger` and mounted it at startup. The [controller](/app/src/controllers/well-known.js) validates the `acct:` resource and configured hostname, checks `groups:view:users` through the privileges API using the Guest role for anonymous requests, resolves the user slug, and returns a WebFinger JSON document with the subject, profile aliases, and an HTML profile link. It returns 400, 403, or 404 for the specified failure cases.
+
+Verification: six focused tests pass; ESLint and `git diff --check` pass.

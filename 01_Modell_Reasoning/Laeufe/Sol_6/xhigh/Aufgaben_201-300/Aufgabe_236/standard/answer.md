@@ -1,0 +1,3 @@
+Updated [validation.py](/app/lib/ansible/module_utils/common/validation.py) so `check_type_dict` parses JSON, dictionary literals, and `key=value` pairs without calling `safe_eval`. Malformed inputs and non-dictionary results now raise descriptive `TypeError`s. Both `safe_eval` entry points are marked deprecated and emit Ansible’s version 2.21 deprecation notice; the [changelog fragment](/app/changelogs/fragments/deprecate-safe-eval.yml) records both.
+
+All 118 targeted tests passed. A broader argument-spec run had two failures from accumulated global warnings; both tests passed when run directly.

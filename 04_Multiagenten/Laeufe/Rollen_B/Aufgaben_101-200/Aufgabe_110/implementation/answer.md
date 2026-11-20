@@ -1,0 +1,3 @@
+Implemented the download mechanism metric. Terminal stateful downloads and preview reports now emit `drive_download_mechanism_success_rate_total` with status, retry, and a size and capability based mechanism. The metric is registered under the `web_drive_download_mechanism_success_rate_total_v1` schema.
+
+Validation passed: 21 focused tests, Drive and metrics type checks, ESLint, and `git diff --check`. The selector cannot observe a service worker registration failure after capability checks, so that runtime fallback may be labeled `sw`.

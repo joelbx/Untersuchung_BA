@@ -1,0 +1,5 @@
+Implemented JavaScript message filtering in [shared.py](/app/qutebrowser/browser/shared.py). The new `_js_log_to_ui` helper checks source and level rules, then source and message exclusion globs. Messages excluded from the UI still follow the existing logger path.
+
+Added `content.javascript.log_message.excludes` in [configdata.yml](/app/qutebrowser/config/configdata.yml) and renamed the existing setting to `.levels`, with migration for saved values. Updated the settings reference and added [filtering tests](/app/tests/unit/browser/test_shared.py). Native subagents handled the config and docs, tests, and a read-only review; I integrated and verified their work.
+
+**Verification:** 53 focused tests passed. A broader config file run had one unrelated failure: `test_nul_bytes` expects `ValueError`, while Python 3.11 raises `SyntaxError`.

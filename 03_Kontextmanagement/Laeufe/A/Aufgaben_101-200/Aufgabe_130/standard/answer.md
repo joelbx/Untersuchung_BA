@@ -1,0 +1,3 @@
+Fixed the device limit enrollment panic. `RunAdmin` now returns the registered device when enrollment fails, and `printEnrollOutcome` handles a nil device. The fake service can simulate the limit, and a test verifies that registration succeeds while enrollment returns a clear limit error.
+
+`go test ./lib/devicetrust/enroll` passed. The `tsh` package compile check could not finish because the local system lacks `linux/hidraw.h` and `gnu/libc-version.h`.

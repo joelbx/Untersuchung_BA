@@ -1,0 +1,3 @@
+Updated `useMyCountry` to return a country code or `undefined` directly, and migrated all named consumers. `PhoneInput` now starts with no displayed country when its default is empty or undefined, adopts the first non-empty default supplied after mount only if its country is still empty, and ignores later default changes.
+
+The focused tests and full components suite passed (1,108 tests). Type checks for components, account, and mail remain blocked by the same existing `openpgp` type conflict in `packages/crypto/lib/worker/api.ts`; the commands and error are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

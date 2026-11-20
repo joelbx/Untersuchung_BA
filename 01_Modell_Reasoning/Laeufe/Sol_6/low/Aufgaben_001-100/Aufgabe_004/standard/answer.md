@@ -1,0 +1,3 @@
+Updated the PassAliases drawer flow. It now shows the aliases list when available and an explicit “No aliases” state when empty. The provider exposes the requested contract, caches fetched aliases, and creates a default vault when the user starts alias creation. The bridge’s `getDefault` now returns an existing vault or `undefined` without creating one.
+
+Verification passed: the components TypeScript check, all 3 PassAliases tests, and `git diff --check`.

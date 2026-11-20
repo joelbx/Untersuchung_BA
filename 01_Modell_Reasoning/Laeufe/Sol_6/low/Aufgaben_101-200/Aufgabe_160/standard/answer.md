@@ -1,0 +1,3 @@
+Fixed Direct Dial heartbeat addresses. Inventory streams now expose `PeerAddr()`, and in-memory pipes accept `ICSPipePeerAddr`. When a node advertises a wildcard or loopback address, the controller uses the peer’s host for `UpsertNode` while preserving the node’s port.
+
+The inventory tests pass, including a new address rewrite test. The API package test could not run because a dependency is missing from the local cache and module lookup is disabled.

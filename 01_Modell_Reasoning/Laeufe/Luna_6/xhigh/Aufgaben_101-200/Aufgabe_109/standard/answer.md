@@ -1,0 +1,3 @@
+Implemented the feature gated **Polls history** button in [RoomSummaryCard.tsx](/app/src/components/views/right_panel/RoomSummaryCard.tsx). It opens the named [PollHistoryDialog](/app/src/components/views/dialogs/polls/PollHistoryDialog.tsx) with the current room’s `roomId`. Registered `feature_poll_history` in Messaging Labs, defaulting to off.
+
+The right panel tests passed: 3 suites, 69 tests. ESLint, Prettier, and Stylelint passed. `yarn lint:types` reported a type error in untouched `RoomCreate.tsx:50`: `RoomState.findPredecessor` is missing from the installed SDK type.

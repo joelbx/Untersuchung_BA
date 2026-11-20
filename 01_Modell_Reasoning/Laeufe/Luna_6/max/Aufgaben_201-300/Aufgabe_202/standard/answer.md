@@ -1,0 +1,3 @@
+Updated [src/controllers/admin/uploads.js](/app/src/controllers/admin/uploads.js:201) to check that the requested folder is an existing directory under the configured upload path before saving. Missing, non-directory, and out-of-root paths return `[[error:invalid-path]]`; the existing error handler returns HTTP 500.
+
+ESLint, `node --check`, and `git diff --check` passed. I did not run `test/uploads.js` because its setup reads and logs `config.json`, which may contain credentials.

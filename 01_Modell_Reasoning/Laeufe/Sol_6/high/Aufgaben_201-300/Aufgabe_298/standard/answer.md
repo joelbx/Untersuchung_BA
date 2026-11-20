@@ -1,0 +1,3 @@
+Updated [SimpleCache](/app/utils/cache/simple_cache.go) to evict expired entries during normal operations, keep `Keys()` active-only, and expose an active-only `Values()` method. Loaded values now participate in TTL eviction. Added tests for 10 ms expiration, loader values, and capacity behavior in [simple_cache_test.go](/app/utils/cache/simple_cache_test.go).
+
+Verification passed: `go test ./utils/cache`, `go test -race ./utils/cache`, and `go test ./core/scrobbler`.

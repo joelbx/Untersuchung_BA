@@ -1,0 +1,3 @@
+Added `Action.RoomLoaded` and wired `RoomView` to dispatch `{ action: Action.RoomLoaded }` when a room loads. `RoomViewStore` now refreshes widget buttons on that action, even without a prior `ViewRoom` dispatch. `RoomView` also falls back to its current initial event ID when the store returns null or undefined.
+
+The affected Jest suites passed: **64 tests**. Prettier and `git diff --check` passed. The full TypeScript check remains blocked by errors in unrelated SDK, OIDC, and TabbedView files. No delegation was used.

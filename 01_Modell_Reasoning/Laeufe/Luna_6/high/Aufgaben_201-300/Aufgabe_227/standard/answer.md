@@ -1,0 +1,3 @@
+Updated the MIME suffix workaround to check both bounds using runtime Qt only (`compiled=False`). Clarified `version_check`’s parameter documentation and changed the `compiled=True, exact=True` rejection to `RuntimeError`.
+
+The focused tests passed: 13 version check tests and 7 suffix workaround tests. `git diff --check` passed. A broader run encountered an unrelated Qt enum count failure and then aborted during fixture setup under Qt 6.9.

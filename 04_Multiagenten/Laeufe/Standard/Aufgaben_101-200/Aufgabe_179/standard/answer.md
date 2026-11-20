@@ -1,0 +1,3 @@
+RemoteCluster now persists its status and last heartbeat. When tunnel connections are read, a newer heartbeat is stored in UTC; removing a newer connection cannot move it backward, and removing the final connection sets the cluster Offline while retaining that heartbeat. The update path also preserves the resource’s expiry.
+
+The local presence suite, focused auth tests, and `git diff --check` pass.

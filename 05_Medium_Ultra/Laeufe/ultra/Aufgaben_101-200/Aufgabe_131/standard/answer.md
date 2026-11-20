@@ -1,0 +1,3 @@
+Implemented bounded event polling in [usePollEvents.ts](/app/packages/components/payments/client-extensions/usePollEvents.ts). It exports the 5000 ms interval and five attempt limit, can stop on a matching property and action, and clears its timer and subscription on completion. Card and PayPal add flows now watch for `PaymentMethods` create events.
+
+Verification passed: three Jest suites (13 tests), the components type check, ESLint, and Prettier. One delegated agent mapped the payment flows; another added seven focused polling tests in [usePollEvents.test.tsx](/app/packages/components/payments/client-extensions/usePollEvents.test.tsx).

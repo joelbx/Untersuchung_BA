@@ -1,0 +1,3 @@
+Added `proxy_service.kube_listen_addr` as a shorthand that enables the Kubernetes proxy, with the Kubernetes default port when no port is supplied. An enabled legacy Kubernetes block now produces a clear conflict error; an explicitly disabled block allows the shorthand. The change also warns when both services are enabled without a proxy Kubernetes listen address and resolves wildcard Kubernetes hosts through the web proxy address. Configured Kubernetes public addresses retain priority.
+
+`go test ./lib/config ./lib/client` passed.

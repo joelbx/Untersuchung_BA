@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` for new room encryption. The room creation dialog now shows and submits the enforced encryption value, keeps the toggle and private-room creation disabled while the policy is loading, and gives server force-on policy precedence with a conflict warning. Room encryption defaults also honor `force_disable`.
+
+**Verification:** 67 relevant tests passed; ESLint and Prettier passed. The full TypeScript check remains blocked by an unrelated existing error in [Unread.ts](/app/src/Unread.ts:167).

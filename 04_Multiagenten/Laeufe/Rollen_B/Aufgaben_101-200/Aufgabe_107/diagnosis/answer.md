@@ -1,0 +1,5 @@
+The stale entries originate in [optimisticUpdates](/app/applications/mail/src/app/logic/elements/elementsReducers.ts:155): when `bypass` is true, it adds IDs to `bypassFilter` but has no path to remove them after a later mark-as action matches the active filter.
+
+The status needed for that decision is absent from the dispatch in [useOptimisticMarkAs.ts](/app/applications/mail/src/app/hooks/optimistic/useOptimisticMarkAs.ts:211) and from `OptimisticUpdates` in [elementsTypes.ts](/app/applications/mail/src/app/logic/elements/elementsTypes.ts:126). The specified `elementBypassFilters.ts` helper does not yet exist.
+
+The fix should pass `changes.status`, then remove matching IDs for Unread + mark unread and Read + mark read; opposite actions should add IDs. ID handling should retain the reducer’s `ConversationID` behavior in conversation mode. The existing mailbox test covers keeping a conversation visible after marking it read under Unread, but does not cover the reverse action or the Read filter. Project source and tests were left unchanged under the fault-localization constraint.

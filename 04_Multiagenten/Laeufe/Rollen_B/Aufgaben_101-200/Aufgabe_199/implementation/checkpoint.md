@@ -1,0 +1,1 @@
+Implementer progress: Complete. Migrated get_ia.py to requests responses, including retry status handling, range headers, content/text access, XML parsing, and UTF-8 fallback. Updated deprecated marc_subject.py consumer and response mocks. Focused get_ia tests pass (50 tests); git diff --check passes.

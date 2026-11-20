@@ -1,0 +1,3 @@
+Implemented OCI configuration loading and validation, including the exact unsupported scheme and missing repository errors, bundle directory, authentication fields, and duration parsing. `NewStore` now takes the bundle root explicitly; `DefaultBundleDir` creates a path under Flipt’s data directory. I also wired OCI into server startup and registered `fs/oci` in the integration and CI matrices.
+
+Focused Go tests and `git diff --check` pass. The full root suite is blocked by an unavailable Docker daemon in Redis tests; the build integration suites require a running Flipt service. The new `fs/oci` Dagger case remains unexecuted here, though a local OCI bundle build and server startup check succeeded.

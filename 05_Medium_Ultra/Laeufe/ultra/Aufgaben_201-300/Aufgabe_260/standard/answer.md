@@ -1,0 +1,3 @@
+Implemented selective SSE delivery. The UI sends a per-window UUID on its requests; [server middleware](/app/server/middlewares.go:55) stores it in an HttpOnly cookie and request context. The [broker](/app/server/events/sse.go:113) now sends request events only to other clients of the same user, while events without a client ID broadcast to all. I also updated event call sites and stream reconnection.
+
+I delegated the UI, middleware, and broker changes to three agents, then integrated and verified the patch. `go test ./...` passed, as did all 41 UI tests, lint, formatting, and `git diff --check`.

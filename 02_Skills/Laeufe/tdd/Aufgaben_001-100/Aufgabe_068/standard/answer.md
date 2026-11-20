@@ -1,0 +1,3 @@
+Owner-encrypted session keys now flow from parent mails through the single and batch loaders, cache, and mail-detail call sites. The rest client applies each supplied key before resolving the entity’s session key. Regression tests cover single and batch loading, including the optional fourth batch argument.
+
+`npm test` passed: 2,958 passing, 0 failing. The runner still printed unrelated `deriveUserPassphraseKey` setup errors despite exiting successfully.

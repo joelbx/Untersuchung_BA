@@ -1,0 +1,1 @@
+Implemented TLS cipher configuration in URL request stack, shared context construction, module argument spec, and URL lookup. Updated existing signature assertions and added cipher context tests. Relevant URL unit tests: 49 passed. Remaining consideration: integration against Python 3.10/OpenSSL 1.1.1 was unavailable locally.

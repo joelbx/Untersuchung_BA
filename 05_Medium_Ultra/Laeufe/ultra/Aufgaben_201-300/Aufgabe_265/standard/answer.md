@@ -1,0 +1,3 @@
+Updated [QtColor](/app/qutebrowser/config/configtypes.py:990) so HSV/HSVA hue percentages scale to 359, while the other channels scale to 255. It now rejects unsupported color function names and incorrect component counts before constructing a `QColor`.
+
+Expanded [the existing tests](/app/tests/unit/config/test_configtypes.py:1235) for hue endpoints, RGB/A percentages, and invalid functions. The focused suite passed **33 tests**, and `git diff --check` was clean. A delegated agent reviewed the final patch and found no remaining requirement gaps.

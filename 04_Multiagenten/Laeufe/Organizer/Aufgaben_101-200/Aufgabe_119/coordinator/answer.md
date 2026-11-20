@@ -1,0 +1,3 @@
+Refactored `Pill` into a functional component and added the public `usePermalink` hook. `Pill`, `PillType`, and the two `@room` helpers now have named exports; callers use named imports. The component preserves the supplied URL as its link `href` and renders nothing when it cannot resolve a pill.
+
+The focused Pill and pillify tests pass (6/6), and ESLint passes for the changed files. The full TypeScript check remains blocked by existing SDK API errors outside the changed files. No delegation was used.

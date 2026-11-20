@@ -1,0 +1,3 @@
+Implemented client version handling in the gRPC middleware. The new interceptor reads `x-flipt-accept-server-version`, accepts versions with or without `v`, and stores the parsed version in the request context. Missing or invalid values fall back to `1.0.0`. It is registered in the production unary chain.
+
+Added tests for context retrieval and header handling. `go test ./internal/server/middleware/grpc ./internal/cmd` passed.

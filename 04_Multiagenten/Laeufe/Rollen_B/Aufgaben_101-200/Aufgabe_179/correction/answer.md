@@ -1,0 +1,3 @@
+RemoteCluster status is now persisted when tunnel connections are created, updated, or deleted. The stored heartbeat advances to the latest tunnel heartbeat and remains intact when connections are removed. Auth reads no longer write potentially stale cluster snapshots, and concurrent tunnel changes on one presence service are serialized.
+
+The updated test checks stored state before an auth read and covers deletion of all tunnels. Both exact tests flagged by the reviewer passed; `git diff --check` passed. TEST_ENVIRONMENT_PROBLEM: None.

@@ -1,0 +1,3 @@
+Added `utils.parse_version` to return a normalized `QVersionNumber` and updated the requested Qt, distribution, and crash dialog comparisons to use it. The runtime checks now use `QLibraryInfo.version()`.
+
+**Verification:** 345 focused tests passed, and `git diff --check` passed. The full `test_version.py` run exited without a pytest summary during an unrelated Chromium version test; its distribution tests passed in the focused run.

@@ -1,0 +1,3 @@
+Resolved the NodeBB issues in the checked-out files. Notifications now load asynchronously for the dropdown that opened, with stale responses ignored. Fork and move category selectors use dropup placement; quick search resets after navigation and follows container focus. The hash, email, route, admin menu, merge search, and chat link fixes are also in place.
+
+Verification: ESLint and `git diff --check` passed. The existing hash, email, and notification suites passed **102 tests**; the hash suite passed again after the final edits (**65 tests**).

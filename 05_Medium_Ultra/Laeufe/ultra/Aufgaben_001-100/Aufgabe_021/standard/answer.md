@@ -1,0 +1,3 @@
+Updated the [List and Seed model](/app/openlibrary/core/lists/model.py:26) with explicit types, consistent seed key comparisons, and exports that always contain `authors`, `works`, and `editions` with loaded, type-checked entries. Added [subject seed normalization and guards](/app/openlibrary/plugins/openlibrary/lists.py:28), safer subject URLs, and the requested helper and `get_user()` annotations.
+
+**Verification:** 44 relevant tests passed. Focused mypy, Ruff, and `git diff --check` passed; mypy import diagnostics were suppressed because the local `requests` stubs are unavailable. Two subagents handled the plugin and utility changes, and one audited edge cases; I integrated and verified their work.

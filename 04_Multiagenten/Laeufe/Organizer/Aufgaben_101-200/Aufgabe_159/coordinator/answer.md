@@ -1,0 +1,3 @@
+Fixed CycloneDX PURL construction in [cyclonedx.go](/app/reporter/sbom/cyclonedx.go). `parsePkgName` now returns namespace, name, and subpath strings for Maven, PyPI, Golang, npm, and Cocoapods, and both library and dependency graph components use those values. Added focused tests in [cyclonedx_test.go](/app/reporter/sbom/cyclonedx_test.go).
+
+`go test ./reporter/...` passed with downloads disabled. No delegation was used.

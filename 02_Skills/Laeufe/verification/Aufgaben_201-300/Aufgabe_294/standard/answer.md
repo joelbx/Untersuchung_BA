@@ -1,0 +1,3 @@
+Updated collection build and install to preserve internal file and directory symlinks with relative targets. The manifest no longer expands linked directories; external file links are stored as regular files. Extraction now checks destination paths and exposes both `TarInfo` and the readable stream.
+
+Verification: `PYTHONPATH=lib:test python -m pytest -q test/units/galaxy` passed (150 tests), and `git diff --check` passed.

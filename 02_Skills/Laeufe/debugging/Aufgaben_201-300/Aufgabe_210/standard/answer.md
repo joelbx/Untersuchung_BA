@@ -1,0 +1,3 @@
+Updated TaskExecutor to resolve delegation before executing loop iterations and to evaluate loop items once. Item dependent delegation uses those same evaluated items. VariableManager now exposes `get_delegated_vars_and_hostname`, `Task.get_play()` finds the containing play, and normal variable retrieval no longer resolves delegation or creates the loop cache.
+
+Verification: 22 unit tests and four delegation integration playbooks passed. An older `test_loop_control.yml` check failed; the target’s runner explicitly excludes it because it expects a result field that should not be available.

@@ -1,0 +1,5 @@
+The fault is centered in [scripts/affiliate_server.py](/app/scripts/affiliate_server.py:115). `PrioritizedISBN` stores identifiers in `isbn`; its generated equality compares priority and timestamp instead of the identifier, and it is unhashable. `Submit.GET` also checks an ASIN string against queue objects, so that check cannot prevent duplicate submissions.
+
+The fix should introduce `PrioritizedIdentifier` with an `identifier` field, identifier-only equality and hash, a `stage_import` flag, and JSON-safe serialization of every field. It must carry `stage_import` through `amazon_lookup` into `process_amazon_batch`, which currently stages every fetched product. Backward compatibility needs particular care: [existing tests](/app/scripts/tests/test_affiliate_server.py:133) import `PrioritizedISBN` and construct it with `isbn=`; an alias alone would not preserve that keyword.
+
+No source or tests were changed. The developer instruction for this run explicitly limits my role to fault localization, despite the request to edit files. I recorded the findings in `.codex-role-output/checkpoint.md`.

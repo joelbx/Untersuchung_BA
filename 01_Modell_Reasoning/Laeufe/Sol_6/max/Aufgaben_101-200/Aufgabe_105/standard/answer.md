@@ -1,0 +1,3 @@
+Registered `getOpenSubsonicExtensions` outside the authentication group in [api.go](/app/server/subsonic/api.go:68). Without credentials, `?f=json` returns JSON containing exactly `transcodeOffset`, `formPost`, and `songLyrics`. Other routes remain protected.
+
+Added [router tests](/app/server/subsonic/opensubsonic_test.go:13) for both endpoint URL forms and authentication on `/ping`. `go test ./server/subsonic/...` passes.

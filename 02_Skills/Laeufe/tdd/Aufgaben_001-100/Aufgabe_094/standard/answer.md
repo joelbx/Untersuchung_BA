@@ -1,0 +1,3 @@
+Added `DiagResult` and `Diag` with macOS checks for signing, keychain entitlements, biometric policy, and Secure Enclave access. Touch ID availability now uses the combined result. The existing registration and passwordless login integration test already passed without changes to those flows.
+
+The Touch ID and WebAuthn package tests pass. The repository-wide test run was interrupted during integration tests, so its result is unknown. macOS compilation and hardware behavior remain unverified on this Linux host.

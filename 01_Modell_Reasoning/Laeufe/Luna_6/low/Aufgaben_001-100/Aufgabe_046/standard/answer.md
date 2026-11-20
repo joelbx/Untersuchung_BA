@@ -1,0 +1,3 @@
+Implemented queue based `module_utils` dependency discovery, specialized legacy and collection locators, collection redirect shims and removal handling, package initializer synthesis, and relative import handling for package `__init__.py` files. Added focused locator and relative import tests.
+
+Validation: all 50 tests in `test/units/executor/module_common` passed; `py_compile` and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated [recipient.ts](/app/packages/shared/lib/mail/recipient.ts) with the exported `splitBySeparator` function and made `inputToRecipient` use the bare address for both `Name` and `Address`. Both address autocomplete versions now use the shared splitter for pasted input. Added [recipient tests](/app/packages/shared/test/mail/recipient.spec.ts).
+
+Shared and components type checks, ESLint, and `git diff --check` passed. Karma compiled the tests, but could not launch its configured Playwright Chromium binary, so the tests did not run.

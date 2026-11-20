@@ -1,0 +1,3 @@
+Added configurable TLS ciphers to `get_url`, `uri`, and `lookup('url')`. Cipher strings and ordered lists now flow through `fetch_url`, `open_url`, and `Request`, with contexts applied across redirects, proxies, and Unix socket requests. Added the public `make_context()` and `get_ca_certs()` helpers, plus sanitized errors for invalid cipher settings.
+
+Updated existing unit assertions for explicit `ciphers=None` propagation. The URL utility and lookup tests passed: **120 passed**. A smoke check confirmed both input formats work and invalid values aren’t echoed in errors. `git diff --check` passed.

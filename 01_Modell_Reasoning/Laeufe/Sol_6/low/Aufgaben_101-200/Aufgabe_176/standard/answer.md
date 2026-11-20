@@ -1,0 +1,3 @@
+Updated `incdec_number` to skip digits in percent escapes, preserve encoded URL components when editing, validate the operation and count, reject decrements below zero, and leave ports unchanged. Added focused tests; all 13 pass.
+
+The broader existing `incdec` tests still fail because some expect the old selection order and port editing, which conflict with the issue’s explicit rules. I left those failures visible rather than changing their expectations without a consistent specification.

@@ -1,0 +1,3 @@
+Updated collection manifest handling so an absent `manifest` uses `Sentinel` and the file walker, while explicit `manifest: {}` and `manifest: null` use the manifest defaults. The walker now also excludes file symlinks that point outside the collection; tests cover ignore patterns and internal symlinks.
+
+Verification: **124 collection unit tests passed**. `distlib` is unavailable locally, so the explicit manifest path was tested with a mocked directive builder; actual `distlib` generation remains unverified. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

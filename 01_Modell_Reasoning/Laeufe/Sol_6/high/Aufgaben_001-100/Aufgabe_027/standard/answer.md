@@ -1,0 +1,3 @@
+Fixed public bookmark session restoration. [getLastPersistedLocalID](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts) now returns a valid numeric ID or `null`, ignores unrelated and invalid keys, and preserves ID `0`. The [bookmarks view](/app/applications/drive/src/app/store/_views/useBookmarksPublicView.ts) resumes a session only when an ID exists, allowing it to restore a saved key password.
+
+Both relevant Jest suites passed (19 tests). Prettier and `git diff --check` passed.

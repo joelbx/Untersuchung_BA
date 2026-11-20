@@ -1,0 +1,3 @@
+BSD hardware fact gathering now calculates `uptime_seconds` from a numeric `sysctl -n kern.boottime` result. Failed commands and invalid output omit the fact; a missing binary raises `ValueError`. The shared sysctl parser now preserves multiline values, accepts platform delimiters, and warns on malformed lines while continuing to collect valid facts.
+
+The 20 new regression tests pass. The facts suite passes with one timing-sensitive timeout test deselected (372 passed, 5 skipped). The unfiltered run failed on that timeout test, and the repository-wide run encountered unrelated collection and CLI failures. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

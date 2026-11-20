@@ -1,0 +1,1 @@
+Completed: moved MIME types and lossless list to resources/mime_types.yaml. New mime package loads resource through conf.AddHook, registers all extensions plus JS/CSS, exposes sorted LosslessFormats. Model and cmd import package for hook registration; server UI uses new list. Tests: go test ./mime ./server ./model ./conf ./cmd passed.

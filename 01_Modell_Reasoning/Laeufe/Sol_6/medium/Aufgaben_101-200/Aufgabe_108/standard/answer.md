@@ -1,0 +1,3 @@
+Added `SimpleCache[V]` in [simple_cache.go](/app/utils/cache/simple_cache.go) with typed add, TTL, get, loader, and active-key operations. Migrated the HTTP client, genre repository, and play tracker to use it, removing their direct `ttlcache` use and retrieval type assertions. The HTTP cache retains its 100-entry limit.
+
+Added cache behavior tests. `go test ./utils/cache ./scanner ./core/scrobbler` passes.

@@ -1,0 +1,4 @@
+VERDICT: FIX
+Review complete. Code option, compatibility mapping, and WebEngine key selection are covered by passing local tests. User-facing generated settings reference is stale: doc/help/settings.asciidoc:127 and :1800 still present threshold.text as the public option; threshold.foreground has no entry. Regenerate doc/help/settings.asciidoc from updated configdata.yml using scripts/dev/src2asciidoc.py.
+Tests: QT_QPA_PLATFORM=offscreen python -m pytest -q tests/unit/browser/webengine/test_darkmode.py tests/unit/config/test_config.py tests/unit/config/test_configfiles.py -> 407 passed, 1 skipped. QT_QPA_PLATFORM=offscreen python -m pytest -q tests/unit/config/test_configdata.py tests/unit/config/test_configcommands.py -> 152 passed. Runtime QtWebEngine is 5.15.2; 6.4 behavior covered by version parameterized tests.
+TEST_ENVIRONMENT_PROBLEM: none.

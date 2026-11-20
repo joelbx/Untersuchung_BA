@@ -1,0 +1,3 @@
+Added [isFromProton](/app/applications/mail/src/app/helpers/elements.ts), which returns `true` only when a mail element’s `IsProton` value is `1`. Message and Conversation types now support the flag, and encrypted search preserves it. I also added the requested [VerifiedBadge](/app/applications/mail/src/app/components/list/VerifiedBadge.tsx) with a tooltip.
+
+The focused test suite passed (21 tests), as did the mail type check, targeted ESLint, and `git diff --check`. I completed the work directly; there were no delegations or adoptions.

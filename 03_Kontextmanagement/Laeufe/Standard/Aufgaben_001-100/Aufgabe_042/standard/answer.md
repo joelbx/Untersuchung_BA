@@ -1,0 +1,3 @@
+Added `GET /.well-known/webfinger` through a dedicated [controller](/app/src/controllers/well-known.js) and [router](/app/src/routes/well-known.js). It validates the `acct:` resource and hostname, checks `groups:view:users` for signed-in users or the Guest role, resolves the user slug, and returns a WebFinger JSON response with profile aliases and a link.
+
+Added [integration tests](/app/test/well-known.js). ESLint and isolated controller checks pass. The integration suite could not start because the local Redis test database refused the connection at `127.0.0.1:6379`.

@@ -1,0 +1,3 @@
+Implemented trusted reverse proxy login. `ReverseProxyWhitelist` accepts comma-separated IPv4 and IPv6 CIDRs, ignores invalid entries, and supports `@` for Unix sockets. Trusted requests use `ReverseProxyUserHeader` (default `Remote-User`), with optional `ReverseProxyDefaultUser`. Successful login creates a user when needed, issues a token, updates the login time, and initializes the frontend session. Untrusted requests receive no `auth` payload. I also added nested log redaction and marked the index response `no-store`.
+
+Verification passed: Go tests for `server/app`, `log`, and `server`; 35 UI tests; formatting and diff checks.

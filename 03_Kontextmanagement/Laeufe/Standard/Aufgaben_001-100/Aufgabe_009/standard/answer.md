@@ -1,0 +1,3 @@
+Implemented session renaming for both the current session and other devices. The new `DeviceDetailHeading` provides a 100-character editor with Save, Cancel, a saving indicator, immediate name updates, and the required error message. `saveDeviceName` now persists changes through the SDK.
+
+All 54 relevant tests pass, and ESLint passes. The type check remains blocked by three `IRequest.abort` errors in `matrix-js-sdk` under `node_modules`; it reported no errors in the changed repository files.

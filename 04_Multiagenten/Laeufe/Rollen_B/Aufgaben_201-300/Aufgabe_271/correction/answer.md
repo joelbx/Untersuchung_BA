@@ -1,0 +1,3 @@
+Fixed the publisher parser so `London : Publisher; Imprint` produces `publish_places: ["London"]` and `publishers: ["Publisher; Imprint"]`. Added regression coverage in [test_utils.py](/app/openlibrary/plugins/upstream/tests/test_utils.py) and [test_code.py](/app/openlibrary/plugins/importapi/tests/test_code.py).
+
+The exact test commands flagged by the reviewer passed: 36 ImportAPI/upstream tests and 13 ISBN tests. `git diff --check` also passed.

@@ -1,0 +1,3 @@
+Fixed email confirmation timing in [src/user/email.js](/app/src/user/email.js). Pending checks now return strict booleans, `getValidationExpiry` returns the live TTL in milliseconds, and `canSendValidation` allows resends after the configured interval or immediately after expiry. The marker and confirmation record now share the configured expiry, with a one-day default.
+
+Added regression coverage in [test/user/emails.js](/app/test/user/emails.js). ESLint, all 11 email tests, and all 259 user tests pass.

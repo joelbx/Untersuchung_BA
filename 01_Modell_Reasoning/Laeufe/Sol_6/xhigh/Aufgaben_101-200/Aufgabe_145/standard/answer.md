@@ -1,0 +1,3 @@
+Updated the photos recovery flow in [Drive](/app/applications/drive/src/app/store/_photos/usePhotosRecovery.ts) and its [synchronized store copy](/app/packages/drive-store/store/_photos/usePhotosRecovery.ts). Recovery now waits for regular and trashed listings to finish decrypting, includes trashed photo entries in the move, tracks failures and remaining items, and succeeds only when no targeted items remain. Persisted in-progress recovery resumes automatically.
+
+Both copies’ recovery tests pass (11 each), and lint and `git diff --check` pass. The app type check remains blocked by an existing OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts`; it reported no recovery-file errors.

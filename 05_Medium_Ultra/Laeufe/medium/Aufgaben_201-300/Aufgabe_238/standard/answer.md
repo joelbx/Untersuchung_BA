@@ -1,0 +1,3 @@
+Replaced the public `:buffer` command with `:tab-select` and renamed its completion providers to `tabs` and `other_tabs`. Updated the default `gt` binding, help documentation, examples, and existing scenarios. Added a scenario confirming that a count overrides the index argument.
+
+Verification: 294 unit tests passed, one skipped; 14 selected browser scenarios passed, one skipped. Generated help matches the checked-in documentation, and `git diff --check` is clean.

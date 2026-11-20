@@ -1,0 +1,3 @@
+Updated [configtypes.py](/app/qutebrowser/config/configtypes.py:1004) so HSV hue percentages scale to 0–359, while other channels retain 0–255 scaling. The parser now checks function names and component counts before constructing the appropriate `QColor`. Added regression cases in [test_configtypes.py](/app/tests/unit/config/test_configtypes.py:1241).
+
+The focused `TestQtColor` suite passed: **34 tests**. The full test file had **59 unrelated failures**, including Hypothesis fixture health checks and existing Qt font and timestamp failures. `git diff --check` passed.

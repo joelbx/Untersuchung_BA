@@ -1,0 +1,5 @@
+**Diagnosis:** [AffectedProcess.ListenPorts](/app/models/packages.go:176) is declared as `[]ListenPort` under the `listenPorts` JSON key. [Report loading](/app/report/util.go:746) unmarshals saved results into that type, so a legacy string element causes the reported error.
+
+The fix spans the model and its consumers: keep `listenPorts` as `[]string`, add `ListenPortStats []PortStat`, `NewPortStat`, and `HasReachablePort` in [packages.go](/app/models/packages.go); update destination selection, matching, and reachability in [scan/base.go](/app/scan/base.go:742); update the scan producers in [debian.go](/app/scan/debian.go:1297) and [redhatbase.go](/app/scan/redhatbase.go:494); and update display code in [report/util.go](/app/report/util.go:265) and [report/tui.go](/app/report/tui.go:722).
+
+Existing [scan tests](/app/scan/base_test.go:300) cover deduplication, wildcard expansion, nil slices, and matching, but use the current field and type. I found no test for legacy JSON decoding or malformed port input. I did not run tests or edit project source or tests; this run was restricted to fault localization.

@@ -1,0 +1,3 @@
+Implemented per actor posting locks around topic creation and replies in [topics.js](/app/src/controllers/write/topics.js). Authenticated users are keyed by uid and guests by session ID; overlapping requests receive HTTP 400 with `status.code: "bad-request"`, and locks are released after success or failure. Added the error text to [error.json](/app/public/language/en-GB/error.json).
+
+**Verification:** `test/topics.js` passed (229 passing); ESLint, locale JSON parsing, and `git diff --check` passed.

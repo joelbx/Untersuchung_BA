@@ -1,0 +1,3 @@
+Added `STAGED_SOURCES` and `ImportItem.find_staged_or_pending` in [imports.py](/app/openlibrary/core/imports.py:22). ISBN resolution now uses the helper to find and process local staged or pending records in [models.py](/app/openlibrary/core/models.py:409). Added coverage for default and custom sources, status filtering, and empty inputs.
+
+Verification passed: import tests (8), model tests (10), Ruff, and `git diff --check`.

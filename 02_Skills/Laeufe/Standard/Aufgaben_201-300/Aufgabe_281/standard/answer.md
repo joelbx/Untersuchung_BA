@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` for MongoDB and Redis. Both validate tuple input and safe integer increments, update multiple fields per object atomically, create missing objects and fields, and invalidate cache entries after successful writes. MongoDB uses `$inc` upserts; Redis uses pipelined per-key Lua operations with `HINCRBY`.
+
+The full hash test suite, focused bulk tests, lint, and syntax checks passed. MongoDB was checked with a local operation stub; live MongoDB integration remains untested because `mongod` is unavailable.

@@ -1,0 +1,3 @@
+`tsh` now reads `TELEPORT_KUBE_CLUSTER` into `KubernetesCluster` when no CLI Kubernetes cluster was selected. I added precedence tests and confirmed the existing `TELEPORT_CLUSTER`/`TELEPORT_SITE` behavior and `TELEPORT_HOME` normalization and override behavior.
+
+The focused `tsh` tests passed, and `git diff --check` passed. Changes are in [tsh.go](/app/tool/tsh/tsh.go) and [tsh_test.go](/app/tool/tsh/tsh_test.go).

@@ -1,0 +1,1 @@
+Complete: Registered getOpenSubsonicExtensions outside required-parameter, authentication, and last-access middleware. Kept shared form parsing so ?f=json works. Added route tests for both URL forms, exact three-extension JSON payload, and protected-route parameter enforcement. `go test ./server/subsonic -count=1` and `git diff --check` pass.

@@ -1,0 +1,3 @@
+Resolved the mailbox list reload issue. List requests now wait for backend item changes to finish, stale or in-flight responses are discarded, and failed fetches retry after two seconds. Loading uses the current page and query parameters.
+
+Added regression coverage in [Mailbox.elements.test.tsx](/app/applications/mail/src/app/containers/mailbox/tests/Mailbox.elements.test.tsx). **Validation:** all 16 mailbox element tests pass; TypeScript, ESLint, formatting, and diff checks pass.

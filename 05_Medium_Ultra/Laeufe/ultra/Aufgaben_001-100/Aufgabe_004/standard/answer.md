@@ -1,0 +1,3 @@
+Resolved the PassAliases drawer issue. It now shows the full alias list or a clear “No aliases” state, and “Get an alias” opens the creation flow. The new [provider hook](/app/packages/components/components/drawer/views/SecurityCenter/PassAliases/usePassAliasesProviderSetup.ts) handles missing vaults, alias loading, creation, and refresh; the [bridge](/app/packages/pass/lib/bridge/PassBridgeFactory.ts) creates a vault only when needed.
+
+I delegated the bridge, helper, and test work to native subagents, then integrated and verified the patch. All 10 focused tests pass, along with Components and Pass type checks, targeted lint, and formatting checks.

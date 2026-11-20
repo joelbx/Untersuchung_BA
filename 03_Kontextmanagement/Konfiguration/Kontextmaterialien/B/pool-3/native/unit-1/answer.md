@@ -1,0 +1,1 @@
+Batch 1 is complete. The file contains **1,863 complete records**. Line 1,865 is blank and has zero columns; there is no incomplete source fragment. The [JSON summary](/app/catalogue-1-summary.json) passed a second local check.

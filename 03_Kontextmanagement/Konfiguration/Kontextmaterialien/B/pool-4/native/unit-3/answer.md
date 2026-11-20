@@ -1,0 +1,1 @@
+Batch 3 is complete. I counted **1,863 complete records**. Line 1865 is empty, giving one zero-column anomaly; there is no incomplete nonempty final fragment. The [JSON summary](/app/catalogue-3-summary.json) passed a second local check.

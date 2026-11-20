@@ -1,0 +1,3 @@
+Implemented collection upgrades with `--upgrade` / `-U`, constraint-aware resolution, idempotent skips for already installed versions, and upgrades for requirements files. Added integration coverage in [upgrade.yml](/app/test/integration/targets/ansible-galaxy-collection/tasks/upgrade.yml).
+
+Verification: **140 unit tests passed**; compile and `git diff --check` passed. The integration play was added but not run because it requires Galaxy/Pulp services.

@@ -1,0 +1,3 @@
+Resolved the EC2 availability check. [ec2.go](/app/lib/utils/ec2.go) now reads the instance ID through the IMDS client with a 250 ms timeout and accepts only valid EC2 ID formats. It also supports functional options, including `WithIMDSClient`. [Tests](/app/lib/utils/ec2_test.go) cover captive portal HTML, valid and malformed IDs, option errors, and timeout behavior.
+
+`go test ./lib/utils -count=1` and `git diff --check` passed.

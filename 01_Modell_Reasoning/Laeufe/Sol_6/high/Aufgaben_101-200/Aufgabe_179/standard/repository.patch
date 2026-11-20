@@ -1,0 +1,215 @@
+diff --git a/lib/auth/auth_test.go b/lib/auth/auth_test.go
+index 86a7c73..6442dd3 100644
+--- a/lib/auth/auth_test.go
++++ b/lib/auth/auth_test.go
+@@ -116,6 +116,63 @@ func (s *AuthSuite) TearDownTest(c *C) {
+ 	}
+ }
+ 
++func (s *AuthSuite) TestRemoteClusterStatusHeartbeat(c *C) {
++	const clusterName = "remote.example.com"
++	rc, err := services.NewRemoteCluster(clusterName)
++	c.Assert(err, IsNil)
++	c.Assert(s.a.CreateRemoteCluster(rc), IsNil)
++
++	checkCluster := func(status string, heartbeat time.Time) {
++		cluster, err := s.a.GetRemoteCluster(clusterName)
++		c.Assert(err, IsNil)
++		c.Assert(cluster.GetConnectionStatus(), Equals, status)
++		c.Assert(cluster.GetLastHeartbeat().Equal(heartbeat), Equals, true)
++		if !heartbeat.IsZero() {
++			c.Assert(cluster.GetLastHeartbeat().Location(), Equals, time.UTC)
++		}
++
++		// Status and heartbeat must survive a fresh read from storage.
++		stored, err := s.a.Presence.GetRemoteCluster(clusterName)
++		c.Assert(err, IsNil)
++		c.Assert(stored.GetConnectionStatus(), Equals, status)
++		c.Assert(stored.GetLastHeartbeat().Equal(heartbeat), Equals, true)
++	}
++
++	checkCluster(teleport.RemoteClusterStatusOffline, time.Time{})
++
++	older := time.Now().UTC().Add(-2 * time.Minute).Truncate(time.Second)
++	newer := older.Add(time.Minute)
++	first, err := services.NewTunnelConnection("first", services.TunnelConnectionSpecV2{
++		ClusterName: clusterName, ProxyName: "proxy", LastHeartbeat: older,
++	})
++	c.Assert(err, IsNil)
++	c.Assert(s.a.UpsertTunnelConnection(first), IsNil)
++	checkCluster(teleport.RemoteClusterStatusOnline, older)
++	first.SetLastHeartbeat(older.Add(30 * time.Second))
++	c.Assert(s.a.UpsertTunnelConnection(first), IsNil)
++	checkCluster(teleport.RemoteClusterStatusOnline, first.GetLastHeartbeat())
++
++	second, err := services.NewTunnelConnection("second", services.TunnelConnectionSpecV2{
++		ClusterName: clusterName, ProxyName: "proxy", LastHeartbeat: newer.In(time.FixedZone("offset", 3600)),
++	})
++	c.Assert(err, IsNil)
++	c.Assert(s.a.UpsertTunnelConnection(second), IsNil)
++	checkCluster(teleport.RemoteClusterStatusOnline, newer)
++
++	// Removing the latest tunnel cannot move the recorded heartbeat backward.
++	c.Assert(s.a.DeleteTunnelConnection(clusterName, second.GetName()), IsNil)
++	checkCluster(teleport.RemoteClusterStatusOnline, newer)
++
++	c.Assert(s.a.DeleteTunnelConnection(clusterName, first.GetName()), IsNil)
++	checkCluster(teleport.RemoteClusterStatusOffline, newer)
++
++	clusters, err := s.a.GetRemoteClusters()
++	c.Assert(err, IsNil)
++	c.Assert(clusters, HasLen, 1)
++	c.Assert(clusters[0].GetConnectionStatus(), Equals, teleport.RemoteClusterStatusOffline)
++	c.Assert(clusters[0].GetLastHeartbeat().Equal(newer), Equals, true)
++}
++
+ func (s *AuthSuite) TestSessions(c *C) {
+ 	c.Assert(s.a.UpsertCertAuthority(
+ 		suite.NewTestCA(services.UserCA, "me.localhost")), IsNil)
+diff --git a/lib/auth/auth_with_roles.go b/lib/auth/auth_with_roles.go
+index 626ac8a..a61d6ee 100644
+--- a/lib/auth/auth_with_roles.go
++++ b/lib/auth/auth_with_roles.go
+@@ -1737,6 +1737,13 @@ func (a *AuthWithRoles) CreateRemoteCluster(conn services.RemoteCluster) error {
+ 	return a.authServer.CreateRemoteCluster(conn)
+ }
+ 
++func (a *AuthWithRoles) UpdateRemoteCluster(ctx context.Context, rc services.RemoteCluster) error {
++	if err := a.action(defaults.Namespace, services.KindRemoteCluster, services.VerbUpdate); err != nil {
++		return trace.Wrap(err)
++	}
++	return a.authServer.UpdateRemoteCluster(ctx, rc)
++}
++
+ func (a *AuthWithRoles) GetRemoteCluster(clusterName string) (services.RemoteCluster, error) {
+ 	if err := a.action(defaults.Namespace, services.KindRemoteCluster, services.VerbRead); err != nil {
+ 		return nil, trace.Wrap(err)
+diff --git a/lib/auth/clt.go b/lib/auth/clt.go
+index 4be8a55..a80b7ab 100644
+--- a/lib/auth/clt.go
++++ b/lib/auth/clt.go
+@@ -1183,6 +1183,11 @@ func (c *Client) CreateRemoteCluster(rc services.RemoteCluster) error {
+ 	return trace.Wrap(err)
+ }
+ 
++// UpdateRemoteCluster is only supported by the local presence service.
++func (c *Client) UpdateRemoteCluster(ctx context.Context, rc services.RemoteCluster) error {
++	return trace.NotImplemented("remote cluster status updates are only supported locally")
++}
++
+ // UpsertAuthServer is used by auth servers to report their presence
+ // to other auth servers in form of hearbeat expiring after ttl period.
+ func (c *Client) UpsertAuthServer(s services.Server) error {
+diff --git a/lib/auth/trustedcluster.go b/lib/auth/trustedcluster.go
+index 7150eed..642b357 100644
+--- a/lib/auth/trustedcluster.go
++++ b/lib/auth/trustedcluster.go
+@@ -355,6 +355,8 @@ func (a *AuthServer) GetRemoteCluster(clusterName string) (services.RemoteCluste
+ }
+ 
+ func (a *AuthServer) updateRemoteClusterStatus(remoteCluster services.RemoteCluster) error {
++	previousStatus := remoteCluster.GetConnectionStatus()
++	previousHeartbeat := remoteCluster.GetLastHeartbeat()
+ 	clusterConfig, err := a.GetClusterConfig()
+ 	if err != nil {
+ 		return trace.Wrap(err)
+@@ -373,9 +375,14 @@ func (a *AuthServer) updateRemoteClusterStatus(remoteCluster services.RemoteClus
+ 		offlineThreshold := time.Duration(keepAliveCountMax) * keepAliveInterval
+ 		tunnelStatus := services.TunnelConnectionStatus(a.clock, lastConn, offlineThreshold)
+ 		remoteCluster.SetConnectionStatus(tunnelStatus)
+-		remoteCluster.SetLastHeartbeat(lastConn.GetLastHeartbeat())
++		if heartbeat := lastConn.GetLastHeartbeat().UTC(); heartbeat.After(remoteCluster.GetLastHeartbeat()) {
++			remoteCluster.SetLastHeartbeat(heartbeat)
++		}
+ 	}
+-	return nil
++	if remoteCluster.GetConnectionStatus() == previousStatus && remoteCluster.GetLastHeartbeat().Equal(previousHeartbeat) {
++		return nil
++	}
++	return trace.Wrap(a.Presence.UpdateRemoteCluster(context.Background(), remoteCluster))
+ }
+ 
+ // GetRemoteClusters returns remote clusters with updated statuses
+diff --git a/lib/services/local/presence.go b/lib/services/local/presence.go
+index 8e6e797..5afeab3 100644
+--- a/lib/services/local/presence.go
++++ b/lib/services/local/presence.go
+@@ -606,6 +606,20 @@ func (s *PresenceService) CreateRemoteCluster(rc services.RemoteCluster) error {
+ 	return nil
+ }
+ 
++// UpdateRemoteCluster persists a remote cluster's status and heartbeat.
++func (s *PresenceService) UpdateRemoteCluster(ctx context.Context, rc services.RemoteCluster) error {
++	value, err := json.Marshal(rc)
++	if err != nil {
++		return trace.Wrap(err)
++	}
++	_, err = s.Put(ctx, backend.Item{
++		Key:     backend.Key(remoteClustersPrefix, rc.GetName()),
++		Value:   value,
++		Expires: rc.Expiry(),
++	})
++	return trace.Wrap(err)
++}
++
+ // GetRemoteClusters returns a list of remote clusters
+ func (s *PresenceService) GetRemoteClusters(opts ...services.MarshalOption) ([]services.RemoteCluster, error) {
+ 	startKey := backend.Key(remoteClustersPrefix)
+diff --git a/lib/services/local/presence_test.go b/lib/services/local/presence_test.go
+index ad496a5..53a7875 100644
+--- a/lib/services/local/presence_test.go
++++ b/lib/services/local/presence_test.go
+@@ -20,6 +20,7 @@ import (
+ 	"context"
+ 	"fmt"
+ 	"testing"
++	"time"
+ 
+ 	"github.com/gravitational/teleport/lib/backend"
+ 	"github.com/gravitational/teleport/lib/backend/lite"
+@@ -57,6 +58,31 @@ func (s *PresenceSuite) TearDownTest(c *check.C) {
+ 	c.Assert(s.bk.Close(), check.IsNil)
+ }
+ 
++func (s *PresenceSuite) TestUpdateRemoteCluster(c *check.C) {
++	ctx := context.Background()
++	presence := NewPresenceService(s.bk)
++	rc, err := services.NewRemoteCluster("remote.example.com")
++	c.Assert(err, check.IsNil)
++	expires := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
++	rc.SetExpiry(expires)
++	c.Assert(presence.CreateRemoteCluster(rc), check.IsNil)
++
++	heartbeat := time.Now().UTC().Truncate(time.Second)
++	rc.SetConnectionStatus("online")
++	rc.SetLastHeartbeat(heartbeat)
++	c.Assert(presence.UpdateRemoteCluster(ctx, rc), check.IsNil)
++
++	stored, err := presence.GetRemoteCluster(rc.GetName())
++	c.Assert(err, check.IsNil)
++	c.Assert(stored.GetConnectionStatus(), check.Equals, "online")
++	c.Assert(stored.GetLastHeartbeat().Equal(heartbeat), check.Equals, true)
++	c.Assert(stored.Expiry().Equal(expires), check.Equals, true)
++
++	item, err := s.bk.Get(ctx, backend.Key(remoteClustersPrefix, rc.GetName()))
++	c.Assert(err, check.IsNil)
++	c.Assert(item.Expires.Equal(expires), check.Equals, true)
++}
++
+ func (s *PresenceSuite) TestTrustedClusterCRUD(c *check.C) {
+ 	ctx := context.Background()
+ 	presenceBackend := NewPresenceService(s.bk)
+diff --git a/lib/services/presence.go b/lib/services/presence.go
+index 507beee..1562a9d 100644
+--- a/lib/services/presence.go
++++ b/lib/services/presence.go
+@@ -148,6 +148,9 @@ type Presence interface {
+ 	// CreateRemoteCluster creates a remote cluster
+ 	CreateRemoteCluster(RemoteCluster) error
+ 
++	// UpdateRemoteCluster persists a remote cluster's status and heartbeat
++	UpdateRemoteCluster(ctx context.Context, rc RemoteCluster) error
++
+ 	// GetRemoteClusters returns a list of remote clusters
+ 	GetRemoteClusters(opts ...MarshalOption) ([]RemoteCluster, error)
+ 

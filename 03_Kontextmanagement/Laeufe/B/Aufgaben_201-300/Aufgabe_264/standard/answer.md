@@ -1,0 +1,3 @@
+Implemented bounded Meraki API retries in [meraki.py](/app/lib/ansible/module_utils/network/meraki/meraki.py). HTTP 429, 500, and 502 now retry up to three times; persistent 429 and server errors raise their new exception types. Other HTTP errors of 400 or higher raise `HTTPError` immediately. Each response updates `status`, and rate limiting produces a warning with the retry count.
+
+Updated the [Meraki unit tests](/app/test/units/module_utils/network/meraki/test_meraki.py). **All 13 pass**, and `git diff --check` passes.

@@ -1,0 +1,3 @@
+Fixed the AIX processor facts in [aix.py](/app/lib/ansible/module_utils/facts/hardware/aix.py). `processor_count` is now 1, available processor devices determine `processor_cores`, SMT determines threads per core with a default of 1, and their product determines `processor_vcpus`. `processor` is now a list.
+
+Added [AIX regression tests](/app/test/units/module_utils/facts/hardware/test_aix.py). All 6 targeted and existing AIX tests pass.

@@ -1,0 +1,3 @@
+Enabled the cross-window `:tab-select 0/2` scenario in [tabs.feature](/app/tests/end2end/features/tabs.feature:1260). Its extra tab was landing in the wrong window during setup, so I removed that step; the scenario now passes and checks the selected tab and foreground window.
+
+The reviewer’s test selections pass: **294 passed, 1 skipped** in unit tests and **18 passed, 0 skipped** in QtWebEngine end-to-end tests. The enabled scenario also passed three consecutive runs, and `git diff --check` passed.

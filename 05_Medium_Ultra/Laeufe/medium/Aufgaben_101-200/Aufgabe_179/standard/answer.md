@@ -1,0 +1,3 @@
+RemoteCluster status and heartbeat are now persisted in backend storage. Status refreshes keep the greatest heartbeat seen, so removing an intermediate tunnel cannot move it backward; removing the final tunnel sets the cluster offline while retaining that heartbeat. The update also preserves the resource’s expiry.
+
+Regression tests cover both tunnel deletions and expiry preservation. `go test ./lib/auth ./lib/services/local` passed.

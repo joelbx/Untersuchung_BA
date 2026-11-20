@@ -1,0 +1,3 @@
+Added the importable `make_date_string` formatter and a `patron_check_ins` update endpoint that requires an event ID and either a year or data. The endpoint checks that the event belongs to the patron, then applies the update. I also fixed the event data update helper so the endpoint can call it.
+
+The check-ins and event storage tests pass together: **14 passed**. Running the event storage test file alone still hits an existing circular import during collection.

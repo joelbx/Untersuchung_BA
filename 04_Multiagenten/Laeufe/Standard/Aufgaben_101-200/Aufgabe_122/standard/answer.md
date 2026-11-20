@@ -1,0 +1,3 @@
+Added `storage.readOnly` to backend configuration and metadata. Explicit settings on non-database storage now return the required validation error, including `readOnly: false`. The UI derives read-only state from the config, defaults non-database backends to read-only, and shows a backend icon with the “Read-Only” badge when active. Authentication bootstrap now skips database access for configured non-database storage when authentication is disabled.
+
+Added the requested invalid configuration fixture and regression tests. `go test ./internal/config ./internal/cmd` passes. The frontend build was unavailable because UI dependencies are not installed locally.

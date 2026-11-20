@@ -1,0 +1,3 @@
+Updated the mailbox list to wait for in-progress item changes before requesting data. Fetch failures now schedule a retry after two seconds; responses marked stale are discarded and retried after one second. The loading selector now uses the current page and query parameters. Added focused tests for action tracking and both retry paths.
+
+Verification passed: 12 mailbox tests, 3 new tests, TypeScript, ESLint, and diff checks. The mailbox test suite reported a lingering async handle after its tests passed.

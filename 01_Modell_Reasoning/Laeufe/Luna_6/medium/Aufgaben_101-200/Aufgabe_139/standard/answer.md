@@ -1,0 +1,3 @@
+Implemented promise-item metadata augmentation for incomplete records. It now prefers ISBN-10, falls back to a B-prefixed ASIN, and fills only missing fields. Promise imports also stage only incomplete records, emit total and incomplete gauges, and remove the `["????"]` publisher placeholder. Validation accepts records with a strong identifier when they don’t meet the existing complete-book model.
+
+Verification: 23 targeted tests passed, and `git diff --check` passed. The checkpoint is at [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

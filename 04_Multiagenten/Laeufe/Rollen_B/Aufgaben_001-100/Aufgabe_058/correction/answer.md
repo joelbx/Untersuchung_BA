@@ -1,0 +1,3 @@
+Fixed the privacy transition in [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts): an identified PostHog client now resets before switching to anonymous mode, including when DNT forces the switch. Added transition and logout coverage in [PosthogAnalytics-test.ts](/app/test/PosthogAnalytics-test.ts).
+
+The flagged Jest check passed (23/23), and ESLint passed. **TEST_ENVIRONMENT_PROBLEM:** the flagged TypeScript check still fails on repository-wide dependency and type errors, including missing `@sentry/types` and `rrweb-snapshot`.

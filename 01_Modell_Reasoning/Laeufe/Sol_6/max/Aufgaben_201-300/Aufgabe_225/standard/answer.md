@@ -1,0 +1,3 @@
+Resolved the KEV data model issue. [VulnInfo](/app/models/vulninfos.go:259) now has a dedicated `KEVs` field with CISA and VulnCheck details. [FillWithKEVuln](/app/detector/kevuln.go:52) populates it from both sources and normalizes placeholder due dates. JSON output sorts KEVs by source and vulnerability name, and reports and the TUI show KEV status. Legacy CISA alert JSON remains readable.
+
+The full Go test suite passed offline: `GOPROXY=off GOSUMDB=off go test -mod=mod ./...`.

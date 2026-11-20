@@ -1,0 +1,3 @@
+Updated the Drive extended-attribute helpers to use `XAttrCreateParams`, added public `DeepPartial` and attribute types, and updated the uploader call site. File creation now omits a zero-size remainder block, normalizes SHA1 digests, and returns frozen attributes. Parsing handles malformed or partial data without throwing. The requested `services/extendedAttributes.ts` path re-exports the implementation.
+
+Verification passed: 5 focused Jest tests, the Drive strict TypeScript check, and `git diff --check`.

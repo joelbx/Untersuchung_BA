@@ -1,0 +1,3 @@
+Implemented the chat allow list, deny list, and disable incoming messages setting. Account settings now expose all three, and server-side checks enforce them for chat initiation, room creation, and invites. The [upgrade](/app/src/upgrades/4.3.0/chat_allow_list.js) seeds allow lists from existing follows, preserves the no-follows restriction, and is safe to rerun.
+
+Verification: **363 existing messaging, user, and upgrade tests passed**. The migration test passed again after legacy-field cleanup; lint and schema checks passed.

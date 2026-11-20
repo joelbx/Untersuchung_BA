@@ -1,0 +1,3 @@
+Updated collection manifest handling so an absent `manifest` uses `Sentinel` and preserves `build_ignore` behavior. Explicit `manifest: {}` and `manifest: null` now use the manifest directives path. The file walker also excludes symlinks to files outside the collection; existing coverage confirms an internal directory symlink appears once.
+
+Verification: all 67 collection unit tests passed, and `git diff --check` passed.

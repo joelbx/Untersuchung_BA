@@ -1,0 +1,3 @@
+Implemented local artist image lookup. Albums now expose unique media directories, and artist artwork checks the inferred artist folder for a case-insensitive `artist.*` match before existing fallbacks. Trace logs now include the duration of each artwork source attempt.
+
+Existing tests passed: `go test ./core/artwork ./model` and `go test ./persistence ./scanner`. `git diff --check` passed. The scanner build emitted a TagLib deprecation warning.

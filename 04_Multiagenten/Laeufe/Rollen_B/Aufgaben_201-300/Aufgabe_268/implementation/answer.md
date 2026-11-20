@@ -1,0 +1,3 @@
+Updated process error messages to include the capitalized process name, the command in single quotes, the error type, and Qt’s error detail. Failed starts now include the executable hint on non-Windows systems when the detail indicates a missing file or permission denial. I also updated the unit tests and spawn scenario expectation.
+
+The focused unit suite passed: **30 tests**. `git diff --check` is clean.

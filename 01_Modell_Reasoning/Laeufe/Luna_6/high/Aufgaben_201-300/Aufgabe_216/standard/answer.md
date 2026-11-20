@@ -1,0 +1,3 @@
+Updated SSH configuration to resolve through the connection plugin’s option system, including transfer method, retries, command arguments, timeout, executable, and control path settings. Removed SSH-specific global configuration entries and updated transport detection to use the plugin’s SSH executable setting. Reset now skips the stop action and logs a debug message when the configured control socket path is absent.
+
+Validation passed: 20 SSH and PlayContext unit tests; `git diff --check`.

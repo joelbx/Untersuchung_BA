@@ -1,0 +1,5 @@
+The fault is in [_parse_clixml](/app/lib/ansible/plugins/shell/powershell.py:32). It removes only `_x000D__x000A_`, inserts CRLF between every matching `<S>` entry, and raises `AttributeError` when a matching entry has no text. Its byte conversion also needs an encoding policy that preserves unpaired surrogates.
+
+The fix should decode valid UTF-16 escape tokens, combine surrogate pairs, preserve invalid tokens and the specified `_x005F_` behavior, concatenate entries within each `<Objs>` block, and place CRLF only between block results. The [existing tests](/app/test/units/plugins/shell/test_powershell.py:6) pass (5/5), but their single-stream expectation reflects the current separator behavior and will need updating.
+
+I recorded the diagnosis in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). This specialist run was restricted to fault localization, so project source and tests were not changed.

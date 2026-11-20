@@ -1,0 +1,3 @@
+Implemented Best Book Awards backend support in the checked-out repository. Nominations now have persistent storage, read-status and uniqueness validation, add/update/remove and count APIs, and Work model accessors. Work redirects update award references and counts; account anonymization updates award usernames and reports the number changed.
+
+Verification: 51 relevant tests passed. Ruff and `git diff --check` passed.

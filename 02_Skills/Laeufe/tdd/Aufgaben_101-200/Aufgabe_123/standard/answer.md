@@ -1,0 +1,3 @@
+Resolved the notification issue in `/app`. String content now renders as sanitized HTML, and links in both HTML strings and React elements receive `rel="noopener noreferrer"` and `target="_blank"`. Non-success notifications deduplicate by the specified key fallback; repeated success notifications remain visible.
+
+Added regression tests in [notifications.test.tsx](/app/packages/components/containers/notifications/notifications.test.tsx). The full component suite passed: **33 suites, 127 tests passed, 1 skipped**. Type checking, lint, formatting, and `git diff --check` also passed.

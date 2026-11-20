@@ -1,0 +1,3 @@
+Updated [OS EOL data](/app/config/os.go) for Fedora 37, 38, and 40; SUSE Enterprise Desktop and Server 13 and 14; and macOS 11 and 15. Extended the [Windows rollup mappings](/app/scanner/windows.go) for Windows 10 22H2, Windows 11 builds 22621 and 22631, and Server 2022. All added rollups use named struct fields.
+
+Updated the existing tests and added cutoff and KB detection checks. `GOPROXY=off GOSUMDB=off go test ./config ./scanner` and `git diff --check` passed.

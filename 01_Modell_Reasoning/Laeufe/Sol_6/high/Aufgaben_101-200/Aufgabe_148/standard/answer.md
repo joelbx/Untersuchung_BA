@@ -1,0 +1,3 @@
+The SSH multiplexer now recognizes `Teleport-Proxy` JSON messages terminated by a null byte and routes them as SSH. When the payload includes `ClientAddr`, the routed connection exposes it through `RemoteAddr()`. The prefix remains available for the SSH server to read, and ordinary SSH behavior is unchanged.
+
+Added listener tests for IPv4, IPv6, an absent client address, and standard SSH. `go test ./lib/multiplexer` and `git diff --check` pass.

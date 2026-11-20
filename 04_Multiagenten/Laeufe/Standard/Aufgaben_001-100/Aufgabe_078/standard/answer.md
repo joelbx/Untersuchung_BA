@@ -1,0 +1,3 @@
+The voice broadcast badge now uses a shared `VoiceBroadcastLiveness` value: red for live playback, grey for buffering or paused playback, and hidden when not live. Playback emits `LivenessChanged` only when the value changes, and the hook keeps the header in sync. I also added `VoiceBroadcastChunkEvents.isLast()` and updated the recording call sites.
+
+All 217 voice broadcast tests pass. ESLint, stylelint, and `git diff --check` pass. The full TypeScript check remains blocked by an existing error in untouched [notifications.ts](/app/src/utils/notifications.ts:79).

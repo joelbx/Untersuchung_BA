@@ -1,0 +1,3 @@
+Replaced the process-local posting guard with an atomic, database-backed lock and owner-checked release. The regression test now holds one topic request open, checks that concurrent requests return HTTP 400 with `bad-request`, and verifies rejection from a second Node process. It also checks that one topic and the corresponding counter changes result.
+
+The focused test passed, the full `test/topics.js` suite passed (230 tests), and lint passed. MongoDB and PostgreSQL variants were not run locally.

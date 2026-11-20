@@ -1,0 +1,3 @@
+Implemented user scoped properties in [user_props_repository.go](/app/persistence/user_props_repository.go), exposed through `DataStore.UserProps`. A new migration creates `user_props` and transfers existing Last.fm session keys. Last.fm now uses the `sessionKeyProperty` constant and derives the user from context; the authorization callback adds its target user to that context.
+
+Verification passed: `go test ./persistence ./core/agents/lastfm` and `go test ./...`. `git diff --check` also passed. The checkpoint is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Implemented the version-aware canvas workaround. The setting now accepts `always`, `auto`, and `never`, with `auto` as the default. In `auto`, the flag is added only on Qt 6 when the detected Chromium major version is below 111.
+
+The boundary and unknown-version cases are covered in the updated tests. **All 110 tests** in `tests/unit/config/test_qtargs.py` pass with Qt’s offscreen platform setting.

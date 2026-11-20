@@ -1,0 +1,3 @@
+Fixed the user info panel’s admin actions. Kick, Ban, and Mute now share a lock for the selected member: all three controls become `disabled` with `aria-disabled="true"` on first activation, before confirmation opens. The lock clears after cancellation, success, or failure; a failure shows one action-specific error message.
+
+The [UserInfo tests](/app/test/components/views/right_panel/UserInfo-test.tsx) pass (69 tests), as do ESLint, Prettier, and `git diff --check`. The full TypeScript check still reports existing errors in unrelated files; it reports none in the changed UserInfo files.

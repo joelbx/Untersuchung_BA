@@ -1,0 +1,3 @@
+Updated author matching in [load_book.py](/app/openlibrary/catalog/add_book/load_book.py) to compare extracted birth and death years across date formats, continue from an unsuitable exact match to alternate name and surname searches, and treat asterisks in names literally. Honorific removal now accepts and returns a string, handles exceptions and standalone honorifics, and new author records retain their input fields. I also tightened [extract_year](/app/openlibrary/core/helpers.py) and added regression tests.
+
+Verification: **141 relevant tests passed**, along with `ruff check` and `git diff --check`.

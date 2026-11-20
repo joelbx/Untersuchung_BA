@@ -1,0 +1,5 @@
+Implemented `ansible-galaxy collection install --upgrade` (`-U`). It selects the newest version within each requested constraint, upgrades transitive dependencies only when required, honors `--pre`, and skips reinstalling collections already at the selected version. With `--no-deps`, it fails before installing if an existing dependency would violate a constraint.
+
+The CLI wiring is in [galaxy.py](/app/lib/ansible/cli/galaxy.py:399), resolver and install changes are in [collection/__init__.py](/app/lib/ansible/galaxy/collection/__init__.py:402) and [providers.py](/app/lib/ansible/galaxy/dependency_resolution/providers.py:260), and the new integration coverage is in [upgrade.yml](/app/test/integration/targets/ansible-galaxy-collection/tasks/upgrade.yml:1).
+
+Two agents handled CLI and integration coverage, and resolver unit tests; I integrated and verified the patch. **277 relevant unit tests pass.** The integration playbook passed syntax validation; its Pulp-backed runtime was unavailable locally.

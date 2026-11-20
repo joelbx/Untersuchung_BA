@@ -1,0 +1,3 @@
+Implemented the QtWebEngine 5.15.3 locale workaround. The new `qt.workarounds.locale` setting defaults to `false` and is available only with the QtWebEngine backend. When enabled on Linux, qutebrowser checks for the locale’s `.pak` file and adds `--lang` with a Chromium-compatible fallback only when that file is missing.
+
+Added coverage for locale mappings, missing packs, the version and platform gates, and argument generation. The relevant tests passed: **182 passed**.

@@ -1,0 +1,145 @@
+diff --git a/lib/utils/prompt/context_reader.go b/lib/utils/prompt/context_reader.go
+index 01d4371..ff02f40 100644
+--- a/lib/utils/prompt/context_reader.go
++++ b/lib/utils/prompt/context_reader.go
+@@ -167,6 +167,13 @@ func (cr *ContextReader) processReads() {
+ 			value, err = cr.term.ReadPassword(cr.fd)
+ 		}
+ 		cr.mu.Lock()
++		// ReadPassword normally restores the terminal state itself. If it
++		// returns an error, restore it here as well in case the read was
++		// interrupted before that restoration completed.
++		var restoreErr error
++		if state == readerStatePassword && err != nil {
++			restoreErr = cr.maybeRestoreTerm()
++		}
+ 		cr.previousTermState = nil // A finalized read resets the terminal.
+ 		switch cr.state {
+ 		case readerStateClosed: // Don't transition from closed.
+@@ -174,6 +181,9 @@ func (cr *ContextReader) processReads() {
+ 			cr.state = readerStateIdle
+ 		}
+ 		cr.mu.Unlock()
++		if restoreErr != nil {
++			err = trace.NewAggregate(err, restoreErr)
++		}
+ 
+ 		select {
+ 		case <-cr.closed:
+@@ -208,12 +218,8 @@ func (cr *ContextReader) fireCleanRead() error {
+ 	case readerStateClean: // OK, ongoing read.
+ 	case readerStatePassword: // OK, ongoing read.
+ 		// Attempt to reset terminal state to non-password.
+-		if cr.previousTermState != nil {
+-			state := cr.previousTermState
+-			cr.previousTermState = nil
+-			if err := cr.term.Restore(cr.fd, state); err != nil {
+-				return trace.Wrap(err)
+-			}
++		if err := cr.maybeRestoreTerm(); err != nil {
++			return trace.Wrap(err)
+ 		}
+ 	case readerStateClosed:
+ 		return ErrReaderClosed
+@@ -221,9 +227,34 @@ func (cr *ContextReader) fireCleanRead() error {
+ 	return nil
+ }
+ 
++// maybeRestoreTerm restores the terminal state saved for a password read.
++// The caller must hold cr.mu.
++func (cr *ContextReader) maybeRestoreTerm() error {
++	if cr.state != readerStatePassword || cr.previousTermState == nil {
++		return nil
++	}
++	if err := cr.term.Restore(cr.fd, cr.previousTermState); err != nil {
++		return trace.Wrap(err)
++	}
++	cr.previousTermState = nil
++	return nil
++}
++
+ func (cr *ContextReader) waitForRead(ctx context.Context) ([]byte, error) {
+ 	select {
+ 	case <-ctx.Done():
++		cr.mu.Lock()
++		restoreErr := cr.maybeRestoreTerm()
++		if restoreErr == nil && cr.state == readerStatePassword {
++			// The caller abandoned the password read. Keep the active read
++			// available for a future clean read, but don't leave the reader in
++			// password mode.
++			cr.state = readerStateClean
++		}
++		cr.mu.Unlock()
++		if restoreErr != nil {
++			return nil, trace.NewAggregate(trace.Wrap(ctx.Err()), restoreErr)
++		}
+ 		return nil, trace.Wrap(ctx.Err())
+ 	case <-cr.closed:
+ 		return nil, ErrReaderClosed
+@@ -277,15 +308,19 @@ func (cr *ContextReader) firePasswordRead() error {
+ // doesn't guarantee a release of all resources.
+ func (cr *ContextReader) Close() error {
+ 	cr.mu.Lock()
++	var restoreErr error
+ 	switch cr.state {
+ 	case readerStateClosed: // OK, already closed.
+ 	default:
++		// Restore before marking the reader closed so an active password read
++		// cannot leave the terminal in raw mode.
++		restoreErr = cr.maybeRestoreTerm()
+ 		cr.state = readerStateClosed
+ 		close(cr.closed) // interrupt blocked sends.
+ 		cr.cond.Broadcast()
+ 	}
+ 	cr.mu.Unlock()
+-	return nil
++	return restoreErr
+ }
+ 
+ // PasswordReader is a ContextReader that reads passwords from the underlying
+diff --git a/lib/utils/prompt/stdin.go b/lib/utils/prompt/stdin.go
+index 39d9646..ba4d116 100644
+--- a/lib/utils/prompt/stdin.go
++++ b/lib/utils/prompt/stdin.go
+@@ -19,6 +19,8 @@ package prompt
+ import (
+ 	"os"
+ 	"sync"
++
++	"github.com/sirupsen/logrus"
+ )
+ 
+ var (
+@@ -52,3 +54,17 @@ func SetStdin(rd StdinReader) {
+ 	defer stdinMU.Unlock()
+ 	stdin = rd
+ }
++
++// NotifyExit signals the stdin prompt reader that the program is exiting.
++// Closing a ContextReader restores the terminal if a password read is active.
++func NotifyExit() {
++	stdinMU.Lock()
++	defer stdinMU.Unlock()
++	closer, ok := stdin.(interface{ Close() error })
++	if !ok {
++		return
++	}
++	if err := closer.Close(); err != nil {
++		logrus.WithError(err).Warn("failed to close stdin prompt reader")
++	}
++}
+diff --git a/tool/tsh/tsh.go b/tool/tsh/tsh.go
+index 4a6c4fa..f643c68 100644
+--- a/tool/tsh/tsh.go
++++ b/tool/tsh/tsh.go
+@@ -392,7 +392,9 @@ func main() {
+ 	default:
+ 		cmdLine = cmdLineOrig
+ 	}
+-	if err := Run(ctx, cmdLine); err != nil {
++	err := Run(ctx, cmdLine)
++	prompt.NotifyExit()
++	if err != nil {
+ 		var exitError *exitCodeError
+ 		if errors.As(err, &exitError) {
+ 			os.Exit(exitError.code)

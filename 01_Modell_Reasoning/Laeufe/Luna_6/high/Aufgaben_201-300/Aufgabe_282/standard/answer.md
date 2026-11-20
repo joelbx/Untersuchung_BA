@@ -1,0 +1,3 @@
+Implemented JavaScript message filtering with source and level matching followed by source and message glob exclusions. UI messages use `JS: [{source}:{line}] {msg}`, and displayed messages skip standard logging. Added a migration from the previous setting and updated the settings docs and changelog.
+
+Validation: the focused suites reported **37 passed** (6 shared tests and 31 config tests). In this headless environment, pytest’s X server emitted shutdown errors after the tests; `git diff --check` passed.

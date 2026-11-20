@@ -1,0 +1,5 @@
+Implemented the injectable verification flow in [paymentTokenHelper.tsx](/app/packages/components/containers/payments/paymentTokenHelper.tsx). Chargeable tokens return immediately, pending tokens use the injected verifier, and terminal failures reject. Polling now uses cancellable timers and cleans up on completion, popup closure, or abort.
+
+Wired the reusable handlers into the five requested components and the additional single-signup caller. Updated [PayPalModal.tsx](/app/packages/components/containers/payments/PayPalModal.tsx) to stop after cancellation.
+
+**Verification:** TypeScript checks and Prettier passed; ESLint reported warnings only. `PaymentStep`, `EditCardModal`, and `SubscriptionModal` tests passed. The focused component run also found failures in existing tests that expect the old abort/closed-tab rejection behavior, plus two CreditsModal assertions expecting `PaymentMethodID` in the final request.

@@ -1,0 +1,3 @@
+QtWebEngine now combines features from CLI arguments and `qt.args` into one `--enable-features=` argument, adding `OverlayScrollbar` when the existing Qt and configuration conditions require it. QtWebKit arguments remain unchanged. Regression tests cover repeated flags, both CLI forms, empty values, and overlay behavior.
+
+Changed [qtargs.py](/app/qutebrowser/config/qtargs.py) and [test_qtargs.py](/app/tests/unit/config/test_qtargs.py). All 91 Qt argument tests pass; `git diff --check` passes.

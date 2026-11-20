@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) so finish messages identify the process by PID, crashes name the signal, and SIGTERM sets the state to `terminated` without showing a message unless verbose mode is enabled. Updated the [focused tests](/app/tests/unit/misc/test_guiprocess.py).
+
+Syntax and diff checks passed. The pytest run could not start because PyQt5 is missing from the environment.

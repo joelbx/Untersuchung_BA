@@ -1,0 +1,3 @@
+The MIME-suffix workaround now uses **runtime Qt only** for both bounds: ≥ 6.2.3 and < 6.7.0. I clarified the `compiled` parameter and changed `compiled=True, exact=True` to raise `RuntimeError`. Added tests for both boundaries with mismatched runtime, compiled Qt, and PyQt versions.
+
+Verification: 33 focused tests passed. The broader two-file run had 195 passes and two unrelated Qt-dependent failures; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

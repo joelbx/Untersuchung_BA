@@ -1,0 +1,3 @@
+Added `content.javascript.log_message.levels` and `content.javascript.log_message.excludes`, with migration from the previous setting. The new `_js_log_to_ui` helper filters by source, level, and message text; messages hidden from the UI retain the existing standard logger behavior. I updated the setting reference and added focused tests.
+
+Verification: 47 targeted tests passed, and `git diff --check` passed.

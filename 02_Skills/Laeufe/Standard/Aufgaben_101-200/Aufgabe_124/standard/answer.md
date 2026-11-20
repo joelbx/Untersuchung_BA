@@ -1,0 +1,3 @@
+Implemented `billing_mode` for the DynamoDB backend. New tables default to `pay_per_request`; setting `provisioned` uses the configured read and write capacity. Initialization ignores auto scaling for on-demand tables, and the table status check now returns the existing table’s billing mode. I updated the configuration docs and tests.
+
+The DynamoDB package tests and focused tagged tests passed. The broader backend suite could not complete because `go-sqlite3` failed to compile in this environment. AWS integration tests were not run.

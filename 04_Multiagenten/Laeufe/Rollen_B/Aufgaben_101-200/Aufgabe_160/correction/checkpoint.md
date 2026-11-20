@@ -1,0 +1,3 @@
+Correction round: inspecting current patch and review. Reviewer reports focused tests pass; full API client suite has wildcard mock-listener failures, and /app/api lacks a cached dependency.
+Changed API client mock listener to 127.0.0.1:0 so its advertised address is dialable. Rerunning the reviewer-flagged commands.
+All five API client test listeners in client_test.go now bind 127.0.0.1:0. Reviewer commands rerun: focused API, focused inventory, full inventory, and full API client pass from /app. /app/api focused command remains TEST_ENVIRONMENT_PROBLEM: cached github.com/gogo/protobuf@v1.3.2 missing with GOPROXY=off.

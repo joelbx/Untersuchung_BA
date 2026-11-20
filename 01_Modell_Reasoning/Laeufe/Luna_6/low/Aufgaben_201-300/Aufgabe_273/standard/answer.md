@@ -1,0 +1,3 @@
+Updated [addbook.py](/app/openlibrary/plugins/upstream/addbook.py:69) so `make_work()` returns a `web.Storage` with an empty authors list when author metadata is missing, while preserving provided fields and adding defaults for missing metadata. `make_author()` now has the requested types and returns the object created by `web.ctx.site.new`.
+
+Verification: `pytest -q openlibrary/plugins/upstream/tests/test_addbook.py` — 11 passed.

@@ -1,0 +1,3 @@
+Updated `QtColor` so HSV and HSVA hue percentages scale to 359, while saturation, value, and alpha scale to 255. The parser now checks supported function names and component counts before constructing `QColor` objects. RGB and RGBA behavior is covered by regression tests.
+
+The focused QtColor/QssColor suite passed: **55 tests**. A broader config type run was stopped after unrelated Hypothesis fixture health check failures. No delegation was used.

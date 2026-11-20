@@ -1,0 +1,3 @@
+Implemented the generic fanout buffer in [buffer.go](/app/lib/utils/fanoutbuffer/buffer.go). It supports independent ordered cursors, ring and overflow storage, grace period expiry, blocking and nonblocking reads, and cleanup on consumption or close.
+
+Added focused tests in [buffer_test.go](/app/lib/utils/fanoutbuffer/buffer_test.go). The package tests passed under the race detector, and the existing `lib/services` fanout tests passed.

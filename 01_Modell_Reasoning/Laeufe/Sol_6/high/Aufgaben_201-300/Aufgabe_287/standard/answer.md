@@ -1,0 +1,3 @@
+Album image paths are now collected during directory scans, joined into a list for each album, persisted in a new `image_files` column, and exposed through the album model. The migration triggers a full media rescan so existing albums are populated. Incremental scans and folder deletions use the complete directory map when refreshing albums.
+
+`go test ./model ./scanner ./db ./persistence` and `git diff --check` passed.

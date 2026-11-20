@@ -1,0 +1,3 @@
+Implemented the plugin handling changes in `/app`. The loader now exposes `get_with_context()` with resolution metadata, including redirects, deprecations, removals, and failures. Plugin exceptions carry that context; display formatting is centralized; and the connection, action, and Jinja callers use the updated behavior.
+
+The affected unit suites passed: **100 tests**. Follow-up focused loader and template tests also passed, and `git diff --check` is clean.

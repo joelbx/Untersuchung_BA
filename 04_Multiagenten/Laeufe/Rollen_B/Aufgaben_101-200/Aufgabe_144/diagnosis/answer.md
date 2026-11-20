@@ -1,0 +1,5 @@
+`build_marc` lives in [merge_marc.py](/app/openlibrary/catalog/merge/merge_marc.py:311) and delegates title expansion to `build_titles` in the same file. The direct callers are [add_book/__init__.py](/app/openlibrary/catalog/add_book/__init__.py:535) and [add_book/match.py](/app/openlibrary/catalog/add_book/match.py:66); both existing test modules also import it.
+
+The fix needs to move the expansion logic and its title dependency to `catalog/utils`, update those imports, calls, comments, and tests, then remove `build_marc`. Behavior to preserve includes the 25-character `short_title`, combined ISBN list, copied comparison fields, and filtering of the two `publish_country` sentinel values. One uncertainty is the requested return annotation: current records can contain an integer `number_of_pages` and lists of author dictionaries, so `dict[str, str | list[str]]` does not describe every returned value.
+
+I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests are unchanged because this run is restricted to fault localization.

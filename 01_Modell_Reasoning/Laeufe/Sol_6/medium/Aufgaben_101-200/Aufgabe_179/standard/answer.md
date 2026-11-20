@@ -1,0 +1,3 @@
+RemoteCluster status and last heartbeat are now persisted independently of tunnel connections. Removing the newest tunnel no longer lowers the heartbeat; removing the last tunnel sets the cluster Offline while retaining that heartbeat. The new `UpdateRemoteCluster` method preserves expiry and is wired through the auth API.
+
+The regression test and the full `lib/services/local` and `lib/auth` test suites pass.

@@ -1,0 +1,3 @@
+Implemented configurable reserved tags through `meta.config.systemTags`, defaulting to an empty array. Topic creation, editing, queued posts, and the PUT tagging API now reject unprivileged use with the exact error **“You can not use this system tag.”** Tag validation accounts for the normalization applied before storage, and `isTagAllowed` returns false for reserved tags.
+
+Verification passed: 6 focused tests, 323 topic/post/category tests, and ESLint. One subagent added the tests; another added the config default and API guard. I integrated and verified the final patch.

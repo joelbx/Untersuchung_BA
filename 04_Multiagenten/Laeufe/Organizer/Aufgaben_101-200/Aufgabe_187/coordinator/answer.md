@@ -1,0 +1,3 @@
+Fixed the Kubernetes exec session path. The service now creates the streaming directory at startup and starts the uploader when running standalone. The forwarder caches only short lived TLS credentials, creates a fresh session for each request, and uses its lifetime context for audit writes so client disconnects do not cancel them. I also updated HTTP routing, configuration field names, and exec error handling.
+
+`go test -mod=vendor ./lib/kube/proxy ./lib/service` and `git diff --check` passed. No delegation was used.

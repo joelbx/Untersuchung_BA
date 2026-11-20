@@ -1,0 +1,3 @@
+Implemented per-ID `SetSeed` on the global hasher and on `Hasher`. Reusing a seed restores the same hash, reseeding changes it, and IDs without a seed initialize automatically. Seed map access is synchronized.
+
+The hasher, database, and persistence tests pass. Explicit seeds reproduce hashes across hasher instances **within one process**; `maphash` uses a process-specific seed, so results are not guaranteed across restarts.

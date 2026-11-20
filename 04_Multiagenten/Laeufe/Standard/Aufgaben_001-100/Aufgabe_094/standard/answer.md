@@ -1,0 +1,3 @@
+Added the public `DiagResult` and `Diag` API. On macOS, availability now checks the binary signature, Keychain entitlements, biometric policy, and Secure Enclave key creation.
+
+The WebAuthn registration and login round trip passes for both passwordless login and an allowed credential. `go test ./lib/auth/touchid ./lib/auth/webauthncli -count=1` passed. The macOS native checks could not be run in this Linux workspace.

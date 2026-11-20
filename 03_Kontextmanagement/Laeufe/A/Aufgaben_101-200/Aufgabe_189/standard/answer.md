@@ -1,0 +1,3 @@
+Moved `extra_suffixes_workaround` to module scope in [webview.py](/app/qutebrowser/browser/webengine/webview.py). `chooseFiles` now deduplicates the original and extra suffixes and passes the merged list as the third argument in a single `super().chooseFiles(...)` call. Updated the [webview tests](/app/tests/unit/browser/webengine/test_webview.py) for the new helper location and class-style invocation.
+
+Verification: 22 webview tests passed with Qt’s offscreen platform; `git diff --check` passed.

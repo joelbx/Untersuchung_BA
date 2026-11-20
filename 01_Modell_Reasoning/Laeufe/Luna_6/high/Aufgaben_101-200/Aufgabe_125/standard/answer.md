@@ -1,0 +1,3 @@
+Implemented topic backlinks with `Topics.syncBacklinks(postData)`, post create/edit synchronization, stale event cleanup, and `topicBacklinks` admin visibility control. Added localized timeline text and fixed event link markup.
+
+Verification: `test/topicEvents.js` and `test/posts.js` passed (104 tests). ESLint, syntax, JSON, and diff checks passed. The temporary Redis instance used for tests was shut down.

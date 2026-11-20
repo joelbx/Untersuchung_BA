@@ -1,0 +1,3 @@
+Added [transformStyleAttributes.ts](/app/applications/mail/src/app/helpers/transforms/transformStyleAttributes.ts) to replace inline `height` values using `vh` with `auto`, including on the root element. It preserves other style text, `!important`, and remote image markers. [prepareHtml](/app/applications/mail/src/app/helpers/transforms/transforms.ts:55) now calls it after `transformStylesheet` and before `transformRemote`.
+
+The final focused and remote tests pass (10 tests), along with the mail type check, ESLint, and Prettier. The full transform suite also passed earlier (92 tests). Two read-only subagents reviewed the pipeline and tests; their CSS comment finding was incorporated into the fix.

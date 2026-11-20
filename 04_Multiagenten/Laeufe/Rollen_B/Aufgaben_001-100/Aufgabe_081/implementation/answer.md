@@ -1,0 +1,3 @@
+Implemented the OIDC fixes. Validation now stores only the hostname from `Session.Domain` and propagates URL parsing errors. The state and token cookies omit `Domain` for localhost, and callback URL construction removes one trailing slash from the host while preserving its scheme and port.
+
+Added focused tests. `go test ./internal/config ./internal/server/auth/method/oidc` passed with network access disabled.

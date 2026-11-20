@@ -1,0 +1,3 @@
+Fixed the user info panel so Kick, Ban, and Mute share a member-scoped lock. The lock starts on activation, before confirmation opens, and sets both `disabled` and `aria-disabled="true"` on all three controls. It releases after success, cancellation, or failure; failures show one error dialog.
+
+The UserInfo test suite passes (70 tests), and ESLint passes. The full repository type check still reports unrelated errors; it reports none in the changed files.

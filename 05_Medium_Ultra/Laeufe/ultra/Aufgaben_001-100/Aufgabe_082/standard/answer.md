@@ -1,0 +1,3 @@
+Fixed the auth startup crash for multiple audit backends. [MultiLog](/app/lib/events/multilog.go:29) now validates each backend as an emitter and fans out typed events. [WriterEmitter](/app/lib/events/emitter.go:206) writes JSON audit events with a newline, and `stdout://` now uses it. Both close paths aggregate errors. Regression tests cover fanout, writer errors, and a file plus stdout URI list.
+
+The full `lib/events` suite and the focused service URI test passed with vendored dependencies and network lookups disabled. Two subagents handled the service wiring and regression tests; I integrated and reviewed their changes.

@@ -1,0 +1,3 @@
+Refactored [Pill](/app/src/components/views/elements/Pill.tsx) into a functional component backed by the public [usePermalink hook](/app/src/hooks/usePermalink.tsx). It now exposes the requested named exports, preserves pill text, avatars, tooltips, and user actions, and keeps message links’ URLs verbatim. All repository Pill consumers use named imports.
+
+Two subagents handled consumer imports and test coverage; I integrated their changes and verified the final patch. The three relevant suites pass: **29 tests and 5 snapshots**. ESLint, Prettier, and `git diff --check` pass. Type checking still fails on SDK API errors in unchanged files; it reports no errors in the refactor.

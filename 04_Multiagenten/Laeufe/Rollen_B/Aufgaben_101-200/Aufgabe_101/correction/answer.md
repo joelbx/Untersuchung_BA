@@ -1,0 +1,1 @@
+The current patch removes multiple distinct list elements while preserving the order of those that remain. I started the local Redis test service and reran the reviewer’s exact command: **20 tests passed**. Targeted ESLint and `git diff --check` also passed. No code changes were needed in this correction round.

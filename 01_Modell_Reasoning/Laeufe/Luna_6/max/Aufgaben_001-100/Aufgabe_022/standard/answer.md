@@ -1,0 +1,3 @@
+Updated [redhatbase.go](/app/scanner/redhatbase.go:577) so malformed source RPM filenames add a warning and skip source metadata while preserving the binary package. Epochs in source filenames are parsed into the source version without duplication, and the source package retains its `src` architecture and binary link.
+
+The focused RPM parser tests passed. The full `go test ./scanner` run remained silent for over two minutes, so I stopped it. `git diff --check` passed.

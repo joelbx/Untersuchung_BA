@@ -1,0 +1,3 @@
+Implemented date based module deprecations in Python and C#. Date entries now appear in `exit_json()` output, and C# logs format `DateTime` values as `yyyy-MM-dd`. I also updated alias validation, parameter deprecations, display text, and focused tests.
+
+The Python suite passed: **22 tests**. `git diff --check` passed. The validator tests could not be collected because `voluptuous` is unavailable locally; C# tests could not run because neither PowerShell nor .NET is installed. These limits are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

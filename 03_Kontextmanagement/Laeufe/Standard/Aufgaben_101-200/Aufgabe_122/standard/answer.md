@@ -1,0 +1,3 @@
+Implemented `storage.readOnly` in backend metadata and UI configuration. Validation now rejects an explicitly set flag on non-database storage with the required error. The UI uses the flag when present, defaults by storage type when absent, and shows the active backend with an icon and a “Read-Only” badge when applicable. Authentication startup now avoids a database connection for non-database storage when authentication is disabled.
+
+`go test ./internal/config ./internal/cmd` passes. UI tests could not run because Node and npm are unavailable in this environment.

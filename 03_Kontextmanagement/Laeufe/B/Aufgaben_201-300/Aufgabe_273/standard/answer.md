@@ -1,0 +1,1 @@
+Updated [make_work()](/app/openlibrary/plugins/upstream/addbook.py:69) to return a work when author fields are missing, preserve supplied metadata, and apply the requested defaults. Added [focused tests](/app/openlibrary/plugins/upstream/tests/test_addbook.py:8). All 13 addbook tests pass, and `git diff --check` is clean.

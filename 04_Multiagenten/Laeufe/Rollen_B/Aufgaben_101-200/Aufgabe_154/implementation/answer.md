@@ -1,0 +1,3 @@
+Implemented CLIXML replacement for Windows SSH stderr. Complete blocks are decoded and replaced while surrounding bytes and invalid or incomplete blocks are preserved. The escape regex now matches UTF-16-BE sequences correctly, and the helper falls back to cp437 when UTF-8 decoding fails.
+
+Added coverage for mixed, multiline, repeated, empty, malformed, and cp437 input. All 46 relevant PowerShell and SSH unit tests pass; `git diff --check` passes.

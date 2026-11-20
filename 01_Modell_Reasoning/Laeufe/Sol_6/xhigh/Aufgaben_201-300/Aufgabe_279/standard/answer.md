@@ -1,0 +1,5 @@
+Payment token verification is now injectable. [paymentTokenHelper.tsx](/app/packages/components/containers/payments/paymentTokenHelper.tsx:196) exports `VerifyPayment`, `getCreatePaymentToken`, and `getDefaultVerifyPayment`. Chargeable tokens return immediately; pending tokens use the injected verifier; terminal failures reject. Polling stops and cleans up on completion, cancellation, or tab closure.
+
+The five requested components now bind the default verifier once, and the second signup flow uses the same pattern. I also updated PayPal callers to require a chargeable result and corrected two stale CreditsModal test assertions to match the token-only `buyCredit` contract.
+
+**Verification:** components and account type checks passed; the focused helper, modal, subscription, credits, edit-card, and signup tests passed; targeted lint, formatting, and diff checks passed.

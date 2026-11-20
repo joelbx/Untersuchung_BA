@@ -1,0 +1,3 @@
+Added `scrolling.bar=overlay`. It enables `--enable-features=OverlayScrollbar` only on QtWebEngine with Qt 5.11 or newer outside macOS; other scrollbar values never add the flag. Legacy `False` now migrates to `overlay`. I also updated the settings documentation and added `@js_headers` handling for the affected Qt versions.
+
+The focused flag and migration tests passed, and both tagged header scenarios collected. The test process reported an X server I/O error after the passes, so it exited nonzero; the end-to-end scenarios were collected but not run.

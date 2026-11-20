@@ -1,0 +1,5 @@
+Implemented full persisted-session retrieval via `getPersistedSessions()`, selecting the highest `persistedAt` and reporting parse or storage errors before returning `null`. Updated Drive and Docs session initialization and telemetry, plus Drive’s public user hook. The old selectors and `LAST_ACTIVE_PING` marker are removed.
+
+**Verification:** Focused Drive and Docs-store tests passed (11 tests each); Prettier and `git diff --check` passed. Both type checks report the same existing OpenPGP type incompatibility in `packages/crypto/lib/worker/api.ts:579`. ESLint ran out of Node heap.
+
+Key changes: [session lookup](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts:17), [public session provider](/app/applications/drive/src/app/store/_api/usePublicSession.tsx:51), [shared storage](/app/packages/shared/lib/authentication/persistedSessionStorage.ts:30).

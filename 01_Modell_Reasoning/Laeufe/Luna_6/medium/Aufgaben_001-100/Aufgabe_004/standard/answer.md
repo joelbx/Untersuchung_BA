@@ -1,0 +1,3 @@
+Implemented the PassAliases setup hook and helpers, including alias filtering, cached list updates, empty vault handling, explicit vault creation, and the expected notifications and upsell behavior. Updated the bridge contract and provider to expose the typed return contract.
+
+`git diff --check` is clean. ESLint completed with no errors. The focused Jest test and Pass type check were still running without results when I stopped; I can’t report them as passing.

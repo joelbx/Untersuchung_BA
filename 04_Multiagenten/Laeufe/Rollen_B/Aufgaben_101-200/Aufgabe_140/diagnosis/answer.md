@@ -1,0 +1,5 @@
+The fault is in [HostBlocker._is_blocked](/app/qutebrowser/components/hostblock.py:114): it checks only the exact request host against the runtime and config block sets. It also evaluates the whitelist at the end of that expression instead of returning early.
+
+The fix should add the requested `widened_hostnames` interface in [urlutils.py](/app/qutebrowser/utils/urlutils.py), then check each host and successive parent against both sets, stopping at the first match. Keep the existing blocking toggle checks, return early for whitelisted URLs, and strip a request host’s trailing dot for domain matching. An existing private generator in [configutils.py](/app/qutebrowser/config/configutils.py:42) demonstrates the specified string edge cases.
+
+**Coverage gap:** the current tests do not check parent domain blocking. Targeted existing tests passed (9/9). Qt parses a full `https://...` URL into a host, while `QUrl("blocked.example.com")` has an empty host, so regression tests should use full URLs. Project source and tests were left unchanged under this run’s fault localization restriction.

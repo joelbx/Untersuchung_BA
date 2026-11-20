@@ -1,0 +1,892 @@
+diff --git a/core/artwork/artwork_internal_test.go b/core/artwork/artwork_internal_test.go
+index 614ccbd..6a5bfdd 100644
+--- a/core/artwork/artwork_internal_test.go
++++ b/core/artwork/artwork_internal_test.go
+@@ -5,6 +5,11 @@ import (
+ 	"errors"
+ 	"image"
+ 	"io"
++	"net/http"
++	"net/http/httptest"
++	"os"
++	"path/filepath"
++	"sync/atomic"
+ 
+ 	"github.com/navidrome/navidrome/conf"
+ 	"github.com/navidrome/navidrome/conf/configtest"
+@@ -119,6 +124,99 @@ var _ = Describe("Artwork", func() {
+ 			)
+ 		})
+ 	})
++	Describe("artistReader", func() {
++		var artistFolder, albumFolder, externalFile string
++		var artist model.Artist
++		var album model.Album
++		var urlRequests int32
++
++		BeforeEach(func() {
++			artistFolder = GinkgoT().TempDir()
++			albumFolder = filepath.Join(artistFolder, "Album")
++			Expect(os.Mkdir(albumFolder, 0755)).To(Succeed())
++			externalFile = filepath.Join(albumFolder, "artist.png")
++			Expect(os.WriteFile(externalFile, []byte("external file"), 0644)).To(Succeed())
++
++			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
++				atomic.AddInt32(&urlRequests, 1)
++				_, _ = w.Write([]byte("external URL"))
++			}))
++			DeferCleanup(server.Close)
++			atomic.StoreInt32(&urlRequests, 0)
++
++			artist = model.Artist{ID: "artist", Name: "Artist", MediumImageUrl: server.URL}
++			album = model.MediaFiles{{
++				Path: filepath.Join(albumFolder, "track.mp3"), AlbumID: "album", AlbumArtistID: artist.ID,
++				ArtistID: artist.ID, Artist: artist.Name,
++			}}.ToAlbum()
++			album.ImageFiles = externalFile
++			ds.Artist(ctx).(*tests.MockArtistRepo).SetData(model.Artists{artist})
++			ds.Album(ctx).(*tests.MockAlbumRepo).SetData(model.Albums{album})
++		})
++
++		It("prefers artist.* in the artist folder", func() {
++			localFile := filepath.Join(artistFolder, "artist.jpg")
++			Expect(os.WriteFile(localFile, []byte("local artist image"), 0644)).To(Succeed())
++
++			reader, err := newArtistReader(ctx, aw, artist.CoverArtID())
++			Expect(err).ToNot(HaveOccurred())
++			r, path, err := reader.Reader(ctx)
++			Expect(err).ToNot(HaveOccurred())
++			DeferCleanup(r.Close)
++			Expect(path).To(Equal(localFile))
++			Expect(atomic.LoadInt32(&urlRequests)).To(BeZero())
++		})
++
++		It("invalidates original and resized cache keys when a local image appears", func() {
++			before, err := newArtistReader(ctx, aw, artist.CoverArtID())
++			Expect(err).ToNot(HaveOccurred())
++			resizedBefore, err := resizedFromOriginal(ctx, aw, artist.CoverArtID(), 64)
++			Expect(err).ToNot(HaveOccurred())
++
++			Expect(os.WriteFile(filepath.Join(artistFolder, "artist.jpg"), []byte("local artist image"), 0644)).To(Succeed())
++
++			after, err := newArtistReader(ctx, aw, artist.CoverArtID())
++			Expect(err).ToNot(HaveOccurred())
++			resizedAfter, err := resizedFromOriginal(ctx, aw, artist.CoverArtID(), 64)
++			Expect(err).ToNot(HaveOccurred())
++			Expect(after.Key()).ToNot(Equal(before.Key()))
++			Expect(resizedAfter.Key()).ToNot(Equal(resizedBefore.Key()))
++		})
++
++		It("falls back to an external file when the artist folder has no image", func() {
++			reader, err := newArtistReader(ctx, aw, artist.CoverArtID())
++			Expect(err).ToNot(HaveOccurred())
++			r, path, err := reader.Reader(ctx)
++			Expect(err).ToNot(HaveOccurred())
++			DeferCleanup(r.Close)
++			Expect(path).To(Equal(externalFile))
++			Expect(atomic.LoadInt32(&urlRequests)).To(BeZero())
++		})
++
++		It("ignores matching names that are not image files", func() {
++			Expect(os.WriteFile(filepath.Join(artistFolder, "artist.txt"), []byte("not an image"), 0644)).To(Succeed())
++
++			reader, err := newArtistReader(ctx, aw, artist.CoverArtID())
++			Expect(err).ToNot(HaveOccurred())
++			r, path, err := reader.Reader(ctx)
++			Expect(err).ToNot(HaveOccurred())
++			DeferCleanup(r.Close)
++			Expect(path).To(Equal(externalFile))
++		})
++
++		It("falls back to the URL when no local image is available", func() {
++			album.ImageFiles = ""
++			ds.Album(ctx).(*tests.MockAlbumRepo).SetData(model.Albums{album})
++
++			reader, err := newArtistReader(ctx, aw, artist.CoverArtID())
++			Expect(err).ToNot(HaveOccurred())
++			r, path, err := reader.Reader(ctx)
++			Expect(err).ToNot(HaveOccurred())
++			DeferCleanup(r.Close)
++			Expect(path).To(Equal(artist.MediumImageUrl))
++			Expect(atomic.LoadInt32(&urlRequests)).To(Equal(int32(1)))
++		})
++	})
+ 	Describe("mediafileArtworkReader", func() {
+ 		Context("ID not found", func() {
+ 			It("returns ErrNotFound if mediafile is not in the DB", func() {
+diff --git a/core/artwork/image_cache.go b/core/artwork/image_cache.go
+index 13c8b8f..153c94c 100644
+--- a/core/artwork/image_cache.go
++++ b/core/artwork/image_cache.go
+@@ -14,13 +14,14 @@ import (
+ )
+ 
+ type cacheKey struct {
+-	artID      model.ArtworkID
+-	size       int
+-	lastUpdate time.Time
++	artID         model.ArtworkID
++	size          int
++	lastUpdate    time.Time
++	sourceVersion string
+ }
+ 
+ func (k *cacheKey) Key() string {
+-	return fmt.Sprintf(
++	key := fmt.Sprintf(
+ 		"%s.%d.%d.%d.%t",
+ 		k.artID.ID,
+ 		k.lastUpdate.UnixMilli(),
+@@ -28,6 +29,10 @@ func (k *cacheKey) Key() string {
+ 		conf.Server.CoverJpegQuality,
+ 		conf.Server.EnableMediaFileCoverArt,
+ 	)
++	if k.sourceVersion != "" {
++		key += "." + k.sourceVersion
++	}
++	return key
+ }
+ 
+ type imageCache struct {
+diff --git a/core/artwork/reader_artist.go b/core/artwork/reader_artist.go
+index e2ad1d5..9405f7a 100644
+--- a/core/artwork/reader_artist.go
++++ b/core/artwork/reader_artist.go
+@@ -3,9 +3,12 @@ package artwork
+ import (
+ 	"context"
+ 	"fmt"
++	"hash/fnv"
+ 	"io"
+ 	"net/http"
++	"os"
+ 	"path/filepath"
++	"strconv"
+ 	"strings"
+ 	"time"
+ 
+@@ -17,6 +20,7 @@ type artistReader struct {
+ 	cacheKey
+ 	a      *artwork
+ 	artist model.Artist
++	folder string
+ 	files  string
+ }
+ 
+@@ -32,8 +36,10 @@ func newArtistReader(ctx context.Context, artwork *artwork, artID model.ArtworkI
+ 	a := &artistReader{
+ 		a:      artwork,
+ 		artist: *ar,
++		folder: als.ArtistFolder(),
+ 	}
+ 	a.cacheKey.lastUpdate = ar.ExternalInfoUpdatedAt
++	a.cacheKey.sourceVersion = artistFolderVersion(a.folder)
+ 	var files []string
+ 	for _, al := range als {
+ 		files = append(files, al.ImageFiles)
+@@ -46,12 +52,33 @@ func newArtistReader(ctx context.Context, artwork *artwork, artID model.ArtworkI
+ 	return a, nil
+ }
+ 
++// artistFolderVersion changes the artist image cache key when a local image is
++// added, removed, or replaced, including when album timestamps stay the same.
++func artistFolderVersion(folder string) string {
++	if folder == "" {
++		return "artist-folder-v1-none"
++	}
++	h := fnv.New64a()
++	_, _ = io.WriteString(h, "artist-folder-v1:"+folder)
++	if info, err := os.Stat(folder); err == nil {
++		_, _ = fmt.Fprintf(h, ":%d", info.ModTime().UnixNano())
++	}
++	files, _ := artistImageFiles(folder)
++	for _, file := range files {
++		if info, err := os.Stat(file); err == nil {
++			_, _ = fmt.Fprintf(h, ":%s:%d:%d", filepath.Base(file), info.Size(), info.ModTime().UnixNano())
++		}
++	}
++	return strconv.FormatUint(h.Sum64(), 16)
++}
++
+ func (a *artistReader) LastUpdated() time.Time {
+ 	return a.lastUpdate
+ }
+ 
+ func (a *artistReader) Reader(ctx context.Context) (io.ReadCloser, string, error) {
+ 	return selectImageReader(ctx, a.artID,
++		fromArtistFolder(ctx, a.folder),
+ 		fromExternalFile(ctx, a.files, "artist.*"),
+ 		fromExternalSource(ctx, a.artist),
+ 		fromArtistPlaceholder(),
+diff --git a/core/artwork/reader_resized.go b/core/artwork/reader_resized.go
+index 61bb9c0..08e0880 100644
+--- a/core/artwork/reader_resized.go
++++ b/core/artwork/reader_resized.go
+@@ -35,6 +35,9 @@ func resizedFromOriginal(ctx context.Context, a *artwork, artID model.ArtworkID,
+ 		return nil, err
+ 	}
+ 	r.cacheKey.lastUpdate = original.LastUpdated()
++	if artist, ok := original.(*artistReader); ok {
++		r.cacheKey.sourceVersion = artist.cacheKey.sourceVersion
++	}
+ 	return r, nil
+ }
+ 
+diff --git a/core/artwork/sources.go b/core/artwork/sources.go
+index b28a1e1..e849117 100644
+--- a/core/artwork/sources.go
++++ b/core/artwork/sources.go
+@@ -10,6 +10,7 @@ import (
+ 	"reflect"
+ 	"runtime"
+ 	"strings"
++	"time"
+ 
+ 	"github.com/dhowden/tag"
+ 	"github.com/navidrome/navidrome/consts"
+@@ -24,16 +25,59 @@ func selectImageReader(ctx context.Context, artID model.ArtworkID, extractFuncs
+ 		if ctx.Err() != nil {
+ 			return nil, "", ctx.Err()
+ 		}
++		started := time.Now()
+ 		r, path, err := f()
++		duration := time.Since(started)
+ 		if r != nil {
+-			log.Trace(ctx, "Found artwork", "artID", artID, "path", path, "source", f)
++			log.Trace(ctx, "Found artwork", "artID", artID, "path", path, "source", f, "duration", duration)
+ 			return r, path, nil
+ 		}
+-		log.Trace(ctx, "Tried to extract artwork", "artID", artID, "source", f, err)
++		log.Trace(ctx, "Tried to extract artwork", "artID", artID, "source", f, "duration", duration, err)
+ 	}
+ 	return nil, "", fmt.Errorf("could not get a cover art for %s", artID)
+ }
+ 
++func fromArtistFolder(ctx context.Context, folder string) sourceFunc {
++	return func() (io.ReadCloser, string, error) {
++		if folder == "" {
++			return nil, "", nil
++		}
++		files, err := artistImageFiles(folder)
++		if err != nil {
++			return nil, "", err
++		}
++		for _, file := range files {
++			f, err := os.Open(file)
++			if err != nil {
++				log.Warn(ctx, "Could not open artist image file", "file", file, err)
++				continue
++			}
++			return f, file, nil
++		}
++		return nil, "", nil
++	}
++}
++
++func artistImageFiles(folder string) ([]string, error) {
++	entries, err := os.ReadDir(folder)
++	if err != nil {
++		return nil, err
++	}
++	var files []string
++	for _, entry := range entries {
++		match, _ := filepath.Match("artist.*", strings.ToLower(entry.Name()))
++		if !match || !model.IsImageFile(entry.Name()) {
++			continue
++		}
++		file := filepath.Join(folder, entry.Name())
++		info, err := os.Stat(file)
++		if err == nil && info.Mode().IsRegular() {
++			files = append(files, file)
++		}
++	}
++	return files, nil
++}
++
+ type sourceFunc func() (r io.ReadCloser, path string, err error)
+ 
+ func (f sourceFunc) String() string {
+diff --git a/db/migration/20261022000000_add_album_media_file_dirs.go b/db/migration/20261022000000_add_album_media_file_dirs.go
+new file mode 100644
+index 0000000..94ba48b
+--- /dev/null
++++ b/db/migration/20261022000000_add_album_media_file_dirs.go
+@@ -0,0 +1,75 @@
++package migrations
++
++import (
++	"database/sql"
++	"encoding/json"
++	"path/filepath"
++	"sort"
++
++	"github.com/pressly/goose"
++)
++
++func init() {
++	goose.AddMigration(upAddAlbumMediaFileDirs, downAddAlbumMediaFileDirs)
++}
++
++func upAddAlbumMediaFileDirs(tx *sql.Tx) error {
++	if _, err := tx.Exec(`alter table album add media_file_dirs varchar not null default '[]'`); err != nil {
++		return err
++	}
++
++	// Populate existing albums so artist images can be found without a new scan.
++	rows, err := tx.Query(`select album_id, path from media_file where path <> '' order by album_id, path`)
++	if err != nil {
++		return err
++	}
++	defer rows.Close()
++	stmt, err := tx.Prepare(`update album set media_file_dirs = ? where id = ?`)
++	if err != nil {
++		return err
++	}
++	defer stmt.Close()
++
++	var albumID string
++	hasAlbum := false
++	dirs := make(map[string]struct{})
++	update := func() error {
++		if !hasAlbum {
++			return nil
++		}
++		unique := make([]string, 0, len(dirs))
++		for dir := range dirs {
++			unique = append(unique, dir)
++		}
++		sort.Strings(unique)
++		encoded, err := json.Marshal(unique)
++		if err != nil {
++			return err
++		}
++		_, err = stmt.Exec(string(encoded), albumID)
++		return err
++	}
++	for rows.Next() {
++		var id, path string
++		if err := rows.Scan(&id, &path); err != nil {
++			return err
++		}
++		if hasAlbum && id != albumID {
++			if err := update(); err != nil {
++				return err
++			}
++			dirs = make(map[string]struct{})
++		}
++		albumID, hasAlbum = id, true
++		dirs[filepath.Dir(path)] = struct{}{}
++	}
++	if err := rows.Err(); err != nil {
++		return err
++	}
++	return update()
++}
++
++func downAddAlbumMediaFileDirs(tx *sql.Tx) error {
++	_, err := tx.Exec(`alter table album drop column media_file_dirs`)
++	return err
++}
+diff --git a/db/migration/20261022000000_add_album_media_file_dirs_test.go b/db/migration/20261022000000_add_album_media_file_dirs_test.go
+new file mode 100644
+index 0000000..0f9e340
+--- /dev/null
++++ b/db/migration/20261022000000_add_album_media_file_dirs_test.go
+@@ -0,0 +1,85 @@
++package migrations
++
++import (
++	"database/sql"
++	"encoding/json"
++	"path/filepath"
++	"reflect"
++	"sort"
++	"testing"
++
++	_ "github.com/mattn/go-sqlite3"
++)
++
++func TestAddAlbumMediaFileDirsBackfillsExistingAlbums(t *testing.T) {
++	db, err := sql.Open("sqlite3", ":memory:")
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer db.Close()
++	db.SetMaxOpenConns(1)
++	_, err = db.Exec(`
++		create table album (id text primary key);
++		create table media_file (album_id text, path text);
++		insert into album (id) values ('album1'), ('album2'), ('album3');
++		insert into media_file (album_id, path) values
++			('album1', 'artist/album/disc2/02.flac'),
++			('album1', 'artist/album/disc1/01.flac'),
++			('album1', 'artist/album/disc1/02.flac'),
++			('album2', 'artist/other/01.flac');
++	`)
++	if err != nil {
++		t.Fatal(err)
++	}
++	specialPath := filepath.Join("artist", "album"+string(filepath.ListSeparator)+"live", "disc3", "03.flac")
++	if _, err := db.Exec(`insert into media_file (album_id, path) values ('album1', ?)`, specialPath); err != nil {
++		t.Fatal(err)
++	}
++	tx, err := db.Begin()
++	if err != nil {
++		t.Fatal(err)
++	}
++	if err := upAddAlbumMediaFileDirs(tx); err != nil {
++		_ = tx.Rollback()
++		t.Fatal(err)
++	}
++	if err := tx.Commit(); err != nil {
++		t.Fatal(err)
++	}
++
++	var encoded string
++	if err := db.QueryRow(`select media_file_dirs from album where id = 'album1'`).Scan(&encoded); err != nil {
++		t.Fatal(err)
++	}
++	var dirs []string
++	if err := json.Unmarshal([]byte(encoded), &dirs); err != nil {
++		t.Fatal(err)
++	}
++	want := []string{
++		filepath.FromSlash("artist/album/disc1"),
++		filepath.FromSlash("artist/album/disc2"),
++		filepath.Dir(specialPath),
++	}
++	sort.Strings(want)
++	if !reflect.DeepEqual(dirs, want) {
++		t.Fatalf("album1 directories = %q, want %q", dirs, want)
++	}
++	if err := db.QueryRow(`select media_file_dirs from album where id = 'album2'`).Scan(&encoded); err != nil {
++		t.Fatal(err)
++	}
++	if err := json.Unmarshal([]byte(encoded), &dirs); err != nil {
++		t.Fatal(err)
++	}
++	if want := []string{filepath.FromSlash("artist/other")}; !reflect.DeepEqual(dirs, want) {
++		t.Fatalf("album2 directories = %q, want %q", dirs, want)
++	}
++	if err := db.QueryRow(`select media_file_dirs from album where id = 'album3'`).Scan(&encoded); err != nil {
++		t.Fatal(err)
++	}
++	if err := json.Unmarshal([]byte(encoded), &dirs); err != nil {
++		t.Fatal(err)
++	}
++	if len(dirs) != 0 {
++		t.Fatalf("album3 directories = %q, want none", dirs)
++	}
++}
+diff --git a/model/album.go b/model/album.go
+index 890984e..96ab468 100644
+--- a/model/album.go
++++ b/model/album.go
+@@ -1,6 +1,8 @@
+ package model
+ 
+ import (
++	"encoding/json"
++	"path/filepath"
+ 	"time"
+ 
+ 	"github.com/navidrome/navidrome/utils/slice"
+@@ -39,6 +41,7 @@ type Album struct {
+ 	MbzAlbumType         string    `structs:"mbz_album_type" json:"mbzAlbumType,omitempty"`
+ 	MbzAlbumComment      string    `structs:"mbz_album_comment" json:"mbzAlbumComment,omitempty"`
+ 	ImageFiles           string    `structs:"image_files" json:"imageFiles,omitempty"`
++	MediaFileDirs        string    `structs:"media_file_dirs" json:"-"`
+ 	CreatedAt            time.Time `structs:"created_at" json:"createdAt"`
+ 	UpdatedAt            time.Time `structs:"updated_at" json:"updatedAt"`
+ }
+@@ -47,6 +50,26 @@ func (a Album) CoverArtID() ArtworkID {
+ 	return artworkIDFromAlbum(a)
+ }
+ 
++// Dirs returns the unique directories containing this album's media files.
++func (a Album) Dirs() []string {
++	if a.MediaFileDirs == "" {
++		return nil
++	}
++	var dirs []string
++	if err := json.Unmarshal([]byte(a.MediaFileDirs), &dirs); err != nil {
++		return nil
++	}
++	cleaned := dirs[:0]
++	for _, dir := range dirs {
++		if dir == "" {
++			continue
++		}
++		cleaned = append(cleaned, filepath.Clean(dir))
++	}
++	slices.Sort(cleaned)
++	return slices.Compact(cleaned)
++}
++
+ type DiscID struct {
+ 	AlbumID    string `json:"albumId"`
+ 	DiscNumber int    `json:"discNumber"`
+diff --git a/model/album_test.go b/model/album_test.go
+index 81956b4..15630ab 100644
+--- a/model/album_test.go
++++ b/model/album_test.go
+@@ -1,6 +1,9 @@
+ package model_test
+ 
+ import (
++	"encoding/json"
++	"path/filepath"
++
+ 	. "github.com/navidrome/navidrome/model"
+ 	. "github.com/onsi/ginkgo/v2"
+ 	. "github.com/onsi/gomega"
+@@ -86,3 +89,25 @@ var _ = Describe("Albums", func() {
+ 		})
+ 	})
+ })
++
++var _ = Describe("Album", func() {
++	Describe("Dirs", func() {
++		It("deduplicates and sorts stored media directories", func() {
++			encoded, err := json.Marshal([]string{
++				"/music/artist/album2", "/music/artist/album1", "/music/artist/album1",
++			})
++			Expect(err).ToNot(HaveOccurred())
++			album := Album{MediaFileDirs: string(encoded)}
++			Expect(album.Dirs()).To(Equal([]string{"/music/artist/album1", "/music/artist/album2"}))
++		})
++		It("preserves a directory containing the path-list separator", func() {
++			dir := filepath.Join("music", "artist"+string(filepath.ListSeparator)+"live", "album")
++			encoded, err := json.Marshal([]string{dir})
++			Expect(err).ToNot(HaveOccurred())
++			Expect(Album{MediaFileDirs: string(encoded)}.Dirs()).To(Equal([]string{dir}))
++		})
++		It("returns no directories when none are stored", func() {
++			Expect(Album{}.Dirs()).To(BeEmpty())
++		})
++	})
++})
+diff --git a/model/artist.go b/model/artist.go
+index 5159e6d..65de66b 100644
+--- a/model/artist.go
++++ b/model/artist.go
+@@ -1,6 +1,10 @@
+ package model
+ 
+-import "time"
++import (
++	"path/filepath"
++	"strings"
++	"time"
++)
+ 
+ type Artist struct {
+ 	Annotations `structs:"-"`
+@@ -40,6 +44,98 @@ func (a Artist) CoverArtID() ArtworkID {
+ 
+ type Artists []Artist
+ 
++// ArtistFolder returns the folder shared by the albums of an artist. Albums
++// whose media is spread across multiple directories may have their tracks in
++// separate disc folders, or in separate album folders. When the folder names
++// cannot distinguish these layouts, the other albums must agree on a folder.
++func (als Albums) ArtistFolder() string {
++	var candidates []string
++	for _, al := range als {
++		folders := al.artistFolderCandidates()
++		if len(folders) == 0 {
++			continue
++		}
++		if candidates == nil {
++			candidates = folders
++			continue
++		}
++		var shared []string
++		for _, candidate := range candidates {
++			for _, folder := range folders {
++				if candidate == folder {
++					shared = append(shared, candidate)
++					break
++				}
++			}
++		}
++		if len(shared) == 0 {
++			return ""
++		}
++		candidates = shared
++	}
++	if len(candidates) == 1 {
++		return candidates[0]
++	}
++	return ""
++}
++
++func (al Album) artistFolderCandidates() []string {
++	dirs := al.Dirs()
++	common := commonMediaDir(dirs)
++	if common == "" {
++		return nil
++	}
++	parent := filepath.Dir(common)
++	commonIsArtist := sameDirectoryName(common, al.AlbumArtist) && !sameDirectoryName(parent, al.AlbumArtist)
++	parentIsArtist := sameDirectoryName(parent, al.AlbumArtist)
++
++	if commonIsArtist {
++		return validArtistFolders(common)
++	}
++	if len(dirs) == 1 || parentIsArtist || sameDirectoryName(common, al.Name) {
++		return validArtistFolders(parent)
++	}
++	return validArtistFolders(common, parent)
++}
++
++func sameDirectoryName(folder, name string) bool {
++	return name != "" && strings.EqualFold(filepath.Base(folder), name)
++}
++
++func validArtistFolders(folders ...string) []string {
++	var valid []string
++	for _, folder := range folders {
++		if folder != "" && folder != "." && folder != filepath.Dir(folder) {
++			valid = append(valid, folder)
++		}
++	}
++	return valid
++}
++
++// commonMediaDir finds the deepest directory that contains every media
++// directory. filepath.Rel keeps component boundaries intact (for example,
++// Artist and Artist Two do not share a directory named Artist).
++func commonMediaDir(dirs []string) string {
++	if len(dirs) == 0 {
++		return ""
++	}
++	base := filepath.Clean(dirs[0])
++	for _, dir := range dirs[1:] {
++		for {
++			rel, err := filepath.Rel(base, filepath.Clean(dir))
++			if err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
++				break
++			}
++			parent := filepath.Dir(base)
++			if parent == base {
++				return ""
++			}
++			base = parent
++		}
++	}
++	return base
++}
++
+ type ArtistIndex struct {
+ 	ID      string
+ 	Artists Artists
+diff --git a/model/artist_test.go b/model/artist_test.go
+new file mode 100644
+index 0000000..17c389e
+--- /dev/null
++++ b/model/artist_test.go
+@@ -0,0 +1,82 @@
++package model_test
++
++import (
++	"encoding/json"
++
++	. "github.com/navidrome/navidrome/model"
++	. "github.com/onsi/ginkgo/v2"
++	. "github.com/onsi/gomega"
++)
++
++var _ = Describe("Albums.ArtistFolder", func() {
++	album := func(artist string, dirs ...string) Album {
++		encoded, err := json.Marshal(dirs)
++		Expect(err).ToNot(HaveOccurred())
++		return Album{AlbumArtist: artist, MediaFileDirs: string(encoded)}
++	}
++
++	It("uses the shared parent of separate album folders", func() {
++		albums := Albums{
++			album("Artist", "/music/Artist/First"),
++			album("Artist", "/music/Artist/Second"),
++		}
++		Expect(albums.ArtistFolder()).To(Equal("/music/Artist"))
++	})
++
++	It("uses the parent of a single album folder", func() {
++		albums := Albums{album("Artist", "/music/Artist/First")}
++		Expect(albums.ArtistFolder()).To(Equal("/music/Artist"))
++	})
++
++	It("handles an album split between disc folders", func() {
++		albums := Albums{
++			album("Artist", "/music/Artist/First/CD1", "/music/Artist/First/CD2"),
++			album("Artist", "/music/Artist/Second"),
++		}
++		Expect(albums.ArtistFolder()).To(Equal("/music/Artist"))
++	})
++
++	It("uses an album's name to resolve disc folders when it is the only album", func() {
++		al := album("Artist", "/music/Artist/First/CD1", "/music/Artist/First/CD2")
++		al.Name = "First"
++		Expect((Albums{al}).ArtistFolder()).To(Equal("/music/Artist"))
++	})
++
++	It("does not guess for one album spread across differently named folders", func() {
++		albums := Albums{album("Artist", "/music/Artist Dir/First", "/music/Artist Dir/Second")}
++		Expect(albums.ArtistFolder()).To(BeEmpty())
++	})
++
++	It("uses the artist folder when tracks are directly in it", func() {
++		albums := Albums{album("Artist", "/music/Artist")}
++		Expect(albums.ArtistFolder()).To(Equal("/music/Artist"))
++	})
++
++	It("agrees across flat tracks and a separate album", func() {
++		albums := Albums{album("Artist", "/music/Artist"), album("Artist", "/music/Artist/Second")}
++		Expect(albums.ArtistFolder()).To(Equal("/music/Artist"))
++	})
++
++	It("uses the parent for a self-titled album", func() {
++		albums := Albums{album("Artist", "/music/Artist/Artist")}
++		Expect(albums.ArtistFolder()).To(Equal("/music/Artist"))
++	})
++
++	It("does not use a shared library folder for unrelated artist trees", func() {
++		albums := Albums{
++			album("Artist", "/music/Artist One/First"),
++			album("Artist", "/music/Artist Two/Second"),
++		}
++		Expect(albums.ArtistFolder()).To(BeEmpty())
++	})
++
++	It("ignores albums without media directories", func() {
++		albums := Albums{album("Artist"), album("Artist", "/music/Artist/First")}
++		Expect(albums.ArtistFolder()).To(Equal("/music/Artist"))
++	})
++
++	It("does not use the filesystem root as an artist folder", func() {
++		albums := Albums{album("Artist", "/")}
++		Expect(albums.ArtistFolder()).To(BeEmpty())
++	})
++})
+diff --git a/model/mediafile.go b/model/mediafile.go
+index 05810ba..55d3003 100644
+--- a/model/mediafile.go
++++ b/model/mediafile.go
+@@ -1,6 +1,7 @@
+ package model
+ 
+ import (
++	"encoding/json"
+ 	"mime"
+ 	"path/filepath"
+ 	"strings"
+@@ -87,6 +88,9 @@ type MediaFiles []MediaFile
+ func (mfs MediaFiles) Dirs() []string {
+ 	var dirs []string
+ 	for _, mf := range mfs {
++		if mf.Path == "" {
++			continue
++		}
+ 		dir, _ := filepath.Split(mf.Path)
+ 		dirs = append(dirs, filepath.Clean(dir))
+ 	}
+@@ -159,6 +163,13 @@ func (mfs MediaFiles) ToAlbum() Album {
+ 	slices.Sort(songArtistIds)
+ 	a.AllArtistIDs = strings.Join(slices.Compact(songArtistIds), " ")
+ 	a.MbzAlbumID = slice.MostFrequent(mbzAlbumIds)
++	// JSON keeps valid directory names containing the OS path-list separator intact.
++	dirs := mfs.Dirs()
++	if dirs == nil {
++		dirs = []string{}
++	}
++	encodedDirs, _ := json.Marshal(dirs) // A slice of strings cannot fail to marshal.
++	a.MediaFileDirs = string(encodedDirs)
+ 
+ 	return a
+ }
+diff --git a/model/mediafile_test.go b/model/mediafile_test.go
+index 67c3047..97e9e74 100644
+--- a/model/mediafile_test.go
++++ b/model/mediafile_test.go
+@@ -1,6 +1,8 @@
+ package model_test
+ 
+ import (
++	"encoding/json"
++	"path/filepath"
+ 	"time"
+ 
+ 	"github.com/navidrome/navidrome/conf"
+@@ -13,6 +15,35 @@ import (
+ var _ = Describe("MediaFiles", func() {
+ 	var mfs MediaFiles
+ 
++	Describe("Dirs", func() {
++		It("returns each media directory once and ignores missing paths", func() {
++			mfs = MediaFiles{
++				{Path: "/music/artist/album/disc2/02.flac"},
++				{Path: "/music/artist/album/disc1/01.flac"},
++				{Path: "/music/artist/album/disc1/02.flac"},
++				{},
++			}
++			Expect(mfs.Dirs()).To(Equal([]string{
++				"/music/artist/album/disc1",
++				"/music/artist/album/disc2",
++			}))
++			album := mfs.ToAlbum()
++			Expect(album.Dirs()).To(Equal(mfs.Dirs()))
++			Expect(json.Valid([]byte(album.MediaFileDirs))).To(BeTrue())
++		})
++		It("preserves directory names containing the path-list separator", func() {
++			dir := filepath.Join("music", "artist"+string(filepath.ListSeparator)+"live", "album")
++			mfs = MediaFiles{{Path: filepath.Join(dir, "01.flac")}}
++			Expect(mfs.ToAlbum().Dirs()).To(Equal([]string{dir}))
++		})
++		It("stores an empty directory set as a JSON array", func() {
++			mfs = MediaFiles{{}}
++			album := mfs.ToAlbum()
++			Expect(album.MediaFileDirs).To(Equal("[]"))
++			Expect(album.Dirs()).To(BeEmpty())
++		})
++	})
++
+ 	Context("Simple attributes", func() {
+ 		BeforeEach(func() {
+ 			mfs = MediaFiles{
+diff --git a/persistence/album_repository_test.go b/persistence/album_repository_test.go
+index e7b9faf..9f36976 100644
+--- a/persistence/album_repository_test.go
++++ b/persistence/album_repository_test.go
+@@ -2,6 +2,8 @@ package persistence
+ 
+ import (
+ 	"context"
++	"encoding/json"
++	"path/filepath"
+ 
+ 	"github.com/beego/beego/v2/client/orm"
+ 	"github.com/navidrome/navidrome/log"
+@@ -27,6 +29,22 @@ var _ = Describe("AlbumRepository", func() {
+ 			_, err := repo.Get("666")
+ 			Expect(err).To(MatchError(model.ErrNotFound))
+ 		})
++		It("round-trips media directories containing the path-list separator", func() {
++			album, err := repo.Get(albumSgtPeppers.ID)
++			Expect(err).ToNot(HaveOccurred())
++			original := *album
++			DeferCleanup(func() { Expect(repo.Put(&original)).To(Succeed()) })
++
++			dir := filepath.Join("music", "artist"+string(filepath.ListSeparator)+"live", "album")
++			encoded, err := json.Marshal([]string{dir})
++			Expect(err).ToNot(HaveOccurred())
++			album.MediaFileDirs = string(encoded)
++			Expect(repo.Put(album)).To(Succeed())
++
++			stored, err := repo.Get(album.ID)
++			Expect(err).ToNot(HaveOccurred())
++			Expect(stored.Dirs()).To(Equal([]string{dir}))
++		})
+ 	})
+ 
+ 	Describe("GetAll", func() {

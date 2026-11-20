@@ -1,0 +1,3 @@
+The `QtColor` patch parses hue percentages on a 0–359 scale, keeps the other channels on 0–255, and validates color function names and component counts. I added a targeted Hypothesis health check suppression for the shared test.
+
+The reviewer’s broader test selection now passes **75 tests**; the focused color classes pass **55 tests**. **TEST_ENVIRONMENT_PROBLEM:** the exact command without `-o addopts=''` still stops before collection because `pytest.ini` uses deprecated `--strict`. I left the harness configuration unchanged as instructed.

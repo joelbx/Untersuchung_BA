@@ -1,0 +1,187 @@
+diff --git a/utils/cache/simple_cache.go b/utils/cache/simple_cache.go
+index b416fd2..7750430 100644
+--- a/utils/cache/simple_cache.go
++++ b/utils/cache/simple_cache.go
+@@ -2,6 +2,8 @@ package cache
+ 
+ import (
+ 	"errors"
++	"sync"
++	"sync/atomic"
+ 	"time"
+ 
+ 	"github.com/jellydator/ttlcache/v3"
+@@ -13,6 +15,7 @@ type SimpleCache[K comparable, V any] interface {
+ 	Get(key K) (V, error)
+ 	GetWithLoader(key K, loader func(key K) (V, time.Duration, error)) (V, error)
+ 	Keys() []K
++	Values() []V
+ }
+ 
+ type Options struct {
+@@ -42,6 +45,49 @@ func NewSimpleCache[K comparable, V any](options ...Options) SimpleCache[K, V] {
+ 
+ type simpleCache[K comparable, V any] struct {
+ 	data *ttlcache.Cache[K, V]
++	// evictionDeadline is the earliest known expiry (or the next cleanup check).
++	evictionDeadline atomic.Pointer[time.Time]
++	evictionMu       sync.Mutex
++}
++
++// evictExpired runs cleanup when an item is due. The short fallback also
++// covers items that expire while a cleanup is in progress.
++func (c *simpleCache[K, V]) evictExpired() {
++	deadline := c.evictionDeadline.Load()
++	if deadline != nil && time.Now().Before(*deadline) {
++		return
++	}
++
++	c.evictionMu.Lock()
++	defer c.evictionMu.Unlock()
++	deadline = c.evictionDeadline.Load()
++	if deadline != nil && time.Now().Before(*deadline) {
++		return
++	}
++	c.data.DeleteExpired()
++	// Items excludes entries that expire during the scan. Recheck shortly
++	// if that happens, while otherwise waiting for the next known expiry.
++	next := time.Now().Add(10 * time.Millisecond)
++	for _, item := range c.data.Items() {
++		expiresAt := item.ExpiresAt()
++		if !expiresAt.IsZero() && expiresAt.Before(next) {
++			next = expiresAt
++		}
++	}
++	c.evictionDeadline.Store(&next)
++}
++
++func (c *simpleCache[K, V]) scheduleEviction(item *ttlcache.Item[K, V]) {
++	expiresAt := item.ExpiresAt()
++	if expiresAt.IsZero() {
++		return
++	}
++	c.evictionMu.Lock()
++	defer c.evictionMu.Unlock()
++	deadline := c.evictionDeadline.Load()
++	if deadline == nil || expiresAt.Before(*deadline) {
++		c.evictionDeadline.Store(&expiresAt)
++	}
+ }
+ 
+ func (c *simpleCache[K, V]) Add(key K, value V) error {
+@@ -49,14 +95,17 @@ func (c *simpleCache[K, V]) Add(key K, value V) error {
+ }
+ 
+ func (c *simpleCache[K, V]) AddWithTTL(key K, value V, ttl time.Duration) error {
++	c.evictExpired()
+ 	item := c.data.Set(key, value, ttl)
+ 	if item == nil {
+ 		return errors.New("failed to add item")
+ 	}
++	c.scheduleEviction(item)
+ 	return nil
+ }
+ 
+ func (c *simpleCache[K, V]) Get(key K) (V, error) {
++	c.evictExpired()
+ 	item := c.data.Get(key)
+ 	if item == nil {
+ 		var zero V
+@@ -66,13 +115,19 @@ func (c *simpleCache[K, V]) Get(key K) (V, error) {
+ }
+ 
+ func (c *simpleCache[K, V]) GetWithLoader(key K, loader func(key K) (V, time.Duration, error)) (V, error) {
++	c.evictExpired()
+ 	loaderWrapper := ttlcache.LoaderFunc[K, V](
+ 		func(t *ttlcache.Cache[K, V], key K) *ttlcache.Item[K, V] {
+ 			value, ttl, err := loader(key)
+ 			if err != nil {
+ 				return nil
+ 			}
+-			return t.Set(key, value, ttl)
++			c.evictExpired()
++			item := t.Set(key, value, ttl)
++			if item != nil {
++				c.scheduleEviction(item)
++			}
++			return item
+ 		},
+ 	)
+ 	item := c.data.Get(key, ttlcache.WithLoader[K, V](loaderWrapper))
+@@ -84,5 +139,21 @@ func (c *simpleCache[K, V]) GetWithLoader(key K, loader func(key K) (V, time.Dur
+ }
+ 
+ func (c *simpleCache[K, V]) Keys() []K {
+-	return c.data.Keys()
++	c.evictExpired()
++	items := c.data.Items()
++	keys := make([]K, 0, len(items))
++	for key := range items {
++		keys = append(keys, key)
++	}
++	return keys
++}
++
++func (c *simpleCache[K, V]) Values() []V {
++	c.evictExpired()
++	items := c.data.Items()
++	values := make([]V, 0, len(items))
++	for _, item := range items {
++		values = append(values, item.Value())
++	}
++	return values
+ }
+diff --git a/utils/cache/simple_cache_test.go b/utils/cache/simple_cache_test.go
+index 3b25d30..bcc650c 100644
+--- a/utils/cache/simple_cache_test.go
++++ b/utils/cache/simple_cache_test.go
+@@ -84,6 +84,32 @@ var _ = Describe("SimpleCache", func() {
+ 		})
+ 	})
+ 
++	Describe("active entries", func() {
++		It("excludes expired entries from keys and values and removes them from storage", func() {
++			_ = cache.AddWithTTL("short", "expired", 10*time.Millisecond)
++			_ = cache.Add("long", "active")
++			time.Sleep(50 * time.Millisecond)
++
++			Expect(cache.Keys()).To(ConsistOf("long"))
++			Expect(cache.Values()).To(ConsistOf("active"))
++			Expect(cache.(*simpleCache[string, string]).data.Len()).To(Equal(1))
++		})
++
++		It("loads missing keys with their TTL and evicts them after expiration", func() {
++			loader := func(key string) (string, time.Duration, error) {
++				return key + "=value", 10 * time.Millisecond, nil
++			}
++			value, err := cache.GetWithLoader("key", loader)
++			Expect(err).NotTo(HaveOccurred())
++			Expect(value).To(Equal("key=value"))
++			Expect(cache.Values()).To(ConsistOf("key=value"))
++
++			time.Sleep(50 * time.Millisecond)
++			Expect(cache.Keys()).To(BeEmpty())
++			Expect(cache.Values()).To(BeEmpty())
++		})
++	})
++
+ 	Describe("Options", func() {
+ 		Context("when size limit is set", func() {
+ 			BeforeEach(func() {
+@@ -100,6 +126,16 @@ var _ = Describe("SimpleCache", func() {
+ 
+ 				Expect(cache.Keys()).To(ConsistOf("key2", "key3"))
+ 			})
++
++			It("removes expired entries before applying the size limit", func() {
++				_ = cache.Add("active", "keep")
++				_ = cache.AddWithTTL("expired", "discard", 10*time.Millisecond)
++				time.Sleep(50 * time.Millisecond)
++				Expect(cache.Add("new", "value")).To(Succeed())
++
++				Expect(cache.Keys()).To(ConsistOf("active", "new"))
++				Expect(cache.Values()).To(ConsistOf("keep", "value"))
++			})
+ 		})
+ 
+ 		Context("when default TTL is set", func() {

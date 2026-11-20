@@ -1,0 +1,188 @@
+diff --git a/install/data/defaults.json b/install/data/defaults.json
+index 2eb0a15..9338078 100644
+--- a/install/data/defaults.json
++++ b/install/data/defaults.json
+@@ -34,6 +34,7 @@
+     "maximumTagLength": 15,
+     "undoTimeout": 10000,
+     "allowTopicsThumbnail": 1,
++    "preserveOrphanedUploads": 0,
+     "registrationType": "normal",
+     "registrationApprovalType": "normal",
+     "allowAccountDelete": 1,
+@@ -170,4 +171,4 @@
+     "composer:allowPluginHelp": 1,
+     "maxReconnectionAttempts": 5,
+     "reconnectionDelay": 1500
+-}
+\ No newline at end of file
++}
+diff --git a/public/language/en-GB/admin/settings/uploads.json b/public/language/en-GB/admin/settings/uploads.json
+index ba9d012..89fd13f 100644
+--- a/public/language/en-GB/admin/settings/uploads.json
++++ b/public/language/en-GB/admin/settings/uploads.json
+@@ -1,6 +1,8 @@
+ {
+ 	"posts": "Posts",
+ 	"private": "Make uploaded files private",
++	"preserve-orphaned-uploads": "Keep uploaded files when posts are purged",
++	"preserve-orphaned-uploads-help": "When disabled, files no longer used by any post are deleted from disk when a post is purged.",
+ 	"strip-exif-data": "Strip EXIF Data",
+ 	"private-extensions": "File extensions to make private",
+ 	"private-uploads-extensions-help": "Enter comma-separated list of file extensions to make private here (e.g. <code>pdf,xls,doc</code>). An empty list means all files are private.",
+diff --git a/public/language/en-US/admin/settings/uploads.json b/public/language/en-US/admin/settings/uploads.json
+index ba9d012..89fd13f 100644
+--- a/public/language/en-US/admin/settings/uploads.json
++++ b/public/language/en-US/admin/settings/uploads.json
+@@ -1,6 +1,8 @@
+ {
+ 	"posts": "Posts",
+ 	"private": "Make uploaded files private",
++	"preserve-orphaned-uploads": "Keep uploaded files when posts are purged",
++	"preserve-orphaned-uploads-help": "When disabled, files no longer used by any post are deleted from disk when a post is purged.",
+ 	"strip-exif-data": "Strip EXIF Data",
+ 	"private-extensions": "File extensions to make private",
+ 	"private-uploads-extensions-help": "Enter comma-separated list of file extensions to make private here (e.g. <code>pdf,xls,doc</code>). An empty list means all files are private.",
+diff --git a/src/posts/delete.js b/src/posts/delete.js
+index 9cb26b2..509d247 100644
+--- a/src/posts/delete.js
++++ b/src/posts/delete.js
+@@ -3,6 +3,8 @@
+ const _ = require('lodash');
+ 
+ const db = require('../database');
++const file = require('../file');
++const meta = require('../meta');
+ const topics = require('../topics');
+ const categories = require('../categories');
+ const user = require('../user');
+@@ -53,6 +55,7 @@ module.exports = function (Posts) {
+ 		const topicData = await topics.getTopicFields(postData.tid, ['tid', 'cid', 'pinned']);
+ 		postData.cid = topicData.cid;
+ 		await plugins.hooks.fire('filter:post.purge', { post: postData, pid: pid, uid: uid });
++		const uploadPaths = await Posts.uploads.list(pid);
+ 		await Promise.all([
+ 			deletePostFromTopicUserNotification(postData, topicData),
+ 			deletePostFromCategoryRecentPosts(postData),
+@@ -63,6 +66,15 @@ module.exports = function (Posts) {
+ 			db.sortedSetsRemove(['posts:pid', 'posts:votes', 'posts:flagged'], pid),
+ 			Posts.uploads.dissociateAll(pid),
+ 		]);
++		if (!meta.config.preserveOrphanedUploads) {
++			const orphanedUploads = await Promise.all(uploadPaths.map(async (uploadPath) => {
++				if (await Posts.uploads.isOrphan(uploadPath)) {
++					return [uploadPath, file.appendToFileName(uploadPath, '-resized')];
++				}
++				return [];
++			}));
++			await Posts.uploads.deleteFromDisk(orphanedUploads.flat());
++		}
+ 		await flags.resolveFlag('post', pid, uid);
+ 		plugins.hooks.fire('action:post.purge', { post: postData, uid: uid });
+ 		await db.delete(`post:${pid}`);
+diff --git a/src/posts/uploads.js b/src/posts/uploads.js
+index 132a73f..813a27a 100644
+--- a/src/posts/uploads.js
++++ b/src/posts/uploads.js
+@@ -2,6 +2,7 @@
+ 
+ const nconf = require('nconf');
+ const crypto = require('crypto');
++const fs = require('fs');
+ const path = require('path');
+ const winston = require('winston');
+ const mime = require('mime');
+@@ -19,12 +20,72 @@ module.exports = function (Posts) {
+ 	const pathPrefix = path.join(nconf.get('upload_path'), 'files');
+ 	const searchRegex = /\/assets\/uploads\/files\/([^\s")]+\.?[\w]*)/g;
+ 
+-	const _getFullPath = relativePath => path.resolve(pathPrefix, relativePath);
++	const _getFullPath = (relativePath) => {
++		if (typeof relativePath !== 'string' || !relativePath || path.isAbsolute(relativePath) || relativePath.includes('\\') || relativePath.includes('\0')) {
++			return null;
++		}
++
++		const fullPath = path.resolve(pathPrefix, relativePath);
++		const relative = path.relative(path.resolve(pathPrefix), fullPath);
++		if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
++			return null;
++		}
++
++		return fullPath;
++	};
+ 	const _filterValidPaths = async filePaths => (await Promise.all(filePaths.map(async (filePath) => {
+ 		const fullPath = _getFullPath(filePath);
+-		return fullPath.startsWith(pathPrefix) && await file.exists(fullPath) ? filePath : false;
++		return fullPath && await file.exists(fullPath) ? filePath : false;
+ 	}))).filter(Boolean);
+ 
++	Posts.uploads.deleteFromDisk = async function (filePaths) {
++		if (typeof filePaths === 'string') {
++			filePaths = [filePaths];
++		} else if (!Array.isArray(filePaths)) {
++			throw new TypeError('filePaths must be a string or an array');
++		}
++
++		const safePaths = filePaths.map(_getFullPath).filter(Boolean);
++		if (!safePaths.length) {
++			return;
++		}
++
++		let realPathPrefix;
++		try {
++			realPathPrefix = await fs.promises.realpath(pathPrefix);
++		} catch (err) {
++			if (err.code === 'ENOENT') {
++				return;
++			}
++			throw err;
++		}
++
++		await Promise.all(safePaths.map(async (fullPath) => {
++			let realPath;
++			try {
++				realPath = await fs.promises.realpath(fullPath);
++			} catch (err) {
++				if (err.code === 'ENOENT') {
++					return;
++				}
++				throw err;
++			}
++
++			const relative = path.relative(realPathPrefix, realPath);
++			if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
++				return;
++			}
++
++			try {
++				await fs.promises.unlink(fullPath);
++			} catch (err) {
++				if (err.code !== 'ENOENT') {
++					throw err;
++				}
++			}
++		}));
++	};
++
+ 	Posts.uploads.sync = async function (pid) {
+ 		// Scans a post's content and updates sorted set of uploads
+ 
+diff --git a/src/views/admin/settings/uploads.tpl b/src/views/admin/settings/uploads.tpl
+index 36edc6f..2003084 100644
+--- a/src/views/admin/settings/uploads.tpl
++++ b/src/views/admin/settings/uploads.tpl
+@@ -13,6 +13,14 @@
+ 				</label>
+ 			</div>
+ 
++			<div class="checkbox">
++				<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect">
++					<input class="mdl-switch__input" type="checkbox" data-field="preserveOrphanedUploads">
++					<span class="mdl-switch__label"><strong>[[admin/settings/uploads:preserve-orphaned-uploads]]</strong></span>
++				</label>
++				<p class="help-block">[[admin/settings/uploads:preserve-orphaned-uploads-help]]</p>
++			</div>
++
+ 			<div class="checkbox">
+ 				<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect">
+ 					<input class="mdl-switch__input" type="checkbox" data-field="stripEXIFData">

@@ -1,0 +1,3 @@
+Updated author matching to compare extracted birth and death years across date formats, try exact names before alternate names and surname matches, and treat asterisks in names literally. Honorific removal now accepts a string and handles exceptions and honorific-only names. New author records retain input fields except the importer’s temporary `db_name` field.
+
+Verification: **245 passed, 1 expected failure** across the add-book and catalog utility tests. `git diff --check` passed.

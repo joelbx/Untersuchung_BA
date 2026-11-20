@@ -1,0 +1,3 @@
+Updated `_DEFAULT_PERM` to `0600`. `atomic_move()` now applies that mode with the current umask and records new paths when a module accepts `mode` but the user omits it. `_return_formatted()` emits the required warning for each recorded path; `set_mode_if_different()` clears a path when a mode is supplied. The changes are in [basic.py](/app/lib/ansible/module_utils/basic.py) and [file.py](/app/lib/ansible/module_utils/common/file.py).
+
+Added tests for the on-disk mode, exact warnings, and warning suppression. The full `module_utils/basic` suite passed with test isolation: **300 passed, 14 skipped**. A run without isolation encountered shared warning and deprecation state leaking between existing tests. No delegation was used.

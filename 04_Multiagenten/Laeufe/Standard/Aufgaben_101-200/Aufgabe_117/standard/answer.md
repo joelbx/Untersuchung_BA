@@ -1,0 +1,3 @@
+Implemented `qt.workarounds.locale` as a QtWebEngine-only setting that defaults to `false`. When enabled on Linux with QtWebEngine 5.15.3, startup checks for the locale’s `.pak` file and adds a Chromium-compatible `--lang` fallback if it is missing. The setting is documented in [settings.asciidoc](/app/doc/help/settings.asciidoc).
+
+Verification: 182 relevant tests passed with `QT_QPA_PLATFORM=offscreen`; `git diff --check` passed.

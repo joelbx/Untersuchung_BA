@@ -1,0 +1,3 @@
+Added session renaming for both the current session and other devices. The new [DeviceDetailHeading](/app/src/components/views/settings/devices/DeviceDetailHeading.tsx) provides Save and Cancel controls, a 100-character limit, progress feedback, and the required failure message. Successful saves update the heading and session tile immediately through [useOwnDevices](/app/src/components/views/settings/devices/useOwnDevices.ts).
+
+Verification: 55 relevant tests and 19 snapshots pass; ESLint and Stylelint pass. Type checking reports three errors in the installed `matrix-js-sdk` HTTP API types and none in the changed files.

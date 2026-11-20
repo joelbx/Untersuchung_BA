@@ -1,0 +1,3 @@
+Refactored [Pill](/app/src/components/views/elements/Pill.tsx) into a functional component with named exports and moved permalink resolution into the public [usePermalink hook](/app/src/hooks/usePermalink.tsx). Updated `pillify`, `ReplyChain`, and `BridgeTile` to use the named API, and added focused Pill tests.
+
+Verification: 10 relevant tests pass; ESLint and `git diff --check` pass. The full TypeScript check still reports errors in unrelated SDK integration files, with none in the changed files.

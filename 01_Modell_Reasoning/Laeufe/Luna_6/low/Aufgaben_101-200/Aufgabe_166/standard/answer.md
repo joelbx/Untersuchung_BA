@@ -1,0 +1,3 @@
+Implemented `cache='none'` and `cache='vaulted'` in [dataloader.py](/app/lib/ansible/parsing/dataloader.py). Uncached reads leave `_FILE_CACHE` untouched; vaulted reads cache parsed encrypted file contents and reuse them on subsequent calls. Existing boolean cache behavior remains supported.
+
+Added focused tests in [test_dataloader.py](/app/test/units/parsing/test_dataloader.py). The DataLoader tests pass: **33 passed**. `git diff --check` is clean.

@@ -1,0 +1,5 @@
+# Checkpoint
+
+Task: implement token accounting for chat and agent completions, including streaming.
+Status: implemented TokenCount counters, integrated agent and chat returns, streaming completion accounting, and Assist/web consumers. AI tests pass.
+Checks: `GOPROXY=off GOSUMDB=off CGO_ENABLED=0 go test ./lib/ai/model ./lib/ai -count=1 -timeout=2m` passed. `git diff --check` passed. `GOPROXY=off GOSUMDB=off go test ./lib/ai/... ./lib/assist ./lib/web` was interrupted after local C build failures: `linux/hidraw.h: No such file or directory`, `gnu/libc-version.h: No such file or directory`, and sqlite3 `pread64`/`pwrite64`/`off64_t` missing. `GOPROXY=off GOSUMDB=off CGO_ENABLED=0 go test ./lib/ai/... ./lib/assist ./lib/web -count=1 -timeout=3m` ran AI tests successfully but fails to build Assist/web, including `lib/pam: build constraints exclude all Go files in /app/lib/pam` and missing CGO-backed symbols in crypto11, hid, metadata, sqlite3, and shell. Assist/web remain unverified in this environment.

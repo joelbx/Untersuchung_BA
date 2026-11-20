@@ -1,0 +1,3 @@
+Implemented `removeTechnicalFields` in [EntityUtils.ts](/app/src/api/common/utils/EntityUtils.ts). It mutates the entity, removing keys with the three specified prefixes from the root and nested objects while preserving other fields. Added coverage in [EntityUtilsTest.ts](/app/test/tests/api/common/utils/EntityUtilsTest.ts).
+
+The app suite passed with 8,676 assertions. Prettier, ESLint, and the diff check also passed.

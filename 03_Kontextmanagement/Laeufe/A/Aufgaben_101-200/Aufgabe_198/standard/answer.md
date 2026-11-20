@@ -1,0 +1,3 @@
+Resolved the Red Hat OVAL integration issue in `/app`. The analyser now accepts only supported advisory identifiers, propagates package fix states through OVAL processing, and uses OVAL alone for CVE detection on Red Hat and derived distributions. I also updated `goval-dictionary` to the locally cached v0.9.5 and removed `RedHat.DetectCVEs`.
+
+The relevant existing tests passed for `oval`, `gost`, `detector`, and `server`; `git diff --check` passed.

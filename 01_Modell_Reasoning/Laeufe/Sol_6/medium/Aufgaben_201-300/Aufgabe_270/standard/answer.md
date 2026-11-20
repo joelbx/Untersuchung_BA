@@ -1,0 +1,3 @@
+Updated public-page session retrieval in Drive and its `drive-store` mirror. The new [getLastActivePersistedUserSession](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts) uses shared storage and returns the valid session with the highest `persistedAt`, including its UID and localID. The provider, user hook, and telemetry now use that session; `LAST_ACTIVE_PING` references are removed.
+
+The focused tests passed in both workspaces: 24 tests total. Both type checks remain blocked by an existing `openpgp` type mismatch in `packages/crypto/lib/worker/api.ts`; they reported no errors in the edited files.

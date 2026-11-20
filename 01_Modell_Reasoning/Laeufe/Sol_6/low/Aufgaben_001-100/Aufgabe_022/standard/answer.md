@@ -1,0 +1,3 @@
+Updated the RPM scanner so an unparseable `SOURCERPM` records a warning and leaves the binary package available without a source package. Source RPM filenames with an epoch now produce the expected source name and version while retaining the link to the binary package.
+
+Added regression cases for both examples. The relevant scanner tests pass: `go test ./scanner -run 'Test_redhatBase_parseInstalledPackagesLine' -count=1`.

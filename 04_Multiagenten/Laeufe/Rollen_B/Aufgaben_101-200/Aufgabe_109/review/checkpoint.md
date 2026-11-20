@@ -1,0 +1,4 @@
+VERDICT: FIX
+Reviewed the patch in RoomSummaryCard, Settings, CSS, PollHistoryDialog, and RightPanel tests. The requested flag-gated button and roomId dialog call are present; no patch-specific defect found.
+Tests: `./node_modules/.bin/jest --runInBand --runTestsByPath test/components/structures/RightPanel-test.tsx --coverage=false` passed (4/4). `./node_modules/.bin/tsc --noEmit --jsx react` failed with TS2339 at src/components/views/messages/RoomCreate.tsx:50: RoomState has no findPredecessor. Installed matrix-js-sdk declares the method on Room at node_modules/matrix-js-sdk/src/models/room.ts:3040. `git diff --check` passed.
+Code defect outside patch: update RoomCreate to call Room.findPredecessor() while preserving state update behavior, or align it with the compatible SDK API. TEST_ENVIRONMENT_PROBLEM: none established. Project code was not changed by this review.

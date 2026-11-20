@@ -1,0 +1,3 @@
+The checked-out patch uses one `*sql.DB` for SQLite access. Review found no database defect, and I made no further project code changes. `git diff --check` and the focused tests passed.
+
+**TEST_ENVIRONMENT_PROBLEM:** The broader test command still fails on two M4A replay-gain assertions in [taglib_test.go](/app/scanner/metadata/taglib/taglib_test.go:98). The installed TagLib 2.0.2 returns each value twice; those failures are unrelated to the database patch.

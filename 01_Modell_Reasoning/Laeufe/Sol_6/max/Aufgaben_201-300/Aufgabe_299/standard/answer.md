@@ -1,0 +1,3 @@
+Implemented filesystem completion for `:open` in [FilePathCategory](/app/qutebrowser/completion/models/filepathcategory.py). It shows the exact `completion.favorite_paths` entries for an empty input and sorted suggestions for absolute paths, `file:///` URLs, and `~` paths. The [URL model](/app/qutebrowser/completion/models/urlmodel.py) follows the configured category order; the [configuration](/app/qutebrowser/config/configdata.yml) and [help](/app/doc/help/settings.asciidoc) include the new options.
+
+Verification: 320 tests passed, 4 skipped, 1 expected failure; the final focused tests passed.

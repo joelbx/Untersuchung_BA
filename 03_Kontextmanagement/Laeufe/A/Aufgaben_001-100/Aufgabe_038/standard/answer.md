@@ -1,0 +1,3 @@
+Implemented gzip response handling in [URL utilities](/app/lib/ansible/module_utils/urls.py) and exposed `decompress: true` by default in [uri](/app/lib/ansible/modules/uri.py) and [get_url](/app/lib/ansible/modules/get_url.py). Setting `decompress: false` preserves compressed bytes. The change also adds `GzipDecodedReader`, automatic `Accept-Encoding`, and missing-gzip handling.
+
+Verification: 86 URL utility tests passed; `git diff --check` passed.

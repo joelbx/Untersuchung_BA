@@ -1,0 +1,3 @@
+Book imports now upload covers only when the URL uses HTTP or HTTPS and its hostname matches `ALLOWED_COVER_HOSTS`, ignoring case. The new `process_cover_url` helper removes `cover` from the edition dictionary whether the URL is accepted or rejected. Both new and matched edition imports use it.
+
+Verification: 125 relevant tests passed, `ruff check` passed, and `git diff --check` passed. No delegation was used.

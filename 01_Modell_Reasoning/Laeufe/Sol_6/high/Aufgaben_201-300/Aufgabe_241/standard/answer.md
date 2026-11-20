@@ -1,0 +1,3 @@
+Updated [VoiceBroadcastPreRecordingPip](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx) so “Go live” is a native button that disables on activation and ignores repeated clicks or key activations while `start()` is pending. Device selection now guards against duplicate menus, closes on selection, and updates the header label. Added coverage in the [component tests](/app/test/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip-test.tsx).
+
+Both relevant Jest suites pass (16 tests). ESLint, Prettier, and diff checks pass. The repository-wide TypeScript check remains blocked by five errors in unrelated files.

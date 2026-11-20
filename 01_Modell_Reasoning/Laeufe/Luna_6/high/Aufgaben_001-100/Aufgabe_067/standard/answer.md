@@ -1,0 +1,3 @@
+Implemented `scrolling.bar=overlay`, including the QtWebEngine flag gate for Qt 5.11+ on non-macOS, the `False` migration to `overlay`, and the `js_headers` marker skip for older QtWebEngine. Updated config help and added regression coverage.
+
+Validation passed: config and migration tests (293 passed, 1 skipped), config schema tests (31 passed), and final focused tests (17 passed). `git diff --check` passed. Qt tests needed offscreen mode in this environment.

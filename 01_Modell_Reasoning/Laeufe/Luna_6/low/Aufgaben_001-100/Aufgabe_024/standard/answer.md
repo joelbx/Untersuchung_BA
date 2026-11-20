@@ -1,0 +1,3 @@
+Implemented the author matching updates in [load_book.py](/app/openlibrary/catalog/add_book/load_book.py) and [catalog/utils](/app/openlibrary/catalog/utils/__init__.py): honorific removal now takes and returns a string, matching compares extracted years, and surname lookup requires both valid years. Wildcards and alternate names are handled during lookup.
+
+Validation: `test_load_book.py` passes (28 tests), and `git diff --check` passes. The broader `test_match.py` run still has one failure in `test_editions_match_identical_record`.

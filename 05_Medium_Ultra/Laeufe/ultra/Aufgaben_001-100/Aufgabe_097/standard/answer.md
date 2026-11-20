@@ -1,0 +1,5 @@
+Updated the controller minimum to **Python 3.12** in [setup.cfg](/app/setup.cfg) and the CLI and ansible-test entry points. Both entry points now show the same error below 3.12. Python 3.10 and 3.11 remain supported for remote targets.
+
+Removed the private tar-member cache in [collection/__init__.py](/app/lib/ansible/galaxy/collection/__init__.py); directory extraction now passes the original name to `TarFile.getmember`. I also simplified obsolete compatibility code and added a [changelog fragment](/app/changelogs/fragments/controller-python-312.yml). Delegated audits covered entry points, metadata, and collection tests; their changes were integrated.
+
+**Verification:** 210 relevant tests passed, 1 skipped; both entry points produced the matching version error. Python 3.12 is unavailable locally, so tests that import the CLI used a temporary import-only gate bypass on Python 3.11.

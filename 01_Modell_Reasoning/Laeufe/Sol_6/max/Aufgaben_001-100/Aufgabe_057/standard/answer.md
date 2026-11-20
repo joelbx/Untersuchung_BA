@@ -1,0 +1,3 @@
+Implemented YAML-native variant attachment import and export in [internal/ext](/app/internal/ext/common.go). Export now renders stored JSON as YAML maps, lists, and values; import converts YAML attachments back to JSON strings. Missing and empty attachments are skipped, while explicit null values and large integers are preserved. The CLI now uses the new importer and exporter.
+
+Verification passed: `go test ./...`, plus a CLI import/export smoke test whose output matched [export.yml](/app/internal/ext/testdata/export.yml) byte for byte.

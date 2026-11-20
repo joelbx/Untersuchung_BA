@@ -1,0 +1,3 @@
+Implemented opt-out anonymous telemetry in `/app`. It persists a stable UUID, sends a `flipt.ping` when due and every four hours thereafter, and updates the timestamp after a successful response. I also added the requested `Flipt.ServeHTTP` handler and disabled telemetry in the advanced config example.
+
+The focused config, telemetry, info, and command package tests pass. The telemetry endpoint was not contacted during local testing, so live delivery remains unverified.

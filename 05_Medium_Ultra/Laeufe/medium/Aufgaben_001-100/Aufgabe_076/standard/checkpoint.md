@@ -1,0 +1,3 @@
+Task: normalize address parsing in repository source.
+Implemented `splitBySeparator` and bracket-only recipient normalization in `packages/shared/lib/mail/recipient.ts`; updated both address autocomplete components to discard empty completed entries while retaining display names. Added `packages/shared/test/mail/recipient.spec.ts`.
+Verification: focused Jasmine specs passed (3/3); shared and components type checks passed (components rerun after final adjustment); Prettier and `git diff --check` passed. Full shared Karma run bundled successfully but could not start its configured Playwright Chromium binary.

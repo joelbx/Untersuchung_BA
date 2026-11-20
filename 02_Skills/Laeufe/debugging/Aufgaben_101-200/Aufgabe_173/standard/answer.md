@@ -1,0 +1,3 @@
+Implemented HA database service failover. The proxy now keeps all matching services, shuffles their order, and tries the next candidate when a tunnel dial has a connectivity error. An injectable shuffle hook and offline tunnel simulation make failover tests deterministic. `tsh db ls` now shows one entry per service name; sorting and server logs include host IDs where needed.
+
+The new failover test, existing Postgres access tests, API helper test, relevant `tsh` test, package compilation checks, and `git diff --check` all passed.

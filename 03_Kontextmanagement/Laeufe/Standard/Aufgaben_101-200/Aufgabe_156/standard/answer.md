@@ -1,0 +1,3 @@
+Implemented the `no_log` sanitization changes in `/app`. `remove_values` now masks sensitive substrings only in values; the new `sanitize_keys` handles mapping keys, exact-match sentinel replacement, and ignored keys. The `uri` module applies key sanitization when `no_log_values` is populated.
+
+The 35 focused tests pass. The broader `basic` suite has 22 failures caused by warning and deprecation state carrying between test files.

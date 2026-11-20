@@ -1,0 +1,3 @@
+Implemented chat privacy settings with safe allow and deny list storage, account controls, and server-side enforcement for direct chats and room creation. Explicit blocks take precedence; administrators and global moderators retain their chat exemption. Added a repeatable 4.3.0 migration that seeds allow lists from followed users.
+
+Verification: 353 messaging and user tests passed together; after the final room change, all 78 messaging tests passed. ESLint and `git diff --check` passed. No delegation was used.

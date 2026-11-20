@@ -1,0 +1,3 @@
+Updated `AnsibleDumper` so dumping an `AnsibleUndefined` value raises Jinja’s undefined-variable error instead of a YAML representation error. Both `to_yaml` and `to_nice_yaml` now raise a filter-specific `AnsibleFilterError` that retains the original exception.
+
+Added tests for direct and nested undefined values, template rendering, and other dump failures. **Verification:** 64 relevant tests passed; `git diff --check` passed.

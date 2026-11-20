@@ -1,0 +1,3 @@
+Implemented the generic fanout buffer in [buffer.go](/app/lib/utils/fanoutbuffer/buffer.go), with ordered concurrent cursors, ring and overflow storage, per-cursor grace periods, and cleanup on reads and closes. Added [API tests](/app/lib/utils/fanoutbuffer/buffer_test.go).
+
+I delegated repository and concurrency review and test writing, then integrated and reviewed the result. The package passed `go test -race -count=1 ./lib/utils/fanoutbuffer` using local dependencies.

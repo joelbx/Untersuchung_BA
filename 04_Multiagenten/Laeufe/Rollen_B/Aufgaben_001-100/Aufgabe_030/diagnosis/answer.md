@@ -1,0 +1,5 @@
+The fault is in [AIXHardware.get_cpu_facts()](/app/lib/ansible/module_utils/facts/hardware/aix.py:57). It assigns the number of available processor devices to `processor_count`, assigns `smt_threads` to `processor_cores`, and replaces the `processor` list with a string. It never sets `processor_threads_per_core` or `processor_vcpus`. A mocked 12-device, 4-thread run reproduced the reported values.
+
+A fix should set `processor_count` to `1`, use the available device count for `processor_cores`, put the CPU type in a one-element list, default threads per core to `1` when absent, and multiply cores by threads per core for `processor_vcpus`. [Existing AIX tests](/app/test/units/module_utils/facts/test_facts.py:112) check class wiring only; behavior on a live AIX host remains unverified.
+
+The developer instructions for this run required **diagnosis only**, so I did not edit project source or tests. I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

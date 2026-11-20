@@ -1,0 +1,3 @@
+Added the public `DiagResult` structure and `Diag()` function in [api.go](/app/lib/auth/touchid/api.go). `IsAvailable()` now uses the diagnostic aggregate. The native interface currently exposes only one availability signal, so the individual diagnostic flags reflect that signal.
+
+The existing registration and passwordless login flows passed their package tests: `go test ./lib/auth/touchid ./lib/auth/webauthncli`.

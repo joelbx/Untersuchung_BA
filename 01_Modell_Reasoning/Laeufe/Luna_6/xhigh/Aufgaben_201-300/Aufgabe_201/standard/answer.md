@@ -1,0 +1,3 @@
+Implemented support for string and object rule segments with strict YAML validation and consistent single-key OR fallback. Import/export and filesystem snapshots now handle both forms, exports always use the canonical object form, and SQL rule and rollout paths apply the same fallback. Updated the requested fixtures and added the multiple-segment import fixture.
+
+Validation passed: `go test ./internal/ext ./internal/storage/fs ./internal/storage/sql` and `git diff --check`.

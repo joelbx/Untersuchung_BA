@@ -1,0 +1,3 @@
+Updated [useLink.ts](/app/applications/drive/src/app/store/_links/useLink.ts:24) to reuse known API errors for the same `(shareId, linkId)` for 30 seconds. Cached attempts reject with the original error without another request; other links and successful fetches continue normally.
+
+Added [focused tests](/app/applications/drive/src/app/store/_links/useLink.test.ts:56) for reuse, expiry, key isolation, uncached errors, and success. **All 19 tests passed**, as did Drive’s TypeScript check. I delegated the test additions and an independent code review, then reviewed the combined patch.

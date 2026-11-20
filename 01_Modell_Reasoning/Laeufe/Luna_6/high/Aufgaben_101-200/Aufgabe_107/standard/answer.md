@@ -1,0 +1,3 @@
+Implemented status-aware bypass filtering. Mark-as actions now include `markAsStatus`; the reducer adds or removes derived IDs according to the active unread filter, using the new `getElementsToBypassFilter` helper.
+
+Validation: the package type check passed, and the existing element helper tests reported all tests passed. Jest lingered after the pass summary, so I interrupted the process. `git diff --check` passed.

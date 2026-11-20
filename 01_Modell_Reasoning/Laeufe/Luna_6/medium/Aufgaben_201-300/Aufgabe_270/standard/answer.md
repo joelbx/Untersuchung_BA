@@ -1,0 +1,3 @@
+Implemented the persisted-session lookup and updated public session initialization, user state, SRP UID handling, and telemetry in both Drive code copies. Removed the `LAST_ACTIVE_PING` storage paths and updated the related tests.
+
+The focused Jest run passed: 2 suites, 7 tests. Type checking found an unrelated OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts`; the unused import introduced by this change has been removed.

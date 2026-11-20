@@ -1,0 +1,3 @@
+Implemented `parse_duration` in [utils.py](/app/qutebrowser/utils/utils.py:249) for unit suffixes, decimals, and whitespace between components, while preserving digit-only millisecond input. Updated [utilcmds.py](/app/qutebrowser/misc/utilcmds.py:45) so `:later` parses string durations and reports invalid input as a command error.
+
+The targeted existing tests reported **164 passed**. Pytest then exited with an X11 teardown error (`XIO: fatal IO error`), including on the offscreen rerun. `git diff --check` passed.

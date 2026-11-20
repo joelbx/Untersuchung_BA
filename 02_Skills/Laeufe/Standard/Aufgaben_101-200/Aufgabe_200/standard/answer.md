@@ -1,0 +1,3 @@
+Added `parse_duration` and updated `:later` to accept durations such as `5s`, `2m30s`, and `1.5h`. Bare numbers still mean milliseconds. Invalid durations raise a command error, and the command help and tests are updated.
+
+**Verification:** 190 relevant unit tests passed. The new end-to-end scenario could not run because the available Qt backends failed during browser startup; the commands and errors are recorded in `.codex-role-output/checkpoint.md`.

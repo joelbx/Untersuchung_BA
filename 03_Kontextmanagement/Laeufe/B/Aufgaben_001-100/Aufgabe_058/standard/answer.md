@@ -1,0 +1,3 @@
+Resolved the `PosthogAnalytics` issue in [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts). The module now enforces configuration and DNT, tracks initialization and enabled state, awaits event capture, applies anonymity to identification and URL redaction, hashes user and room IDs, and resets on logout. Updated the [tests](/app/test/PosthogAnalytics-test.ts).
+
+All 22 focused tests, targeted lint, and `git diff --check` pass. The repository wide TypeScript check still reports unrelated existing errors; it reports none for `PosthogAnalytics`.

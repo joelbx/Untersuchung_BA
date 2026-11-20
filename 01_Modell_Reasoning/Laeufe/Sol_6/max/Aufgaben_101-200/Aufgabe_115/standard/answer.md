@@ -1,0 +1,3 @@
+Implemented MARC contributor role mapping in [parse.py](/app/openlibrary/catalog/marc/parse.py:36). `read_author_person` now reads `$e` and `$4`, gives `$4` precedence, and omits unrecognized roles. [new_work](/app/openlibrary/catalog/add_book/__init__.py:243) preserves each author’s role in order and raises `ValueError` when author counts differ.
+
+Updated fixture expectations and added tests. All 297 MARC and add-book tests pass; Ruff lint and `git diff --check` pass. Ruff’s formatter check still flags existing quote-style differences in the touched files.

@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) to use centralized JSON exits and atomic job file writes. Fork and setup failures now produce structured errors; timeout and unexpected child exits produce final records with diagnostic context. Job records share one ID, and the immediate response reports the temporary directory cleanup policy.
+
+Added focused tests in [test_async_wrapper.py](/app/test/units/modules/test_async_wrapper.py). Verification passed: **3 unit tests**, syntax compilation, diff checks, and subprocess checks for normal completion and timeout.

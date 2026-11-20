@@ -1,0 +1,3 @@
+Implemented [nios_fixed_address.py](/app/lib/ansible/modules/net_tools/nios/nios_fixed_address.py) for idempotent IPv4 and IPv6 fixed address create, update, and delete operations, including check mode, DHCP options, and metadata. Updated the [NIOS API helper](/app/lib/ansible/module_utils/net_tools/nios/api.py) with fixed address types and MAC-aware lookup.
+
+The relevant NIOS unit suite passed: **67 tests**.

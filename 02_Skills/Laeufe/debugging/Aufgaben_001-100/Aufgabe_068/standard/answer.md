@@ -1,0 +1,3 @@
+Fixed owner-encrypted session key propagation for mail details. Detail callers now pass the parent mail’s key through `EntityClient` and `DefaultEntityRestCache`; `EntityRestClient` applies it to single or batch-loaded entities before decryption. The optional fourth batch argument accepts `undefined`.
+
+Added loader and cache regression tests. The focused REST client, cache, indexer, and inbox rule suites pass (183 tests total), as does the repository type check. I also recorded the investigation and an initial test-run tooling error in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

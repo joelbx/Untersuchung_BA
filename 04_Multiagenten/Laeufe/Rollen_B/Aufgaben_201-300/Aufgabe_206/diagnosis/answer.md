@@ -1,0 +1,5 @@
+The duplicate creation path is in [topics.js](/app/src/controllers/write/topics.js:19): each request enters `api.topics.create` without a per-user guard. The post delay check in [user/posts.js](/app/src/user/posts.js:8) can read the same `lastposttime` for overlapping requests, allowing each to reach topic creation and increment the counters.
+
+The likely fix is a lock acquired before the controller’s first `await`, keyed by authenticated `uid` or guest `sessionID`, and released in `finally`. A collision should throw the supplied error. The route already converts controller errors to HTTP 400 with `status.code: "bad-request"`; a successful 200 has `status.code: "ok"`. The lock’s behavior across multiple server processes remains uncertain.
+
+I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were not changed because this run’s specialist instructions limit it to fault localization.

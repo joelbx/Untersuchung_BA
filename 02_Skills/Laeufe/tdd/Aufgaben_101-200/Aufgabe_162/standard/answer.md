@@ -1,0 +1,3 @@
+`FormatString` now accepts an optional `encoding` and validates input during `to_py`, raising a `ValidationError` for characters it cannot encode. The [user agent setting](/app/qutebrowser/config/configdata.yml:639) now requires ASCII. Format strings without an encoding constraint retain their previous behavior.
+
+The focused config tests passed: **1,138 passed, 10 expected failures**. The full suite could not complete because the installed PyQt5 lacks QtWebKit; `test_websettings.py::test_config_init` fails with `ModuleNotFoundError: No module named 'PyQt5.QtWebKit'`.

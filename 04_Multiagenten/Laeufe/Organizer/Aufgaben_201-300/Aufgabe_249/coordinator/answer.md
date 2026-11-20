@@ -1,0 +1,3 @@
+Added structured external profiles to [WikidataEntity](/app/openlibrary/core/wikidata.py): Wikipedia uses the requested language with English fallback, statement values skip malformed entries, and each P1960 identifier produces a Google Scholar link. The [author infobox](/app/openlibrary/templates/authors/infobox.html) now displays the profiles with new icons.
+
+Verification: all 12 Wikidata tests passed. Ruff, template compilation, SVG parsing, and `git diff --check` passed. No delegation was used.

@@ -1,0 +1,3 @@
+Updated [db.go](/app/detector/vuls2/db.go) to include the database path in connection and metadata errors, validate metadata and schema versions, and handle schema mismatches before honoring `SkipUpdate`. A mismatch now forces a download when updates are allowed and returns an error when updates are skipped.
+
+`go test ./detector/vuls2` produced no output and did not finish during the wait, so I interrupted it.

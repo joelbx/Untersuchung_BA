@@ -1,0 +1,3 @@
+Fixed the device limit enrollment crash. The fake service now simulates the limit, `RunAdmin` returns the registered device when enrollment fails, and `printEnrollOutcome` handles a nil device. Regression tests cover the limit error, retained registration, and nil output.
+
+The device trust tests and `git diff --check` pass. The focused `tsh` test could not compile because this container lacks `linux/hidraw.h` and `gnu/libc-version.h`.

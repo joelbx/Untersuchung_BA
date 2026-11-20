@@ -1,0 +1,5 @@
+The fault is in [proxyserver.go](/app/lib/srv/db/proxyserver.go:232): `pickDatabaseServer` returns the first matching service, and `Connect` makes one tunnel dial. Authorization needs to retain all matches; `Connect` then needs to shuffle them and retry the next candidate when a dial returns a connectivity error.
+
+The other change points are [databaseserver.go](/app/api/types/databaseserver.go:289) for `HostID` logging, stable sorting, and deduplication; [fake.go](/app/lib/reversetunnel/fake.go:50) for simulated offline tunnels; and [db.go](/app/tool/tsh/db.go:35) for deduplicating `tsh db ls`. One limit to the proposed retry behavior: TLS handshake errors occur after `Connect` returns, so dial retry alone would not cover them.
+
+I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). This specialist pass was restricted to fault localization, so project source and tests remain unchanged and the issue is not yet resolved.

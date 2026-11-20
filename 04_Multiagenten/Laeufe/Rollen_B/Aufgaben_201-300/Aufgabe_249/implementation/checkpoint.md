@@ -1,0 +1,1 @@
+Progress: implemented language-aware Wikipedia sitelinks, valid Wikidata statement extraction, structured Wikipedia/Wikidata/Google Scholar profiles, author infobox rendering, and SVG icons. Added focused tests for fallback, missing/malformed values, and multiple identifiers. Verification: 10 Wikidata tests pass; Ruff and git diff --check pass.

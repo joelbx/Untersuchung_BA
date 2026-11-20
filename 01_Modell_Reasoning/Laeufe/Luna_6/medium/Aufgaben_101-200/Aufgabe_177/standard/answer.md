@@ -1,0 +1,5 @@
+Implemented the chat privacy settings and server-side checks. Explicit user blocks return `[[error:chat-user-blocked]]` first; incoming-chat disable, deny-list matches, and non-matching allow lists return `[[error:chat-restricted]]`. Admins and global moderators bypass those privacy settings, but not explicit blocks. Direct-message initiation and room creation use the shared check.
+
+Added defensive list parsing and saving, updated the settings schema and existing tests, and added the repeat-safe 4.3.0 migration. The only remaining `restrictChat` reference is the migration’s read of the legacy setting.
+
+Syntax checks, ESLint, and `git diff --check` passed. The messaging test run could not start because Redis at `127.0.0.1:6379` was unavailable. Account-level controls could not be added to a tracked template: the account settings template is supplied by an installed theme dependency, and its checked-out copy is outside the repository’s tracked files.

@@ -1,0 +1,3 @@
+Moved edition expansion to the public `expand_record()` function in [catalog/utils/__init__.py](/app/openlibrary/catalog/utils/__init__.py). Updated `add_book` and matching callers, removed `build_marc()` from `merge_marc.py`, and updated the relevant documentation and tests. The new tests cover title normalization, merged ISBNs, copied fields, and publish country filtering.
+
+Verification: 84 tests passed, 8 skipped, 2 expected failures. Ruff and `git diff --check` passed.

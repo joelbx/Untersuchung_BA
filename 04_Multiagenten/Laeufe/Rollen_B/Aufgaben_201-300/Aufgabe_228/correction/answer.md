@@ -1,0 +1,3 @@
+The existing patch meets the requested Qt-native version behavior; the independent review identified no code defect, so I made no code changes in this correction round.
+
+The reviewer’s focused command passed **38 tests**. The full five-module selection passed **423 tests, with 4 skipped**, and exited 0 when run under `xvfb-run` with pytest’s Xvfb plugin disabled. That resolved the shutdown XIO error. `git diff --check` also passed.

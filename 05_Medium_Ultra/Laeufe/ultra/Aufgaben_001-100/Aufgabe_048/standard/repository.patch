@@ -1,0 +1,953 @@
+diff --git a/lib/ansible/errors/__init__.py b/lib/ansible/errors/__init__.py
+index 93871b9..64cc24c 100644
+--- a/lib/ansible/errors/__init__.py
++++ b/lib/ansible/errors/__init__.py
+@@ -276,17 +276,25 @@ class AnsibleFileNotFound(AnsibleRuntimeError):
+                                                   suppress_extended_error=suppress_extended_error, orig_exc=orig_exc)
+ 
+ 
+-class AnsiblePluginRemoved(AnsibleRuntimeError):
++class AnsiblePluginError(AnsibleError):
++    ''' an error raised while resolving or loading a plugin '''
++
++    def __init__(self, message="", plugin_load_context=None, **kwargs):
++        super(AnsiblePluginError, self).__init__(message, **kwargs)
++        self.plugin_load_context = plugin_load_context
++
++
++class AnsiblePluginRemovedError(AnsiblePluginError):
+     ''' a requested plugin has been removed '''
+     pass
+ 
+ 
+-class AnsiblePluginCircularRedirect(AnsibleRuntimeError):
++class AnsiblePluginCircularRedirect(AnsiblePluginError):
+     '''a cycle was detected in plugin redirection'''
+     pass
+ 
+ 
+-class AnsibleCollectionUnsupportedVersionError(AnsibleRuntimeError):
++class AnsibleCollectionUnsupportedVersionError(AnsiblePluginError):
+     '''a collection is not supported by this version of Ansible'''
+     pass
+ 
+diff --git a/lib/ansible/executor/task_executor.py b/lib/ansible/executor/task_executor.py
+index f837caf..0d308ca 100644
+--- a/lib/ansible/executor/task_executor.py
++++ b/lib/ansible/executor/task_executor.py
+@@ -16,7 +16,7 @@ import termios
+ import traceback
+ 
+ from ansible import constants as C
+-from ansible.errors import AnsibleError, AnsibleParserError, AnsibleUndefinedVariable, AnsibleConnectionFailure, AnsibleActionFail, AnsibleActionSkip
++from ansible.errors import AnsibleError, AnsibleParserError, AnsibleUndefinedVariable, AnsibleConnectionFailure, AnsibleActionFail, AnsibleActionSkip, AnsiblePluginRemovedError
+ from ansible.executor.task_result import TaskResult
+ from ansible.executor.module_common import get_action_args_with_defaults
+ from ansible.module_utils.six import iteritems, string_types, binary_type
+@@ -911,15 +911,19 @@ class TaskExecutor:
+ 
+         # load connection
+         conn_type = connection_name
+-        connection = self._shared_loader_obj.connection_loader.get(
++        connection_result = self._shared_loader_obj.connection_loader.get_with_context(
+             conn_type,
+             self._play_context,
+             self._new_stdin,
+             task_uuid=self._task._uuid,
+             ansible_playbook_pid=to_text(os.getppid())
+         )
++        connection = connection_result.object
+ 
+         if not connection:
++            context = connection_result.plugin_load_context
++            if getattr(context, 'tombstone', False) is True:
++                raise AnsiblePluginRemovedError(context.exit_reason, plugin_load_context=context)
+             raise AnsibleError("the connection plugin '%s' was not found" % conn_type)
+ 
+         # load become plugin if needed
+diff --git a/lib/ansible/plugins/action/__init__.py b/lib/ansible/plugins/action/__init__.py
+index 9e2b88b..40865e1 100644
+--- a/lib/ansible/plugins/action/__init__.py
++++ b/lib/ansible/plugins/action/__init__.py
+@@ -168,6 +168,7 @@ class ActionBase(with_metaclass(ABCMeta, object)):
+             use_vars = task_vars
+ 
+         # Search module path(s) for named module.
++        module_context = None
+         for mod_type in self._connection.module_implementation_preferences:
+             # Check to determine if PowerShell modules are supported, and apply
+             # some fixes (hacks) to module name + args.
+@@ -191,10 +192,15 @@ class ActionBase(with_metaclass(ABCMeta, object)):
+                         if key in module_args:
+                             module_args[key] = self._connection._shell._unquote(module_args[key])
+ 
+-            module_path = self._shared_loader_obj.module_loader.find_plugin(module_name, mod_type, collection_list=self._task.collections)
+-            if module_path:
++            module_context = self._shared_loader_obj.module_loader.find_plugin_with_context(
++                module_name, mod_type, collection_list=self._task.collections)
++            if module_context.resolved and module_context.plugin_resolved_path:
++                module_path = module_context.plugin_resolved_path
++                module_name = module_context.plugin_resolved_name
+                 break
+         else:  # This is a for-else: http://bit.ly/1ElPkyg
++            if module_context and len(module_context.redirect_list) > 1:
++                module_name = '%s (redirected to %s)' % (module_name, module_context.redirect_list[-1])
+             raise AnsibleError("The module %s was not found in configured module paths" % (module_name))
+ 
+         # insert shared code and arguments into the module
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 3dd024e..f7c50e2 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -13,10 +13,10 @@ import os.path
+ import sys
+ import warnings
+ 
+-from collections import defaultdict
++from collections import defaultdict, namedtuple
+ 
+ from ansible import constants as C
+-from ansible.errors import AnsibleError, AnsiblePluginCircularRedirect, AnsiblePluginRemoved, AnsibleCollectionUnsupportedVersionError
++from ansible.errors import AnsibleError, AnsiblePluginError, AnsiblePluginCircularRedirect, AnsiblePluginRemovedError, AnsibleCollectionUnsupportedVersionError
+ from ansible.module_utils._text import to_bytes, to_text, to_native
+ from ansible.module_utils.compat.importlib import import_module
+ from ansible.module_utils.six import string_types
+@@ -54,6 +54,8 @@ display = Display()
+ 
+ _tombstones = None
+ 
++get_with_context_result = namedtuple('get_with_context_result', ['object', 'plugin_load_context'])
++
+ 
+ def get_all_plugin_loaders():
+     return [(name, obj) for (name, obj) in globals().items() if isinstance(obj, PluginLoader)]
+@@ -127,35 +129,30 @@ class PluginLoadContext(object):
+         self.removal_date = None
+         self.removal_version = None
+         self.deprecation_warnings = []
++        self._deprecation_details = []
++        self.tombstone = False
++        self.tombstone_metadata = None
+         self.resolved = False
+ 
+     def record_deprecation(self, name, deprecation, collection_name):
+-        if not deprecation:
++        if deprecation is None:
+             return self
+ 
+-        warning_text = deprecation.get('warning_text', None)
++        warning_text = deprecation.get('warning_text') or '{0} has been deprecated'.format(name)
+         removal_date = deprecation.get('removal_date', None)
+         removal_version = deprecation.get('removal_version', None)
+         # If both removal_date and removal_version are specified, use removal_date
+         if removal_date is not None:
+             removal_version = None
+-        if not warning_text:
+-            if removal_date:
+-                warning_text = '{0} has been deprecated and will be removed in a release of {2} after {1}'.format(
+-                    name, removal_date, collection_name)
+-            elif removal_version:
+-                warning_text = '{0} has been deprecated and will be removed in version {1} of {2}'.format(
+-                    name, removal_version, collection_name)
+-            else:
+-                warning_text = '{0} has been deprecated and will be removed in a future release of {2}'.format(
+-                    name, collection_name)
+ 
+         self.deprecated = True
+         if removal_date:
+             self.removal_date = removal_date
+         if removal_version:
+             self.removal_version = removal_version
+-        self.deprecation_warnings.append(warning_text)
++        self._deprecation_details.append((warning_text, removal_version, removal_date, collection_name))
++        self.deprecation_warnings.append(display.get_deprecation_message(
++            warning_text, version=removal_version, date=removal_date, collection_name=collection_name))
+         return self
+ 
+     def resolve(self, resolved_name, resolved_path, exit_reason):
+@@ -450,22 +447,22 @@ class PluginLoader:
+ 
+             tombstone = routing_metadata.get('tombstone', None)
+ 
+-            if tombstone:
+-                redirect = tombstone.get('redirect', None)
++            if tombstone is not None:
+                 removal_date = tombstone.get('removal_date')
+                 removal_version = tombstone.get('removal_version')
+-                if removal_date:
+-                    removed_msg = '{0} was removed from {2} on {1}'.format(fq_name, removal_date, acr.collection)
++                if removal_date is not None:
+                     removal_version = None
+-                elif removal_version:
+-                    removed_msg = '{0} was removed in version {1} of {2}'.format(fq_name, removal_version, acr.collection)
+-                else:
+-                    removed_msg = '{0} was removed in a previous release of {1}'.format(fq_name, acr.collection)
++                removed_msg = display.get_deprecation_message(
++                    fq_name, version=removal_version, date=removal_date,
++                    removed=True, collection_name=acr.collection)
++                if tombstone.get('warning_text'):
++                    removed_msg = '{0} {1}'.format(removed_msg, tombstone['warning_text'])
+                 plugin_load_context.removal_date = removal_date
+                 plugin_load_context.removal_version = removal_version
+-                plugin_load_context.resolved = True
+-                plugin_load_context.exit_reason = removed_msg
+-                return plugin_load_context
++                plugin_load_context.tombstone = True
++                plugin_load_context.tombstone_metadata = tombstone
++                plugin_load_context.nope(removed_msg)
++                raise AnsiblePluginRemovedError(removed_msg, plugin_load_context=plugin_load_context)
+ 
+             redirect = routing_metadata.get('redirect', None)
+ 
+@@ -529,10 +526,18 @@ class PluginLoader:
+         plugin_load_context = PluginLoadContext()
+         plugin_load_context.original_name = name
+         while True:
+-            result = self._resolve_plugin_step(name, mod_type, ignore_deprecated, check_aliases, collection_list, plugin_load_context=plugin_load_context)
++            try:
++                result = self._resolve_plugin_step(name, mod_type, ignore_deprecated, check_aliases, collection_list, plugin_load_context=plugin_load_context)
++            except AnsiblePluginError as error:
++                if error.plugin_load_context is None:
++                    plugin_load_context.nope(to_native(error))
++                    error.plugin_load_context = plugin_load_context
++                raise
+             if result.pending_redirect:
+                 if result.pending_redirect in result.redirect_list:
+-                    raise AnsiblePluginCircularRedirect('plugin redirect loop resolving {0} (path: {1})'.format(result.original_name, result.redirect_list))
++                    message = 'plugin redirect loop resolving {0} (path: {1})'.format(result.original_name, result.redirect_list + [result.pending_redirect])
++                    result.nope(message)
++                    raise AnsiblePluginCircularRedirect(message, plugin_load_context=result)
+                 name = result.pending_redirect
+                 result.pending_redirect = None
+                 plugin_load_context = result
+@@ -545,11 +550,6 @@ class PluginLoader:
+ 
+         # TODO: display/return import_error_list? Only useful for forensics...
+ 
+-        if plugin_load_context.deprecated and C.config.get_config_value('DEPRECATION_WARNINGS'):
+-            for dw in plugin_load_context.deprecation_warnings:
+-                # TODO: need to smuggle these to the controller if we're in a worker context
+-                display.warning('[DEPRECATION WARNING] ' + dw)
+-
+         return plugin_load_context
+ 
+     # FIXME: name bikeshed
+@@ -597,7 +597,7 @@ class PluginLoader:
+                         plugin_load_context = self._find_fq_plugin(candidate_name, suffix, plugin_load_context=plugin_load_context)
+                     if plugin_load_context.resolved or plugin_load_context.pending_redirect:  # if we got an answer or need to chase down a redirect, return
+                         return plugin_load_context
+-                except (AnsiblePluginRemoved, AnsiblePluginCircularRedirect, AnsibleCollectionUnsupportedVersionError):
++                except AnsiblePluginError:
+                     # these are generally fatal, let them fly
+                     raise
+                 except ImportError as ie:
+@@ -697,8 +697,10 @@ class PluginLoader:
+             if alias_name in pull_cache:
+                 if not ignore_deprecated and not os.path.islink(pull_cache[alias_name]):
+                     # FIXME: this is not always the case, some are just aliases
+-                    display.deprecated('%s is kept for backwards compatibility but usage is discouraged. '  # pylint: disable=ansible-deprecated-no-version
+-                                       'The module documentation details page may explain more about this rationale.' % name.lstrip('_'))
++                    plugin_load_context.record_deprecation(
++                        name, {'warning_text': '%s is kept for backwards compatibility but usage is discouraged. '
++                              'The module documentation details page may explain more about this rationale.' % name.lstrip('_')},
++                        'ansible.builtin')
+                 plugin_load_context.plugin_resolved_path = pull_cache[alias_name]
+                 plugin_load_context.plugin_resolved_name = alias_name
+                 plugin_load_context.resolved = True
+@@ -759,15 +761,31 @@ class PluginLoader:
+     def get(self, name, *args, **kwargs):
+         ''' instantiates a plugin of the given name using arguments '''
+ 
++        return self.get_with_context(name, *args, **kwargs).object
++
++    def get_with_context(self, name, *args, **kwargs):
++        '''Instantiate a plugin and return it together with its resolution context.'''
++
+         found_in_cache = True
+         class_only = kwargs.pop('class_only', False)
+         collection_list = kwargs.pop('collection_list', None)
+         if name in self.aliases:
+             name = self.aliases[name]
+-        plugin_load_context = self.find_plugin_with_context(name, collection_list=collection_list)
++        try:
++            plugin_load_context = self.find_plugin_with_context(name, collection_list=collection_list)
++        except AnsiblePluginError as error:
++            plugin_load_context = error.plugin_load_context
++            if plugin_load_context is None:
++                plugin_load_context = PluginLoadContext()
++                plugin_load_context.original_name = name
++                plugin_load_context.nope(to_native(error))
++            return get_with_context_result(None, plugin_load_context)
+         if not plugin_load_context.resolved or not plugin_load_context.plugin_resolved_path:
+-            # FIXME: this is probably an error (eg removed plugin)
+-            return None
++            return get_with_context_result(None, plugin_load_context)
++
++        if plugin_load_context.deprecated and C.config.get_config_value('DEPRECATION_WARNINGS'):
++            for warning_text, removal_version, removal_date, collection_name in plugin_load_context._deprecation_details:
++                display.deprecated(warning_text, version=removal_version, date=removal_date, collection_name=collection_name)
+ 
+         name = plugin_load_context.plugin_resolved_name
+         path = plugin_load_context.plugin_resolved_path
+@@ -787,9 +805,9 @@ class PluginLoader:
+             try:
+                 plugin_class = getattr(module, self.base_class)
+             except AttributeError:
+-                return None
++                return get_with_context_result(None, plugin_load_context)
+             if not issubclass(obj, plugin_class):
+-                return None
++                return get_with_context_result(None, plugin_load_context)
+ 
+         # FIXME: update this to use the load context
+         self._display_plugin_load(self.class_name, name, self._searched_paths, path, found_in_cache=found_in_cache, class_only=class_only)
+@@ -806,11 +824,11 @@ class PluginLoader:
+                 if "abstract" in e.args[0]:
+                     # Abstract Base Class.  The found plugin file does not
+                     # fully implement the defined interface.
+-                    return None
++                    return get_with_context_result(None, plugin_load_context)
+                 raise
+ 
+         self._update_object(obj, name, path, redirected_names)
+-        return obj
++        return get_with_context_result(obj, plugin_load_context)
+ 
+     def _display_plugin_load(self, class_name, name, searched_paths, path, found_in_cache=None, class_only=None):
+         ''' formats data to display debug info for plugin loading, also avoids processing unless really needed '''
+diff --git a/lib/ansible/template/__init__.py b/lib/ansible/template/__init__.py
+index 3a46f19..ef223cb 100644
+--- a/lib/ansible/template/__init__.py
++++ b/lib/ansible/template/__init__.py
+@@ -42,13 +42,13 @@ from jinja2.loaders import FileSystemLoader
+ from jinja2.runtime import Context, StrictUndefined
+ 
+ from ansible import constants as C
+-from ansible.errors import AnsibleError, AnsibleFilterError, AnsibleUndefinedVariable, AnsibleAssertionError
++from ansible.errors import AnsibleError, AnsibleFilterError, AnsibleUndefinedVariable, AnsibleAssertionError, AnsiblePluginRemovedError
+ from ansible.module_utils.six import iteritems, string_types, text_type
+ from ansible.module_utils._text import to_native, to_text, to_bytes
+ from ansible.module_utils.common._collections_compat import Sequence, Mapping, MutableMapping
+ from ansible.module_utils.common.collections import is_sequence
+ from ansible.module_utils.compat.importlib import import_module
+-from ansible.plugins.loader import filter_loader, lookup_loader, test_loader
++from ansible.plugins.loader import PluginLoadContext, filter_loader, lookup_loader, test_loader
+ from ansible.template.safe_eval import safe_eval
+ from ansible.template.template import AnsibleJ2Template
+ from ansible.template.vars import AnsibleJ2Vars
+@@ -349,6 +349,31 @@ class JinjaPluginIntercept(MutableMapping):
+ 
+         self._collection_jinja_func_cache = {}
+ 
++    def _check_tombstone(self, name, collection_name, routing_entry):
++        tombstone = routing_entry.get('tombstone') if isinstance(routing_entry, Mapping) else None
++        if tombstone is None:
++            return
++
++        removal_date = tombstone.get('removal_date')
++        removal_version = tombstone.get('removal_version') if removal_date is None else None
++        message = display.get_deprecation_message(
++            name,
++            version=removal_version,
++            date=removal_date,
++            removed=True,
++            collection_name=collection_name,
++        )
++        if tombstone.get('warning_text'):
++            message = '{0} {1}'.format(message, tombstone['warning_text'])
++        plugin_load_context = PluginLoadContext()
++        plugin_load_context.original_name = name
++        plugin_load_context.tombstone = True
++        plugin_load_context.tombstone_metadata = tombstone
++        plugin_load_context.removal_date = removal_date
++        plugin_load_context.removal_version = removal_version
++        plugin_load_context.nope(message)
++        raise AnsiblePluginRemovedError(message, plugin_load_context=plugin_load_context)
++
+     # FUTURE: we can cache FQ filter/test calls for the entire duration of a run, since a given collection's impl's
+     # aren't supposed to change during a run
+     def __getitem__(self, key):
+@@ -368,7 +393,9 @@ class JinjaPluginIntercept(MutableMapping):
+ 
+                 # TODO: implement support for collection-backed redirect (currently only builtin)
+                 # TODO: implement cycle detection (unified across collection redir as well)
+-                redirect_fqcr = ts.get('plugin_routing', {}).get(self._dirname, {}).get(key, {}).get('redirect', None)
++                routing_entry = ts.get('plugin_routing', {}).get(self._dirname, {}).get(key, {})
++                self._check_tombstone(key, 'ansible.builtin', routing_entry)
++                redirect_fqcr = routing_entry.get('redirect', None) if isinstance(routing_entry, Mapping) else None
+                 if redirect_fqcr:
+                     acr = AnsibleCollectionRef.from_fqcr(ref=redirect_fqcr, ref_type=self._dirname)
+                     display.vvv('redirecting {0} {1} to {2}.{3}'.format(self._dirname, key, acr.collection, acr.resource))
+@@ -385,6 +412,13 @@ class JinjaPluginIntercept(MutableMapping):
+             if not acr:
+                 raise KeyError('invalid plugin name: {0}'.format(key))
+ 
++            routing_key = '.'.join((acr.subdirs, acr.resource)) if acr.subdirs else acr.resource
++            try:
++                routing_entry = _get_collection_metadata(acr.collection).get('plugin_routing', {}).get(self._dirname, {}).get(routing_key, {})
++            except ValueError:
++                routing_entry = {}
++            self._check_tombstone(key, acr.collection, routing_entry)
++
+             try:
+                 pkg = import_module(acr.n_python_package_name)
+             except ImportError:
+@@ -402,7 +436,11 @@ class JinjaPluginIntercept(MutableMapping):
+                     continue
+ 
+                 try:
+-                    plugin_impl = self._pluginloader.get(module_name)
++                    result = self._pluginloader.get_with_context(module_name)
++                    if result.plugin_load_context.tombstone:
++                        raise AnsiblePluginRemovedError(result.plugin_load_context.exit_reason,
++                                                        plugin_load_context=result.plugin_load_context)
++                    plugin_impl = result.object
+                 except Exception as e:
+                     raise TemplateSyntaxError(to_native(e), 0)
+ 
+@@ -417,6 +455,10 @@ class JinjaPluginIntercept(MutableMapping):
+             return function_impl
+         except KeyError:
+             raise
++        except AnsiblePluginRemovedError as ex:
++            raise TemplateSyntaxError(to_native(ex), 0)
++        except TemplateSyntaxError:
++            raise
+         except Exception as ex:
+             display.warning('an unexpected error occurred during Jinja2 environment setup: {0}'.format(to_native(ex)))
+             display.vvv('exception during Jinja2 environment setup: {0}'.format(format_exc()))
+diff --git a/lib/ansible/utils/display.py b/lib/ansible/utils/display.py
+index e305d85..6ca9545 100644
+--- a/lib/ansible/utils/display.py
++++ b/lib/ansible/utils/display.py
+@@ -26,7 +26,6 @@ import locale
+ import logging
+ import os
+ import random
+-import re
+ import subprocess
+ import sys
+ import textwrap
+@@ -51,9 +50,6 @@ except NameError:
+     pass
+ 
+ 
+-TAGGED_VERSION_RE = re.compile('^([^.]+.[^.]+):(.*)$')
+-
+-
+ class FilterBlackList(logging.Filter):
+     def __init__(self, blacklist):
+         self.blacklist = [logging.Filter(name) for name in blacklist]
+@@ -254,47 +250,58 @@ class Display(with_metaclass(Singleton, object)):
+             else:
+                 self.display("<%s> %s" % (host, msg), color=C.COLOR_VERBOSE, stderr=to_stderr)
+ 
+-    def deprecated(self, msg, version=None, removed=False, date=None):
++    @staticmethod
++    def get_deprecation_message(msg, version=None, date=None, removed=False, collection_name=None):
++        '''Return a deprecation or removal message with its collection and removal details.'''
++
++        # Collection versions were historically passed as "namespace.collection:version".
++        # Accept them here while allowing callers to supply the collection separately.
++        removal_value = date if date else version
++        if isinstance(removal_value, string_types):
++            removal_value = to_native(removal_value)
++            tagged_collection, separator, tagged_value = removal_value.partition(':')
++            if separator and len(tagged_collection.split('.')) == 2 and all(tagged_collection.split('.')):
++                if collection_name is None:
++                    collection_name = tagged_collection
++                removal_value = tagged_value
++
++        if collection_name == 'ansible.builtin':
++            collection_name = 'Ansible-base'
++
++        if date:
++            if collection_name:
++                removal = 'in a release of %s after %s' % (collection_name, removal_value)
++            else:
++                removal = 'in a release after %s' % removal_value
++        elif version:
++            if collection_name:
++                removal = 'in version %s of %s' % (removal_value, collection_name)
++            else:
++                removal = 'in version %s' % removal_value
++        elif collection_name:
++            removal = 'in a future release of %s' % collection_name
++        else:
++            removal = 'in a future release'
++
++        if removed:
++            if date or version:
++                return '[DEPRECATED]: %s. This feature was removed %s.\nPlease update your playbooks.' % (msg, removal)
++            if collection_name:
++                return '[DEPRECATED]: %s. This feature was removed from %s.\nPlease update your playbooks.' % (msg, collection_name)
++            return '[DEPRECATED]: %s.\nPlease update your playbooks.' % msg
++
++        return ('[DEPRECATION WARNING]: %s. This feature will be removed %s. '
++                'Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.\n\n') % (msg, removal)
++
++    def deprecated(self, msg, version=None, removed=False, date=None, collection_name=None):
+         ''' used to print out a deprecation message.'''
+ 
+         if not removed and not C.DEPRECATION_WARNINGS:
+             return
+ 
+-        if not removed:
+-            if date:
+-                m = None
+-                if isinstance(date, string_types):
+-                    version = to_native(date)
+-                    m = TAGGED_VERSION_RE.match(date)
+-                if m:
+-                    collection = m.group(1)
+-                    date = m.group(2)
+-                    if collection == 'ansible.builtin':
+-                        collection = 'Ansible-base'
+-                    new_msg = "[DEPRECATION WARNING]: %s. This feature will be removed in a release of %s after %s." % (
+-                        msg, collection, date)
+-                else:
+-                    new_msg = "[DEPRECATION WARNING]: %s. This feature will be removed in a release after %s." % (
+-                        msg, date)
+-            elif version:
+-                m = None
+-                if isinstance(version, string_types):
+-                    version = to_native(version)
+-                    m = TAGGED_VERSION_RE.match(version)
+-                if m:
+-                    collection = m.group(1)
+-                    version = m.group(2)
+-                    if collection == 'ansible.builtin':
+-                        collection = 'Ansible-base'
+-                    new_msg = "[DEPRECATION WARNING]: %s. This feature will be removed in version %s of %s." % (msg, version,
+-                                                                                                                collection)
+-                else:
+-                    new_msg = "[DEPRECATION WARNING]: %s. This feature will be removed in version %s." % (msg, version)
+-            else:
+-                new_msg = "[DEPRECATION WARNING]: %s. This feature will be removed in a future release." % (msg)
+-            new_msg = new_msg + " Deprecation warnings can be disabled by setting deprecation_warnings=False in ansible.cfg.\n\n"
+-        else:
+-            raise AnsibleError("[DEPRECATED]: %s.\nPlease update your playbooks." % msg)
++        new_msg = self.get_deprecation_message(msg, version=version, removed=removed, date=date, collection_name=collection_name)
++        if removed:
++            raise AnsibleError(new_msg)
+ 
+         wrapped = textwrap.wrap(new_msg, self.columns, drop_whitespace=False)
+         new_msg = "\n".join(wrapped) + "\n"
+diff --git a/test/units/errors/test_errors.py b/test/units/errors/test_errors.py
+index ab5c19c..b23efd2 100644
+--- a/test/units/errors/test_errors.py
++++ b/test/units/errors/test_errors.py
+@@ -23,7 +23,13 @@ __metaclass__ = type
+ from units.compat import unittest
+ from units.compat.builtins import BUILTINS
+ from units.compat.mock import mock_open, patch
+-from ansible.errors import AnsibleError
++from ansible.errors import (
++    AnsibleCollectionUnsupportedVersionError,
++    AnsibleError,
++    AnsiblePluginCircularRedirect,
++    AnsiblePluginError,
++    AnsiblePluginRemovedError,
++)
+ from ansible.parsing.yaml.objects import AnsibleBaseYAMLObject
+ 
+ 
+@@ -40,6 +46,15 @@ class TestErrors(unittest.TestCase):
+         self.assertEqual(e.message, self.message)
+         self.assertEqual(e.__repr__(), self.message)
+ 
++    def test_plugin_errors_keep_load_context(self):
++        context = object()
++        for exception_type in (AnsiblePluginRemovedError, AnsiblePluginCircularRedirect,
++                               AnsibleCollectionUnsupportedVersionError):
++            error = exception_type(self.message, plugin_load_context=context)
++            self.assertIsInstance(error, AnsiblePluginError)
++            self.assertEqual(error.message, self.message)
++            self.assertIs(error.plugin_load_context, context)
++
+     def test_basic_unicode_error(self):
+         e = AnsibleError(self.unicode_message)
+         self.assertEqual(e.message, self.unicode_message)
+diff --git a/test/units/executor/test_task_executor.py b/test/units/executor/test_task_executor.py
+index 0ae7995..e837535 100644
+--- a/test/units/executor/test_task_executor.py
++++ b/test/units/executor/test_task_executor.py
+@@ -23,9 +23,9 @@ import mock
+ 
+ from units.compat import unittest
+ from units.compat.mock import patch, MagicMock
+-from ansible.errors import AnsibleError
++from ansible.errors import AnsibleError, AnsiblePluginRemovedError
+ from ansible.executor.task_executor import TaskExecutor, remove_omit
+-from ansible.plugins.loader import action_loader, lookup_loader
++from ansible.plugins.loader import PluginLoadContext, action_loader, lookup_loader
+ from ansible.parsing.yaml.objects import AnsibleUnicode
+ from ansible.utils.unsafe_proxy import AnsibleUnsafeText, AnsibleUnsafeBytes
+ from ansible.module_utils.six import text_type
+@@ -35,6 +35,39 @@ from units.mock.loader import DictDataLoader
+ 
+ class TestTaskExecutor(unittest.TestCase):
+ 
++    def test_get_connection_uses_plugin_load_result(self):
++        mock_task = MagicMock()
++        mock_task.connection = 'ssh'
++        mock_task.delegate_to = None
++        mock_task.become = False
++        mock_connection = MagicMock()
++        mock_connection.supports_persistence = False
++        mock_connection.force_persistence = False
++        mock_result = MagicMock()
++        mock_result.object = mock_connection
++        mock_shared_loader = MagicMock()
++        mock_shared_loader.connection_loader.get_with_context.return_value = mock_result
++        mock_play_context = MagicMock()
++
++        te = TaskExecutor(None, mock_task, {}, mock_play_context, None, None, mock_shared_loader, None)
++        self.assertIs(te._get_connection({}, None), mock_connection)
++        mock_shared_loader.connection_loader.get_with_context.assert_called_once()
++        mock_shared_loader.connection_loader.get.assert_not_called()
++        mock_play_context.set_attributes_from_plugin.assert_called_once_with(mock_connection)
++
++        mock_result.object = None
++        with self.assertRaises(AnsibleError):
++            te._get_connection({}, None)
++
++        removal_context = PluginLoadContext()
++        removal_context.tombstone = True
++        removal_context.nope('ssh was removed in version 2.0 of example.collection')
++        mock_result.plugin_load_context = removal_context
++        with self.assertRaises(AnsiblePluginRemovedError) as removed:
++            te._get_connection({}, None)
++        self.assertIs(removed.exception.plugin_load_context, removal_context)
++        self.assertIn('example.collection', str(removed.exception))
++
+     def test_task_executor_init(self):
+         fake_loader = DictDataLoader({})
+         mock_host = MagicMock()
+diff --git a/test/units/plugins/action/test_action.py b/test/units/plugins/action/test_action.py
+index 1a8001d..b74f64b 100644
+--- a/test/units/plugins/action/test_action.py
++++ b/test/units/plugins/action/test_action.py
+@@ -33,6 +33,7 @@ from ansible.module_utils.six.moves import shlex_quote, builtins
+ from ansible.module_utils._text import to_bytes
+ from ansible.playbook.play_context import PlayContext
+ from ansible.plugins.action import ActionBase
++from ansible.plugins.loader import PluginLoadContext
+ from ansible.template import Templar
+ from ansible.vars.clean import clean_facts
+ 
+@@ -123,15 +124,24 @@ class TestActionBase(unittest.TestCase):
+ 
+         # create a mock shared loader object
+         def mock_find_plugin(name, options, collection_list=None):
++            context = PluginLoadContext()
++            context.original_name = name
++            context.redirect_list = [name]
+             if name == 'badmodule':
+-                return None
++                return context
++            elif name == 'redirected_badmodule':
++                context.redirect_list.append('missing_collection.missing_module')
++                return context
++            elif name == 'redirected_module':
++                context.redirect_list.append('resolved_module')
++                return context.resolve('resolved_module', '/fake/path/to/resolved_module', 'followed redirect')
+             elif '.ps1' in options:
+-                return '/fake/path/to/%s.ps1' % name
++                return context.resolve(name, '/fake/path/to/%s.ps1' % name, 'found test module')
+             else:
+-                return '/fake/path/to/%s' % name
++                return context.resolve(name, '/fake/path/to/%s' % name, 'found test module')
+ 
+         mock_module_loader = MagicMock()
+-        mock_module_loader.find_plugin.side_effect = mock_find_plugin
++        mock_module_loader.find_plugin_with_context.side_effect = mock_find_plugin
+         mock_shared_obj_loader = MagicMock()
+         mock_shared_obj_loader.module_loader = mock_module_loader
+ 
+@@ -160,6 +170,14 @@ class TestActionBase(unittest.TestCase):
+ 
+                 # test module not found
+                 self.assertRaises(AnsibleError, action_base._configure_module, 'badmodule', mock_task.args)
++                with self.assertRaises(AnsibleError) as error:
++                    action_base._configure_module('redirected_badmodule', mock_task.args)
++                self.assertIn('missing_collection.missing_module', str(error.exception))
++
++                with patch('ansible.plugins.action.modify_module', return_value=(b'module data', 'new', u'#!/usr/bin/python')) as mock_modify:
++                    action_base._configure_module('redirected_module', mock_task.args,
++                                                  task_vars=dict(ansible_python_interpreter='/usr/bin/python'))
++                    self.assertEqual(mock_modify.call_args[0][0], 'resolved_module')
+ 
+         # test powershell module formatting
+         with patch.object(builtins, 'open', mock_open(read_data=to_bytes(powershell_module_replacers.strip(), encoding='utf-8'))):
+diff --git a/test/units/plugins/test_plugins.py b/test/units/plugins/test_plugins.py
+index 5154850..332b4b4 100644
+--- a/test/units/plugins/test_plugins.py
++++ b/test/units/plugins/test_plugins.py
+@@ -25,7 +25,8 @@ import os
+ from units.compat import unittest
+ from units.compat.builtins import BUILTINS
+ from units.compat.mock import patch, MagicMock
+-from ansible.plugins.loader import PluginLoader
++from ansible.errors import AnsiblePluginCircularRedirect, AnsiblePluginRemovedError
++from ansible.plugins.loader import PluginLoader, PluginLoadContext, get_with_context_result
+ 
+ 
+ class TestErrors(unittest.TestCase):
+@@ -103,6 +104,109 @@ class TestErrors(unittest.TestCase):
+ 
+         self.assertEqual(one, two)
+ 
++    def test_get_with_context_returns_plugin_and_resolution(self):
++        fixture_path = os.path.join(os.path.dirname(__file__), 'loader_fixtures', 'import_fixture.py')
++        loader = PluginLoader('test', 'ansible.plugins.action', None, 'action_plugins')
++        context = PluginLoadContext()
++        context.original_name = 'old_name'
++        context.redirect_list = ['old_name', 'import_fixture']
++        context.resolve('import_fixture', fixture_path, 'found redirected plugin')
++
++        with patch.object(loader, 'find_plugin_with_context', return_value=context):
++            result = loader.get_with_context('old_name')
++            plugin = loader.get('old_name')
++
++        self.assertIsInstance(result, get_with_context_result)
++        self.assertIsInstance(result.object, loader._module_cache[fixture_path].test)
++        self.assertIs(result.plugin_load_context, context)
++        self.assertEqual(result.object._redirected_names, context.redirect_list)
++        self.assertIsInstance(plugin, loader._module_cache[fixture_path].test)
++
++    def test_get_with_context_returns_unresolved_context(self):
++        loader = PluginLoader('test', 'ansible.plugins.action', None, 'action_plugins')
++        context = PluginLoadContext()
++        context.original_name = 'missing'
++        context.nope('no matches found')
++
++        with patch.object(loader, 'find_plugin_with_context', return_value=context):
++            result = loader.get_with_context('missing')
++            self.assertIsNone(loader.get('missing'))
++
++        self.assertIsNone(result.object)
++        self.assertIs(result.plugin_load_context, context)
++        self.assertEqual(result.plugin_load_context.exit_reason, 'no matches found')
++
++    def test_tombstone_error_and_get_context(self):
++        loader = PluginLoader('ActionModule', 'ansible.plugins.action', None, 'action_plugins')
++        route = {'tombstone': {'removal_date': '2025-01-01'}}
++        context = PluginLoadContext()
++        context.original_name = 'testns.testcoll.removed'
++
++        with patch.object(loader, '_query_collection_routing_meta', return_value=route):
++            with self.assertRaises(AnsiblePluginRemovedError) as raised:
++                loader._find_fq_plugin('testns.testcoll.removed', '.py', context)
++            result = loader.get_with_context('testns.testcoll.removed')
++
++        self.assertIs(raised.exception.plugin_load_context, context)
++        self.assertTrue(context.tombstone)
++        self.assertFalse(context.resolved)
++        self.assertIn('testns.testcoll', context.exit_reason)
++        self.assertIn('2025-01-01', context.exit_reason)
++        self.assertIsNone(result.object)
++        self.assertTrue(result.plugin_load_context.tombstone)
++        self.assertEqual(result.plugin_load_context.removal_date, '2025-01-01')
++
++        with patch.object(loader, '_query_collection_routing_meta', return_value={'tombstone': {}}):
++            with self.assertRaises(AnsiblePluginRemovedError):
++                loader._find_fq_plugin('testns.testcoll.removed', '.py', PluginLoadContext())
++
++    def test_deprecated_redirect_keeps_metadata_without_lookup_warning(self):
++        loader = PluginLoader('test', 'ansible.plugins.action', None, 'action_plugins')
++        fixture_path = os.path.join(os.path.dirname(__file__), 'loader_fixtures', 'import_fixture.py')
++        old_name = 'testns.testcoll.old'
++        new_name = 'testns.testcoll.new'
++
++        def resolve_step(name, mod_type, ignore_deprecated, check_aliases, collection_list, plugin_load_context):
++            plugin_load_context.redirect_list.append(name)
++            if name == old_name:
++                plugin_load_context.record_deprecation(name, {'removal_version': '3.0'}, 'testns.testcoll')
++                return plugin_load_context.redirect(new_name)
++            return plugin_load_context.resolve(new_name, fixture_path, 'found redirected plugin')
++
++        with patch.object(loader, '_resolve_plugin_step', side_effect=resolve_step), \
++                patch('ansible.plugins.loader.display.warning') as warning, \
++                patch('ansible.plugins.loader.display.deprecated') as deprecated:
++            context = loader.find_plugin_with_context(old_name)
++            warning.assert_not_called()
++            deprecated.assert_not_called()
++            result = loader.get_with_context(old_name)
++
++        self.assertEqual(context.redirect_list, [old_name, new_name])
++        self.assertTrue(context.deprecated)
++        self.assertEqual(context.removal_version, '3.0')
++        self.assertIn('testns.testcoll', context.deprecation_warnings[0])
++        self.assertIsNotNone(result.object)
++        self.assertEqual(result.plugin_load_context.redirect_list, [old_name, new_name])
++        deprecated.assert_called_once_with(
++            '{0} has been deprecated'.format(old_name),
++            version='3.0', date=None, collection_name='testns.testcoll')
++
++    def test_circular_redirect_keeps_context(self):
++        loader = PluginLoader('ActionModule', 'ansible.plugins.action', None, 'action_plugins')
++
++        def redirect_to_self(name, mod_type, ignore_deprecated, check_aliases, collection_list, plugin_load_context):
++            plugin_load_context.redirect_list.append(name)
++            return plugin_load_context.redirect(name)
++
++        with patch.object(loader, '_resolve_plugin_step', side_effect=redirect_to_self):
++            with self.assertRaises(AnsiblePluginCircularRedirect) as raised:
++                loader.find_plugin_with_context('testns.testcoll.loop')
++            result = loader.get_with_context('testns.testcoll.loop')
++
++        self.assertIn('testns.testcoll.loop', raised.exception.plugin_load_context.redirect_list)
++        self.assertIsNone(result.object)
++        self.assertIn('redirect loop', result.plugin_load_context.exit_reason)
++
+     @patch('ansible.plugins.loader.glob')
+     @patch.object(PluginLoader, '_get_paths')
+     def test_all_no_duplicate_names(self, gp_mock, glob_mock):
+diff --git a/test/units/template/test_jinja_plugin_intercept.py b/test/units/template/test_jinja_plugin_intercept.py
+new file mode 100644
+index 0000000..f66448c
+--- /dev/null
++++ b/test/units/template/test_jinja_plugin_intercept.py
+@@ -0,0 +1,103 @@
++# (c) 2026, Ansible Project
++#
++# This file is part of Ansible
++#
++# Ansible is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# Ansible is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
++
++from __future__ import (absolute_import, division, print_function)
++__metaclass__ = type
++
++from jinja2.exceptions import TemplateSyntaxError
++
++from units.compat import unittest
++from units.compat.mock import Mock, patch
++
++from ansible.errors import AnsiblePluginRemovedError
++from ansible.plugins.loader import PluginLoadContext
++from ansible.template import JinjaPluginIntercept
++
++
++class TestJinjaPluginIntercept(unittest.TestCase):
++    def setUp(self):
++        self.plugin_loader = Mock()
++        self.plugin_loader.class_name = 'FilterModule'
++        self.filters = JinjaPluginIntercept({}, self.plugin_loader)
++
++    @patch('ansible.template.display.warning')
++    @patch('ansible.template._get_collection_metadata')
++    def test_builtin_filter_tombstone_is_template_error(self, get_metadata, warning):
++        get_metadata.return_value = {
++            'plugin_routing': {'filter': {'gone': {'tombstone': {'removal_date': '2024-01-01'}}}},
++        }
++
++        with self.assertRaises(TemplateSyntaxError) as result:
++            self.filters['gone']
++
++        self.assertIn('gone', str(result.exception))
++        self.assertIn('Ansible-base', str(result.exception))
++        self.assertIn('2024-01-01', str(result.exception))
++        self.plugin_loader.get_with_context.assert_not_called()
++        warning.assert_not_called()
++
++        removal = result.exception.__context__
++        self.assertIsInstance(removal, AnsiblePluginRemovedError)
++        self.assertTrue(removal.plugin_load_context.tombstone)
++        self.assertEqual(removal.plugin_load_context.removal_date, '2024-01-01')
++
++    @patch('ansible.template._get_collection_metadata')
++    def test_empty_tombstone_marks_filter_removed(self, get_metadata):
++        get_metadata.return_value = {'plugin_routing': {'filter': {'gone': {'tombstone': {}}}}}
++
++        with self.assertRaises(TemplateSyntaxError) as result:
++            self.filters['gone']
++
++        self.assertIn('removed', str(result.exception))
++        self.assertTrue(result.exception.__context__.plugin_load_context.tombstone)
++
++    @patch('ansible.template.display.warning')
++    @patch('ansible.template.import_module')
++    @patch('ansible.template._get_collection_metadata')
++    def test_collection_filter_tombstone_before_package_import(self, get_metadata, import_package, warning):
++        get_metadata.return_value = {
++            'plugin_routing': {'filter': {'gone': {'tombstone': {'removal_version': '2.0'}}}},
++        }
++
++        with self.assertRaises(TemplateSyntaxError) as result:
++            self.filters['acme.widgets.gone']
++
++        self.assertIn('acme.widgets.gone', str(result.exception))
++        self.assertIn('acme.widgets', str(result.exception))
++        self.assertIn('2.0', str(result.exception))
++        import_package.assert_not_called()
++        warning.assert_not_called()
++
++    @patch('ansible.template.display.warning')
++    @patch('ansible.template.pkgutil.iter_modules')
++    @patch('ansible.template.import_module')
++    @patch('ansible.template._get_collection_metadata')
++    def test_removed_filter_module_is_template_error(self, get_metadata, import_package, iter_modules, warning):
++        get_metadata.return_value = {}
++        import_package.return_value = type('Package', (), {'__path__': []})()
++        iter_modules.return_value = [(None, 'acme.widgets.old_filters', False)]
++        context = PluginLoadContext()
++        context.tombstone = True
++        context.exit_reason = 'acme.widgets.old_filters was removed in version 2.0 of acme.widgets'
++        self.plugin_loader.get_with_context.return_value = Mock(object=None, plugin_load_context=context)
++
++        with self.assertRaises(TemplateSyntaxError) as result:
++            self.filters['acme.widgets.gone']
++
++        self.assertIn(context.exit_reason, str(result.exception))
++        self.plugin_loader.get_with_context.assert_called_once_with('acme.widgets.old_filters')
++        warning.assert_not_called()
+diff --git a/test/units/utils/display/test_display.py b/test/units/utils/display/test_display.py
+index cdeb496..c485ab7 100644
+--- a/test/units/utils/display/test_display.py
++++ b/test/units/utils/display/test_display.py
+@@ -5,7 +5,9 @@
+ from __future__ import absolute_import, division, print_function
+ __metaclass__ = type
+ 
++import pytest
+ 
++from ansible.errors import AnsibleError
+ from ansible.utils.display import Display
+ 
+ 
+@@ -18,3 +20,23 @@ def test_display_basic_message(capsys, mocker):
+     out, err = capsys.readouterr()
+     assert out == 'Some displayed message\n'
+     assert err == ''
++
++
++def test_get_deprecation_message_with_collection_and_date():
++    message = Display.get_deprecation_message('old plugin', version='9.0', date='2025-01-01',
++                                              collection_name='community.general')
++    assert message.startswith('[DEPRECATION WARNING]: old plugin. This feature will be removed '
++                              'in a release of community.general after 2025-01-01.')
++    assert '9.0' not in message
++
++
++def test_get_deprecation_message_accepts_tagged_version():
++    message = Display.get_deprecation_message('old plugin', version='ansible.builtin:9.0')
++    assert 'This feature will be removed in version 9.0 of Ansible-base.' in message
++
++
++def test_removed_deprecation_raises_with_collection_context():
++    with pytest.raises(AnsibleError) as exc_info:
++        Display().deprecated('old plugin', removed=True, version='9.0', collection_name='community.general')
++    assert str(exc_info.value) == ('[DEPRECATED]: old plugin. This feature was removed '
++                                   'in version 9.0 of community.general.\nPlease update your playbooks.')

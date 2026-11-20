@@ -1,0 +1,3 @@
+Fixed module shebang handling in [module_common.py](/app/lib/ansible/executor/module_common.py:595). New-style Python wrappers now use the module’s declared interpreter and arguments. Explicit overrides still take precedence, and modules without a shebang retain Ansible’s `auto` discovery. Shebang text is replaced only when the resolved interpreter changes; the encoding line follows it.
+
+A test subagent added regression coverage, and a review subagent caught discovery and quoted-argument cases that were incorporated. Verification: **73 `module_common` tests and 5 interpreter-discovery tests passed**.

@@ -1,0 +1,5 @@
+The fault is in [singleton.go](/app/utils/singleton/singleton.go:23): `Get` requires a placeholder and returns `interface{}`. Its cache key also strips `*` from the type name, so `T` and `*T` share an entry.
+
+A fix should add `GetInstance[T any](constructor func() T) T`, key its cache by the exact `reflect.Type` of `T`, and synchronize the lookup and construction so concurrent callers receive one instance. Keep the existing `Get` behavior separate: [its tests](/app/utils/singleton/singleton_test.go:42) explicitly expect value and pointer placeholders to share an entry.
+
+The existing tests pass, but cover only `Get` and 2,000 concurrent calls. They provide no evidence yet for the new generic API or the required 20,000-call case. Project source and tests were not changed, as required by the fault-localization assignment.

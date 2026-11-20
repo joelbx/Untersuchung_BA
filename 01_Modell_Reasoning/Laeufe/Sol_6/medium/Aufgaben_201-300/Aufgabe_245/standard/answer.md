@@ -1,0 +1,3 @@
+Updated [scan/base.go](/app/scan/base.go) so `detectScanDest` returns `map[string][]string` with ports grouped by IP, deduplicated, and sorted. It returns an empty map when no listening ports are found. The port scan caller now consumes the map in sorted IP order.
+
+Updated [scan/base_test.go](/app/scan/base_test.go) to cover the new format, including wildcard overlap and empty results. `go test ./scan -count=1` passes.

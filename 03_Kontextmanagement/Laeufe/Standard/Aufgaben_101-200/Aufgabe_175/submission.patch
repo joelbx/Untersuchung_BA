@@ -1,0 +1,469 @@
+diff --git a/cmd/backup.go b/cmd/backup.go
+new file mode 100644
+index 0000000..5b657d7
+--- /dev/null
++++ b/cmd/backup.go
+@@ -0,0 +1,63 @@
++package cmd
++
++import (
++	"bufio"
++	"fmt"
++	"strings"
++
++	"github.com/navidrome/navidrome/conf"
++	"github.com/navidrome/navidrome/db"
++	"github.com/spf13/cobra"
++)
++
++func init() {
++	group := &cobra.Command{Use: "backup", Short: "Manage database backups"}
++	create := &cobra.Command{Use: "create", Short: "Create a database backup", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
++		database := db.Db()
++		defer database.Close()
++		path, err := database.Backup(cmd.Context())
++		if err == nil {
++			fmt.Fprintln(cmd.OutOrStdout(), path)
++		}
++		return err
++	}}
++	prune := &cobra.Command{Use: "prune", Short: "Delete old database backups", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
++		force, _ := cmd.Flags().GetBool("force")
++		if conf.Server.Backup.Count == 0 && !force && !confirmBackup(cmd, "Delete all backups?") {
++			return fmt.Errorf("backup pruning cancelled")
++		}
++		count, err := db.Db().Prune(cmd.Context())
++		if err == nil {
++			fmt.Fprintf(cmd.OutOrStdout(), "Pruned %d backups\n", count)
++		}
++		return err
++	}}
++	prune.Flags().Bool("force", false, "skip confirmation")
++	restore := &cobra.Command{Use: "restore", Short: "Restore the database from a backup", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
++		path, _ := cmd.Flags().GetString("backup-file")
++		if path == "" {
++			return fmt.Errorf("--backup-file is required")
++		}
++		force, _ := cmd.Flags().GetBool("force")
++		if !force && !confirmBackup(cmd, "Replace the current database with this backup?") {
++			return fmt.Errorf("database restore cancelled")
++		}
++		database := db.Db()
++		defer database.Close()
++		if err := database.Restore(cmd.Context(), path); err != nil {
++			return err
++		}
++		fmt.Fprintln(cmd.OutOrStdout(), "Database restored")
++		return nil
++	}}
++	restore.Flags().String("backup-file", "", "backup database file to restore")
++	restore.Flags().Bool("force", false, "skip confirmation")
++	group.AddCommand(create, prune, restore)
++	rootCmd.AddCommand(group)
++}
++
++func confirmBackup(cmd *cobra.Command, prompt string) bool {
++	fmt.Fprintf(cmd.OutOrStdout(), "%s Type yes to continue: ", prompt)
++	answer, err := bufio.NewReader(cmd.InOrStdin()).ReadString('\n')
++	return err == nil && strings.TrimSpace(answer) == "yes"
++}
+diff --git a/cmd/root.go b/cmd/root.go
+index f623b40..647dabf 100644
+--- a/cmd/root.go
++++ b/cmd/root.go
+@@ -79,12 +79,33 @@ func runNavidrome(ctx context.Context) {
+ 	g.Go(startScheduler(ctx))
+ 	g.Go(startPlaybackServer(ctx))
+ 	g.Go(schedulePeriodicScan(ctx))
++	g.Go(schedulePeriodicBackup(ctx))
+ 
+ 	if err := g.Wait(); err != nil {
+ 		log.Error("Fatal error in Navidrome. Aborting", err)
+ 	}
+ }
+ 
++func schedulePeriodicBackup(ctx context.Context) func() error {
++	return func() error {
++		backup := conf.Server.Backup
++		if backup.Path == "" || backup.Schedule == "" || backup.Count == 0 {
++			return nil
++		}
++		return scheduler.GetInstance().Add(backup.Schedule, func() {
++			path, err := db.Db().Backup(ctx)
++			if err != nil {
++				log.Error("Error creating scheduled backup", err)
++				return
++			}
++			log.Info("Created scheduled backup", "path", path)
++			if _, err := db.Db().Prune(ctx); err != nil {
++				log.Error("Error pruning scheduled backups", err)
++			}
++		})
++	}
++}
++
+ // mainContext returns a context that is cancelled when the process receives a signal to exit.
+ func mainContext(ctx context.Context) (context.Context, context.CancelFunc) {
+ 	return signal.NotifyContext(ctx,
+diff --git a/conf/configuration.go b/conf/configuration.go
+index 7b68cb0..120b479 100644
+--- a/conf/configuration.go
++++ b/conf/configuration.go
+@@ -87,6 +87,7 @@ type configOptions struct {
+ 	Prometheus                      prometheusOptions
+ 	Scanner                         scannerOptions
+ 	Jukebox                         jukeboxOptions
++	Backup                          backupOptions
+ 
+ 	Agents       string
+ 	LastFM       lastfmOptions
+@@ -118,6 +119,12 @@ type scannerOptions struct {
+ 	GroupAlbumReleases bool
+ }
+ 
++type backupOptions struct {
++	Path     string
++	Schedule string
++	Count    int
++}
++
+ type lastfmOptions struct {
+ 	Enabled  bool
+ 	ApiKey   string
+@@ -188,6 +195,12 @@ func Load() {
+ 		_, _ = fmt.Fprintln(os.Stderr, "FATAL: Error creating cache path:", "path", Server.CacheFolder, err)
+ 		os.Exit(1)
+ 	}
++	if Server.Backup.Path != "" {
++		if err := os.MkdirAll(Server.Backup.Path, os.ModePerm); err != nil {
++			_, _ = fmt.Fprintln(os.Stderr, "FATAL: Error creating backup path:", Server.Backup.Path, err)
++			os.Exit(1)
++		}
++	}
+ 
+ 	Server.ConfigFile = viper.GetViper().ConfigFileUsed()
+ 	if Server.DbPath == "" {
+@@ -202,6 +215,9 @@ func Load() {
+ 	if err := validateScanSchedule(); err != nil {
+ 		os.Exit(1)
+ 	}
++	if err := validateBackupSchedule(); err != nil {
++		os.Exit(1)
++	}
+ 
+ 	if Server.BaseURL != "" {
+ 		u, err := url.Parse(Server.BaseURL)
+@@ -275,6 +291,30 @@ func validateScanSchedule() error {
+ 	return err
+ }
+ 
++func validateBackupSchedule() error {
++	if Server.Backup.Count < 0 {
++		err := fmt.Errorf("backup.count cannot be negative")
++		log.Error("Invalid backup.count", err)
++		return err
++	}
++	if Server.Backup.Schedule == "" {
++		return nil
++	}
++	if duration, err := time.ParseDuration(Server.Backup.Schedule); err == nil {
++		if duration <= 0 {
++			err := fmt.Errorf("backup.schedule must be positive")
++			log.Error("Invalid backup.schedule", err)
++			return err
++		}
++		Server.Backup.Schedule = "@every " + Server.Backup.Schedule
++	}
++	_, err := cron.ParseStandard(Server.Backup.Schedule)
++	if err != nil {
++		log.Error("Invalid backup.schedule", "schedule", Server.Backup.Schedule, err)
++	}
++	return err
++}
++
+ // AddHook is used to register initialization code that should run as soon as the config is loaded
+ func AddHook(hook func()) {
+ 	hooks = append(hooks, hook)
+@@ -291,6 +331,9 @@ func init() {
+ 	viper.SetDefault("sessiontimeout", consts.DefaultSessionTimeout)
+ 	viper.SetDefault("scaninterval", -1)
+ 	viper.SetDefault("scanschedule", "@every 1m")
++	viper.SetDefault("backup.path", "")
++	viper.SetDefault("backup.schedule", "")
++	viper.SetDefault("backup.count", 0)
+ 	viper.SetDefault("baseurl", "")
+ 	viper.SetDefault("tlscert", "")
+ 	viper.SetDefault("tlskey", "")
+diff --git a/db/backup.go b/db/backup.go
+new file mode 100644
+index 0000000..7674ebd
+--- /dev/null
++++ b/db/backup.go
+@@ -0,0 +1,173 @@
++package db
++
++import (
++	"context"
++	"database/sql"
++	"fmt"
++	"io"
++	"net/url"
++	"os"
++	"path/filepath"
++	"sort"
++	"strings"
++	"time"
++
++	"github.com/mattn/go-sqlite3"
++	"github.com/navidrome/navidrome/conf"
++)
++
++const backupPrefix = "navidrome_backup_"
++
++// Backup takes a consistent online snapshot of the database.
++func (d *db) Backup(ctx context.Context) (path string, err error) {
++	if conf.Server.Backup.Path == "" {
++		return "", fmt.Errorf("backup.path is empty")
++	}
++	if err = os.MkdirAll(conf.Server.Backup.Path, 0755); err != nil {
++		return "", err
++	}
++	path = filepath.Join(conf.Server.Backup.Path, backupPrefix+time.Now().UTC().Format("20060102T150405.000000000Z")+".db")
++	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
++	if err != nil {
++		return "", err
++	}
++	if err = f.Close(); err != nil {
++		_ = os.Remove(path)
++		return "", err
++	}
++	defer func() {
++		if err != nil {
++			_ = os.Remove(path)
++			path = ""
++		}
++	}()
++	dest, err := sql.Open(Driver, path)
++	if err != nil {
++		return path, err
++	}
++	defer dest.Close()
++	return path, copyDatabase(ctx, dest, d.writeDB)
++}
++
++// Restore copies a validated backup into the live database. Call only while the
++// server is stopped, so other connections cannot keep stale database state.
++func (d *db) Restore(ctx context.Context, path string) error {
++	if path == "" {
++		return fmt.Errorf("backup file is required")
++	}
++	info, err := os.Stat(path)
++	if err != nil {
++		return err
++	}
++	if !info.Mode().IsRegular() {
++		return fmt.Errorf("backup file is not a regular file: %s", path)
++	}
++	if info.Size() < 100 {
++		return fmt.Errorf("invalid backup: file is too small")
++	}
++	if live, statErr := os.Stat(conf.Server.DbPath); statErr == nil && os.SameFile(info, live) {
++		return fmt.Errorf("backup file is the live database")
++	}
++	file, err := os.Open(path)
++	if err != nil {
++		return err
++	}
++	header := make([]byte, 16)
++	_, readErr := io.ReadFull(file, header)
++	_ = file.Close()
++	if readErr != nil || string(header) != "SQLite format 3\x00" {
++		return fmt.Errorf("invalid backup: missing SQLite header")
++	}
++	abs, err := filepath.Abs(path)
++	if err != nil {
++		return err
++	}
++	source, err := sql.Open(Driver, (&url.URL{Scheme: "file", Path: abs, RawQuery: "mode=ro"}).String())
++	if err != nil {
++		return err
++	}
++	defer source.Close()
++	var result string
++	if err := source.QueryRowContext(ctx, "PRAGMA integrity_check").Scan(&result); err != nil {
++		return fmt.Errorf("invalid backup: %w", err)
++	}
++	if result != "ok" {
++		return fmt.Errorf("invalid backup: integrity_check returned %s", result)
++	}
++	return copyDatabase(ctx, d.writeDB, source)
++}
++
++func copyDatabase(ctx context.Context, destination, source *sql.DB) error {
++	src, err := source.Conn(ctx)
++	if err != nil {
++		return err
++	}
++	defer src.Close()
++	dst, err := destination.Conn(ctx)
++	if err != nil {
++		return err
++	}
++	defer dst.Close()
++	return dst.Raw(func(dstDriver any) error {
++		return src.Raw(func(srcDriver any) error {
++			d, ok := dstDriver.(*sqlite3.SQLiteConn)
++			if !ok {
++				return fmt.Errorf("destination is not SQLite")
++			}
++			s, ok := srcDriver.(*sqlite3.SQLiteConn)
++			if !ok {
++				return fmt.Errorf("source is not SQLite")
++			}
++			backup, err := d.Backup("main", s, "main")
++			if err != nil {
++				return err
++			}
++			_, stepErr := backup.Step(-1)
++			finishErr := backup.Finish()
++			if stepErr != nil {
++				return stepErr
++			}
++			return finishErr
++		})
++	})
++}
++
++func (d *db) Prune(ctx context.Context) (int, error) { return prune(ctx) }
++
++func prune(ctx context.Context) (int, error) {
++	if conf.Server.Backup.Path == "" {
++		return 0, fmt.Errorf("backup.path is empty")
++	}
++	if conf.Server.Backup.Count < 0 {
++		return 0, fmt.Errorf("backup.count cannot be negative")
++	}
++	entries, err := os.ReadDir(conf.Server.Backup.Path)
++	if err != nil {
++		return 0, err
++	}
++	var files []string
++	for _, entry := range entries {
++		name := entry.Name()
++		if entry.Type().IsRegular() && strings.HasPrefix(name, backupPrefix) && strings.HasSuffix(name, ".db") && validBackupName(name) {
++			files = append(files, name)
++		}
++	}
++	sort.Sort(sort.Reverse(sort.StringSlice(files)))
++	count := 0
++	for _, name := range files[min(conf.Server.Backup.Count, len(files)):] {
++		if err := ctx.Err(); err != nil {
++			return count, err
++		}
++		if err := os.Remove(filepath.Join(conf.Server.Backup.Path, name)); err != nil {
++			return count, err
++		}
++		count++
++	}
++	return count, nil
++}
++
++func validBackupName(name string) bool {
++	timestamp := strings.TrimSuffix(strings.TrimPrefix(name, backupPrefix), ".db")
++	_, err := time.Parse("20060102T150405.000000000Z", timestamp)
++	return err == nil
++}
+diff --git a/db/backup_test.go b/db/backup_test.go
+new file mode 100644
+index 0000000..22ae1e3
+--- /dev/null
++++ b/db/backup_test.go
+@@ -0,0 +1,66 @@
++package db
++
++import (
++	"context"
++	"database/sql"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/navidrome/navidrome/conf"
++)
++
++func TestBackupRestoreAndPrune(t *testing.T) {
++	previous := conf.Server.Backup
++	t.Cleanup(func() { conf.Server.Backup = previous })
++	dir := t.TempDir()
++	conf.Server.Backup.Path = filepath.Join(dir, "backups")
++	conf.Server.Backup.Count = 1
++	conn, err := sql.Open(Driver, filepath.Join(dir, "live.db"))
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer conn.Close()
++	database := &db{writeDB: conn}
++	ctx := context.Background()
++	if _, err := conn.Exec("CREATE TABLE items (value TEXT); INSERT INTO items VALUES ('original')"); err != nil {
++		t.Fatal(err)
++	}
++	first, err := database.Backup(ctx)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if _, err := os.Stat(first); err != nil {
++		t.Fatal(err)
++	}
++	if _, err := conn.Exec("UPDATE items SET value = 'changed'"); err != nil {
++		t.Fatal(err)
++	}
++	second, err := database.Backup(ctx)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if first == second {
++		t.Fatal("backup filenames must be unique")
++	}
++	removed, err := database.Prune(ctx)
++	if err != nil || removed != 1 {
++		t.Fatalf("pruned %d: %v", removed, err)
++	}
++	if _, err := os.Stat(first); !os.IsNotExist(err) {
++		t.Fatalf("old backup remains: %v", err)
++	}
++	if _, err := conn.Exec("UPDATE items SET value = 'later'"); err != nil {
++		t.Fatal(err)
++	}
++	if err := database.Restore(ctx, second); err != nil {
++		t.Fatal(err)
++	}
++	var value string
++	if err := conn.QueryRow("SELECT value FROM items").Scan(&value); err != nil || value != "changed" {
++		t.Fatalf("restored value %q: %v", value, err)
++	}
++	if err := database.Restore(ctx, filepath.Join(dir, "missing.db")); err == nil {
++		t.Fatal("missing backup accepted")
++	}
++}
+diff --git a/db/db.go b/db/db.go
+index af52ca7..f83522b 100644
+--- a/db/db.go
++++ b/db/db.go
+@@ -1,6 +1,7 @@
+ package db
+ 
+ import (
++	"context"
+ 	"database/sql"
+ 	"embed"
+ 	"fmt"
+@@ -26,6 +27,9 @@ var embedMigrations embed.FS
+ const migrationsFolder = "migrations"
+ 
+ type DB interface {
++	Backup(ctx context.Context) (string, error)
++	Restore(ctx context.Context, path string) error
++	Prune(ctx context.Context) (int, error)
+ 	ReadDB() *sql.DB
+ 	WriteDB() *sql.DB
+ 	Close()

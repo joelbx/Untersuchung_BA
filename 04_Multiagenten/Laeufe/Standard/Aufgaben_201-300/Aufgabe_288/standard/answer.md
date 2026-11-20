@@ -1,0 +1,3 @@
+Updated move-out behavior in [useShouldMoveOut.ts](/app/applications/mail/src/app/hooks/useShouldMoveOut.ts): once mailbox elements finish loading, it calls `onBack` if the active ID is missing from the valid ID list. `MailboxContainer` now passes the list and loading state to both views; conversation view uses the message ID for message-level labels.
+
+The hook, conversation view, and mailbox elements tests passed (29 tests total).

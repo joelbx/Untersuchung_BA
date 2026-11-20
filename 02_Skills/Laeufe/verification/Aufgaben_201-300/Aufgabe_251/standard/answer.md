@@ -1,0 +1,3 @@
+Updated `flipt validate` to report every YAML validation error with its field path, message, and source file, line, and column. Text output identifies each issue; JSON output returns the structured `Result`. Validation failures retain a nonzero exit status.
+
+Verification: `go test ./internal/cue ./cmd/flipt -count=1` passed. A CLI run against the invalid fixture emitted the rollout path, its `<=100` constraint, and the source location, then exited with status 1.

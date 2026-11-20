@@ -1,0 +1,3 @@
+Implemented the generic fanout buffer in [buffer.go](/app/lib/utils/fanoutbuffer/buffer.go). It provides independent, ordered cursors, a fixed ring with overflow storage, grace period expiry for slow cursors, blocking and nonblocking reads, and cleanup on cursor or buffer close. Added focused tests in [buffer_test.go](/app/lib/utils/fanoutbuffer/buffer_test.go).
+
+Verification passed: `go test -race ./lib/utils/fanoutbuffer` and `go test ./lib/services -run Fanout -count=1`. No delegation was used.

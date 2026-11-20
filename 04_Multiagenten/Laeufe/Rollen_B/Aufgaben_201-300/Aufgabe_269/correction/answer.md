@@ -1,0 +1,3 @@
+Fixed the review finding: metadata aggregation and TUI references now include every `trivy:<source>` key present in a CVE record, including sources such as `trivy:alpine`. Declared sources keep their existing order; additional sources appear in name order. Added a regression test for additional sources.
+
+The reviewer’s exact test command passed across all five packages (`tui` has no test files). `git diff --check` passed. `TEST_ENVIRONMENT_PROBLEM: none`.

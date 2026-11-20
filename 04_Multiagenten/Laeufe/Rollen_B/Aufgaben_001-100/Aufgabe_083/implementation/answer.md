@@ -1,0 +1,3 @@
+Updated the Drive extended-attribute helpers to use `XAttrCreateParams`, added `DeepPartial` and stricter digest types, and updated the upload call site. Creation now omits zero-size remainder blocks and absent metadata. Parsing handles partial or malformed JSON, including nested `null` values, without throwing.
+
+The Drive XAttr tests, TypeScript check, Prettier check, and `git diff --check` all pass.

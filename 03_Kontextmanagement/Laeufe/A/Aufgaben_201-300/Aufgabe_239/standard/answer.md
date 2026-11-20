@@ -1,0 +1,3 @@
+Updated `UserPropsRepository` and its mock so every read and write takes an explicit `userId`. LastFM session keys, link status, unlink, now playing, and scrobbling now use the identified user’s data. The auth callback uses short-lived signed state issued to the authenticated user, replacing the untrusted user ID in the callback URL.
+
+The affected Go tests passed. UI Prettier and ESLint checks passed, as did `git diff --check`.

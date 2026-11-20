@@ -1,0 +1,5 @@
+The main exposure gap is in work search: [WorkSearchScheme.default_fetched_fields](/app/openlibrary/plugins/worksearch/schemes/works.py:168) does not request `id_project_runeberg`, and [get_doc](/app/openlibrary/plugins/worksearch/code.py:354) does not return it with the `[]` fallback used for other identifiers. Both need the field added without changing the existing identifier mappings.
+
+Edition identifiers already become `id_*` arrays, and the work builder aggregates them ([edition.py](/app/openlibrary/solr/updater/edition.py:244), [work.py](/app/openlibrary/solr/updater/work.py:651)). The Solr schema supports multivalued `id_*` fields. A separate integration gap remains: [book_providers.py](/app/openlibrary/book_providers.py) has no `ProjectRunebergProvider` or registry entry, and the two requested Runeberg templates are absent.
+
+Uncertainty: I did not run tests or verify live Solr output. No project source or tests were changed; the required progress note is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

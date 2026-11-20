@@ -1,0 +1,3 @@
+Updated `QtColor` so HSV and HSVA hue percentages scale to 359, while the other channels scale to 255. The parser now validates color function names and component counts before constructing a `QColor`. RGB and RGBA behavior is covered by the updated tests.
+
+The focused color tests passed: **54 passed**. `git diff --check` also passed. The full `test_configtypes.py` run had 60 failures outside the changed color cases, including Hypothesis fixture health checks; details are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

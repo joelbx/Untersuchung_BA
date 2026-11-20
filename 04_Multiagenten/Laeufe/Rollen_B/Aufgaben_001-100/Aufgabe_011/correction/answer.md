@@ -1,0 +1,3 @@
+Fixed both review findings. Deprecation messages now include the configuration note, and lookups propagate the original exception outside `warn` and `ignore` modes. I also replaced the remaining display Ellipsis sentinel with an object sentinel. `git diff --check` passes.
+
+The exact test reruns found one test expecting the old wrapped lookup exception (349 passed, 1 failed). The broader suite had the same 12 failures reported by the reviewer, including three missing collection finder setup failures (**TEST_ENVIRONMENT_PROBLEM**). The reviewer’s `test_lookup.py` path still does not exist.

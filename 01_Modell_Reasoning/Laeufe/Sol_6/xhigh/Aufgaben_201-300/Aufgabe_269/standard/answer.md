@@ -1,0 +1,3 @@
+Trivy CVE contents are now stored under source keys such as `trivy:debian` and `trivy:nvd`. The converter and library detector preserve each source’s severity, CVSS values, references, and publication dates, including when the same CVE appears in multiple targets. Metadata aggregation and TUI references now include those entries.
+
+The relevant repository tests pass: `go test ./models ./contrib/trivy/pkg ./contrib/trivy/parser/v2 ./detector ./tui`.

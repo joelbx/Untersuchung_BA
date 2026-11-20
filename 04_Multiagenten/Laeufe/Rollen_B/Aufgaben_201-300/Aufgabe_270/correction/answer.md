@@ -1,0 +1,3 @@
+Restored `isSessionProtonUser` in the shared [public session provider](/app/packages/drive-store/store/_api/usePublicSession.tsx), fixing the two consumer type errors identified in the review.
+
+Both reviewer-listed test commands pass (12 tests each). The two type checks now report only **TEST_ENVIRONMENT_PROBLEM**: TS2345 at `packages/crypto/lib/worker/api.ts:579`, caused by incompatible installed `openpgp` types in the root and `pmcrypto` dependency trees.

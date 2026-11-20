@@ -1,0 +1,3 @@
+Fixed the cancellation expiry date. The expiry utility now uses the **active term’s end date** when cancellation is in progress or auto-renew is disabled, even if a future plan is scheduled. Cancellation screens use that result; free plans and subscriptions that continue renewing keep their existing behavior.
+
+Verified with 55 passing tests across five relevant suites, a passing TypeScript check, and a clean diff check.

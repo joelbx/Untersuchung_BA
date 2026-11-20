@@ -1,0 +1,3 @@
+Implemented chat privacy settings in the checked-out repository. Accounts now have a disable incoming messages setting and allow and deny lists of string UIDs, with controls on the account settings page. Server-side checks apply them to chat initiation and room creation, giving explicit user blocks precedence and preserving the admin and global moderator exception.
+
+Added an idempotent [upgrade](/app/src/upgrades/4.3.0/chat_allow_list.js) that seeds the allow list from follows for accounts that had the old restriction enabled. Verification passed: 79 messaging tests, the earlier 352-test messaging and user run, ESLint, and `git diff --check`.

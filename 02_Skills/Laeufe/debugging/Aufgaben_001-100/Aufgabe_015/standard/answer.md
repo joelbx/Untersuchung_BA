@@ -1,0 +1,3 @@
+Added the experimental `feature_qr_signin_reciprocate_show` setting, disabled by default, with a description of the MSC3882 and MSC3886 homeserver requirements. [LoginWithQRSection](/app/src/components/views/settings/devices/LoginWithQRSection.tsx) and both settings tabs now require the flag before showing QR sign in. When enabled and supported by the server, “Show QR code” still opens the QR login view.
+
+The focused regression tests pass: 60 tests across 3 suites. Changed-file lint and formatting checks pass. The repository-wide TypeScript check remains blocked by an error in the untouched `RoomView-test.tsx`; the exact error is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

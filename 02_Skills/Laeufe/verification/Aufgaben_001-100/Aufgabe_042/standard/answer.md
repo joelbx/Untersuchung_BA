@@ -1,0 +1,3 @@
+Added `/.well-known/webfinger` through the [controller](/app/src/controllers/well-known.js) and [route](/app/src/routes/well-known.js). It validates `acct:` resources against the configured hostname, checks `view:users` using the Guest role for anonymous requests, resolves the user slug, and returns WebFinger JSON with UID and profile aliases.
+
+Verification: 5 isolated handler tests passed; lint and syntax checks passed. The HTTP integration test could not run because the local Redis service refused the connection (`127.0.0.1:6379`). That limit is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

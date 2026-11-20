@@ -1,0 +1,3 @@
+Updated the checked-out repository so incomplete promise items use ISBN-10 first, then a B* ASIN, to fill missing metadata from staged items before validation. Existing non-empty fields are preserved. The batch importer now stages only incomplete records, records total and incomplete gauges, and logs lookup failures while continuing with other items. Validation accepts either a complete record or a title with a strong identifier.
+
+Verification: 111 relevant tests passed; Ruff passed.

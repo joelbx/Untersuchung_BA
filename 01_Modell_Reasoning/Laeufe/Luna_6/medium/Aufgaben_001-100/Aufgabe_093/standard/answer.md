@@ -1,0 +1,3 @@
+Implemented RTL placement normalization in [utils.ts](/app/packages/components/components/popper/utils.ts). The new `rtlPlacement()` middleware detects the floating element’s direction and provides the adjusted placement; `usePopper` now reports that placement, and both utilities are exported from the Popper entry point.
+
+Added helper coverage for RTL top/bottom alignment flips, unchanged left/right placements, and unchanged LTR placements. The existing Popper utils test suite passed.

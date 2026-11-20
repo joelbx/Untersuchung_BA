@@ -1,0 +1,3 @@
+Added `${VARIABLE_NAME}` substitution as the first configuration decode hook. It replaces exact string references when the environment variable exists, so later hooks can convert values such as ports and durations. Other values remain unchanged, and configuration-key environment overrides still take precedence.
+
+Added regression coverage for multiple references, invalid and missing references, empty values, type conversion, and overrides. `go test ./internal/config ./config` and `git diff --check` passed.

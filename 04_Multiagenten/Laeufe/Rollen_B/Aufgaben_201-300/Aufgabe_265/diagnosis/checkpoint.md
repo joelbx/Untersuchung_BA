@@ -1,0 +1,5 @@
+Status: diagnosis complete; project source and tests unchanged.
+Fault: qutebrowser/config/configtypes.py QtColor._parse_value (lines 1004-1018) scales every percent by 255/100; QtColor.to_py (lines 1028-1042) does not identify HSV hue before parsing, so hsv/hsva 100% hue becomes 255 rather than 359.
+Existing tests: tests/unit/config/test_configtypes.py TestQtColor (lines 1235-1277) asserts the legacy 25 hue for 10% and covers some invalid names/counts. Focused suite: 24 passed using pytest -c /dev/null; default pytest startup stops on deprecated --strict config warning. No 100% hue expectation exists.
+Likely fix behavior: distinguish first HSV/HSVA component, scale its percentages by 359/100 while retaining 255/100 for other percentage channels and existing RGB/A behavior; validate supported function name and arity before conversion; dispatch HSV/HSVA to QColor.fromHsv and RGB/RGBA to QColor.fromRgb. Update legacy hue expectations and add 100% hue / invalid arity/name cases.
+Uncertainty: no fix implemented or post-fix tests run under this diagnosis-only role.

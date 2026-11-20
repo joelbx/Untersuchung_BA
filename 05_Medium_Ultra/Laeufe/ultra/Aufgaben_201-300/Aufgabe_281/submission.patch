@@ -1,0 +1,607 @@
+diff --git a/src/database/mongo/hash.js b/src/database/mongo/hash.js
+index 732a3e2..0dc4c4d 100644
+--- a/src/database/mongo/hash.js
++++ b/src/database/mongo/hash.js
+@@ -261,4 +261,92 @@ module.exports = function (module) {
+ 			throw err;
+ 		}
+ 	};
++
++	module.incrObjectFieldByBulk = async function (data) {
++		if (!Array.isArray(data)) {
++			throw new TypeError('data must be an array of [key, increments] tuples');
++		}
++		if (!data.length) {
++			return;
++		}
++
++		const incrementsByKey = new Map();
++		for (const item of data) {
++			if (!Array.isArray(item) || item.length !== 2 || typeof item[0] !== 'string' || !item[0] ||
++				!item[1] || typeof item[1] !== 'object' || Array.isArray(item[1]) ||
++				![Object.prototype, null].includes(Object.getPrototypeOf(item[1]))) {
++				throw new TypeError('data must be an array of [key, increments] tuples');
++			}
++
++			const [key, fields] = item;
++			let increment = incrementsByKey.get(key);
++			if (!increment) {
++				increment = Object.create(null);
++				incrementsByKey.set(key, increment);
++			}
++			for (const field of Reflect.ownKeys(fields)) {
++				if (typeof field !== 'string' || !Object.prototype.propertyIsEnumerable.call(fields, field)) {
++					throw new TypeError('increment fields must be enumerable string keys');
++				}
++				const normalizedField = helpers.fieldToString(field);
++				if (!normalizedField || field.includes('.') || normalizedField.includes('\uff0E') ||
++					normalizedField.includes('$') || normalizedField.includes('\0') ||
++					['__proto__', 'constructor', 'prototype', '_key', '_id'].includes(normalizedField)) {
++					throw new TypeError(`invalid increment field: ${field}`);
++				}
++				const value = fields[field];
++				if (!Number.isSafeInteger(value)) {
++					throw new TypeError(`increment for ${field} must be a safe integer`);
++				}
++				const total = (increment[normalizedField] || 0) + value;
++				if (!Number.isSafeInteger(total)) {
++					throw new RangeError(`combined increment for ${field} exceeds the safe integer range`);
++				}
++				increment[normalizedField] = total;
++			}
++		}
++
++		const entries = [...incrementsByKey].filter(([, increment]) => Object.keys(increment).length);
++		if (!entries.length) {
++			return;
++		}
++		const collection = module.client.collection('objects');
++		const operations = entries.map(([key, increment]) => ({
++			updateOne: {
++				filter: { _key: key },
++				update: { $inc: increment },
++				upsert: true,
++			},
++		}));
++		try {
++			await collection.bulkWrite(operations, { ordered: false });
++		} catch (err) {
++			const writeErrors = err && err.writeErrors;
++			if (Array.isArray(writeErrors) && writeErrors.length &&
++				writeErrors.every(failure => failure && Number.isInteger(failure.index) &&
++					failure.index >= 0 && failure.index < entries.length)) {
++				const failedIndexes = new Set(writeErrors.map(failure => failure.index));
++				const successfulKeys = entries.filter((entry, index) => !failedIndexes.has(index)).map(entry => entry[0]);
++				if (successfulKeys.length) {
++					cache.del(successfulKeys);
++				}
++				const duplicateErrors = writeErrors.filter(failure => failure.code === 11000);
++				const retried = await Promise.allSettled(duplicateErrors.map(({ index }) => {
++					const [key, increment] = entries[index];
++					return collection.updateOne({ _key: key }, { $inc: increment }, { upsert: true });
++				}));
++				const retryKeys = duplicateErrors.filter((failure, index) => retried[index].status === 'fulfilled')
++					.map(failure => entries[failure.index][0]);
++				if (retryKeys.length) {
++					cache.del(retryKeys);
++				}
++				if (duplicateErrors.length === writeErrors.length &&
++					retried.every(result => result.status === 'fulfilled')) {
++					return;
++				}
++			}
++			throw err;
++		}
++		cache.del(entries.map(entry => entry[0]));
++	};
+ };
+diff --git a/src/database/redis/hash.js b/src/database/redis/hash.js
+index 1afdccd..6b3a581 100644
+--- a/src/database/redis/hash.js
++++ b/src/database/redis/hash.js
+@@ -1,9 +1,91 @@
+ 'use strict';
+ 
++/* global BigInt */
++
+ module.exports = function (module) {
+ 	const helpers = require('./helpers');
+ 
+ 	const cache = require('../cache').create('redis');
++	const maxRedisInteger = BigInt('9223372036854775807');
++	const minRedisInteger = -maxRedisInteger - BigInt(1);
++	const maxSafeInteger = BigInt(Number.MAX_SAFE_INTEGER);
++	const bulkIncrementScript = `
++local function compare_integers(a, b)
++	local a_negative = a:sub(1, 1) == '-'
++	local b_negative = b:sub(1, 1) == '-'
++	if a_negative ~= b_negative then
++		return a_negative and -1 or 1
++	end
++	if a_negative then a = a:sub(2) end
++	if b_negative then b = b:sub(2) end
++	if #a ~= #b then
++		if a_negative then return #a > #b and -1 or 1 end
++		return #a < #b and -1 or 1
++	end
++	if a == b then return 0 end
++	if a_negative then return a > b and -1 or 1 end
++	return a < b and -1 or 1
++end
++
++local function is_decimal(value)
++	local mantissa, exponent = value:match('^([^eE]+)[eE]([+-]?%d+)$')
++	if not mantissa then
++		if value:find('[eE]') then return false end
++		mantissa = value
++	elseif math.abs(tonumber(exponent) or math.huge) > 300 then
++		-- Keep the value within Lua's reliable floating-point preflight range.
++		return false
++	end
++	if mantissa:sub(1, 1) == '+' or mantissa:sub(1, 1) == '-' then
++		mantissa = mantissa:sub(2)
++	end
++	return (mantissa:match('^%d+$') or mantissa:match('^%d+%.%d*$') or
++		mantissa:match('^%.%d+$')) ~= nil
++end
++
++local float_fields = {}
++for i = 1, #ARGV, 3 do
++	local current = redis.call('HGET', KEYS[1], ARGV[i])
++	if current then
++		if current == '0' or current:match('^[1-9]%d*$') or
++			current:match('^%-[1-9]%d*$') then
++			if compare_integers(current, '-9223372036854775808') < 0 or
++				compare_integers(current, '9223372036854775807') > 0 then
++				return redis.error_reply('ERR hash value is out of range')
++			end
++			local limit = ARGV[i + 2]
++			if (ARGV[i + 1]:sub(1, 1) == '-' and compare_integers(current, limit) < 0) or
++				(ARGV[i + 1]:sub(1, 1) ~= '-' and compare_integers(current, limit) > 0) then
++				return redis.error_reply('ERR increment or decrement would overflow')
++			end
++		else
++			local number = tonumber(current)
++			local increment = tonumber(ARGV[i + 1])
++			local result = number and number + increment
++			local mantissa = current:match('^([^eE]+)') or current
++			-- Reject increments that would be rounded away or changed in size.
++			if not is_decimal(current) or not number or not result or
++				(number == 0 and mantissa:find('[1-9]')) or
++				number == math.huge or number == -math.huge or
++				result == math.huge or result == -math.huge or
++				math.abs((result - number) - increment) > 1e-9 then
++				return redis.error_reply('ERR hash value is not a finite decimal')
++			end
++			float_fields[i] = true
++		end
++	end
++end
++
++for i = 1, #ARGV, 3 do
++	if float_fields[i] then
++		if ARGV[i + 1] ~= '0' then
++			redis.call('HINCRBYFLOAT', KEYS[1], ARGV[i], ARGV[i + 1])
++		end
++	else
++		redis.call('HINCRBY', KEYS[1], ARGV[i], ARGV[i + 1])
++	end
++end
++return 1`;
+ 
+ 	module.objectCache = cache;
+ 
+@@ -219,4 +301,81 @@ module.exports = function (module) {
+ 		cache.del(key);
+ 		return Array.isArray(result) ? result.map(value => parseInt(value, 10)) : parseInt(result, 10);
+ 	};
++
++	module.incrObjectFieldByBulk = async function (data) {
++		if (!Array.isArray(data)) {
++			throw new TypeError('data must be an array of [key, increments] tuples');
++		}
++		if (!data.length) {
++			return;
++		}
++
++		const grouped = new Map();
++		for (const item of data) {
++			if (!Array.isArray(item) || item.length !== 2 || typeof item[0] !== 'string' || !item[0] ||
++				!item[1] || typeof item[1] !== 'object' || Array.isArray(item[1]) ||
++				![Object.prototype, null].includes(Object.getPrototypeOf(item[1]))) {
++				throw new TypeError('data must be an array of [key, increments] tuples');
++			}
++
++			const [key, increments] = item;
++			if (!grouped.has(key)) {
++				grouped.set(key, new Map());
++			}
++			const fields = grouped.get(key);
++			for (const name of Reflect.ownKeys(increments)) {
++				if (typeof name !== 'string' || !Object.prototype.propertyIsEnumerable.call(increments, name)) {
++					throw new TypeError('increment fields must be enumerable string keys');
++				}
++				const field = String(name);
++				if (!field || field === '__proto__' || field === 'constructor' ||
++					field === 'prototype' || field === '_key' || field === '_id' ||
++					/[.$]/.test(field) || field.includes('\uff0E') || field.includes('\0')) {
++					throw new TypeError(`invalid field name: ${field}`);
++				}
++				const increment = increments[name];
++				if (!Number.isSafeInteger(increment)) {
++					throw new TypeError(`increment for ${field} must be a safe integer`);
++				}
++				const total = BigInt(fields.get(field) || 0) + BigInt(increment);
++				if (total > maxSafeInteger || total < -maxSafeInteger) {
++					throw new RangeError(`increment for ${field} exceeds the safe integer range`);
++				}
++				fields.set(field, Number(total));
++			}
++		}
++
++		const writes = [...grouped].filter(([, fields]) => fields.size);
++		if (!writes.length) {
++			return;
++		}
++
++		const batch = module.client.batch();
++		for (const [key, fields] of writes) {
++			const args = [];
++			for (const [field, increment] of fields) {
++				const amount = BigInt(increment);
++				const limit = amount < 0 ? minRedisInteger - amount : maxRedisInteger - amount;
++				args.push(field, String(increment), String(limit));
++			}
++			batch.eval(bulkIncrementScript, 1, key, ...args);
++		}
++
++		const results = await batch.exec();
++		const updatedKeys = [];
++		let firstError;
++		results.forEach(([err], index) => {
++			if (err) {
++				firstError = firstError || err;
++			} else {
++				updatedKeys.push(writes[index][0]);
++			}
++		});
++		if (updatedKeys.length) {
++			cache.del(updatedKeys);
++		}
++		if (firstError) {
++			throw firstError;
++		}
++	};
+ };
+diff --git a/test/database/hash-bulk.js b/test/database/hash-bulk.js
+new file mode 100644
+index 0000000..2ca5c95
+--- /dev/null
++++ b/test/database/hash-bulk.js
+@@ -0,0 +1,326 @@
++'use strict';
++
++const assert = require('assert');
++
++const createMongoHash = require('../../src/database/mongo/hash');
++const createRedisHash = require('../../src/database/redis/hash');
++
++function createMongoHarness() {
++	const rows = new Map();
++	const calls = [];
++	const collection = {
++		async bulkWrite(operations, options) {
++			calls.push({ method: 'bulkWrite', operations, options });
++			assert.deepStrictEqual(options, { ordered: false });
++			const writeErrors = [];
++			operations.forEach((operation, index) => {
++				const { filter, update, upsert } = operation.updateOne;
++				assert.strictEqual(upsert, true);
++				assert(update.$inc);
++				const oldValue = rows.get(filter._key) || {};
++				const fields = Object.entries(update.$inc);
++				if (fields.some(([field]) => Object.prototype.hasOwnProperty.call(oldValue, field) &&
++					typeof oldValue[field] !== 'number')) {
++					writeErrors.push({ index, code: 14, errmsg: 'Cannot apply $inc to a non-numeric value' });
++					return;
++				}
++				const nextValue = { ...oldValue };
++				fields.forEach(([field, increment]) => {
++					nextValue[field] = (nextValue[field] || 0) + increment;
++				});
++				rows.set(filter._key, nextValue);
++			});
++			if (writeErrors.length) {
++				const error = new Error('Bulk write failed');
++				error.writeErrors = writeErrors;
++				throw error;
++			}
++		},
++		find(filter) {
++			calls.push({ method: 'find', filter });
++			return {
++				toArray: async () => {
++					const keys = typeof filter._key === 'string' ? [filter._key] : filter._key.$in;
++					return keys.filter(key => rows.has(key)).map(key => ({ _key: key, ...rows.get(key) }));
++				},
++			};
++		},
++	};
++	const hash = {
++		client: {
++			collection(name) {
++				calls.push({ method: 'collection', name });
++				assert.strictEqual(name, 'objects');
++				return collection;
++			},
++		},
++	};
++	createMongoHash(hash);
++	return {
++		hash,
++		rows,
++		calls,
++		seed(key, value) { rows.set(key, { ...value }); },
++	};
++}
++
++function createRedisHarness() {
++	const rows = new Map();
++	const calls = [];
++	const hash = {
++		client: {
++			batch() {
++				calls.push({ method: 'batch' });
++				const commands = [];
++				return {
++					eval(script, keyCount, key, ...args) {
++						calls.push({ method: 'eval', script, keyCount, key, args });
++						assert.match(script, /HINCRBY/i);
++						assert.match(script, /HINCRBYFLOAT/i);
++						assert.match(script, /HGET/i);
++						assert.strictEqual(keyCount, 1);
++						assert.strictEqual(args.length % 3, 0);
++						commands.push({ key, args });
++						return this;
++					},
++					async exec() {
++						calls.push({ method: 'exec' });
++						return commands.map(({ key, args }) => {
++							const current = rows.get(key) || {};
++							const next = { ...current };
++							for (let index = 0; index < args.length; index += 3) {
++								const field = args[index];
++								const oldValue = current[field];
++								if (oldValue !== undefined &&
++									(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(oldValue) ||
++									!Number.isFinite(Number(oldValue)))) {
++									return [new Error('ERR hash value is not numeric'), null];
++								}
++							}
++							for (let index = 0; index < args.length; index += 3) {
++								const field = args[index];
++								next[field] = String(Number(next[field] || 0) + Number(args[index + 1]));
++							}
++							rows.set(key, next);
++							return [null, 1];
++						});
++					},
++				};
++			},
++			async hgetall(key) {
++				calls.push({ method: 'hgetall', key });
++				return { ...(rows.get(key) || {}) };
++			},
++		},
++	};
++	createRedisHash(hash);
++	return {
++		hash,
++		rows,
++		calls,
++		seed(key, value) {
++			rows.set(key, Object.fromEntries(Object.entries(value).map(([field, item]) => [field, String(item)])));
++		},
++	};
++}
++
++[
++	['Mongo', createMongoHarness],
++	['Redis', createRedisHarness],
++].forEach(([backend, createHarness]) => {
++	describe(`${backend} incrObjectFieldByBulk()`, () => {
++		let harness;
++
++		before(() => {
++			harness = createHarness();
++		});
++
++		beforeEach(() => {
++			harness.rows.clear();
++			harness.calls.length = 0;
++			harness.hash.objectCache.reset();
++		});
++
++		it('increments several fields and keys, creates missing values, and returns void', async () => {
++			const { hash, rows } = harness;
++			harness.seed('existing', { age: 10 });
++			hash.objectCache.set('existing', { age: 10 });
++			hash.objectCache.set('created', null);
++
++			const result = await hash.incrObjectFieldByBulk([
++				['existing', { age: 5, newField: 10 }],
++				['created', { balance: -2 }],
++			]);
++
++			assert.strictEqual(result, undefined);
++			assert.strictEqual(Number(rows.get('existing').age), 15);
++			assert.strictEqual(Number(rows.get('existing').newField), 10);
++			assert.strictEqual(Number(rows.get('created').balance), -2);
++			assert.strictEqual(hash.objectCache.has('existing'), false);
++			assert.strictEqual(hash.objectCache.has('created'), false);
++			assert.strictEqual(Number((await hash.getObject('existing')).age), 15);
++			assert.strictEqual(Number((await hash.getObject('created')).balance), -2);
++		});
++
++		it('combines repeated keys into one atomic per-key write', async () => {
++			const { hash, rows, calls } = harness;
++			await hash.incrObjectFieldByBulk([
++				['repeated', { age: 2 }],
++				['repeated', { age: -3, newField: 4 }],
++			]);
++			assert.strictEqual(Number(rows.get('repeated').age), -1);
++			assert.strictEqual(Number(rows.get('repeated').newField), 4);
++			const perKeyWrites = backend === 'Mongo' ?
++				calls.find(call => call.method === 'bulkWrite').operations.length :
++				calls.filter(call => call.method === 'eval').length;
++			assert.strictEqual(perKeyWrites, 1);
++		});
++
++		it('rejects malformed input before any backend call', async () => {
++			const invalid = [
++				undefined, null, {}, 'key', ['key', { age: 1 }],
++				[['key']], [[123, { age: 1 }]], [['key', null]],
++				[['key', []]], [['key', { age: 1 }, 'extra']],
++			];
++			for (const data of invalid) {
++				// eslint-disable-next-line no-await-in-loop
++				await assert.rejects(harness.hash.incrObjectFieldByBulk(data));
++			}
++			assert.deepStrictEqual(harness.calls, []);
++		});
++
++		it('rejects unsafe increments before writing any key', async () => {
++			const invalid = [1.5, NaN, Infinity, -Infinity, Number.MAX_SAFE_INTEGER + 1, '1', null, true];
++			for (const value of invalid) {
++				// eslint-disable-next-line no-await-in-loop
++				await assert.rejects(harness.hash.incrObjectFieldByBulk([['bad', { age: value }]]));
++			}
++			harness.seed('good', { age: 1 });
++			await assert.rejects(async () => harness.hash.incrObjectFieldByBulk([
++				['good', { age: 1 }], ['bad', { age: 1.5 }],
++			]));
++			assert.strictEqual(Number(harness.rows.get('good').age), 1);
++			assert.deepStrictEqual(harness.calls, []);
++		});
++
++		it('rejects dangerous field names before writing', async () => {
++			for (const field of ['__proto__', 'constructor', 'a.b', '$value', 'a$b']) {
++				const increments = Object.fromEntries([[field, 1]]);
++				// eslint-disable-next-line no-await-in-loop
++				await assert.rejects(harness.hash.incrObjectFieldByBulk([['bad', increments]]));
++			}
++			assert.deepStrictEqual(harness.calls, []);
++		});
++
++		it('keeps each failed key unchanged while updating other keys', async () => {
++			const { hash, rows } = harness;
++			harness.seed('bad', { count: 2, label: 'text' });
++			harness.seed('good', { count: 3 });
++			hash.objectCache.set('bad', { count: 2, label: 'text' });
++			hash.objectCache.set('good', { count: 3 });
++
++			await assert.rejects(async () => hash.incrObjectFieldByBulk([
++				['bad', { count: 5, label: 1 }],
++				['good', { count: -1, created: 7 }],
++			]));
++
++			assert.strictEqual(Number(rows.get('bad').count), 2);
++			assert.strictEqual(rows.get('bad').label, 'text');
++			assert.strictEqual(Number(rows.get('good').count), 2);
++			assert.strictEqual(Number(rows.get('good').created), 7);
++			assert.strictEqual(hash.objectCache.has('bad'), true);
++			assert.strictEqual(hash.objectCache.has('good'), false);
++		});
++
++		it('does no database or cache work for an empty array', async () => {
++			const { hash, calls } = harness;
++			const cache = hash.objectCache;
++			const methods = ['del', 'get', 'set', 'getUnCachedKeys'];
++			const originals = Object.fromEntries(methods.map(method => [method, cache[method]]));
++			let cacheCalls = 0;
++			methods.forEach((method) => {
++				cache[method] = function (...args) {
++					cacheCalls += 1;
++					return originals[method].apply(this, args);
++				};
++			});
++			try {
++				assert.strictEqual(await hash.incrObjectFieldByBulk([]), undefined);
++				assert.deepStrictEqual(calls, []);
++				assert.strictEqual(cacheCalls, 0);
++			} finally {
++				methods.forEach((method) => { cache[method] = originals[method]; });
++			}
++		});
++
++		if (backend === 'Mongo') {
++			it('retries a duplicate-key upsert with an atomic increment', async () => {
++				const { hash, rows } = harness;
++				const originalCollection = hash.client.collection;
++				const operations = [];
++				hash.objectCache.set('racing', { count: 0 });
++				hash.client.collection = function (name) {
++					assert.strictEqual(name, 'objects');
++					return {
++						async bulkWrite(writes, options) {
++							assert.deepStrictEqual(options, { ordered: false });
++							assert.strictEqual(writes.length, 1);
++							operations.push('bulkWrite');
++							rows.set('racing', { count: 7 });
++							const error = new Error('E11000 duplicate key error');
++							error.writeErrors = [{ index: 0, code: 11000 }];
++							throw error;
++						},
++						async updateOne(filter, update, options) {
++							operations.push('updateOne');
++							assert.deepStrictEqual(filter, { _key: 'racing' });
++							assert.deepStrictEqual({ ...update.$inc }, { count: 5, newField: 10 });
++							assert.deepStrictEqual(options, { upsert: true });
++							const oldValue = rows.get('racing');
++							rows.set('racing', { count: oldValue.count + 5, newField: 10 });
++						},
++					};
++				};
++				try {
++					assert.strictEqual(await hash.incrObjectFieldByBulk([['racing', { count: 5, newField: 10 }]]), undefined);
++				} finally {
++					hash.client.collection = originalCollection;
++				}
++				assert.deepStrictEqual(operations, ['bulkWrite', 'updateOne']);
++				assert.strictEqual(hash.objectCache.has('racing'), false);
++				assert.deepStrictEqual(await hash.getObject('racing'), { count: 12, newField: 10 });
++			});
++		}
++
++		if (backend === 'Redis') {
++			it('increments fractional and scientific-notation existing values with other fields', async () => {
++				const { hash, rows } = harness;
++				harness.seed('decimal', { score: 1.5, count: 2, scientific: '2.5e1' });
++				hash.objectCache.set('decimal', { score: '1.5', count: '2', scientific: '2.5e1' });
++
++				assert.strictEqual(await hash.incrObjectFieldByBulk([[
++					'decimal', { score: 2, count: -1, scientific: -3, newField: 5 },
++				]]), undefined);
++				assert.strictEqual(hash.objectCache.has('decimal'), false);
++				assert.deepStrictEqual(rows.get('decimal'), {
++					score: '3.5', count: '1', scientific: '22', newField: '5',
++				});
++				assert.deepStrictEqual(await hash.getObject('decimal'), {
++					score: '3.5', count: '1', scientific: '22', newField: '5',
++				});
++			});
++
++			it('does not change a decimal field when a later field on its key is invalid', async () => {
++				const { hash, rows } = harness;
++				harness.seed('badDecimal', { score: 1.5, label: 'text', count: 2 });
++				hash.objectCache.set('badDecimal', { score: '1.5', label: 'text', count: '2' });
++
++				await assert.rejects(hash.incrObjectFieldByBulk([[
++					'badDecimal', { score: 2, label: 1, count: 3 },
++				]]));
++				assert.deepStrictEqual(rows.get('badDecimal'), { score: '1.5', label: 'text', count: '2' });
++				assert.strictEqual(hash.objectCache.has('badDecimal'), true);
++			});
++		}
++	});
++});

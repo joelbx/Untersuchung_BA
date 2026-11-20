@@ -1,0 +1,3 @@
+Implemented the internal token lifecycle interface in [src/api/utils.js](/app/src/api/utils.js). It stores token metadata, maintains the creation, ownership, and last-seen indexes, and supports list, generate, get, update, delete, and usage logging. Newly generated tokens also work with bearer authentication; existing settings-based tokens remain valid.
+
+Added lifecycle and authentication coverage in [test/authentication.js](/app/test/authentication.js). The focused API token tests, ESLint, and `git diff --check` passed.

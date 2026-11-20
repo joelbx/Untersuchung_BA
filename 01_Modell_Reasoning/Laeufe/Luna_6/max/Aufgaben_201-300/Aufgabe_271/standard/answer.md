@@ -1,0 +1,3 @@
+Resolved the IA publisher parsing issue. `get_ia_record` now returns a publishers list and separates semicolon-delimited locations from publisher names through the new parser in [upstream/utils.py](/app/openlibrary/plugins/upstream/utils.py). ISBN classification now lives in [isbn.py](/app/openlibrary/utils/isbn.py), and ImportAPI imports it there via [code.py](/app/openlibrary/plugins/importapi/code.py).
+
+The focused existing suites passed: **35 tests**. Direct checks also confirmed the reported example and parser edge cases. `git diff --check` is clean.

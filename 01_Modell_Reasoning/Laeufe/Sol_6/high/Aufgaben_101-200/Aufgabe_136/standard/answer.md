@@ -1,0 +1,3 @@
+Updated the certificate error wrappers. WebKit now accepts named `reply` and `errors` arguments, performs no reply operation during construction, and renders escaped errors as a paragraph or list. The shared decision API and Qt5/Qt6 WebEngine wrappers are integrated.
+
+Verification: 38 relevant tests passed, including reply handling and HTML escaping checks. Qt6 wrapper behavior was tested with a mock; the available runtime is Qt5.

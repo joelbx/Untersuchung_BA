@@ -1,0 +1,5 @@
+**Diagnosis:** This checkout has no external port scanner implementation. [scanner/base.go](/app/scanner/base.go:838) always uses `net.DialTimeout`; [config/config.go](/app/config/config.go:198) has no per-server `PortScan` field, and scan validation does not check port scan settings. The TOML loader and discovery example also have no `portscan` handling.
+
+The fix needs `config/portscan.go` for technique mapping and validation, a per-server configuration field and loader flag, and an external/native dispatch in `execPortsScan` that preserves the existing `ip:port` results used for correlation. Existing correlation is named `findPortTestSuccessOn`; the requested `findPortScanSuccessOn` is absent. Existing tests cover native correlation, but none cover nmap. The requirement to “flag” source port `0` is ambiguous; rejecting it during validation appears consistent with the requested error behavior.
+
+I recorded the findings in `.codex-role-output/checkpoint.md`. No project source or tests were changed, so the issue remains unresolved under this fault-localization assignment.

@@ -1,0 +1,3 @@
+Implemented `flipt.is_auth_method(input, method)` in [extentions.go](/app/internal/server/authz/engine/ext/extentions.go) and registered it with the Rego engine. It accepts `token`, `oidc`, `kubernetes`, `k8s`, `github`, `jwt`, and `cloud`, using the protobuf enum values. It returns a boolean for matches and propagates the specified errors for missing authentication and unsupported labels.
+
+Added tests for all labels, the Kubernetes alias, mismatches, argument validation, and role based policy evaluation. `go test ./internal/server/authz/...` passes.

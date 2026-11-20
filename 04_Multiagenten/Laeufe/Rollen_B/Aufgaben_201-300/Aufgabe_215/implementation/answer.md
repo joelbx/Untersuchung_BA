@@ -1,0 +1,3 @@
+Added HTTPS configuration and startup support. Flipt now validates certificate paths, serves REST/UI on `https_port` when HTTPS is selected, and uses TLS for gRPC and the REST gateway. HTTP defaults remain unchanged. I also added configuration tests and documented the new server keys in [default.yml](/app/config/default.yml).
+
+Verification: `go test ./...` passed. A local HTTPS smoke test returned 200 from `/health`, `/meta/config`, and `/api/v1/flags` with certificate verification enabled.

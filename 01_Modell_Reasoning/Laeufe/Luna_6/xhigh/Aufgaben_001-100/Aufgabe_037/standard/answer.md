@@ -1,0 +1,3 @@
+Implemented undefined handling for YAML serialization. `AnsibleUndefined` now triggers Jinja’s undefined error during dumping, and both YAML filters raise a filter-specific `AnsibleFilterError` while preserving the original exception in `orig_exc`.
+
+Added tests for undefined values and normal YAML output. Verification passed: 62 tests across the dumper, core filter, and templating suites; `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented image cleanup across [group covers](/app/src/groups/cover.js), [user images](/app/src/user/picture.js), and [account deletion](/app/src/user/delete.js). Explicit removal now deletes local cover, thumbnail, and avatar files, including legacy and timestamped variants; missing files are handled. The socket handlers use the centralized user methods and retain their action hooks.
+
+**Verification:** 215 passing in the full user suite, 28 passing in focused user/group image tests, plus ESLint and `git diff --check`. Subagents handled the group and socket edits and added regression tests; I integrated and verified the patch.

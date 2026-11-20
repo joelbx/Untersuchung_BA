@@ -1,0 +1,3 @@
+Added `id_project_runeberg` to work search documents as an array, with `[]` when no identifier is present. Existing identifier fields remain unchanged. I also registered `ProjectRunebergProvider` and added its Read and download options templates.
+
+The focused tests passed (4 tests), and both templates compiled and rendered. Download options link to the Runeberg edition page because the repository does not establish format-specific URLs.

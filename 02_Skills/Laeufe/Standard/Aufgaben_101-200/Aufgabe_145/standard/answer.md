@@ -1,0 +1,3 @@
+Updated [photo recovery](/app/packages/drive-store/store/_photos/usePhotosRecovery.ts) to load regular and trashed items, wait for both sources to finish decrypting, recover trashed photo entries, and fail when items remain or a required operation errors. Pending items are counted as failed when the flow stops. The existing persisted `progress` state continues to resume recovery on initialization.
+
+The [hook tests](/app/packages/drive-store/store/_photos/usePhotosRecovery.test.ts) pass: 10 tests. Type checking remains unverified because `tsc` fails on an unrelated `openpgp` type conflict in `crypto/lib/worker/api.ts`; the exact error is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

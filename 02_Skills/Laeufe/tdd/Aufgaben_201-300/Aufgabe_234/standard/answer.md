@@ -1,0 +1,3 @@
+Updated SQLite access to use one `*sql.DB` with all seven requested connection options. Persistence transactions now stay on the connection supplied to `New()`, including nested work. I followed the issue’s unified-connection goal; the later read/write interface requirements contradict it.
+
+The focused database and persistence tests pass. The full Go suite has two unrelated TagLib gain-tag failures; all other reported packages pass.

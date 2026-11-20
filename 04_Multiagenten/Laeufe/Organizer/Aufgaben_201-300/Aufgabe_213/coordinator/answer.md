@@ -1,0 +1,3 @@
+`useDefaultShare` now exposes awaitable `isShareAvailable(signal, shareId)`. It forwards the signal to `getShare` and returns `false` for locked or soft-deleted shares. [FolderContainer](/app/applications/drive/src/app/containers/FolderContainer.tsx) uses it to redirect unavailable folder shares to the root. The default-share loading path remains unchanged.
+
+Verification: the Drive hook suite passed (6 tests), TypeScript passed, and ESLint and `git diff --check` passed. No delegation was used.

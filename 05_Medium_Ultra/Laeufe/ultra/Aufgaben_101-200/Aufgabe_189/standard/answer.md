@@ -1,0 +1,3 @@
+Moved `extra_suffixes_workaround` to module scope in [webview.py](/app/qutebrowser/browser/webengine/webview.py:36). `chooseFiles` now passes the deduplicated union of requested and extra suffixes as the third argument to a single `super().chooseFiles(...)` call on its passthrough path.
+
+Updated the [webview tests](/app/tests/unit/browser/webengine/test_webview.py:96) with help from a delegated test agent; a second agent reviewed the patch. **Verification:** 24 focused tests passed with `QT_QPA_PLATFORM=offscreen`.

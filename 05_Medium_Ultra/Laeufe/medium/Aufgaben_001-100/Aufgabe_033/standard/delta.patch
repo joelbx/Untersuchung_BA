@@ -1,0 +1,295 @@
+diff --git a/lib/auth/auth.go b/lib/auth/auth.go
+index 58d51d3..e9ef942 100644
+--- a/lib/auth/auth.go
++++ b/lib/auth/auth.go
+@@ -825,7 +825,29 @@ func (a *Server) PreAuthenticatedSignIn(user string, identity tlsca.Identity) (s
+ 	return sess.WithoutSecrets(), nil
+ }
+ 
+-func (a *Server) U2FSignRequest(user string, password []byte) (*u2f.AuthenticateChallenge, error) {
++// U2FAuthenticateChallenge contains challenges for every registered U2F device.
++// The embedded challenge keeps the original JSON fields for older clients.
++type U2FAuthenticateChallenge struct {
++	*u2f.AuthenticateChallenge
++	Challenges []u2f.AuthenticateChallenge `json:"challenges,omitempty"`
++}
++
++// DeviceChallenges returns all available challenges, including the legacy
++// single-device format sent by older auth servers.
++func (c *U2FAuthenticateChallenge) DeviceChallenges() []u2f.AuthenticateChallenge {
++	if c == nil {
++		return nil
++	}
++	if len(c.Challenges) != 0 {
++		return c.Challenges
++	}
++	if c.AuthenticateChallenge != nil {
++		return []u2f.AuthenticateChallenge{*c.AuthenticateChallenge}
++	}
++	return nil
++}
++
++func (a *Server) U2FSignRequest(user string, password []byte) (*U2FAuthenticateChallenge, error) {
+ 	ctx := context.TODO()
+ 	cap, err := a.GetAuthPreference()
+ 	if err != nil {
+@@ -844,23 +866,33 @@ func (a *Server) U2FSignRequest(user string, password []byte) (*u2f.Authenticate
+ 		return nil, trace.Wrap(err)
+ 	}
+ 
+-	// TODO(awly): mfa: support challenge with multiple devices.
+ 	devs, err := a.GetMFADevices(ctx, user)
+ 	if err != nil {
+ 		return nil, trace.Wrap(err)
+ 	}
++	result := &U2FAuthenticateChallenge{}
+ 	for _, dev := range devs {
+ 		if dev.GetU2F() == nil {
+ 			continue
+ 		}
+-		return u2f.AuthenticateInit(ctx, u2f.AuthenticateInitParams{
++		challenge, err := u2f.AuthenticateInit(ctx, u2f.AuthenticateInitParams{
+ 			Dev:        dev,
+ 			AppConfig:  *u2fConfig,
+ 			StorageKey: user,
+ 			Storage:    a.Identity,
+ 		})
++		if err != nil {
++			return nil, trace.Wrap(err)
++		}
++		if result.AuthenticateChallenge == nil {
++			result.AuthenticateChallenge = challenge
++		}
++		result.Challenges = append(result.Challenges, *challenge)
++	}
++	if len(result.Challenges) == 0 {
++		return nil, trace.NotFound("no U2F devices found for user %q", user)
+ 	}
+-	return nil, trace.NotFound("no U2F devices found for user %q", user)
++	return result, nil
+ }
+ 
+ func (a *Server) CheckU2FSignResponse(ctx context.Context, user string, response *u2f.AuthenticateChallengeResponse) error {
+diff --git a/lib/auth/auth_with_roles.go b/lib/auth/auth_with_roles.go
+index 5f04d14..652895b 100644
+--- a/lib/auth/auth_with_roles.go
++++ b/lib/auth/auth_with_roles.go
+@@ -776,7 +776,7 @@ func (a *ServerWithRoles) PreAuthenticatedSignIn(user string) (services.WebSessi
+ 	return a.authServer.PreAuthenticatedSignIn(user, a.context.Identity.GetIdentity())
+ }
+ 
+-func (a *ServerWithRoles) GetU2FSignRequest(user string, password []byte) (*u2f.AuthenticateChallenge, error) {
++func (a *ServerWithRoles) GetU2FSignRequest(user string, password []byte) (*U2FAuthenticateChallenge, error) {
+ 	// we are already checking password here, no need to extra permission check
+ 	// anyone who has user's password can generate sign request
+ 	return a.authServer.U2FSignRequest(user, password)
+diff --git a/lib/auth/clt.go b/lib/auth/clt.go
+index 673c901..c465cd3 100644
+--- a/lib/auth/clt.go
++++ b/lib/auth/clt.go
+@@ -1075,7 +1075,7 @@ func (c *Client) CheckPassword(user string, password []byte, otpToken string) er
+ }
+ 
+ // GetU2FSignRequest generates request for user trying to authenticate with U2F token
+-func (c *Client) GetU2FSignRequest(user string, password []byte) (*u2f.AuthenticateChallenge, error) {
++func (c *Client) GetU2FSignRequest(user string, password []byte) (*U2FAuthenticateChallenge, error) {
+ 	out, err := c.PostJSON(
+ 		c.Endpoint("u2f", "users", user, "sign"),
+ 		signInReq{
+@@ -1085,7 +1085,7 @@ func (c *Client) GetU2FSignRequest(user string, password []byte) (*u2f.Authentic
+ 	if err != nil {
+ 		return nil, trace.Wrap(err)
+ 	}
+-	var signRequest *u2f.AuthenticateChallenge
++	var signRequest *U2FAuthenticateChallenge
+ 	if err := json.Unmarshal(out.Bytes(), &signRequest); err != nil {
+ 		return nil, err
+ 	}
+@@ -2226,7 +2226,7 @@ type IdentityService interface {
+ 	ValidateGithubAuthCallback(q url.Values) (*GithubAuthResponse, error)
+ 
+ 	// GetU2FSignRequest generates request for user trying to authenticate with U2F token
+-	GetU2FSignRequest(user string, password []byte) (*u2f.AuthenticateChallenge, error)
++	GetU2FSignRequest(user string, password []byte) (*U2FAuthenticateChallenge, error)
+ 
+ 	// GetSignupU2FRegisterRequest generates sign request for user trying to sign up with invite token
+ 	GetSignupU2FRegisterRequest(token string) (*u2f.RegisterChallenge, error)
+diff --git a/lib/auth/u2f_challenge_test.go b/lib/auth/u2f_challenge_test.go
+new file mode 100644
+index 0000000..12d9473
+--- /dev/null
++++ b/lib/auth/u2f_challenge_test.go
+@@ -0,0 +1,53 @@
++package auth
++
++import (
++	"encoding/json"
++	"testing"
++
++	"github.com/gravitational/teleport/lib/auth/u2f"
++)
++
++func TestU2FAuthenticateChallengeCompatibility(t *testing.T) {
++	legacy := u2f.AuthenticateChallenge{
++		Challenge: "challenge",
++		KeyHandle: "first",
++		AppID:     "https://example.com",
++	}
++	oldJSON, err := json.Marshal(legacy)
++	if err != nil {
++		t.Fatal(err)
++	}
++	var fromOld U2FAuthenticateChallenge
++	if err := json.Unmarshal(oldJSON, &fromOld); err != nil {
++		t.Fatal(err)
++	}
++	if got := fromOld.DeviceChallenges(); len(got) != 1 || got[0].KeyHandle != legacy.KeyHandle {
++		t.Fatalf("legacy response returned challenges %+v", got)
++	}
++
++	combined := U2FAuthenticateChallenge{
++		AuthenticateChallenge: &legacy,
++		Challenges: []u2f.AuthenticateChallenge{
++			legacy,
++			{Challenge: "challenge", KeyHandle: "second", AppID: legacy.AppID},
++		},
++	}
++	newJSON, err := json.Marshal(combined)
++	if err != nil {
++		t.Fatal(err)
++	}
++	var oldClient u2f.AuthenticateChallenge
++	if err := json.Unmarshal(newJSON, &oldClient); err != nil {
++		t.Fatal(err)
++	}
++	if oldClient.KeyHandle != legacy.KeyHandle {
++		t.Fatalf("old client received challenge %+v", oldClient)
++	}
++	var newClient U2FAuthenticateChallenge
++	if err := json.Unmarshal(newJSON, &newClient); err != nil {
++		t.Fatal(err)
++	}
++	if got := newClient.DeviceChallenges(); len(got) != 2 || got[1].KeyHandle != "second" {
++		t.Fatalf("new client received challenges %+v", got)
++	}
++}
+diff --git a/lib/client/weblogin.go b/lib/client/weblogin.go
+index e2b48f7..b77296b 100644
+--- a/lib/client/weblogin.go
++++ b/lib/client/weblogin.go
+@@ -505,14 +505,18 @@ func SSHAgentU2FLogin(ctx context.Context, login SSHLoginU2F) (*auth.SSHLoginRes
+ 		return nil, trace.Wrap(err)
+ 	}
+ 
+-	var challenge u2f.AuthenticateChallenge
++	var challenge auth.U2FAuthenticateChallenge
+ 	if err := json.Unmarshal(challengeRaw.Bytes(), &challenge); err != nil {
+ 		return nil, trace.Wrap(err)
+ 	}
++	challenges := challenge.DeviceChallenges()
++	if len(challenges) == 0 {
++		return nil, trace.BadParameter("U2F sign request contains no challenges")
++	}
+ 
+ 	fmt.Println("Please press the button on your U2F key")
+ 	facet := "https://" + strings.ToLower(login.ProxyAddr)
+-	challengeResp, err := u2f.AuthenticateSignChallenge(ctx, facet, challenge)
++	challengeResp, err := u2f.AuthenticateSignChallenge(ctx, facet, challenges...)
+ 	if err != nil {
+ 		return nil, trace.Wrap(err)
+ 	}
+diff --git a/lib/web/apiserver.go b/lib/web/apiserver.go
+index e32a9d1..7805009 100644
+--- a/lib/web/apiserver.go
++++ b/lib/web/apiserver.go
+@@ -1435,7 +1435,8 @@ func (h *Handler) u2fRegisterRequest(w http.ResponseWriter, r *http.Request, p h
+ //
+ // Successful response:
+ //
+-// {"version":"U2F_V2","challenge":"randombase64string","keyHandle":"longbase64string","appId":"https://mycorp.com:3080"}
++// {"version":"U2F_V2","challenge":"randombase64string","keyHandle":"longbase64string","appId":"https://mycorp.com:3080","challenges":[...]}
++// The top-level fields contain the first challenge for older clients.
+ //
+ func (h *Handler) u2fSignRequest(w http.ResponseWriter, r *http.Request, p httprouter.Params) (interface{}, error) {
+ 	var req *client.U2fSignRequestReq
+diff --git a/lib/web/apiserver_test.go b/lib/web/apiserver_test.go
+index ec5d364..8624e90 100644
+--- a/lib/web/apiserver_test.go
++++ b/lib/web/apiserver_test.go
+@@ -1421,13 +1421,50 @@ func (s *WebSuite) TestU2FLogin(c *C) {
+ 	})
+ 	c.Assert(err, IsNil)
+ 
+-	// normal login
++	// A second registered key must be offered alongside the legacy challenge.
++	secondKey, err := mocku2f.Create()
++	c.Assert(err, IsNil)
++	secondDevice, err := u2f.NewDevice("second-key", &u2f.Registration{
++		KeyHandle: secondKey.KeyHandle,
++		PubKey:    secondKey.PrivateKey.PublicKey,
++	}, s.clock.Now())
++	c.Assert(err, IsNil)
++	c.Assert(s.server.Auth().UpsertMFADevice(context.Background(), "bob", secondDevice), IsNil)
++
+ 	clt := s.client()
+ 	re, err := clt.PostJSON(context.Background(), clt.Endpoint("webapi", "u2f", "signrequest"), client.U2fSignRequestReq{
+ 		User: "bob",
+ 		Pass: string(tempPass),
+ 	})
+ 	c.Assert(err, IsNil)
++	var multiRequest auth.U2FAuthenticateChallenge
++	c.Assert(json.Unmarshal(re.Bytes(), &multiRequest), IsNil)
++	c.Assert(multiRequest.Challenges, HasLen, 2)
++	c.Assert(multiRequest.AuthenticateChallenge, NotNil)
++	c.Assert(*multiRequest.AuthenticateChallenge, DeepEquals, multiRequest.Challenges[0])
++
++	// New clients may answer with either key, including the non-legacy key.
++	var secondChallenge u2f.AuthenticateChallenge
++	for _, challenge := range multiRequest.Challenges {
++		if challenge.KeyHandle != multiRequest.AuthenticateChallenge.KeyHandle {
++			secondChallenge = challenge
++		}
++	}
++	c.Assert(secondChallenge.KeyHandle, Not(Equals), "")
++	secondResponse, err := secondKey.SignResponse(&secondChallenge)
++	c.Assert(err, IsNil)
++	_, err = clt.PostJSON(context.Background(), clt.Endpoint("webapi", "u2f", "sessions"), u2fSignResponseReq{
++		User:            "bob",
++		U2FSignResponse: *secondResponse,
++	})
++	c.Assert(err, IsNil)
++
++	// normal login
++	re, err = clt.PostJSON(context.Background(), clt.Endpoint("webapi", "u2f", "signrequest"), client.U2fSignRequestReq{
++		User: "bob",
++		Pass: string(tempPass),
++	})
++	c.Assert(err, IsNil)
+ 	var u2fSignReq u2f.AuthenticateChallenge
+ 	c.Assert(json.Unmarshal(re.Bytes(), &u2fSignReq), IsNil)
+ 
+diff --git a/lib/web/sessions.go b/lib/web/sessions.go
+index cf5cdba..032d591 100644
+--- a/lib/web/sessions.go
++++ b/lib/web/sessions.go
+@@ -485,7 +485,7 @@ func (s *sessionCache) AuthWithoutOTP(user, pass string) (services.WebSession, e
+ 	})
+ }
+ 
+-func (s *sessionCache) GetU2FSignRequest(user, pass string) (*u2f.AuthenticateChallenge, error) {
++func (s *sessionCache) GetU2FSignRequest(user, pass string) (*auth.U2FAuthenticateChallenge, error) {
+ 	return s.proxyClient.GetU2FSignRequest(user, []byte(pass))
+ }
+ 
+diff --git a/tool/tsh/mfa.go b/tool/tsh/mfa.go
+index 0d03f21..409b11d 100644
+--- a/tool/tsh/mfa.go
++++ b/tool/tsh/mfa.go
+@@ -42,6 +42,7 @@ type mfaCommands struct {
+ 
+ func newMFACommand(app *kingpin.Application) mfaCommands {
+ 	mfa := app.Command("mfa", "Manage multi-factor authentication (MFA) devices.")
++	mfa.Hidden()
+ 	return mfaCommands{
+ 		ls:  newMFALSCommand(mfa),
+ 		add: newMFAAddCommand(mfa),

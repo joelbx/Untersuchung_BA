@@ -1,0 +1,3 @@
+Post and topic purges now delete uploaded files, including resized copies, once no other post references them. The ACP has a **Keep uploaded files after their posts are purged** setting, and [deleteFromDisk](/app/src/posts/uploads.js) accepts one path or a list while ignoring invalid paths and preventing traversal.
+
+Verification: 20 upload tests and 15 topic purge tests passed; ESLint and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented `storage.readOnly` with validation that rejects an explicitly set value on non-database storage, including `false`. The UI now reads readonly state from config, defaults appropriately when the flag is absent, and shows the active storage type and a “Read-Only” badge in the header. Disabled authentication also skips database bootstrap for configured non-database storage. The requested fixture and regression tests are included.
+
+`GOPROXY=off go test ./internal/config ./internal/cmd` and `git diff --check` pass. The TypeScript build was not run because UI dependencies are absent locally.

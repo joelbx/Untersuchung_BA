@@ -1,0 +1,3 @@
+Updated [uploads.js](/app/src/controllers/admin/uploads.js:198) to resolve the requested folder against the configured upload path and verify it exists as a directory before saving. Invalid paths return `[[error:invalid-path]]` through the existing error handler, with HTTP 500.
+
+Verification: ESLint passed. The upload test suite could not start because Redis at `127.0.0.1:6379` was unavailable. Progress is recorded in `.codex-role-output/checkpoint.md`.

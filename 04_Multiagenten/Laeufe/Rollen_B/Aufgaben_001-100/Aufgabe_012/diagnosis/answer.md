@@ -1,0 +1,5 @@
+The cause is in [custom_headers](/app/qutebrowser/browser/shared.py:29): it always includes the global `Accept-Language` value. [interceptRequest](/app/qutebrowser/browser/webengine/interceptor.py:190) then applies that value to XHR requests, overriding the header set by JavaScript.
+
+The fix belongs in those two functions: add `fallback_accept_language=True` to `custom_headers`, omit the header when it is `False` and the URL has no domain override, and pass `False` only for XHR requests. Preserve the header for domain overrides, other request types, and calls without a URL. The config API supports the needed lookup with `fallback=False`; it returns `usertypes.UNSET` when no URL rule matches.
+
+Existing tests cover `custom_headers(url=None)` but do not cover this XHR path. I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). My assigned fault-localization role prohibited source and test edits, so no fix was applied.

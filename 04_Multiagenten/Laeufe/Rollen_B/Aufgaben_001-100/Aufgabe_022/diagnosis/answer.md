@@ -1,0 +1,5 @@
+The scan stops because [parseInstalledPackagesLine](/app/scanner/redhatbase.go:577) returns a `SOURCERPM` parse error before constructing the binary package. [parseInstalledPackages](/app/scanner/redhatbase.go:504) then aborts the entire package loop. [splitFileName](/app/scanner/redhatbase.go:690) requires the canonical dotted architecture suffix; for `1:bar-9-123a.src.rpm`, it also leaves `1:` in the source name.
+
+The fix should append the filename error to `o.warns`, return the binary package with a nil source package, and strip a filename epoch from the parsed source name while preserving `1:9` and `1:9-123a` as the binary and source versions. The [repoquery parser](/app/scanner/redhatbase.go:632) duplicates the same error path. Existing tests cover an epoch in the separate RPM field, but neither reported filename case.
+
+I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). The assigned fault-localization scope prohibited source and test edits, so the issue remains unfixed.

@@ -1,0 +1,3 @@
+Updated collection build and install to preserve internal file and directory symlinks, avoid expanding linked directories in the manifest, and copy external file links as regular files. Extraction now checks target paths, and the tar helpers return both `TarInfo` and a readable stream. The changes are in [collection.py](/app/lib/ansible/galaxy/collection.py), with regression tests in [test_collection.py](/app/test/units/galaxy/test_collection.py).
+
+The focused collection suite passed: **103 tests**. The repository-wide `pytest -q` run was stopped after it encountered unrelated collection and test errors; it is not verified green. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Refactored extended attributes in [the service](/app/applications/drive/src/app/services/extendedAttributes.ts) to use `XAttrCreateParams`, added [DeepPartial](/app/applications/drive/src/app/utils/type/DeepPartial.ts), and updated the [upload call](/app/applications/drive/src/app/store/_uploads/worker/worker.ts). Creation now omits zero block remainders and absent digests; parsing handles malformed or partial input without throwing. The previous module path remains available as a reexport.
+
+Verification passed: 5 focused tests, the drive TypeScript check, ESLint, Prettier, and `git diff --check`.

@@ -1,0 +1,478 @@
+diff --git a/openlibrary/accounts/model.py b/openlibrary/accounts/model.py
+index 167b0f2..fd894ec 100644
+--- a/openlibrary/accounts/model.py
++++ b/openlibrary/accounts/model.py
+@@ -19,6 +19,7 @@ from infogami import config
+ from infogami.infobase.client import ClientException
+ from infogami.utils.view import public, render_template
+ from openlibrary.core import helpers, stats
++from openlibrary.core.bestbook import Bestbook
+ from openlibrary.core.booknotes import Booknotes
+ from openlibrary.core.bookshelves import Bookshelves
+ from openlibrary.core.edits import CommunityEditsQueue
+@@ -351,6 +352,9 @@ class Account(web.storage):
+         results['ratings_count'] = Ratings.update_username(
+             self.username, new_username, _test=test
+         )
++        results['bestbook_count'] = Bestbook.update_username(
++            self.username, new_username, _test=test
++        )
+         results['observations_count'] = Observations.update_username(
+             self.username, new_username, _test=test
+         )
+diff --git a/openlibrary/core/bestbook.py b/openlibrary/core/bestbook.py
+new file mode 100644
+index 0000000..1bde6c8
+--- /dev/null
++++ b/openlibrary/core/bestbook.py
+@@ -0,0 +1,104 @@
++"""Persistence and rules for Best Book Awards."""
++
++from sqlite3 import IntegrityError
++
++from psycopg2.errors import UniqueViolation
++
++from . import db
++from .bookshelves import Bookshelves
++
++
++class Bestbook(db.CommonExtras):
++    TABLENAME = 'bestbook_awards'
++    PRIMARY_KEY = ('username', 'work_id')
++    ALLOW_DELETE_ON_CONFLICT = True
++
++    class AwardConditionsError(ValueError):
++        """A nomination does not meet the award rules."""
++
++    @classmethod
++    def get_awards(cls, work_id=None, username=None, topic=None):
++        filters = {'work_id': work_id, 'username': username, 'topic': topic}
++        chosen = {key: value for key, value in filters.items() if value is not None}
++        if 'work_id' in chosen:
++            chosen['work_id'] = int(chosen['work_id'])
++        where = ' AND '.join(f'{key}=${key}' for key in chosen) or '1=1'
++        return list(db.get_db().select(cls.TABLENAME, where=where, vars=chosen))
++
++    @classmethod
++    def get_count(cls, work_id=None, username=None, topic=None):
++        filters = {'work_id': work_id, 'username': username, 'topic': topic}
++        chosen = {key: value for key, value in filters.items() if value is not None}
++        if 'work_id' in chosen:
++            chosen['work_id'] = int(chosen['work_id'])
++        where = ' AND '.join(f'{key}=${key}' for key in chosen) or '1=1'
++        result = db.get_db().query(
++            f'SELECT count(*) AS count FROM {cls.TABLENAME} WHERE {where}', vars=chosen
++        )
++        return result[0].count
++
++    @classmethod
++    def _validate(cls, username, work_id, topic, updating=False):
++        if not Bookshelves.user_has_read_work(username, work_id):
++            raise cls.AwardConditionsError(
++                'Only books which have been marked as read may be given awards'
++            )
++        if not topic:
++            raise cls.AwardConditionsError('A topic is required')
++        if not updating and cls.get_count(username=username, work_id=work_id):
++            raise cls.AwardConditionsError('You have already awarded this book')
++        if any(
++            award.work_id != int(work_id)
++            for award in cls.get_awards(username=username, topic=topic)
++        ):
++            raise cls.AwardConditionsError('You have already awarded a book for this topic')
++
++    @classmethod
++    def add(cls, username, work_id, topic, comment='', edition_id=None):
++        work_id = int(work_id)
++        cls._validate(username, work_id, topic)
++        try:
++            return db.get_db().insert(
++                cls.TABLENAME, username=username, work_id=work_id, topic=topic,
++                comment=comment, edition_id=edition_id,
++            )
++        except (UniqueViolation, IntegrityError) as exc:
++            raise cls.AwardConditionsError('You have already made this nomination') from exc
++
++    @classmethod
++    def update(cls, username, work_id, topic, comment='', edition_id=None):
++        work_id = int(work_id)
++        cls._validate(username, work_id, topic, updating=True)
++        awards = cls.get_awards(username=username, work_id=work_id)
++        if not awards:
++            raise cls.AwardConditionsError('No award exists for this book')
++        if edition_id is None:
++            edition_id = awards[0].edition_id
++        try:
++            db.get_db().update(
++                cls.TABLENAME, where='username=$username AND work_id=$work_id',
++                vars={'username': username, 'work_id': work_id}, topic=topic,
++                comment=comment, edition_id=edition_id,
++            )
++        except (UniqueViolation, IntegrityError) as exc:
++            raise cls.AwardConditionsError('You have already awarded a book for this topic') from exc
++        return awards[0].id
++
++    @classmethod
++    def remove(cls, username, work_id=None, topic=None):
++        if work_id is None and topic is None:
++            raise cls.AwardConditionsError('A work or topic is required')
++        filters = {'username': username}
++        if work_id is not None:
++            filters['work_id'] = int(work_id)
++        if topic is not None:
++            filters['topic'] = topic
++        where = ' AND '.join(f'{key}=${key}' for key in filters)
++        return db.get_db().delete(cls.TABLENAME, where=where, vars=filters)
++
++    @classmethod
++    def get_leaderboard(cls):
++        return list(db.get_db().query(
++            f'SELECT work_id, count(*) AS count FROM {cls.TABLENAME} '
++            'GROUP BY work_id ORDER BY count DESC, work_id'
++        ))
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index 6cd6051..34dcf94 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -36,6 +36,22 @@ class Bookshelves(db.CommonExtras):
+     )
+     ALLOW_DELETE_ON_CONFLICT = True
+ 
++    @classmethod
++    def user_has_read_work(cls, username: str, work_id: str) -> bool:
++        return bool(
++            list(db.get_db().select(
++                cls.TABLENAME,
++                what='1',
++                where='username=$username AND work_id=$work_id AND bookshelf_id=$bookshelf_id',
++                vars={
++                    'username': username,
++                    'work_id': int(work_id),
++                    'bookshelf_id': cls.PRESET_BOOKSHELVES['Already Read'],
++                },
++                limit=1,
++            ))
++        )
++
+     PRESET_BOOKSHELVES_JSON: MappingProxyType[str, int] = MappingProxyType(
+         {
+             'want_to_read': 1,
+diff --git a/openlibrary/core/db.py b/openlibrary/core/db.py
+index bc34569..eae6e31 100644
+--- a/openlibrary/core/db.py
++++ b/openlibrary/core/db.py
+@@ -78,21 +78,20 @@ class CommonExtras:
+             )
+         )
+         for row in rows:
+-            where = " AND ".join(
+-                [f"{k}='{v}'" for k, v in row.items() if k in cls.PRIMARY_KEY]
+-            )
++            keys = {key: row[key] for key in cls.PRIMARY_KEY}
++            where = ' AND '.join(f'{key}=${key}' for key in keys)
+             try:
+                 # try to update the row to new_work_id
+                 t_update = oldb.transaction()
+-                oldb.query(
+-                    f"UPDATE {cls.TABLENAME} set work_id={new_work_id} where {where}"
++                oldb.update(
++                    cls.TABLENAME, where=where, vars=keys, work_id=new_work_id
+                 )
+                 rows_changed += 1
+                 t_update.rollback() if _test else t_update.commit()
+             except (UniqueViolation, IntegrityError):
+                 t_delete = oldb.transaction()
+                 # otherwise, delete row with current_work_id if failed
+-                oldb.query(f"DELETE FROM {cls.TABLENAME} WHERE {where}")
++                oldb.delete(cls.TABLENAME, where=where, vars=keys)
+                 rows_deleted += 1
+                 if _test or not cls.ALLOW_DELETE_ON_CONFLICT:
+                     t_delete.rollback()
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index d77ec34..ecf02a7 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -16,6 +16,7 @@ from infogami.infobase import client
+ from openlibrary import accounts
+ from openlibrary.catalog import add_book  # noqa: F401 side effects may be needed
+ from openlibrary.core import lending
++from openlibrary.core.bestbook import Bestbook
+ from openlibrary.core.booknotes import Booknotes
+ from openlibrary.core.bookshelves import Bookshelves
+ from openlibrary.core.follows import PubSub
+@@ -474,6 +475,20 @@ class Work(Thing):
+ 
+     __str__ = __repr__
+ 
++    def get_awards(self):
++        return Bestbook.get_awards(work_id=extract_numeric_id_from_olid(self.key))
++
++    def check_if_user_awarded(self, username):
++        return self.get_award_by_username(username) is not None
++
++    def get_award_by_username(self, username):
++        if not username:
++            return None
++        awards = Bestbook.get_awards(
++            work_id=extract_numeric_id_from_olid(self.key), username=username
++        )
++        return awards[0] if awards else None
++
+     @property  # type: ignore[misc]
+     @cache.method_memoize
+     @cache.memoize(engine="memcache", key=lambda self: ("d" + self.key, "e"))
+@@ -664,6 +679,7 @@ class Work(Thing):
+             # count reading log entries
+             r['occurrences']['readinglog'] = len(Bookshelves.get_works_shelves(olid))
+             r['occurrences']['ratings'] = len(Ratings.get_all_works_ratings(olid))
++            r['occurrences']['bestbook'] = Bestbook.get_count(work_id=olid)
+             r['occurrences']['booknotes'] = len(Booknotes.get_booknotes_for_work(olid))
+             r['occurrences']['observations'] = len(
+                 Observations.get_observations_for_work(olid)
+@@ -677,6 +693,9 @@ class Work(Thing):
+                 r['updates']['ratings'] = Ratings.update_work_id(
+                     olid, new_olid, _test=test
+                 )
++                r['updates']['bestbook'] = Bestbook.update_work_id(
++                    olid, new_olid, _test=test
++                )
+                 r['updates']['booknotes'] = Booknotes.update_work_id(
+                     olid, new_olid, _test=test
+                 )
+@@ -685,7 +704,7 @@ class Work(Thing):
+                 )
+                 summary['modified'] = summary['modified'] or any(
+                     any(r['updates'][group].values())
+-                    for group in ['readinglog', 'ratings', 'booknotes', 'observations']
++                    for group in ['readinglog', 'ratings', 'bestbook', 'booknotes', 'observations']
+                 )
+ 
+         return summary
+diff --git a/openlibrary/core/schema.sql b/openlibrary/core/schema.sql
+index 84e0d47..69badf6 100644
+--- a/openlibrary/core/schema.sql
++++ b/openlibrary/core/schema.sql
+@@ -10,6 +10,20 @@ CREATE TABLE ratings (
+ );
+ CREATE INDEX ratings_work_id_idx ON ratings (work_id);
+ 
++CREATE TABLE bestbook_awards (
++    id serial PRIMARY KEY,
++    username text NOT NULL,
++    work_id integer NOT NULL,
++    topic text NOT NULL,
++    comment text NOT NULL DEFAULT '',
++    edition_id integer DEFAULT NULL,
++    updated timestamp without time zone DEFAULT (current_timestamp at time zone 'utc'),
++    created timestamp without time zone DEFAULT (current_timestamp at time zone 'utc'),
++    UNIQUE (username, work_id),
++    UNIQUE (username, topic)
++);
++CREATE INDEX bestbook_awards_work_id_idx ON bestbook_awards (work_id);
++
+ CREATE TABLE follows (
+     subscriber text NOT NULL,
+     publisher text NOT NULL,
+diff --git a/openlibrary/plugins/admin/code.py b/openlibrary/plugins/admin/code.py
+index 493adc5..a9d6bac 100644
+--- a/openlibrary/plugins/admin/code.py
++++ b/openlibrary/plugins/admin/code.py
+@@ -457,6 +457,7 @@ class people_view:
+             f"Account anonymized. New username: {results['new_username']}. "
+             f"Notes deleted: {results['booknotes_count']}. "
+             f"Ratings updated: {results['ratings_count']}. "
++            f"Best Book Awards updated: {results['bestbook_count']}. "
+             f"Observations updated: {results['observations_count']}. "
+             f"Bookshelves updated: {results['bookshelves_count']}."
+             f"Merge requests updated: {results['merge_request_count']}"
+diff --git a/openlibrary/plugins/openlibrary/api.py b/openlibrary/plugins/openlibrary/api.py
+index 7a747ca..cf1112f 100644
+--- a/openlibrary/plugins/openlibrary/api.py
++++ b/openlibrary/plugins/openlibrary/api.py
+@@ -24,6 +24,7 @@ from openlibrary.accounts.model import (
+ )
+ from openlibrary.core import helpers as h
+ from openlibrary.core import lending, models
++from openlibrary.core.bestbook import Bestbook
+ from openlibrary.core.bookshelves_events import BookshelvesEvents
+ from openlibrary.core.follows import PubSub
+ from openlibrary.core.helpers import NothingEncoder
+@@ -123,6 +124,60 @@ class browse(delegate.page):
+         return delegate.RawText(json.dumps(result), content_type="application/json")
+ 
+ 
++class bestbook_award(delegate.page):
++    path = r'/works/OL(\d+)W/awards'
++    encoding = 'json'
++
++    @jsonapi
++    def POST(self, work_id):
++        user = accounts.get_current_user()
++        if not user:
++            return json.dumps({'errors': 'Authentication failed'})
++
++        i = web.input(op=None, topic=None, comment='', edition_key=None)
++        if web.ctx.env.get('CONTENT_TYPE', '').startswith('application/json'):
++            try:
++                i = json.loads(web.data())
++            except (ValueError, TypeError):
++                return json.dumps({'errors': 'Invalid JSON'})
++
++        op = i.get('op')
++        topic = i.get('topic')
++        comment = i.get('comment') or ''
++        username = user.key.split('/')[2]
++        try:
++            if op == 'remove':
++                return json.dumps({'success': True, 'rows': Bestbook.remove(username, work_id=work_id)})
++            if op not in ('add', 'update'):
++                return json.dumps({'errors': 'Invalid operation'})
++            if not topic:
++                return json.dumps({'errors': 'A topic is required'})
++            edition_key = i.get('edition_key')
++            edition_id = (
++                int(extract_numeric_id_from_olid(edition_key)) if edition_key else None
++            )
++            method = Bestbook.add if op == 'add' else Bestbook.update
++            award = method(username, work_id, topic, comment=comment, edition_id=edition_id)
++            return json.dumps({'success': True, 'award': award})
++        except (Bestbook.AwardConditionsError, ValueError, TypeError) as exc:
++            return json.dumps({'errors': str(exc)})
++
++
++class bestbook_count(delegate.page):
++    path = '/awards/count'
++    encoding = 'json'
++
++    @jsonapi
++    def GET(self):
++        i = web.input(work_id=None, username=None, topic=None)
++        try:
++            return json.dumps({'count': Bestbook.get_count(
++                work_id=i.work_id, username=i.username, topic=i.topic
++            )})
++        except (ValueError, TypeError):
++            return json.dumps({'errors': 'Invalid work_id'})
++
++
+ class ratings(delegate.page):
+     path = r"/works/OL(\d+)W/ratings"
+     encoding = "json"
+diff --git a/openlibrary/tests/core/test_bestbook.py b/openlibrary/tests/core/test_bestbook.py
+new file mode 100644
+index 0000000..1b335ab
+--- /dev/null
++++ b/openlibrary/tests/core/test_bestbook.py
+@@ -0,0 +1,92 @@
++import json
++
++import pytest
++import web
++
++from openlibrary import accounts
++from openlibrary.core.bestbook import Bestbook
++from openlibrary.core.bookshelves import Bookshelves
++from openlibrary.core.db import get_db
++from openlibrary.plugins.openlibrary.api import bestbook_award, bestbook_count
++
++
++@pytest.fixture
++def awards_db(monkeypatch):
++    web.config.db_parameters = {'dbn': 'sqlite', 'db': ':memory:'}
++    database = get_db()
++    database.query('''
++        CREATE TABLE bestbook_awards (
++            id INTEGER PRIMARY KEY,
++            username TEXT NOT NULL,
++            work_id INTEGER NOT NULL,
++            topic TEXT NOT NULL,
++            comment TEXT NOT NULL DEFAULT '',
++            edition_id INTEGER,
++            UNIQUE(username, work_id),
++            UNIQUE(username, topic)
++        )
++    ''')
++    monkeypatch.setattr(Bookshelves, 'user_has_read_work', lambda user, work: True)
++    yield database
++    database.query('DROP TABLE bestbook_awards')
++
++
++def test_award_lifecycle_and_uniqueness(awards_db):
++    award_id = Bestbook.add('reader', '1', 'fiction', comment='Great', edition_id=2)
++    assert award_id
++    assert Bestbook.get_count(work_id='1') == 1
++    assert Bestbook.get_awards(username='reader')[0].comment == 'Great'
++    with pytest.raises(Bestbook.AwardConditionsError):
++        Bestbook.add('reader', '1', 'poetry')
++    with pytest.raises(Bestbook.AwardConditionsError):
++        Bestbook.add('reader', '2', 'fiction')
++
++    assert Bestbook.update('reader', '1', 'poetry', comment='Updated') == award_id
++    assert Bestbook.get_count(topic='fiction') == 0
++    assert Bestbook.get_count(topic='poetry') == 1
++    assert Bestbook.get_awards(work_id='1')[0].edition_id == 2
++    assert Bestbook.get_leaderboard()[0].count == 1
++    assert Bestbook.remove('reader', work_id='1') == 1
++    assert Bestbook.get_count() == 0
++
++
++def test_read_prerequisite_and_work_redirect(awards_db, monkeypatch):
++    monkeypatch.setattr(Bookshelves, 'user_has_read_work', lambda user, work: False)
++    with pytest.raises(Bestbook.AwardConditionsError, match='Only books which have been marked as read'):
++        Bestbook.add('reader', '1', 'fiction')
++    monkeypatch.setattr(Bookshelves, 'user_has_read_work', lambda user, work: True)
++    Bestbook.add('reader', '1', 'fiction')
++    assert Bestbook.update_work_id('1', '2')['rows_changed'] == 1
++    assert Bestbook.get_count(work_id='2') == 1
++    assert Bestbook.update_username('reader', 'anonymous') == 1
++    assert Bestbook.get_count(username='anonymous') == 1
++
++
++def test_redirect_conflict_keeps_existing_nomination(awards_db):
++    Bestbook.add('reader', '1', 'fiction')
++    Bestbook.add('reader', '2', 'poetry')
++    result = Bestbook.update_work_id('1', '2')
++    assert result == {'rows_changed': 0, 'rows_deleted': 1, 'failed_deletes': 0}
++    assert Bestbook.get_count(username='reader') == 1
++    assert Bestbook.get_awards(username='reader')[0].topic == 'poetry'
++
++
++def test_award_api_and_count(awards_db, monkeypatch):
++    monkeypatch.setattr(web.ctx, 'env', {}, raising=False)
++    monkeypatch.setattr(accounts, 'get_current_user', lambda: None)
++    monkeypatch.setattr(web, 'input', lambda **defaults: web.storage(defaults))
++    post = bestbook_award().POST.__wrapped__
++    assert json.loads(post(bestbook_award(), '1')) == {'errors': 'Authentication failed'}
++
++    monkeypatch.setattr(accounts, 'get_current_user', lambda: web.storage(key='/people/reader'))
++    monkeypatch.setattr(web, 'input', lambda **defaults: web.storage({**defaults, 'op': 'add', 'topic': 'fiction'}))
++    added = json.loads(post(bestbook_award(), '1'))
++    assert added['success'] is True
++    assert added['award']
++
++    monkeypatch.setattr(web, 'input', lambda **defaults: web.storage({**defaults, 'work_id': '1'}))
++    count = json.loads(bestbook_count().GET.__wrapped__(bestbook_count()))
++    assert count == {'count': 1}
++
++    monkeypatch.setattr(web, 'input', lambda **defaults: web.storage({**defaults, 'op': 'remove'}))
++    assert json.loads(post(bestbook_award(), '1')) == {'success': True, 'rows': 1}
+diff --git a/scripts/create-bestbook-awards.sql b/scripts/create-bestbook-awards.sql
+new file mode 100644
+index 0000000..86b287b
+--- /dev/null
++++ b/scripts/create-bestbook-awards.sql
+@@ -0,0 +1,14 @@
++-- Apply to existing Open Library databases before enabling Best Book Awards.
++CREATE TABLE IF NOT EXISTS bestbook_awards (
++    id serial PRIMARY KEY,
++    username text NOT NULL,
++    work_id integer NOT NULL,
++    topic text NOT NULL,
++    comment text NOT NULL DEFAULT '',
++    edition_id integer DEFAULT NULL,
++    updated timestamp without time zone DEFAULT (current_timestamp at time zone 'utc'),
++    created timestamp without time zone DEFAULT (current_timestamp at time zone 'utc'),
++    UNIQUE (username, work_id),
++    UNIQUE (username, topic)
++);
++CREATE INDEX IF NOT EXISTS bestbook_awards_work_id_idx ON bestbook_awards (work_id);

@@ -1,0 +1,3 @@
+Updated [make_work](/app/openlibrary/plugins/upstream/addbook.py:69) to return a `web.Storage` with an empty authors list when either author field is missing. It preserves supplied fields and applies defaults for missing metadata. I also added the requested type annotations and [regression tests](/app/openlibrary/plugins/upstream/tests/test_addbook.py:8).
+
+Verification: all 15 addbook tests passed; `git diff --check` passed.

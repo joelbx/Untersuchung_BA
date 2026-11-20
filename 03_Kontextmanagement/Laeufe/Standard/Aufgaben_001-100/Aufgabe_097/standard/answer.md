@@ -1,0 +1,3 @@
+Updated the repository to require **Python 3.12 or newer on the controller**. The CLI and ansible-test now use the same version error; package metadata and the changelog reflect the change. Collection extraction passes `dirname` unchanged to `tar.getmember()` and no longer uses the private TarFile cache. I also simplified compatibility code tied to older controller versions.
+
+Verification: 73 relevant unit tests passed, 1 skipped; syntax and diff checks passed. The collection and role install suites could not collect on the available Python 3.11 because the new CLI guard correctly rejects it.

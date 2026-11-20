@@ -1,0 +1,3 @@
+VERDICT: FIX
+Independent review complete. Code defect: src/api/common/utils/EntityUtils.ts:143 returns before visiting Date and ArrayBuffer views, leaving any prefixed own fields on those nested objects. Remove that exclusion while retaining the WeakSet cycle guard. Test defect: test/tests/api/common/utils/EntityUtilsTest.ts:73-78 compares a strongly inferred entity type with an object missing required fields; TypeScript reports TS2739 and TS2322. Widen the asserted value's type for this post-mutation comparison.
+Tests: npm run test:app failed during TypeScript build with TS2739/TS2322; npm run fasttest completed successfully with 8,679 assertions passed (old style total 9,817). No TEST_ENVIRONMENT_PROBLEM identified. No project code or tests edited in this review.

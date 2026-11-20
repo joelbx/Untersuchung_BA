@@ -1,0 +1,3 @@
+Refactored [Pill](/app/src/components/views/elements/Pill.tsx) into a functional component and moved permalink resolution into the public [usePermalink hook](/app/src/hooks/usePermalink.tsx). Pill now exposes the requested named exports, and its callers use named imports. Added [focused tests](/app/test/components/views/elements/Pill-test.tsx) for rendering, links, hover, and clicks.
+
+All 12 tests in the three relevant suites pass. ESLint and `git diff --check` pass. The full TypeScript check still fails on existing SDK type mismatches in unrelated files; it reports no errors in the changed files.

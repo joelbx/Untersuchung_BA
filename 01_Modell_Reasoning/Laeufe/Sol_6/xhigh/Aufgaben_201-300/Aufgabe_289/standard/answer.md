@@ -1,0 +1,3 @@
+Added [DefaultConfig and DecodeHooks](/app/internal/config/config.go) and wired `Load` to compose the exported hooks. Storage’s Local and Git fields now use pointers, and the CUE schema’s invalid `boolean` type is corrected to `bool`. Added checks for duration decoding and default fields represented in the schema.
+
+Validation passed: `GOPROXY=off GOSUMDB=off go test ./internal/config ./internal/cmd` and `git diff --check`.

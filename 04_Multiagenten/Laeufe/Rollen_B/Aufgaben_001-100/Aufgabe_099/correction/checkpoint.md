@@ -1,0 +1,3 @@
+Correction round: inspecting batch evaluation disabled-flag behavior and response schema. Reviewer identified missing explicit disabled status. Will update implementation and existing test, then rerun flagged test commands.
+Added EvaluationResponse.disabled (field 10) to schema/generated Go descriptor. evaluate sets it on disabled flags; batch test checks ordered entries and protobuf JSON round trip. Running reviewer test commands.
+Reviewer commands passed: GOPROXY=off GOSUMDB=off go test ./errors ./server ./rpc ./storage/db/common ./storage/db; GOPROXY=off GOSUMDB=off go test ./.... git diff --check clean. No TEST_ENVIRONMENT_PROBLEM.

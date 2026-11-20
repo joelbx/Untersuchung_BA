@@ -1,0 +1,3 @@
+Added a repeatable [Best Book Awards migration](/app/scripts/migrations/2026-10-21-bestbook.sql) for existing databases. It creates the table and indexes defined in the fresh database schema and includes the deployment command.
+
+The reviewer’s exact test commands passed: 3 award tests and 29 model/account tests. The migration DDL matches `schema.sql`. PostgreSQL tools are unavailable here, so I could not run the migration against an existing database; that remains the deployment verification step.

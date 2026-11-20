@@ -1,0 +1,3 @@
+Updated Red Hat and derived distribution package CVE detection to use OVAL definitions, upgraded the locally cached goval-dictionary dependency, and restricted advisories to supported identifiers. OVAL package results now carry `FixState`, `NotFixedYet`, and `FixedIn` through HTTP and database collection into the scan result.
+
+Verification passed: `GOPROXY=off go test ./oval ./gost ./detector` and `git diff --check`.

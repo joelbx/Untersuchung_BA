@@ -1,0 +1,3 @@
+Fixed Direct Dial heartbeat addresses. Upstream inventory streams now expose `PeerAddr()`, and the in-memory pipe accepts `ICSPipePeerAddr`. Before `UpsertNode`, the controller replaces wildcard or localhost hosts with the peer host while preserving the heartbeat’s port.
+
+The API client tests and full inventory package tests pass. The auth package compile check remains unverified because this environment lacks `linux/hidraw.h` and has local SQLite C build errors.

@@ -1,0 +1,3 @@
+Updated [VoiceBroadcastPreRecordingPip](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx) so Go live becomes disabled on activation and repeated activations are ignored until the start attempt settles. Device menu opening is guarded, and selecting a device closes the menu and updates the header label.
+
+The focused suite passes: **10 tests and 1 snapshot**. Changed-file ESLint, Prettier, and `git diff --check` pass. The repository-wide TypeScript check remains blocked by five MatrixClient type errors outside the changed files; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

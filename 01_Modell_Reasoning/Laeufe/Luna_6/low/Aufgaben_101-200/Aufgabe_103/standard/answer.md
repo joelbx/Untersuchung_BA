@@ -1,0 +1,1 @@
+I made an incomplete edit to `scanner/redhatbase.go`; it currently does not compile, so the issue is **not resolved**. I couldn’t complete the repair or run the relevant tests in this turn.

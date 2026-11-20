@@ -1,0 +1,3 @@
+Fixed voice broadcast liveness so it is derived only from the broadcast info state. Started and Resumed map to `live`, Paused to `grey`, and Stopped, unknown, or unset states to `not-live`. Playback actions no longer change liveness independently.
+
+The focused tests passed: **50 tests across 2 suites**. ESLint, Prettier, and `git diff --check` passed. The full voice broadcast suite and project type check were stopped after running unusually slowly, so their final results remain unverified.

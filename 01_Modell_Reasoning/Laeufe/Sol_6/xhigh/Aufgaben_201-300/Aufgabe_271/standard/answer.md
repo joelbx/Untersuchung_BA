@@ -1,0 +1,3 @@
+Fixed IA imports without MARC records. `get_ia_record` now splits compound publisher metadata into ordered `publish_places` and `publishers`, and always returns `publishers` as a list. ISBNs are now classified by trimmed length using the utility in [isbn.py](/app/openlibrary/utils/isbn.py:5).
+
+Added regression tests for the reported multi-location string and parser edge cases. The relevant suites passed: **105 passed, 5 expected failures**.

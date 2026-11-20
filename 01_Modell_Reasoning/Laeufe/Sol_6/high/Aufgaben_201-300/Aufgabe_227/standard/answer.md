@@ -1,0 +1,3 @@
+The MIME suffix workaround now checks the **runtime Qt version only** at both bounds: 6.2.3 inclusive and 6.7.0 exclusive. I clarified the `compiled` parameter, changed the `compiled=True` and `exact=True` error to `RuntimeError`, and added regression tests for mismatched versions.
+
+All 34 focused tests pass. The full related test modules had 196 passes and two unrelated failures under local Qt 6.9.1.

@@ -1,0 +1,3 @@
+Fixed the OSS upgrade migration. It now downgrades the existing `admin` role, assigns users and trusted cluster mappings to `admin`, and repairs mappings left by the earlier `ossuser` migration. Legacy user creation also assigns `admin`. The new [role constructor](/app/lib/services/role.go:203) keeps the reduced permissions.
+
+Three native subagents handled the migration, role constructor, and legacy user path; I reviewed and integrated their changes. The full `lib/auth`, `lib/services`, and `tool/tctl/common` test suites passed, as did formatting and diff checks.

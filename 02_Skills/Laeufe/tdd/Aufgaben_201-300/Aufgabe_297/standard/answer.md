@@ -1,0 +1,3 @@
+Implemented reverse proxy login with a configurable user header, an IPv4/IPv6 CIDR whitelist, and optional default user. Trusted requests now receive an auth payload that initializes the frontend session; untrusted requests receive no auth data. Nested log fields and JSON auth values are redacted.
+
+The full Go suite and all 35 UI tests pass. Go emitted compiler warnings from sqlite3 and TagLib; no tests failed.

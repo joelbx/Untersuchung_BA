@@ -1,0 +1,3 @@
+Fixed Direct Dial node addresses. Upstream inventory streams now expose `PeerAddr()`, and `InventoryControlStreamPipe` accepts `ICSPipePeerAddr`. Before `UpsertNode`, the controller replaces a heartbeat’s wildcard or local host with the peer’s host while preserving the node’s original port.
+
+Inventory tests and focused API client tests pass. The full API client suite remains unverified: an OIDC redirect test timed out connecting to a local `[::]` address. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

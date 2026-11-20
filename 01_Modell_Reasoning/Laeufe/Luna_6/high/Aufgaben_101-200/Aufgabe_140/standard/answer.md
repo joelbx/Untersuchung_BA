@@ -1,0 +1,3 @@
+Implemented parent domain blocking in [hostblock.py](/app/qutebrowser/components/hostblock.py) and added `widened_hostnames` in [urlutils.py](/app/qutebrowser/utils/urlutils.py). Whitelist and toggle checks run before matching, and hostname comparisons handle trailing dots and bare host strings.
+
+Added regression tests for widening edge cases, subdomains, both blocked host sets, whitelist overrides, and per URL toggles. Relevant tests passed: **357 passed, 1 skipped**. `git diff --check` passed.

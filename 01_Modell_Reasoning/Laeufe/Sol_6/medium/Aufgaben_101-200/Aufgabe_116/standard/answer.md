@@ -1,0 +1,3 @@
+Added the global `chat:privileged` permission and enforced it when starting a chat or inviting a privileged user. Denied attempts return `[[error:no-privileges]]`. Chat middleware and messaging now use array based privilege checks, and user profile responses include a boolean `canChat` field documented in OpenAPI. The privilege also has an admin UI label.
+
+Verification passed: 79 messaging tests, 273 user tests, ESLint, and `git diff --check`.

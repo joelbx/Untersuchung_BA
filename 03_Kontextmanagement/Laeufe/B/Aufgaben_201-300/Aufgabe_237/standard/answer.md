@@ -1,0 +1,3 @@
+Implemented the concrete chat-edit requirements in `/app`: v3 `PUT` editing, message existence checks, request validation, client requests, socket deprecation, and the error text.
+
+The messaging suite passed **75 tests**, and `git diff --check` passed. The issue’s `DirectedGraph` description does not match this checkout: no `LinkProvider` or graph implementation was found, so that feature remains unresolved.

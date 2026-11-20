@@ -1,0 +1,3 @@
+Updated voice broadcast badges to show live, grey for paused or buffering, and no badge when not live. Playback now exposes liveness through `getLiveness()` and change events, and uses final chunk information to settle buffering when a broadcast ends. The header, hook, and recording views use the shared `VoiceBroadcastLiveness` type.
+
+All 24 voice broadcast test suites passed (226 tests). ESLint, Stylelint, and `git diff --check` passed. The repository type check still reports an unrelated error in the unchanged [notifications.ts](/app/src/utils/notifications.ts:79).

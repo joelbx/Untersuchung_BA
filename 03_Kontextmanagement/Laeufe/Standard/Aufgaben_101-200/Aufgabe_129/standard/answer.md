@@ -1,0 +1,3 @@
+Added a kebab menu to the Current session header with localized, accessible “Sign out” and “Sign out all other sessions” actions. It disables while loading, when the current device is missing, or during sign-out; menu interaction closes it and returns focus to the trigger. Bulk sign-out passes only other device IDs.
+
+The focused tests pass: **59 tests and 9 snapshots**. ESLint, Stylelint, and `git diff --check` pass. The full TypeScript check remains blocked by existing SDK/API errors outside the changed files.

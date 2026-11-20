@@ -1,0 +1,5 @@
+Updated Drive’s public-page session lookup to return the full persisted session with the highest valid `persistedAt`. The public session provider now uses that record for metrics and resumption, restores authentication and user state after a successful resume, and uses its UID for SRP. The public user hook reads localID from authentication, telemetry uses the same lookup, and all `LAST_ACTIVE_PING` code paths were removed.
+
+The focused session tests pass, as do Prettier and `git diff --check`. The Drive type check failed in `packages/crypto/lib/worker/api.ts:579` because two installed OpenPGP types conflict; it reported no Drive file errors.
+
+One limitation remains: the shared `getPersistedSessions()` API silently discards malformed JSON, so this helper cannot log those discarded records. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

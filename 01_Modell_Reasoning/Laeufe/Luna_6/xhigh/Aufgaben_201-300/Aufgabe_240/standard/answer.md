@@ -1,0 +1,3 @@
+Implemented [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py), including firmware uploads, compatibility filtering, upgrade initiation, optional completion polling, check mode, and result status.
+
+The module compiles, and the existing E-Series storage pool and global settings tests pass (14 tests). Broader E-Series test discovery had 120 passing tests; three test modules could not import because `mock` is unavailable.

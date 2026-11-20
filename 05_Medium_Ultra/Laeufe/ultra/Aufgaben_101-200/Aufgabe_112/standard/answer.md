@@ -1,0 +1,3 @@
+Fortinet-only CVEs are now detected for FortiOS CPEs. The detector records Fortinet advisory IDs, compares Fortinet, NVD, and JVN confidence signals, and enriches results with Fortinet metadata. Reports and the HTTP handler now use that data, backed by a locally available Fortinet-capable `go-cve-dictionary` version.
+
+I delegated the model, dependency, and report work to three agents, then integrated and verified the patch. Offline `go test -mod=readonly ./...` and `git diff --check` pass. A supplemental scanner-tag suite fails in unchanged packages because of undefined symbols under that tag.

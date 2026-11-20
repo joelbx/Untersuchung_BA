@@ -1,0 +1,3 @@
+Implemented topic backlinks in the checked-out repository. Post creation and editing now call [Topics.syncBacklinks](/app/src/topics/posts.js), which updates per-post associations and adds or removes timeline events. Backlinks link to the referencing post, use its author, and appear only when the new admin setting is enabled. The timeline label and setting are localized.
+
+Verification: 295 relevant tests passed; the focused backlink tests, ESLint, and `git diff --check` also passed.

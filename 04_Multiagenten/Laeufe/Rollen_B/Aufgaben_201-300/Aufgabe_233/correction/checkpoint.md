@@ -1,0 +1,1 @@
+Correction round complete. loadDir now checks fs.ReadDirFile before using fullReadDir; otherwise it calls fs.ReadDir, which supports fs.ReadDirFS and returns an error when listing is unsupported. Added tests for both fallback outcomes. Reran reviewer tests: go test ./scanner and go test ./utils both pass. No TEST_ENVIRONMENT_PROBLEM.

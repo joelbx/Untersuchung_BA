@@ -1,0 +1,3 @@
+Implemented the generic `fanoutbuffer` package in [buffer.go](/app/lib/utils/fanoutbuffer/buffer.go). It supports independent ordered cursors, a fixed ring with an overflow backlog, grace period errors for slow cursors, blocking reads, and resource cleanup. Added coverage in [buffer_test.go](/app/lib/utils/fanoutbuffer/buffer_test.go).
+
+Verification passed: the new package’s race tests and the existing `concurrentqueue` tests.

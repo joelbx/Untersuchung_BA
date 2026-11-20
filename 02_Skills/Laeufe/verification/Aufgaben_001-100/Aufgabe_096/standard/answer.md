@@ -1,0 +1,3 @@
+Changed `_DEFAULT_PERM` to `0600`. For newly created files, `atomic_move()` now applies `0600 & ~umask`, so a `0022` umask produces a final mode of `0600`. When a module accepts `mode` but the user omits it, the module records the created path and `_return_formatted()` emits the specified warning. A later `set_mode_if_different()` call removes that path from warning tracking.
+
+The focused tests passed: **50 passed**, including an on-disk permission check. The full `basic` test directory had 20 failures caused by warnings and deprecations accumulating across tests; its `test_exit_json.py` tests passed when run separately. The results and limitation are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

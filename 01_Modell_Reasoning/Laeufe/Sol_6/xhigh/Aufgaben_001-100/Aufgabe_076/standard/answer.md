@@ -1,0 +1,3 @@
+Added `splitBySeparator` to trim address tokens, remove angle brackets, and discard empty entries. Bracketed emails now produce the bare email for both `Name` and `Address`. Both autocomplete versions use the helper when processing separators.
+
+The three regression specs pass, as do type checks, lint, and formatting checks. The full shared Karma suite could not start because its configured Playwright Chromium binary is missing.

@@ -1,0 +1,5 @@
+Implemented safe notification HTML rendering and key-based deduplication. String content is sanitized with DOMPurify, and links in both HTML strings and React elements get `target="_blank"` and `rel="noopener noreferrer"` ([Notification.tsx](/app/packages/components/containers/notifications/Notification.tsx:24)).
+
+Non-success notifications now deduplicate by an explicit `key`, string text, or notification id for non-string text. Success notifications remain repeatable and use unique list keys ([manager.tsx](/app/packages/components/containers/notifications/manager.tsx:50), [Container.tsx](/app/packages/components/containers/notifications/Container.tsx:10)).
+
+Validation passed: component type check, component lint, Prettier check, and `git diff --check`. No notification-specific existing tests were found.

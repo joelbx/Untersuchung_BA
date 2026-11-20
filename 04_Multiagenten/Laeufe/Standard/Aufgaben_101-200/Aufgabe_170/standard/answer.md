@@ -1,0 +1,3 @@
+Edition matching now accepts raw records. The new `expand_record`, `add_db_name`, and `threshold_match` functions in [merge_marc.py](/app/openlibrary/catalog/merge/merge_marc.py) generate title and ISBN comparison fields, handle missing author dates, and compare expanded records at the requested threshold. Existing `catalog.utils` imports remain available.
+
+Regression tests cover raw records, matches without ISBNs, author/contributor names, and thresholds 875 and 515. **Verification:** 13 tests passed; 2 existing tests remain expected failures. Ruff and `git diff --check` passed.

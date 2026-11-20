@@ -1,0 +1,2 @@
+Task: Fix BatchEvaluate handling of disabled flags, response timing, and protobuf empty/timestamp types.
+Status: Implemented ErrDisabled, ordered batch continuation with disabled entries and per-flag timing, single-evaluation status mapping, and migration of timestamp/empty types in server, storage, and generated protobuf/gRPC code. Added mixed-batch, unrelated-error, and status-mapping regression tests. Relevant server, RPC, and storage tests passed with GOPROXY=off. The grpc-gateway v1 generated bridge retains its required legacy proto interface imports.

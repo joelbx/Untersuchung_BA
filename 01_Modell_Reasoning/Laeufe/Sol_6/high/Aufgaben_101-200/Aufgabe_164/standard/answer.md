@@ -1,0 +1,3 @@
+Fixed the import issue in the checked-out repository. YAML imports now use the v3 decoder, so nested metadata and attachments deserialize into JSON compatible structures without an ad hoc conversion. JSON imports accept one leading line that starts with `#`. The regression tests also verify that namespace key, name, and description are applied.
+
+`go test ./internal/ext` and `git diff --check` passed. The optional CLI package check was stopped during lengthy C compilation; that package has no test files.

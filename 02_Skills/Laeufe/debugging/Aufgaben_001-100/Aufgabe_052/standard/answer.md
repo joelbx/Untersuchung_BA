@@ -1,0 +1,3 @@
+Implemented token accounting for `Chat.Complete` and `Agent.PlanAndExecute`. Both now return a non-nil `*model.TokenCount`; the new counters use `cl100k_base`, aggregate agent steps, and track streamed completion text across chunk boundaries. Assist and web now read the returned totals.
+
+`GOPROXY=off go test ./lib/ai/... -count=1` passed, including the streaming and two-step cases. Assist/web compilation remains unverified because required system headers are missing. The race check was interrupted during extended compilation and is unverified. These limits are recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

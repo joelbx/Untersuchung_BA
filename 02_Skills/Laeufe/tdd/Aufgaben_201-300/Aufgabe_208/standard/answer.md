@@ -1,0 +1,3 @@
+Fixed email confirmation expiry and resend behavior in [email.js](/app/src/user/email.js). Pending checks now return strict booleans, `getValidationExpiry` returns live TTL in milliseconds or `null`, and `canSendValidation` applies the configured resend interval. Both confirmation records now use the configured expiry, with a one-day default.
+
+Added six regression tests. All six pass, and the existing user and email tests pass (254 tests). The full suite stopped after 1,028 passes at an unrelated admin plugins assertion: the page response lacked `installed`.

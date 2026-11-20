@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` in [MongoDB](/app/src/database/mongo/hash.js) and [Redis](/app/src/database/redis/hash.js). Both validate the tuple input, apply atomic per-key increments, create missing objects and fields, and invalidate cache entries for successful writes. Redis also rolls back a key if a later field increment fails.
+
+Verification: the Redis hash suite passed **69 tests**, and ESLint and `git diff --check` passed. Live MongoDB testing was unavailable because no MongoDB server is installed locally.

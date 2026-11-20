@@ -1,0 +1,3 @@
+Added `-wp-ignore-inactive` to the scan and report commands and added `WpIgnoreInactive` to the configuration. When enabled, `FillWordPress` skips inactive plugins and themes before making vulnerability API calls. The existing per-server setting also continues to work, and `removeInactives` returns `nil` when no packages remain.
+
+The relevant tests passed: `GOPROXY=off go test ./wordpress ./commands ./config ./models ./report`. No delegation was used.

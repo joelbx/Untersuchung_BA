@@ -1,0 +1,3 @@
+Implemented matcher support in [parse.go](/app/lib/utils/parse/parse.go:172): literals, wildcards, anchored regex patterns, `regexp.match`, `regexp.not_match`, `email.local`, and static prefixes and suffixes. Added validation for malformed templates, unsupported functions, invalid arguments, and matcher calls in `Variable()`.
+
+Verification passed: `go test ./lib/utils/parse` and `git diff --check`. The required checkpoint is in `.codex-role-output/checkpoint.md`.

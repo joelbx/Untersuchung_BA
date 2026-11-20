@@ -1,0 +1,3 @@
+Implemented a typed expression AST with nested evaluation, strict variable and function validation, regex matching, and a depth limit. Trait and PAM interpolation now validate namespaces and report empty results consistently; PAM missing-trait warnings omit claim names.
+
+Parser and targeted services tests pass, and `git diff --check` is clean. The `lib/srv` test could not build in this environment because required C headers and SQLite declarations are unavailable.

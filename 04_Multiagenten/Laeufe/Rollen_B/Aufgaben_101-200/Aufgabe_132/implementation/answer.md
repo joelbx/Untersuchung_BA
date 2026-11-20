@@ -1,0 +1,3 @@
+Reserved system tags are now configurable through `meta.config.systemTags`. Topic creation, editing, queued posts, and the tag adding API check the acting user’s privileges and reject unauthorized use with `You can not use this system tag.` The socket `isTagAllowed` check also excludes reserved tags. Tag cleanup is applied during the check so alternate casing or punctuation cannot bypass it.
+
+The focused regression test and six existing category whitelist tests passed. ESLint and `git diff --check` passed.

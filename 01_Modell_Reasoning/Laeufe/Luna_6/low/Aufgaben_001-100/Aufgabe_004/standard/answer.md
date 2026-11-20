@@ -1,0 +1,3 @@
+Implemented the PassAliases setup hook and helper module, added the full typed provider contract, and separated vault lookup from explicit vault creation. The drawer now shows “Get an alias” when empty, and its action opens the creation flow.
+
+`git diff --check` passes. I attempted the focused Jest test and components TypeScript check, but both stalled at high CPU without producing output, so their results are unavailable.

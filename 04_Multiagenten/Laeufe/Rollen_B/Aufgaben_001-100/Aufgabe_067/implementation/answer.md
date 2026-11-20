@@ -1,0 +1,3 @@
+Added `scrolling.bar=overlay` and gated the Chromium `OverlayScrollbar` flag to QtWebEngine on non-macOS systems with runtime Qt 5.11 or newer. Legacy `False` values now migrate to `overlay`. I also added the `@js_headers` skip for the affected QtWebEngine versions.
+
+The focused flag tests (35) and boolean migration tests (9) passed. The JS header feature collected successfully, and `git diff --check` passed. A broader test run exited without a failure report in this display environment.

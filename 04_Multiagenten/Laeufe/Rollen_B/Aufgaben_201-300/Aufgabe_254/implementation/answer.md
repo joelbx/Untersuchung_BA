@@ -1,0 +1,3 @@
+Updated [ec2.go](/app/lib/utils/ec2.go) so `IsAvailable` retrieves `instance-id` through the IMDS client with a 250 ms deadline and accepts only valid EC2 instance IDs. `NewInstanceMetadataClient` now accepts functional options, including `WithIMDSClient` for injection.
+
+Added coverage in [ec2_test.go](/app/lib/utils/ec2_test.go) for valid IDs, captive portal HTML, malformed responses, retrieval errors, timeouts, and option errors. The focused `lib/utils` tests and `git diff --check` pass.

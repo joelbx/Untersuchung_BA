@@ -1,0 +1,3 @@
+Implemented opportunistic expiration eviction in `SimpleCache` using an atomic `evictionDeadline`. `Keys()` and the new `Values()` method expose only active entries, and loader insertion now triggers eviction. `playTracker` uses `Values()` for its current entries.
+
+Added tests for 10 ms TTLs, loader values, and size limits. `go test ./utils/cache ./core/scrobbler`, `go test -race ./utils/cache`, and `git diff --check` all passed.

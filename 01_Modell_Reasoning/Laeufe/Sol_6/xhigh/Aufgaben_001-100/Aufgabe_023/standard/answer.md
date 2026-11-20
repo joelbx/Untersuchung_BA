@@ -1,0 +1,3 @@
+Authentication startup now opens a database only when an enabled method requires one. JWT uses the in-memory authentication store and retains its middleware with Local, Git, or OCI storage. Cleanup also skips JWT and disabled methods.
+
+The relevant Go tests passed: `go test ./internal/config ./internal/cmd ./internal/cleanup`. An isolated JWT startup test passed with an invalid database URL for all three storage backends.

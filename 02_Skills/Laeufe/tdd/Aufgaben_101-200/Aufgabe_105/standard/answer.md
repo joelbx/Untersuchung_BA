@@ -1,0 +1,3 @@
+`getOpenSubsonicExtensions` is now registered outside the authentication middleware in [api.go](/app/server/subsonic/api.go). Anonymous `?f=json` requests return JSON containing exactly `transcodeOffset`, `formPost`, and `songLyrics`.
+
+A [router regression test](/app/server/subsonic/opensubsonic_test.go) failed on the original behavior and passes with the fix. The full `go test ./...` suite passes.

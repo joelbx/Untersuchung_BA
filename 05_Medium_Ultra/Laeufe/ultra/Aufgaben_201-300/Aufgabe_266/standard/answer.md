@@ -1,0 +1,3 @@
+Implemented the local staged-record lookup in [imports.py](/app/openlibrary/core/imports.py:125). It combines each identifier with the fixed `amazon` and `idb` sources, then returns all matching `staged` or `pending` rows as a ResultSet. [ISBN resolution](/app/openlibrary/core/models.py:409) now uses that lookup for both ISBN-13 and ISBN-10.
+
+Two subagents inspected the query conventions and added focused tests; I reviewed and verified the combined patch. **20 tests passed** across the import and model suites. Ruff and `git diff --check` passed.

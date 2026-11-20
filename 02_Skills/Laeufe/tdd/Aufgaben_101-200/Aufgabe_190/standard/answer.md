@@ -1,0 +1,3 @@
+Implemented import preview for the `/import` and `/ia_import` handlers. With `preview=true`, the pipeline returns the proposed Edition, Work, and Author records in `edits`, uses temporary UUID keys for new records, and reports cover acceptability without saving, uploading a cover, or updating Archive.org metadata. The import helpers now expose the requested author, edition, and cover validation interfaces.
+
+The relevant import tests pass: **226 passed**. Ruff and `git diff --check` pass. The repository-wide suite could not complete because collection attempts a blocked external schema request and infobase tests require an unavailable `postgres` host; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

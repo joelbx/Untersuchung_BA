@@ -1,0 +1,3 @@
+Added `@proton/metrics` to the mail package manifest and lockfile. The new [mail metrics helper](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts) preserves built-in mailbox IDs, returns `custom` for other IDs, and converts page sizes to `"50"`, `"100"`, or `"200"` with a `"50"` fallback.
+
+Verification passed: 58 Jest tests across the new and existing label and paging suites, plus TypeScript, ESLint, Prettier, and `git diff --check`.

@@ -1,0 +1,3 @@
+Added `storage.oci.manifest_version` with `"1.0"` and `"1.1"` as valid values, defaulting to `"1.1"`. Configuration loading rejects unsupported values with the requested error. Bundle creation now uses the selected version through `WithManifestVersion` in both the server and CLI paths.
+
+Tests passed for configuration loading, schemas, and generated OCI manifests. The relevant Go packages also passed.

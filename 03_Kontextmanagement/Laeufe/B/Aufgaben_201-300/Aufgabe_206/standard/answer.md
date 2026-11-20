@@ -1,0 +1,3 @@
+Implemented a per-actor posting lock in [topics.js](/app/src/controllers/write/topics.js). Overlapping create requests from the same user now yield one HTTP 200 response with `status.code: "ok"`; the others receive HTTP 400 with `status.code: "bad-request"`.
+
+The new [regression test](/app/test/topics.js) passed and confirmed that the global and category topic counters each increase by one. Two existing guest posting tests, lint, and syntax checks also passed.

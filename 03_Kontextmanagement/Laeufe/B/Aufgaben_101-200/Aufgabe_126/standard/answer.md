@@ -1,0 +1,3 @@
+Resolved the assistant formatting and URL scoping issue. Message IDs now flow through preparation, insertion, and rendering; links and images are restored only for their originating message. Conversion preserves link and image styling and repairs nested lists.
+
+All 9 relevant tests and targeted lint passed. The mail type check remains blocked by an unrelated OpenPGP type error in `packages/crypto/lib/worker/api.ts`.

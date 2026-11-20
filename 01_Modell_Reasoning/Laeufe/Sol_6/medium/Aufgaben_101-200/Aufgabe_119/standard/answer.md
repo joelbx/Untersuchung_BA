@@ -1,0 +1,3 @@
+Refactored [Pill](/app/src/components/views/elements/Pill.tsx) into a functional component and moved permalink resolution into the public [usePermalink hook](/app/src/hooks/usePermalink.tsx). Pill and its `@room` helpers are now named exports, and pillify, ReplyChain, and BridgeTile use named imports.
+
+The relevant existing tests passed: **5 tests across 2 suites**. ESLint and `git diff --check` passed. TypeScript still reports SDK compatibility errors outside the changed files; it reported none in the changed files.

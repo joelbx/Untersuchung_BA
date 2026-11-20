@@ -1,0 +1,3 @@
+Updated the message composer so a replaced room’s status and continuation link appear in paragraphs. The reply preview now names the sender, and reply and search controls use a reusable, accessible cancel button with configurable sizing.
+
+All 10 relevant tests pass, along with targeted lint and style checks. The full TypeScript check still reports existing errors in the SDK and room settings files; it reports none in the changed files.

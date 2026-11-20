@@ -1,0 +1,3 @@
+Updated [WordPress ingestion](/app/detector/wordpress.go) to preserve the first CVE as the canonical ID, UTC timestamps, ordered references, classification, and fix version, plus Enterprise summary, PoC, introduced version, and CVSS fields when present. Added tests for enriched, null, and omitted fields in [wordpress_test.go](/app/detector/wordpress_test.go).
+
+Validation passed: `GOPROXY=off GOSUMDB=off go test ./detector -count=1`.

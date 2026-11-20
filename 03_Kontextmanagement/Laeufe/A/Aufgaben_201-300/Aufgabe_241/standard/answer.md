@@ -1,0 +1,3 @@
+Updated [VoiceBroadcastPreRecordingPip](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx) so “Go live” disables immediately and calls `start()` once while an initiation is pending. Repeated microphone activations leave one menu open; selecting a device closes it and updates the header label. I added interaction tests and updated the snapshot.
+
+The focused suite passes: 11 tests and 1 snapshot. ESLint, Prettier, and `git diff --check` pass. Full TypeScript checking still reports existing errors in unrelated Matrix client files.

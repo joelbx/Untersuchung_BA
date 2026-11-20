@@ -1,0 +1,3 @@
+Fixed both review findings. Amazon Linux release parsing now accepts `Amazon Linux 2` and preserves longer release strings. Scan summary warnings retain the required `Warning: ` prefix and message text while identifying the target server.
+
+Added focused tests. The reviewer’s exact six-package test command passed, and `git diff --check` found no issues. No remaining failures or test environment problems.

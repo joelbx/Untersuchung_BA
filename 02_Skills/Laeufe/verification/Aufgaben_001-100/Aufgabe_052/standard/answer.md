@@ -1,0 +1,3 @@
+Updated `Chat.Complete` and `Agent.PlanAndExecute` to return a non-nil `*model.TokenCount`. The new counters aggregate prompt and completion usage across agent steps, including streamed output. Assist and web usage reporting now read those totals.
+
+`GOPROXY=off GOSUMDB=off CGO_ENABLED=0 go test ./lib/ai ./lib/ai/model` passed, and `git diff --check` was clean. Assist and web tests remain unverified: the broader run could not compile native dependencies in this environment. The commands and errors are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

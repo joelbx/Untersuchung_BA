@@ -1,0 +1,3 @@
+Updated [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py) to read `/proc/sysinfo` and include the five requested hardware facts in `gather_facts`. The method returns `{}` when the file is absent and uses `NA` for fields it cannot find.
+
+Added [tests](/app/test/units/module_utils/facts/hardware/test_linux.py) for parsing and collector integration. All 15 tests in that file pass; `git diff --check` passes.

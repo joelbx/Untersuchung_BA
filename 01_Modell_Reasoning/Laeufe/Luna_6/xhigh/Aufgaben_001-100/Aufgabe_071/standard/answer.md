@@ -1,0 +1,3 @@
+Updated [`_parse_clixml`]( /app/lib/ansible/plugins/shell/powershell.py:32) to filter streams, decode CLIXML escapes and surrogate pairs, preserve control characters and unpaired surrogates, and separate output between `<Objs>` blocks. Updated the existing expected output to include its decoded trailing CRLF.
+
+Verification: `python -m pytest -q test/units/plugins/shell/test_powershell.py` — 6 passed; `git diff --check` passed.

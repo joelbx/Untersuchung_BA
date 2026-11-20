@@ -1,0 +1,3 @@
+Updated `listRemoveAll` in the [Redis](/app/src/database/redis/list.js), [MongoDB](/app/src/database/mongo/list.js), and [PostgreSQL](/app/src/database/postgres/list.js) adapters to remove multiple requested values in one call while preserving the order of the remaining list. Added a [regression test](/app/test/database/list.js) that reads the list immediately after removal.
+
+The Redis list suite passed (20 tests), and ESLint passed. MongoDB and PostgreSQL integration tests could not run because those services are unavailable locally.

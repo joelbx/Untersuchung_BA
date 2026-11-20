@@ -1,0 +1,3 @@
+Resolved the mailbox reload issue. List loading now waits until all tracked backend item changes finish, and its loading state uses the current page and query parameters. Failed fetches retry after 2 seconds; responses marked stale are discarded and retried after 1 second. Added coverage for retry timing and deferred reloads.
+
+I delegated the action, response type, and backend hook changes, then integrated and verified the patch. All 25 relevant tests passed, along with TypeScript, targeted ESLint, and `git diff --check`.

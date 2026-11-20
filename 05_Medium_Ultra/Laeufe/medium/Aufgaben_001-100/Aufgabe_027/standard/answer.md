@@ -1,0 +1,3 @@
+Fixed public bookmark session restoration in [getLastPersistedLocalID](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts) and its [bookmark caller](/app/applications/drive/src/app/store/_views/useBookmarksPublicView.ts). The synchronous, read-only lookup now returns `null` when no valid session ID exists, ignores invalid keys, and preserves a valid ID of `0`. The bookmark view resumes a session only when an ID is available.
+
+The focused tests passed, including the utility suite after the final validation change. Prettier and `git diff --check` also passed.

@@ -1,0 +1,3 @@
+Refactored Drive’s XAttr helpers to use `XAttrCreateParams`, added `DeepPartial` and public attribute types, and updated the upload call site. File attributes are immutable; parsing now returns unset optional fields for malformed or partial input. A re-export provides the requested [service path](/app/applications/drive/src/app/services/extendedAttributes.ts).
+
+Verification passed: 5 XAttr tests, the Drive TypeScript check, ESLint, and `git diff --check`.

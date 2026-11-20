@@ -1,0 +1,3 @@
+Implemented the QtWebEngine 5.15.3 locale workaround in [qtargs.py](/app/qutebrowser/config/qtargs.py). When enabled on Linux, it checks for the locale’s `.pak` file and adds a Chromium-compatible `--lang` fallback if needed. The new [qt.workarounds.locale setting](/app/qutebrowser/config/configdata.yml) is available only for QtWebEngine and defaults to `false`.
+
+Verification: 192 targeted tests passed. `git diff --check` and Python compilation passed. Flake8 was unavailable locally.

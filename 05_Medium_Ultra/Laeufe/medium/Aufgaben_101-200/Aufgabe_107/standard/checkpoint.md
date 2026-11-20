@@ -1,0 +1,2 @@
+Task: Remove stale bypassFilter entries after optimistic mark-as actions.
+Status: Complete. Added markAsStatus to optimistic update payload and type, added getElementsToBypassFilter helper, and updated reducer to add or remove derived IDs according to mark-as status and active unread filter. Verified Mail elementTotal tests (5/5), Mail TypeScript check, ESLint on changed files, Prettier, and git diff --check.

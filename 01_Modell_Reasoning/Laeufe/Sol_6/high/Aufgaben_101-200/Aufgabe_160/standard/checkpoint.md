@@ -1,0 +1,3 @@
+Task: fix Direct Dial SSH node address reporting.
+Plan: trace inventory stream peer address and SSH heartbeat registration; implement peer-host substitution while retaining the heartbeat port; run relevant existing tests.
+Status: implemented peer address reporting on upstream gRPC and pipe streams, and SSH heartbeat address rewriting for wildcard or loopback hosts while retaining the SSH port. Focused api/client and controller tests pass; full lib/inventory tests pass. Full api/client suite failed on existing connection tests that timed out while connecting to [::] listeners; stopped after those failures. git diff --check passes.

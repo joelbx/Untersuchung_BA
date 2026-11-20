@@ -1,0 +1,3 @@
+Updated `useShouldMoveOut` to call `onBack` when loading is finished and the active ID is missing or absent from the mailbox slice’s `elementIDs`. Both views now receive those IDs and the loading flag from `MailboxContainer`; the conversation view selects the active ID using `isAlwaysMessageLabels`.
+
+Verification: 16 targeted tests passed, TypeScript passed, and `git diff --check` passed. Prettier reported formatting differences in two view files; the same differences are present in `HEAD`.

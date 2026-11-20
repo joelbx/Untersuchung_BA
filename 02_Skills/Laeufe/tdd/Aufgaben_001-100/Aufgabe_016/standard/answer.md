@@ -1,0 +1,3 @@
+Implemented host-scoped monitoring jobs. `OlAsyncIOScheduler` now supports function-name job IDs, and `limit_server` checks `HOSTNAME` for exact names, trailing prefix wildcards, and short names on archive.org hosts. Added the HAProxy CSV collector, Graphite events, Docker IP lookup, and an async monitoring entrypoint.
+
+The monitoring suite passes: **15 tests**. Ruff and `git diff --check` pass. The repository-wide suite did **not** pass: it encountered external proxy, plugin registration, environment, and database errors. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

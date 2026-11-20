@@ -1,0 +1,608 @@
+diff --git a/scan/base.go b/scan/base.go
+index 4d170fc..a6f2905 100644
+--- a/scan/base.go
++++ b/scan/base.go
+@@ -920,3 +920,96 @@ func (l *base) parseLsOf(stdout string) map[string][]string {
+ 	}
+ 	return portPids
+ }
++
++// pkgPs associates each running process with packages that own its executable
++// or one of its mapped files. The ownership lookup is distribution specific.
++func (l *base) pkgPs(getOwnerPkgs func([]string) ([]string, error)) error {
++	stdout, err := l.ps()
++	if err != nil {
++		return xerrors.Errorf("Failed to ps: %w", err)
++	}
++
++	pidNames := l.parsePs(stdout)
++	pidLoadedFiles := map[string][]string{}
++	for pid := range pidNames {
++		stdout, err := l.lsProcExe(pid)
++		if err != nil {
++			l.log.Debugf("Failed to exec /proc/%s/exe: %s", pid, err)
++			continue
++		}
++		path, err := l.parseLsProcExe(stdout)
++		if err != nil {
++			l.log.Debugf("Failed to parse /proc/%s/exe: %s", pid, err)
++			continue
++		}
++		pidLoadedFiles[pid] = append(pidLoadedFiles[pid], path)
++
++		stdout, err = l.grepProcMap(pid)
++		if err != nil {
++			l.log.Debugf("Failed to exec /proc/%s/maps: %s", pid, err)
++			continue
++		}
++		pidLoadedFiles[pid] = append(pidLoadedFiles[pid], l.parseGrepProcMap(stdout)...)
++	}
++
++	pidListenPorts := map[string][]models.PortStat{}
++	stdout, err = l.lsOfListen()
++	if err != nil {
++		l.log.Warnf("Failed to lsof: %+v", err)
++	}
++	for ipPort, pids := range l.parseLsOf(stdout) {
++		portStat, err := models.NewPortStat(ipPort)
++		if err != nil {
++			l.log.Warnf("Failed to parse ip:port: %s, err: %+v", ipPort, err)
++			continue
++		}
++		for _, pid := range pids {
++			pidListenPorts[pid] = append(pidListenPorts[pid], *portStat)
++		}
++	}
++
++	var lookupErr error
++	for pid, paths := range pidLoadedFiles {
++		pkgNames, err := getOwnerPkgs(paths)
++		if err != nil {
++			l.log.Debugf("Failed to get owning packages for PID %s: %s", pid, err)
++			if lookupErr == nil {
++				lookupErr = xerrors.Errorf("Failed to get owning packages for PID %s: %w", pid, err)
++			}
++			continue
++		}
++		l.addAffectedProcess(pkgNames, models.AffectedProcess{
++			PID:             pid,
++			Name:            pidNames[pid],
++			ListenPortStats: pidListenPorts[pid],
++		})
++	}
++	return lookupErr
++}
++
++func (l *base) addAffectedProcess(pkgNames []string, proc models.AffectedProcess) {
++	seen := map[string]struct{}{}
++	for _, name := range pkgNames {
++		if _, exists := seen[name]; exists {
++			continue
++		}
++		seen[name] = struct{}{}
++		pack, exists := l.Packages[name]
++		if !exists {
++			continue
++		}
++		pack.AffectedProcs = append(pack.AffectedProcs, proc)
++		l.Packages[name] = pack
++	}
++}
++
++func quotePackagePaths(paths []string) string {
++	quoted := make([]string, 0, len(paths))
++	for _, path := range paths {
++		if path == "" {
++			continue
++		}
++		quoted = append(quoted, "'"+strings.ReplaceAll(path, "'", "'\\''")+"'")
++	}
++	return strings.Join(quoted, " ")
++}
+diff --git a/scan/base_test.go b/scan/base_test.go
+index 4d9c5aa..e7aa0be 100644
+--- a/scan/base_test.go
++++ b/scan/base_test.go
+@@ -15,6 +15,25 @@ import (
+ 	"github.com/future-architect/vuls/models"
+ )
+ 
++func TestAddAffectedProcess(t *testing.T) {
++	l := &base{osPackages: osPackages{Packages: models.NewPackages(
++		models.Package{Name: "libgcc", Version: "4.8.5", Release: "44.el7", Arch: "x86_64"},
++	)}}
++	proc := models.AffectedProcess{PID: "123", Name: "server", ListenPortStats: []models.PortStat{{BindAddress: "127.0.0.1", Port: "8080"}}}
++	l.addAffectedProcess([]string{"libgcc", "libgcc", "unscanned"}, proc)
++	if got := l.Packages["libgcc"].AffectedProcs; !reflect.DeepEqual(got, []models.AffectedProcess{proc}) {
++		t.Errorf("AffectedProcs = %#v, want one process with its listening port", got)
++	}
++}
++
++func TestQuotePackagePaths(t *testing.T) {
++	got := quotePackagePaths([]string{"/usr/lib/has space", "/usr/lib/it's.so", ""})
++	want := "'/usr/lib/has space' '/usr/lib/it'\\''s.so'"
++	if got != want {
++		t.Errorf("quotePackagePaths() = %q, want %q", got, want)
++	}
++}
++
+ func TestParseDockerPs(t *testing.T) {
+ 	var test = struct {
+ 		in       string
+diff --git a/scan/debian.go b/scan/debian.go
+index b997ec6..7f2fc13 100644
+--- a/scan/debian.go
++++ b/scan/debian.go
+@@ -251,8 +251,8 @@ func (o *debian) preCure() error {
+ 
+ func (o *debian) postScan() error {
+ 	if o.getServerInfo().Mode.IsDeep() || o.getServerInfo().Mode.IsFastRoot() {
+-		if err := o.dpkgPs(); err != nil {
+-			err = xerrors.Errorf("Failed to dpkg-ps: %w", err)
++		if err := o.pkgPs(o.getOwnerPkgs); err != nil {
++			err = xerrors.Errorf("Failed to associate processes with packages: %w", err)
+ 			o.log.Warnf("err: %+v", err)
+ 			o.warns = append(o.warns, err)
+ 			// Only warning this error
+@@ -1263,88 +1263,12 @@ func (o *debian) parseCheckRestart(stdout string) (models.Packages, []string) {
+ 	return packs, unknownServices
+ }
+ 
+-func (o *debian) dpkgPs() error {
+-	stdout, err := o.ps()
+-	if err != nil {
+-		return xerrors.Errorf("Failed to ps: %w", err)
+-	}
+-	pidNames := o.parsePs(stdout)
+-	pidLoadedFiles := map[string][]string{}
+-	// for pid, name := range pidNames {
+-	for pid := range pidNames {
+-		stdout := ""
+-		stdout, err = o.lsProcExe(pid)
+-		if err != nil {
+-			o.log.Debugf("Failed to exec /proc/%s/exe err: %s", pid, err)
+-			continue
+-		}
+-		s, err := o.parseLsProcExe(stdout)
+-		if err != nil {
+-			o.log.Debugf("Failed to parse /proc/%s/exe: %s", pid, err)
+-			continue
+-		}
+-		pidLoadedFiles[pid] = append(pidLoadedFiles[pid], s)
+-
+-		stdout, err = o.grepProcMap(pid)
+-		if err != nil {
+-			o.log.Debugf("Failed to exec /proc/%s/maps: %s", pid, err)
+-			continue
+-		}
+-		ss := o.parseGrepProcMap(stdout)
+-		pidLoadedFiles[pid] = append(pidLoadedFiles[pid], ss...)
+-	}
+-
+-	pidListenPorts := map[string][]models.PortStat{}
+-	stdout, err = o.lsOfListen()
+-	if err != nil {
+-		// warning only, continue scanning
+-		o.log.Warnf("Failed to lsof: %+v", err)
+-	}
+-	portPids := o.parseLsOf(stdout)
+-	for ipPort, pids := range portPids {
+-		for _, pid := range pids {
+-			portStat, err := models.NewPortStat(ipPort)
+-			if err != nil {
+-				o.log.Warnf("Failed to parse ip:port: %s, err: %+v", ipPort, err)
+-				continue
+-			}
+-			pidListenPorts[pid] = append(pidListenPorts[pid], *portStat)
+-		}
++func (o *debian) getOwnerPkgs(paths []string) (pkgNames []string, err error) {
++	quotedPaths := quotePackagePaths(paths)
++	if quotedPaths == "" {
++		return nil, nil
+ 	}
+-
+-	for pid, loadedFiles := range pidLoadedFiles {
+-		o.log.Debugf("dpkg -S %#v", loadedFiles)
+-		pkgNames, err := o.getPkgName(loadedFiles)
+-		if err != nil {
+-			o.log.Debugf("Failed to get package name by file path: %s, err: %s", pkgNames, err)
+-			continue
+-		}
+-
+-		procName := ""
+-		if _, ok := pidNames[pid]; ok {
+-			procName = pidNames[pid]
+-		}
+-		proc := models.AffectedProcess{
+-			PID:             pid,
+-			Name:            procName,
+-			ListenPortStats: pidListenPorts[pid],
+-		}
+-
+-		for _, n := range pkgNames {
+-			p, ok := o.Packages[n]
+-			if !ok {
+-				o.log.Warnf("Failed to FindByFQPN: %+v", err)
+-				continue
+-			}
+-			p.AffectedProcs = append(p.AffectedProcs, proc)
+-			o.Packages[p.Name] = p
+-		}
+-	}
+-	return nil
+-}
+-
+-func (o *debian) getPkgName(paths []string) (pkgNames []string, err error) {
+-	cmd := "dpkg -S " + strings.Join(paths, " ")
++	cmd := "dpkg -S " + quotedPaths
+ 	r := o.exec(util.PrependProxyEnv(cmd), noSudo)
+ 	if !r.isSuccess(0, 1) {
+ 		return nil, xerrors.Errorf("Failed to SSH: %s", r)
+diff --git a/scan/redhatbase.go b/scan/redhatbase.go
+index dbd85e5..a60a912 100644
+--- a/scan/redhatbase.go
++++ b/scan/redhatbase.go
+@@ -4,6 +4,7 @@ import (
+ 	"bufio"
+ 	"fmt"
+ 	"regexp"
++	"strconv"
+ 	"strings"
+ 
+ 	"github.com/future-architect/vuls/config"
+@@ -172,9 +173,9 @@ func (o *redhatBase) preCure() error {
+ }
+ 
+ func (o *redhatBase) postScan() error {
+-	if o.isExecYumPS() {
+-		if err := o.yumPs(); err != nil {
+-			err = xerrors.Errorf("Failed to execute yum-ps: %w", err)
++	if o.shouldScanPkgProcesses() {
++		if err := o.pkgPs(o.getOwnerPkgs); err != nil {
++			err = xerrors.Errorf("Failed to associate processes with packages: %w", err)
+ 			o.log.Warnf("err: %+v", err)
+ 			o.warns = append(o.warns, err)
+ 			// Only warning this error
+@@ -283,6 +284,9 @@ func (o *redhatBase) parseInstalledPackages(stdout string) (models.Packages, mod
+ 			if err != nil {
+ 				return nil, nil, err
+ 			}
++			if pack.Name == "" {
++				continue
++			}
+ 
+ 			// `Kernel` and `kernel-devel` package may be installed multiple versions.
+ 			// From the viewpoint of vulnerability detection,
+@@ -311,21 +315,19 @@ func (o *redhatBase) parseInstalledPackages(stdout string) (models.Packages, mod
+ }
+ 
+ func (o *redhatBase) parseInstalledPackagesLine(line string) (models.Package, error) {
+-	for _, suffix := range []string{
+-		"Permission denied",
+-		"is not owned by any package",
+-		"No such file or directory",
+-	} {
+-		if strings.HasSuffix(line, suffix) {
+-			return models.Package{},
+-				xerrors.Errorf("Failed to parse package line: %s", line)
+-		}
++	if isIgnorableRPMQueryLine(line) {
++		return models.Package{}, nil
+ 	}
+ 	fields := strings.Fields(line)
+ 	if len(fields) != 5 {
+ 		return models.Package{},
+ 			xerrors.Errorf("Failed to parse package line: %s", line)
+ 	}
++	if fields[1] != "(none)" {
++		if _, err := strconv.ParseUint(fields[1], 10, 64); err != nil {
++			return models.Package{}, xerrors.Errorf("Failed to parse package line: %s", line)
++		}
++	}
+ 
+ 	ver := ""
+ 	epoch := fields[1]
+@@ -343,6 +345,20 @@ func (o *redhatBase) parseInstalledPackagesLine(line string) (models.Package, er
+ 	}, nil
+ }
+ 
++func isIgnorableRPMQueryLine(line string) bool {
++	line = strings.TrimSpace(line)
++	for _, suffix := range []string{
++		"Permission denied",
++		"is not owned by any package",
++		"No such file or directory",
++	} {
++		if strings.HasSuffix(line, suffix) {
++			return true
++		}
++	}
++	return false
++}
++
+ func (o *redhatBase) yumMakeCache() error {
+ 	cmd := `yum makecache --assumeyes`
+ 	r := o.exec(util.PrependProxyEnv(cmd), o.sudo.yumMakeCache())
+@@ -419,7 +435,7 @@ func (o *redhatBase) parseUpdatablePacksLine(line string) (models.Package, error
+ 	return p, nil
+ }
+ 
+-func (o *redhatBase) isExecYumPS() bool {
++func (o *redhatBase) shouldScanPkgProcesses() bool {
+ 	switch o.Distro.Family {
+ 	case config.Oracle,
+ 		config.OpenSUSE,
+@@ -464,90 +480,6 @@ func (o *redhatBase) isExecNeedsRestarting() bool {
+ 	return true
+ }
+ 
+-func (o *redhatBase) yumPs() error {
+-	stdout, err := o.ps()
+-	if err != nil {
+-		return xerrors.Errorf("Failed to yum ps: %w", err)
+-	}
+-
+-	pidNames := o.parsePs(stdout)
+-	pidLoadedFiles := map[string][]string{}
+-	for pid := range pidNames {
+-		stdout := ""
+-		stdout, err = o.lsProcExe(pid)
+-		if err != nil {
+-			o.log.Debugf("Failed to exec ls -l /proc/%s/exe err: %s", pid, err)
+-			continue
+-		}
+-		s, err := o.parseLsProcExe(stdout)
+-		if err != nil {
+-			o.log.Debugf("Failed to parse /proc/%s/exe: %s", pid, err)
+-			continue
+-		}
+-		pidLoadedFiles[pid] = append(pidLoadedFiles[pid], s)
+-
+-		stdout, err = o.grepProcMap(pid)
+-		if err != nil {
+-			o.log.Debugf("Failed to exec /proc/%s/maps: %s", pid, err)
+-			continue
+-		}
+-		ss := o.parseGrepProcMap(stdout)
+-		pidLoadedFiles[pid] = append(pidLoadedFiles[pid], ss...)
+-	}
+-
+-	pidListenPorts := map[string][]models.PortStat{}
+-	stdout, err = o.lsOfListen()
+-	if err != nil {
+-		// warning only, continue scanning
+-		o.log.Warnf("Failed to lsof: %+v", err)
+-	}
+-	portPids := o.parseLsOf(stdout)
+-	for ipPort, pids := range portPids {
+-		for _, pid := range pids {
+-			portStat, err := models.NewPortStat(ipPort)
+-			if err != nil {
+-				o.log.Warnf("Failed to parse ip:port: %s, err: %+v", ipPort, err)
+-				continue
+-			}
+-			pidListenPorts[pid] = append(pidListenPorts[pid], *portStat)
+-		}
+-	}
+-
+-	for pid, loadedFiles := range pidLoadedFiles {
+-		pkgNameVerRels, err := o.getPkgNameVerRels(loadedFiles)
+-		if err != nil {
+-			o.log.Debugf("Failed to get package name by file path: %s, err: %s", pkgNameVerRels, err)
+-			continue
+-		}
+-
+-		uniq := map[string]struct{}{}
+-		for _, name := range pkgNameVerRels {
+-			uniq[name] = struct{}{}
+-		}
+-
+-		procName := ""
+-		if _, ok := pidNames[pid]; ok {
+-			procName = pidNames[pid]
+-		}
+-		proc := models.AffectedProcess{
+-			PID:             pid,
+-			Name:            procName,
+-			ListenPortStats: pidListenPorts[pid],
+-		}
+-
+-		for pkgNameVerRel := range uniq {
+-			p, err := o.Packages.FindByFQPN(pkgNameVerRel)
+-			if err != nil {
+-				o.log.Warnf("Failed to FindByFQPN: %+v", err)
+-				continue
+-			}
+-			p.AffectedProcs = append(p.AffectedProcs, proc)
+-			o.Packages[p.Name] = *p
+-		}
+-	}
+-	return nil
+-}
+-
+ func (o *redhatBase) needsRestarting() error {
+ 	initName, err := o.detectInitSystem()
+ 	if err != nil {
+@@ -562,15 +494,24 @@ func (o *redhatBase) needsRestarting() error {
+ 	}
+ 	procs := o.parseNeedsRestarting(r.Stdout)
+ 	for _, proc := range procs {
+-		fqpn, err := o.procPathToFQPN(proc.Path)
++		pathFields := strings.Fields(strings.ReplaceAll(proc.Path, "\x00", " "))
++		if len(pathFields) == 0 {
++			continue
++		}
++		ownerNames, err := o.getOwnerPkgs(pathFields[:1])
+ 		if err != nil {
+ 			o.log.Warnf("Failed to detect a package name of need restarting process from the command path: %s, %s",
+ 				proc.Path, err)
+ 			continue
+ 		}
+-		pack, err := o.Packages.FindByFQPN(fqpn)
+-		if err != nil {
+-			return err
++		matchedNames := make([]string, 0, len(ownerNames))
++		for _, ownerName := range ownerNames {
++			if _, ok := o.Packages[ownerName]; ok {
++				matchedNames = append(matchedNames, ownerName)
++			}
++		}
++		if len(matchedNames) == 0 {
++			continue
+ 		}
+ 		if initName == systemd {
+ 			name, err := o.detectServiceName(proc.PID)
+@@ -581,8 +522,11 @@ func (o *redhatBase) needsRestarting() error {
+ 			proc.ServiceName = name
+ 			proc.InitSystem = systemd
+ 		}
+-		pack.NeedRestartProcs = append(pack.NeedRestartProcs, proc)
+-		o.Packages[pack.Name] = *pack
++		for _, ownerName := range matchedNames {
++			pack := o.Packages[ownerName]
++			pack.NeedRestartProcs = append(pack.NeedRestartProcs, proc)
++			o.Packages[ownerName] = pack
++		}
+ 	}
+ 	return nil
+ }
+@@ -626,42 +570,53 @@ func (o *redhatBase) parseNeedsRestarting(stdout string) (procs []models.NeedRes
+ 	return
+ }
+ 
+-// procPathToFQPN returns Fully-Qualified-Package-Name from the command
+-func (o *redhatBase) procPathToFQPN(execCommand string) (string, error) {
+-	execCommand = strings.Replace(execCommand, "\x00", " ", -1) // for CentOS6.9
+-	path := strings.Fields(execCommand)[0]
+-	cmd := `LANGUAGE=en_US.UTF-8 rpm -qf --queryformat "%{NAME}-%{EPOCH}:%{VERSION}-%{RELEASE}\n" ` + path
+-	r := o.exec(cmd, noSudo)
+-	if !r.isSuccess() {
+-		return "", xerrors.Errorf("Failed to SSH: %s", r)
++func (o *redhatBase) getOwnerPkgs(paths []string) ([]string, error) {
++	quotedPaths := quotePackagePaths(paths)
++	if quotedPaths == "" {
++		return nil, nil
+ 	}
+-	fqpn := strings.TrimSpace(r.Stdout)
+-	return strings.Replace(fqpn, "-(none):", "-", -1), nil
+-}
+-
+-func (o *redhatBase) getPkgNameVerRels(paths []string) (pkgNameVerRels []string, err error) {
+-	cmd := o.rpmQf() + strings.Join(paths, " ")
++	cmd := "LANGUAGE=en_US.UTF-8 " + o.rpmQf() + quotedPaths
+ 	r := o.exec(util.PrependProxyEnv(cmd), noSudo)
+ 	// rpm exit code means `the number` of errors.
+ 	// https://listman.redhat.com/archives/rpm-list/2005-July/msg00071.html
+ 	// If we treat non-zero exit codes of `rpm` as errors,
+ 	// we will be missing a partial package list we can get.
++	output := r.Stdout
++	if r.Stderr != "" {
++		output += "\n" + r.Stderr
++	}
++	if !r.isSuccess() && strings.TrimSpace(output) == "" {
++		return nil, xerrors.Errorf("Failed to rpm -qf: %s", r)
++	}
++	return o.parseOwnerPkgs(output)
++}
+ 
+-	scanner := bufio.NewScanner(strings.NewReader(r.Stdout))
++func (o *redhatBase) parseOwnerPkgs(output string) ([]string, error) {
++	ownerNames := []string{}
++	seen := map[string]struct{}{}
++	scanner := bufio.NewScanner(strings.NewReader(output))
+ 	for scanner.Scan() {
+-		line := scanner.Text()
++		line := strings.TrimSpace(scanner.Text())
++		if line == "" {
++			continue
++		}
+ 		pack, err := o.parseInstalledPackagesLine(line)
+ 		if err != nil {
+-			o.log.Debugf("Failed to parse rpm -qf line: %s", line)
++			return nil, err
++		}
++		if pack.Name == "" {
+ 			continue
+ 		}
+-		if _, ok := o.Packages[pack.Name]; !ok {
+-			o.log.Debugf("Failed to rpm -qf. pkg: %+v not found, line: %s", pack, line)
++		if _, ok := seen[pack.Name]; ok {
+ 			continue
+ 		}
+-		pkgNameVerRels = append(pkgNameVerRels, pack.FQPN())
++		seen[pack.Name] = struct{}{}
++		ownerNames = append(ownerNames, pack.Name)
++	}
++	if err := scanner.Err(); err != nil {
++		return nil, xerrors.Errorf("Failed to read rpm -qf output: %w", err)
+ 	}
+-	return pkgNameVerRels, nil
++	return ownerNames, nil
+ }
+ 
+ func (o *redhatBase) rpmQa() string {
+diff --git a/scan/redhatbase_test.go b/scan/redhatbase_test.go
+index cc9bf26..2578cf5 100644
+--- a/scan/redhatbase_test.go
++++ b/scan/redhatbase_test.go
+@@ -166,6 +166,21 @@ func TestParseInstalledPackagesLine(t *testing.T) {
+ 		{
+ 			"error: file /run/log/journal/346a500b7fb944199748954baca56086/system.journal: Permission denied",
+ 			models.Package{},
++			false,
++		},
++		{
++			"file /usr/lib/libfoo.so is not owned by any package",
++			models.Package{},
++			false,
++		},
++		{
++			"error: file /usr/lib/libfoo.so: No such file or directory",
++			models.Package{},
++			false,
++		},
++		{
++			"error: unexpected rpm output",
++			models.Package{},
+ 			true,
+ 		},
+ 	}
+@@ -191,6 +206,38 @@ func TestParseInstalledPackagesLine(t *testing.T) {
+ 
+ }
+ 
++func TestParseOwnerPkgs(t *testing.T) {
++	r := newRHEL(config.ServerInfo{})
++	owners, err := r.parseOwnerPkgs(`libgcc 0 4.8.5 39.el7 i686
++libgcc 0 4.8.5 44.el7 x86_64
++glibc 0 2.17 317.el7 x86_64
++error: file /run/log/journal/system.journal: Permission denied
++file /tmp/missing is not owned by any package
++error: file /tmp/removed: No such file or directory`)
++	if err != nil {
++		t.Fatalf("parseOwnerPkgs() error = %v", err)
++	}
++	if want := []string{"libgcc", "glibc"}; !reflect.DeepEqual(owners, want) {
++		t.Errorf("parseOwnerPkgs() = %v, want %v", owners, want)
++	}
++	r.Packages = models.NewPackages(models.Package{Name: "libgcc", Version: "4.8.5", Release: "44.el7", Arch: "x86_64"})
++	proc := models.AffectedProcess{PID: "123", Name: "server"}
++	r.addAffectedProcess(owners, proc)
++	if got := r.Packages["libgcc"].AffectedProcs; !reflect.DeepEqual(got, []models.AffectedProcess{proc}) {
++		t.Errorf("AffectedProcs = %#v, want the process associated with libgcc", got)
++	}
++
++	for _, line := range []string{
++		"unexpected rpm output",
++		"bad-package invalid-epoch 1.0 1 x86_64",
++		"libgcc 0 4.8.5 39.el7 x86_64 extra",
++	} {
++		if _, err := r.parseOwnerPkgs("libgcc 0 4.8.5 44.el7 x86_64\n" + line); err == nil {
++			t.Errorf("parseOwnerPkgs(%q) did not report malformed line", line)
++		}
++	}
++}
++
+ func TestParseYumCheckUpdateLine(t *testing.T) {
+ 	r := newCentOS(config.ServerInfo{})
+ 	r.Distro = config.Distro{Family: "centos"}

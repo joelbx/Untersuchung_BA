@@ -1,0 +1,3 @@
+Implemented cover archival with zero-padded item and batch IDs, uncompressed zip files, upload verification, and batch locking. Cover records now distinguish staged, failed, and uploaded covers; retrieval uses local zip members while staged and archive.org URLs after verified upload. I also updated the schema and documented the paths and workflow in [README.md](/app/openlibrary/coverstore/README.md).
+
+Verification: the coverstore test suite had **21 passed, 7 skipped**; `git diff --check` passed.

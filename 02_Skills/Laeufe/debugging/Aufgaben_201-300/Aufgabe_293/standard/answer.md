@@ -1,0 +1,3 @@
+Resolved OCI configuration loading and startup. Validation now returns the required error for unsupported repository schemes and for a missing repository. The schema and loader support `bundles_directory`, duration based `poll_interval`, and authentication; the OCI store uses the configured bundle root. I also added `DefaultBundleDir` and registered `fs/oci` in both integration matrices.
+
+Relevant Go tests and `git diff --check` passed. A local CLI build created an OCI bundle from the integration fixture. The Dagger integration suite remains unverified because running it would require downloading container images.

@@ -1,0 +1,3 @@
+Implemented MARC role mapping and propagation to work author entries. `$4` takes precedence over `$e`; unrecognized roles are omitted, and `new_work` raises when edition and record author counts differ.
+
+The targeted tests reported 9 failures and 143 passes. Several existing MARC expectations now differ because roles are expanded (for example, `comp.` maps to `Compiler`); add-book tests also failed in author handling.

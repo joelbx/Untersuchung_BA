@@ -1,0 +1,3 @@
+Implemented `LinuxHardware.get_sysinfo_facts` in [linux.py](/app/lib/ansible/module_utils/facts/hardware/linux.py:416). It returns `{}` when `/proc/sysinfo` is absent; otherwise it returns the five required facts, fills vendor, product name, and serial from the matching lines, and strips leading zeros from the serial. Discovered values are merged into DMI facts.
+
+The focused Linux hardware suite passed: **11 tests**. The broader facts suite had **405 passed, 5 skipped, and 1 failure**: `test_implicit_file_default_timesout`, a timeout test unrelated to this change. `git diff --check` passed.

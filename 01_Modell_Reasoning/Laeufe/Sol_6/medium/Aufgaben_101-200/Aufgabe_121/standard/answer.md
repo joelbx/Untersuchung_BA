@@ -1,0 +1,3 @@
+Added `flipt.is_auth_method(input, method)` to the Rego authorization engines. It accepts the seven specified labels, maps them to the `auth.proto` method codes, and treats `k8s` and `kubernetes` as aliases. It returns false for a nonmatching method and the specified errors for missing authentication or an unsupported label.
+
+Tests cover every label, false results, both errors, and policy registration. The relevant engine tests pass.

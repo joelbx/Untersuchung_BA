@@ -1,0 +1,3 @@
+Moved evaluation into the new `storage.Evaluator` interface and `EvaluatorStorage`, and updated `Server.Evaluate` to delegate to it. The change also preserves rule rank, fixes rollout cutoff selection, normalizes comparisons, and generates a UUIDv4 request ID for direct storage calls.
+
+Regression tests and the full `GOPROXY=off go test ./... -count=1` suite pass. The build emits a non-failing warning from the existing SQLite C binding.

@@ -1,0 +1,3 @@
+Implemented digest support across configuration, scanning, scan results, and reporting. Images now accept exactly one of tag or digest; scans use the corresponding full reference, and report names and UUID identifiers distinguish digest images. Local report history also avoids comparing different digests.
+
+I delegated the reporting and per-image server naming changes, then reviewed and integrated them. Offline tests passed for `./config`, `./scan`, and `./report`, along with the targeted models image test. The full models suite still has existing vet warnings in `models/library.go` and an unrelated `TestScan` failure.

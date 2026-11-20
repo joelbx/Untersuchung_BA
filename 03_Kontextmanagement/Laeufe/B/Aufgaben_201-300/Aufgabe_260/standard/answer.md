@@ -1,0 +1,3 @@
+Implemented selective event delivery in `/app`. The UI now sends a per-client UUID on its requests; server middleware stores it in an HttpOnly cookie and request context. SSE events from user actions go only to other clients of the same user, while server-generated events remain broadcasts. I also updated the broker and diode APIs and the affected callers.
+
+Relevant Go tests passed, and the changed UI files passed ESLint and Prettier checks.

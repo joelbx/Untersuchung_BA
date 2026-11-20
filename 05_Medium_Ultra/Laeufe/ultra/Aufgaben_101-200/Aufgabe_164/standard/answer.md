@@ -1,0 +1,3 @@
+Fixed the import issue. YAML imports now use the v3 decoder, so nested metadata and variant attachments retain JSON-compatible maps without an ad-hoc conversion. JSON imports skip exactly one leading line when its first byte is `#`. The regression tests also verify namespace key, name, and description on import.
+
+The work was delegated for import and namespace audits and regression test coverage; I integrated the patch. `go test ./internal/ext -count=1`, the `cmd/flipt` compile check, and `git diff --check` all pass.

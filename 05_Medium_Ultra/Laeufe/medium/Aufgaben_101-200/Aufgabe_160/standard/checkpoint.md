@@ -1,0 +1,3 @@
+Task: Fix Direct Dial SSH node heartbeat addresses that advertise wildcard hosts.
+Implemented: upstream inventory streams expose PeerAddr; gRPC stream captures context peer; in-memory pipe supports ICSPipePeerAddr; controller rewrites local/wildcard heartbeat hosts with peer host while preserving heartbeat port before UpsertNode.
+Verification: gofmt and git diff --check pass. Focused API client pipe tests pass via the root module. Full lib/inventory suite passes. Full API client suite was stopped after a long run without output; focused tests cover the changed API behavior. Standalone API module cannot resolve an uncached dependency with network disabled.

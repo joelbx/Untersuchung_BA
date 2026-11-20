@@ -1,0 +1,3 @@
+Added digest support across configuration, scanning, scan results, detection logs, and report identifiers. Validation now requires a name and exactly one of tag or digest. Image references use `name:tag` or `name@digest`, and per-image server names no longer include either identifier.
+
+Regression tests and the full config, scan, and report suites pass. The broader models suite still fails in its existing vulnerability database test; a separate vet diagnostic in `models/library.go` also prevents a default test run. Both are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Fortinet advisories now participate in FortiOS CPE detection, confidence ranking, and CVE enrichment. Results include advisory IDs and URLs, CVSS v3 details, CWE IDs, references, and dates. Report selection includes Fortinet in the requested order.
+
+The change uses a cached `go-cve-dictionary` version with Fortinet models and adds focused tests for conversion, confidence, and report priority. `go test -mod=readonly ./detector ./models ./server` passed offline, and `git diff --check` passed.

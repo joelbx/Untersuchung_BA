@@ -1,0 +1,3 @@
+Edition matching now accepts raw records. The shared expansion logic builds title variants, combines ISBN fields, handles missing author data, and preserves existing `db_name` values for author and contributor comparisons. I added regression tests for matching without ISBNs and for thresholds 875 and 515.
+
+Verification: 13 focused tests passed; 2 existing tests remain expected failures. The broader add-book suite passed all 63 tests. Ruff and `git diff --check` passed.

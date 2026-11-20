@@ -1,0 +1,339 @@
+# Checkpoint
+
+Implemented forked `Display.display` forwarding through `FinalQueue.send_display`/`DisplaySend`, parent-side replay and locking, worker queue setup, removal of the late stdio redirection, and stdout/stderr flushing in `TaskQueueManager.cleanup`. Strategy cleanup now waits for worker cleanup before stopping the results thread.
+
+TDD: the new tests first failed on missing `set_queue`, `DisplaySend`, `_lock`, and on a display event arriving after the results sentinel. After the patch, `PYTHONPATH=lib:test python -m pytest --reruns 0 -q test/units/executor/test_forked_display.py test/units/executor/test_task_queue_manager_callbacks.py test/units/utils/display/test_display.py` passed (8 tests). `git diff --check` passed.
+
+Broader check `PYTHONPATH=lib:test python -m pytest --reruns 0 -q test/units/utils/display test/units/executor test/units/plugins/strategy --tb=line` failed: 7 failed, 79 passed, 7 skipped. Failing tests: `test_warning`, `test_warning_no_color` in `test_warning.py`; `TestPlayIterator.test_play_iterator`, `.test_play_iterator_add_tasks`, `.test_play_iterator_nested_blocks`; `TestPlaybookExecutor.test_get_serialized_batches`; `TestStrategyLinear.test_noop`. The latter five fail with `TypeError: argument of type 'type' is not iterable` in `playbook/task.py:194`. The warning tests fail on color/duplicate warning expectations after `test_logger.py` clears Ansible modules from `sys.modules`. The new tests pass in this broader run.
+
+Project check `PYTHONPATH=lib:test python -m pytest --reruns 0 -q --tb=line` completed with 223 failed, 3358 passed, 32 skipped, 100 errors, 50 warnings. This command also collected integration target files and errors unrelated to the display change. No unexecuted checks are claimed as passed.
+
+`rg` is unavailable (`/bin/bash: rg: command not found`), so search used `grep`/`find`.
+
+Final project suite rerun: `PYTHONPATH=lib:test python -m pytest --reruns 0 -q --tb=line`; exit code 1. ==== 223 failed, 3359 passed, 32 skipped, 51 warnings, 100 errors in 37.68s ====
+
+Named failures and errors from final run:
+
+- FAILED test/integration/targets/jinja_plugins/collections/ansible_collections/foo/bar/plugins/test/bad_collection_test.py::TestModule::tests
+- FAILED test/integration/targets/jinja_plugins/test_plugins/bad_test.py::TestModule::tests
+- FAILED test/units/ansible_test/ci/test_azp.py::test_auth - ModuleNotFoundErro...
+- FAILED test/units/cli/test_adhoc.py::test_with_command - KeyError: 'module_name'
+- FAILED test/units/cli/test_adhoc.py::test_simple_command - KeyError: 'args'
+- FAILED test/units/cli/test_adhoc.py::test_no_argument - KeyError: 'args'
+- FAILED test/units/cli/test_adhoc.py::test_did_you_mean_playbook - KeyError: '...
+- FAILED test/units/cli/test_adhoc.py::test_play_ds_positive - KeyError: 'modul...
+- FAILED test/units/cli/test_adhoc.py::test_play_ds_with_include_role - KeyErro...
+- FAILED test/units/cli/test_adhoc.py::test_run_import_playbook - KeyError: 'args'
+- FAILED test/units/cli/test_adhoc.py::test_ansible_version - AssertionError: I...
+- FAILED test/units/cli/test_console.py::TestConsoleCLI::test_helpdefault - Att...
+- FAILED test/units/cli/test_console.py::TestConsoleCLI::test_module_args - Att...
+- FAILED test/units/cli/test_doc.py::test_builtin_modules_list - KeyError: 'bas...
+- FAILED test/units/cli/test_doc.py::test_legacy_modules_list - KeyError: 'base...
+- FAILED test/units/cli/test_galaxy.py::test_collection_default[collection_skeleton0]
+- FAILED test/units/cli/test_galaxy.py::test_collection_install_with_names - As...
+- FAILED test/units/cli/test_galaxy.py::test_collection_install_with_requirements_file
+- FAILED test/units/cli/test_galaxy.py::test_collection_install_in_collection_dir
+- FAILED test/units/cli/test_galaxy.py::test_collection_install_path_with_ansible_collections
+- FAILED test/units/cli/test_playbook.py::TestPlaybookCLI::test_flush_cache - A...
+- FAILED test/units/executor/test_play_iterator.py::TestPlayIterator::test_play_iterator
+- FAILED test/units/executor/test_play_iterator.py::TestPlayIterator::test_play_iterator_add_tasks
+- FAILED test/units/executor/test_play_iterator.py::TestPlayIterator::test_play_iterator_nested_blocks
+- FAILED test/units/executor/test_playbook_executor.py::TestPlaybookExecutor::test_get_serialized_batches
+- FAILED test/units/executor/test_task_executor.py::TestTaskExecutor::test_task_executor_get_loop_items
+- FAILED test/units/executor/test_task_executor.py::TestTaskExecutor::test_task_executor_poll_async_result
+- FAILED test/units/executor/module_common/test_recursive_finder.py::TestRecursiveFinder::test_no_module_utils
+- FAILED test/units/executor/module_common/test_recursive_finder.py::TestRecursiveFinder::test_module_utils_with_syntax_error
+- FAILED test/units/executor/module_common/test_recursive_finder.py::TestRecursiveFinder::test_module_utils_with_identation_error
+- FAILED test/units/executor/module_common/test_recursive_finder.py::TestRecursiveFinder::test_from_import_six
+- FAILED test/units/executor/module_common/test_recursive_finder.py::TestRecursiveFinder::test_import_six
+- FAILED test/units/executor/module_common/test_recursive_finder.py::TestRecursiveFinder::test_import_six_from_many_submodules
+- FAILED test/units/galaxy/test_collection_install.py::test_install_collection
+- FAILED test/units/module_utils/basic/test_argument_spec.py::test_no_log_false[stdin0]
+- FAILED test/units/module_utils/basic/test_argument_spec.py::test_no_log_alias[stdin0]
+- FAILED test/units/module_utils/basic/test_deprecate_warn.py::test_warn[stdin0]
+- FAILED test/units/module_utils/basic/test_deprecate_warn.py::test_deprecate[stdin0]
+- FAILED test/units/module_utils/basic/test_deprecate_warn.py::test_deprecate_without_list[stdin0]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_exit_json_exits[args0-expected0-stdin0]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_exit_json_exits[args1-expected1-stdin1]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_exit_json_exits[args2-expected2-stdin2]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_exit_json_exits[args3-expected3-stdin3]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_exit_json_exits[args4-expected4-stdin4]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_exit_json_exits[args5-expected5-stdin5]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_fail_json_exits[args0-expected0-stdin0]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_fail_json_exits[args1-expected1-stdin1]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_fail_json_exits[args2-expected2-stdin2]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_fail_json_exits[args3-expected3-stdin3]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_fail_json_exits[args4-expected4-stdin4]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_fail_json_msg_positional[stdin0]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitJson::test_fail_json_msg_as_kwarg_after[stdin0]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitValuesRemoved::test_exit_json_removes_values[am0-stdin0-return_val0-expected0]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitValuesRemoved::test_exit_json_removes_values[am1-stdin1-return_val1-expected1]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitValuesRemoved::test_exit_json_removes_values[am2-stdin2-return_val2-expected2]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitValuesRemoved::test_fail_json_removes_values[am0-stdin0-return_val0-expected0]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitValuesRemoved::test_fail_json_removes_values[am1-stdin1-return_val1-expected1]
+- FAILED test/units/module_utils/basic/test_exit_json.py::TestAnsibleModuleExitValuesRemoved::test_fail_json_removes_values[am2-stdin2-return_val2-expected2]
+- FAILED test/units/module_utils/basic/test_imports.py::TestImports::test_module_utils_basic_import_selinux
+- FAILED test/units/module_utils/basic/test_imports.py::TestImports::test_module_utils_basic_import_syslog
+- FAILED test/units/module_utils/basic/test_imports.py::TestImports::test_module_utils_basic_import_systemd_journal
+- FAILED test/units/module_utils/basic/test_selinux.py::TestSELinuxMU::test_selinux_enabled
+- FAILED test/units/module_utils/basic/test_selinux.py::TestSELinuxMU::test_selinux_mls_enabled
+- FAILED test/units/module_utils/basic/test_selinux.py::TestSELinuxMU::test_selinux_default_context
+- FAILED test/units/module_utils/basic/test_selinux.py::TestSELinuxMU::test_selinux_context
+- FAILED test/units/module_utils/basic/test_selinux.py::TestSELinuxMU::test_set_context_if_different
+- FAILED test/units/module_utils/common/arg_spec/test_module_validate.py::test_module_alias_deprecations_warnings
+- FAILED test/units/module_utils/common/warnings/test_warn.py::test_warn - Asse...
+- FAILED test/units/module_utils/common/warnings/test_warn.py::test_multiple_warningss
+- FAILED test/units/module_utils/common/warnings/test_warn.py::test_get_warning_messages
+- FAILED test/units/module_utils/facts/test_timeout.py::test_implicit_file_default_timesout
+- FAILED test/units/modules/test_apt_key.py::AptKeyTestCase::test_import_key_with_http_proxy
+- FAILED test/units/modules/test_known_hosts.py::KnownHostsDiffTestCase::test_sanity_check
+- FAILED test/units/modules/test_pip.py::test_failure_when_pip_absent[patch_ansible_module0]
+- FAILED test/units/modules/test_service.py::test_sunos_service_start - Asserti...
+- FAILED test/units/parsing/test_mod_args.py::TestModArgsDwim::test_basic_shell
+- FAILED test/units/parsing/test_mod_args.py::TestModArgsDwim::test_basic_command
+- FAILED test/units/parsing/test_mod_args.py::TestModArgsDwim::test_shell_with_modifiers
+- FAILED test/units/parsing/test_mod_args.py::TestModArgsDwim::test_normal_usage
+- FAILED test/units/parsing/test_mod_args.py::TestModArgsDwim::test_complex_args
+- FAILED test/units/parsing/test_mod_args.py::TestModArgsDwim::test_multiple_actions[args_dict1-conflicting action statements: shell, shell]
+- FAILED test/units/parsing/test_mod_args.py::TestModArgsDwim::test_multiple_actions[args_dict2-conflicting action statements: shell, shell]
+- FAILED test/units/parsing/test_mod_args.py::TestModArgsDwim::test_multiple_actions_ping_shell
+- FAILED test/units/parsing/test_mod_args.py::TestModArgsDwim::test_bogus_action
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_dict_defined_multiple_values_is_defined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_dict_defined_values_is_defined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_is_defined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_is_hostvars_host_is_defined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_is_hostvars_host_undefined_is_defined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_is_hostvars_host_undefined_is_not_defined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_is_hostvars_host_undefined_is_undefined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_is_hostvars_quotes_is_defined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_is_hostvars_quotes_is_defined_but_is_not_defined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_is_not_defined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_is_not_undefined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_is_undefined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_is_undefined_and_defined
+- FAILED test/units/playbook/test_conditional.py::TestConditional::test_is_undefined_and_defined_reversed
+- FAILED test/units/playbook/test_helpers.py::TestLoadListOfTasks::test_one_include
+- FAILED test/units/playbook/test_helpers.py::TestLoadListOfTasks::test_one_include_tags
+- FAILED test/units/playbook/test_helpers.py::TestLoadListOfTasks::test_one_include_use_handlers
+- FAILED test/units/playbook/test_helpers.py::TestLoadListOfTasks::test_one_parent_include
+- FAILED test/units/playbook/test_helpers.py::TestLoadListOfTasks::test_one_parent_include_tags
+- FAILED test/units/playbook/test_helpers.py::TestLoadListOfTasks::test_one_parent_include_use_handlers
+- FAILED test/units/playbook/test_included_file.py::test_process_include_results
+- FAILED test/units/playbook/test_included_file.py::test_process_include_diff_files
+- FAILED test/units/playbook/test_included_file.py::test_process_include_simulate_free
+- FAILED test/units/playbook/test_included_file.py::test_empty_raw_params - Att...
+- FAILED test/units/playbook/test_task.py::TestTask::test_load_task_kv_form_error_36848
+- FAILED test/units/playbook/test_task.py::TestTask::test_load_task_simple - At...
+- FAILED test/units/playbook/role/test_include_role.py::TestIncludeRole::test_nested
+- FAILED test/units/playbook/role/test_include_role.py::TestIncludeRole::test_nested_alt_files
+- FAILED test/units/playbook/role/test_include_role.py::TestIncludeRole::test_simple
+- FAILED test/units/playbook/role/test_include_role.py::TestIncludeRole::test_simple_alt_files
+- FAILED test/units/playbook/role/test_role.py::TestRole::test_load_role_complex
+- FAILED test/units/playbook/role/test_role.py::TestRole::test_load_role_with_handlers
+- FAILED test/units/playbook/role/test_role.py::TestRole::test_load_role_with_tasks
+- FAILED test/units/playbook/role/test_role.py::TestRole::test_load_role_with_tasks_dir_vs_file
+- FAILED test/units/plugins/action/test_action.py::TestActionBase::test_action_base__configure_module
+- FAILED test/units/plugins/action/test_action.py::TestActionBaseCleanReturnedData::test
+- FAILED test/units/plugins/action/test_raw.py::TestCopyResultExclude::test_raw_check_mode_is_True
+- FAILED test/units/plugins/action/test_raw.py::TestCopyResultExclude::test_raw_executable_is_not_empty_string
+- FAILED test/units/plugins/action/test_raw.py::TestCopyResultExclude::test_raw_task_vars_is_not_None
+- FAILED test/units/plugins/action/test_raw.py::TestCopyResultExclude::test_raw_test_environment_is_None
+- FAILED test/units/plugins/become/test_su.py::test_su - AttributeError: module...
+- FAILED test/units/plugins/become/test_sudo.py::test_sudo - AttributeError: mo...
+- FAILED test/units/plugins/connection/test_connection.py::TestConnectionBaseClass::test_check_password_prompt
+- FAILED test/units/plugins/connection/test_connection.py::TestConnectionBaseClass::test_subclass_success
+- FAILED test/units/plugins/connection/test_local.py::TestLocalConnectionClass::test_local_connection_module
+- FAILED test/units/plugins/connection/test_paramiko.py::test_paramiko_connection_module
+- FAILED test/units/plugins/connection/test_paramiko.py::test_paramiko_connect
+- FAILED test/units/plugins/connection/test_psrp.py::TestConnectionPSRP::test_set_options[options0-expected0]
+- FAILED test/units/plugins/connection/test_psrp.py::TestConnectionPSRP::test_set_options[options1-expected1]
+- FAILED test/units/plugins/connection/test_psrp.py::TestConnectionPSRP::test_set_options[options2-expected2]
+- FAILED test/units/plugins/connection/test_psrp.py::TestConnectionPSRP::test_set_options[options3-expected3]
+- FAILED test/units/plugins/connection/test_psrp.py::TestConnectionPSRP::test_set_options[options4-expected4]
+- FAILED test/units/plugins/connection/test_psrp.py::TestConnectionPSRP::test_set_options[options5-expected5]
+- FAILED test/units/plugins/connection/test_psrp.py::TestConnectionPSRP::test_set_options[options6-expected6]
+- FAILED test/units/plugins/connection/test_psrp.py::TestConnectionPSRP::test_set_options[options7-expected7]
+- FAILED test/units/plugins/connection/test_psrp.py::TestConnectionPSRP::test_set_invalid_extras_options
+- FAILED test/units/plugins/connection/test_ssh.py::TestConnectionBaseClass::test_plugins_connection_ssh__build_command
+- FAILED test/units/plugins/connection/test_ssh.py::TestConnectionBaseClass::test_plugins_connection_ssh__examine_output
+- FAILED test/units/plugins/connection/test_ssh.py::TestConnectionBaseClass::test_plugins_connection_ssh_basic
+- FAILED test/units/plugins/connection/test_ssh.py::TestConnectionBaseClass::test_plugins_connection_ssh_exec_command
+- FAILED test/units/plugins/connection/test_ssh.py::TestConnectionBaseClass::test_plugins_connection_ssh_fetch_file
+- FAILED test/units/plugins/connection/test_ssh.py::TestConnectionBaseClass::test_plugins_connection_ssh_module
+- FAILED test/units/plugins/connection/test_ssh.py::TestConnectionBaseClass::test_plugins_connection_ssh_put_file
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options0-direct0-expected0-False]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options1-direct1-expected1-False]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options2-direct2-expected2-True]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options3-direct3-expected3-False]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options4-direct4-expected4-True]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options5-direct5-expected5-True]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options6-direct6-expected6-True]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options7-direct7-expected7-False]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options8-direct8-expected8-False]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options9-direct9-expected9-False]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options10-direct10-expected10-False]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options11-direct11-expected11-False]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options12-direct12-expected12-False]
+- FAILED test/units/plugins/connection/test_winrm.py::TestConnectionWinRM::test_set_options[options13-direct13-expected13-False]
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_success_subprocess[options0-expected0]
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_success_subprocess[options1-expected1]
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_success_subprocess[options2-expected2]
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_success_subprocess[options3-expected3]
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_success_subprocess[options4-expected4]
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_success_pexpect[options0-expected0]
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_success_pexpect[options1-expected1]
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_success_pexpect[options2-expected2]
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_success_pexpect[options3-expected3]
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_success_pexpect[options4-expected4]
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_with_missing_executable_subprocess
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_with_missing_executable_pexpect
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_error_subprocess
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_error_pexpect
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_error_pass_in_output_subprocess
+- FAILED test/units/plugins/connection/test_winrm.py::TestWinRMKerbAuth::test_kinit_error_pass_in_output_pexpect
+- FAILED test/units/plugins/inventory/test_constructed.py::test_parent_group_templating
+- FAILED test/units/plugins/inventory/test_inventory.py::TestInventoryPlugins::test_empty_inventory
+- FAILED test/units/plugins/inventory/test_inventory.py::TestInventoryPlugins::test_ini
+- FAILED test/units/plugins/inventory/test_inventory.py::TestInventoryPlugins::test_ini_explicit_ungrouped
+- FAILED test/units/plugins/inventory/test_inventory.py::TestInventoryPlugins::test_ini_variables_stringify
+- FAILED test/units/plugins/inventory/test_inventory.py::TestInventoryPlugins::test_yaml_inventory
+- FAILED test/units/plugins/inventory/test_script.py::TestInventoryModule::test_parse_dict_fail
+- FAILED test/units/plugins/inventory/test_script.py::TestInventoryModule::test_parse_subprocess_err_code_fail
+- FAILED test/units/plugins/inventory/test_script.py::TestInventoryModule::test_parse_subprocess_path_not_found_fail
+- FAILED test/units/plugins/inventory/test_script.py::TestInventoryModule::test_parse_utf8_fail
+- FAILED test/units/plugins/lookup/test_env.py::test_env_var_value[foo-bar] - A...
+- FAILED test/units/plugins/lookup/test_env.py::test_env_var_value[equation-a=b*100]
+- FAILED test/units/plugins/lookup/test_env.py::test_utf8_env_var_value[simple_var-alpha-\u03b2-gamma]
+- FAILED test/units/plugins/lookup/test_env.py::test_utf8_env_var_value[the_var-\xe3n\u02c8si\u03b2le]
+- FAILED test/units/plugins/lookup/test_url.py::test_user_agent[kwargs0-ansible-httpget]
+- FAILED test/units/plugins/lookup/test_url.py::test_user_agent[kwargs1-SuperFox]
+- FAILED test/units/plugins/strategy/test_linear.py::TestStrategyLinear::test_noop
+- FAILED test/units/template/test_templar.py::TestTemplarTemplate::test_template_convert_bare_filter
+- FAILED test/units/template/test_templar.py::TestTemplarTemplate::test_template_convert_bare_filter_unsafe
+- FAILED test/units/template/test_templar.py::TestTemplarTemplate::test_template_convert_data_to_json
+- FAILED test/units/template/test_templar.py::TestTemplarTemplate::test_template_with_error
+- FAILED test/units/template/test_templar.py::TestTemplarMisc::test_templar_simple
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_jinja_defined
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_jinja_dict
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_jinja_dict_list_passed
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_jinja_dict_string_passed
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_jinja_dict_unsafe
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_jinja_dict_unsafe_value
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_jinja_kwargs
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_jinja_list_wantlist
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_jinja_list_wantlist_undefined
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_jinja_list_wantlist_unsafe
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_jinja_none
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_jinja_undefined
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_list
+- FAILED test/units/template/test_templar.py::TestTemplarLookup::test_lookup_missing_plugin
+- FAILED test/units/template/test_templar.py::test_unsafe_lookup - AttributeErr...
+- FAILED test/units/template/test_templar.py::test_unsafe_lookup_no_conversion
+- FAILED test/units/utils/collection_loader/test_collection_loader.py::test_import_from_collection
+- FAILED test/units/utils/collection_loader/test_collection_loader.py::test_empty_vs_no_code
+- FAILED test/units/utils/collection_loader/test_collection_loader.py::test_finder_playbook_paths
+- FAILED test/units/utils/collection_loader/test_collection_loader.py::test_collection_get_data
+- FAILED test/units/utils/display/test_logger.py::test_logger - AttributeError:...
+- FAILED test/units/utils/display/test_warning.py::test_warning - assert {'[WAR...
+- FAILED test/units/utils/display/test_warning.py::test_warning_no_color - asse...
+- FAILED test/units/vars/test_variable_manager.py::TestVariableManager::test_variable_manager_role_vars_dependencies
+- ERROR test/ansible_test/unit/test_diff.py
+- ERROR test/ansible_test/validate-modules-unit/test_validate_modules_regex.py
+- ERROR test/integration/targets/ansible-test/ansible_collections/ns/col/tests/unit/plugins/module_utils/test_my_util.py
+- ERROR test/integration/targets/ansible-test/ansible_collections/ns/col/tests/unit/plugins/modules/test_hello.py
+- ERROR test/integration/targets/ansible-test/ansible_collections/ns/col_constraints/tests/unit/plugins/modules/test_constraints.py
+- ERROR test/integration/targets/ansible-test-docker/ansible_collections/ns/col/tests/unit/plugins/module_utils/test_my_util.py
+- ERROR test/integration/targets/ansible-test-docker/ansible_collections/ns/col/tests/unit/plugins/modules/test_hello.py
+- ERROR test/integration/targets/async/library/async_test.py - SystemExit: 1
+- ERROR test/integration/targets/async_fail/library/async_test.py - SystemExit: 1
+- ERROR test/integration/targets/cli/test_k_and_K.py - assert b'cliuser2' in b'...
+- ERROR test/integration/targets/debugger/test_run_once.py - pexpect.exceptions...
+- ERROR test/integration/targets/expect/files/test_command.py - OSError: pytest...
+- ERROR test/integration/targets/module_utils/library/test_alias_deprecation.py
+- ERROR test/integration/targets/module_utils/library/test_datetime.py - System...
+- ERROR test/integration/targets/module_utils/library/test_env_override.py
+- ERROR test/integration/targets/module_utils/library/test_failure.py
+- ERROR test/integration/targets/module_utils/library/test_optional.py - System...
+- ERROR test/integration/targets/module_utils/library/test_override.py
+- ERROR test/integration/targets/plugin_namespace/filter_plugins/test_filter.py
+- ERROR test/integration/targets/plugin_namespace/test_plugins/test_test.py
+- ERROR test/integration/targets/throttle/test_throttle.py - ValueError: too ma...
+- ERROR test/integration/targets/collections_plugin_namespace/collection_root/ansible_collections/my_ns/my_col/plugins/test/test_test.py::test_name_ok
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_display_galaxy_info - T...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_display_min - TypeError...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_execute_remove - TypeEr...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_exit_without_ignore_with_flag
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_exit_without_ignore_without_flag
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_init - TypeError: join(...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_parse_delete - TypeErro...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_parse_import - TypeErro...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_parse_info - TypeError:...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_parse_init - TypeError:...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_parse_install - TypeErr...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_parse_invalid_action - ...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_parse_list - TypeError:...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_parse_no_action - TypeE...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_parse_remove - TypeErro...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_parse_search - TypeErro...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_parse_setup - TypeError...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxy::test_run - TypeError: join()...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitDefault::test_main_ymls - ...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitDefault::test_metadata - T...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitDefault::test_metadata_contents
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitDefault::test_readme - Typ...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitDefault::test_readme_contents
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitDefault::test_role_dirs - ...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitDefault::test_test_yml - T...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitDefault::test_travis_yml
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitAPB::test_apb_yml - TypeEr...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitAPB::test_main_ymls - Type...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitAPB::test_metadata - TypeE...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitAPB::test_metadata_apb_tag
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitAPB::test_metadata_contents
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitAPB::test_readme - TypeErr...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitAPB::test_readme_contents
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitAPB::test_role_dirs - Type...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitAPB::test_test_yml - TypeE...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitAPB::test_travis_yml - Typ...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitContainer::test_main_ymls
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitContainer::test_meta_container_yml
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitContainer::test_metadata
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitContainer::test_metadata_container_tag
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitContainer::test_metadata_contents
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitContainer::test_readme - T...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitContainer::test_readme_contents
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitContainer::test_role_dirs
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitContainer::test_test_yml
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitContainer::test_travis_yml
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitSkeleton::test_empty_files_dir
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitSkeleton::test_main_ymls
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitSkeleton::test_metadata - ...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitSkeleton::test_readme - Ty...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitSkeleton::test_readme_contents
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitSkeleton::test_role_dirs
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitSkeleton::test_skeleton_option
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitSkeleton::test_template_ignore_jinja
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitSkeleton::test_template_ignore_jinja_subfolder
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitSkeleton::test_template_ignore_similar_folder
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitSkeleton::test_test_yml - ...
+- ERROR test/units/cli/test_galaxy.py::TestGalaxyInitSkeleton::test_travis_yml
+- ERROR test/units/cli/test_galaxy.py::test_collection_build[collection_skeleton0]
+- ERROR test/units/config/manager/test_find_ini_config_file.py::TestFindIniFile::test_ini_in_cwd[setup_existing_files0-setup_env0]
+- ERROR test/units/config/manager/test_find_ini_config_file.py::TestFindIniFile::test_ini_in_homedir[setup_existing_files0-setup_env0]
+- ERROR test/units/config/manager/test_find_ini_config_file.py::TestFindIniFile::test_ini_in_systemdir[setup_existing_files0-setup_env0]
+- ERROR test/units/config/manager/test_find_ini_config_file.py::TestFindIniFile::test_cwd_does_not_exist[setup_existing_files0-setup_env0]
+- ERROR test/units/config/manager/test_find_ini_config_file.py::TestFindIniFile::test_no_config[setup_existing_files0-setup_env0]
+- ERROR test/units/config/manager/test_find_ini_config_file.py::TestFindIniFile::test_no_cwd_cfg_no_warning_on_writable[setup_existing_files0-setup_env0]
+- ERROR test/units/config/manager/test_find_ini_config_file.py::TestFindIniFile::test_cwd_warning_on_writable[setup_existing_files0-setup_env0]
+- ERROR test/units/config/manager/test_find_ini_config_file.py::TestFindIniFile::test_cwd_warning_on_writable_no_warning_set[setup_existing_files0-setup_env0]
+- ERROR test/units/plugins/connection/test_ssh.py::TestSSHConnectionRun::test_no_escalation
+- ERROR test/units/plugins/connection/test_ssh.py::TestSSHConnectionRun::test_with_password
+- ERROR test/units/plugins/connection/test_ssh.py::TestSSHConnectionRun::test_password_with_prompt
+- ERROR test/units/plugins/connection/test_ssh.py::TestSSHConnectionRun::test_password_with_become
+- ERROR test/units/plugins/connection/test_ssh.py::TestSSHConnectionRun::test_pasword_without_data
+- ERROR test/units/plugins/connection/test_ssh.py::TestSSHConnectionRetries::test_incorrect_password
+- ERROR test/units/plugins/connection/test_ssh.py::TestSSHConnectionRetries::test_retry_then_success
+- ERROR test/units/plugins/connection/test_ssh.py::TestSSHConnectionRetries::test_multiple_failures
+- ERROR test/units/plugins/connection/test_ssh.py::TestSSHConnectionRetries::test_abitrary_exceptions
+- ERROR test/units/plugins/connection/test_ssh.py::TestSSHConnectionRetries::test_put_file_retries
+- ERROR test/units/plugins/connection/test_ssh.py::TestSSHConnectionRetries::test_fetch_file_retries

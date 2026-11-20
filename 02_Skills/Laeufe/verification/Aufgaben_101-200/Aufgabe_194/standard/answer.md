@@ -1,0 +1,3 @@
+`BlocklistDownloads` now inherits from `QObject` and emits `single_download_finished(object)` and `all_downloads_finished(int)`. Both adblock consumers connect handlers before starting downloads, including when the URL list is empty. Tests cover multiple listeners, a QObject parent, and empty-list completion.
+
+Verification: the focused test suite passed (38 passed, 13 skipped), and `git diff --check` passed.

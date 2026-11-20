@@ -1,0 +1,3 @@
+Updated [redhatbase.go](/app/scanner/redhatbase.go) to preserve empty release fields in `rpm -qa` and repoquery output, apply consistent epoch and release formatting, and validate source RPM filenames while accepting `-src.rpm` forms. Added regression cases in [redhatbase_test.go](/app/scanner/redhatbase_test.go).
+
+`go test ./scanner -count=1` and `git diff --check` passed, including the existing CentOS and Amazon Linux update candidate tests. No delegation was used.

@@ -1,0 +1,3 @@
+Implemented registration token entry in [InteractiveAuthEntryComponents.tsx](/app/src/components/views/auth/InteractiveAuthEntryComponents.tsx:192) for both the stable and unstable stage identifiers. The form supports Enter and click submission, shows busy and error states, and sends the advertised type with the token. Added [tests](/app/test/components/structures/InteractiveAuth-test.tsx:30) for completion, retry, and continuation to another stage.
+
+All 10 relevant tests pass; ESLint and Prettier pass. The project-wide TypeScript check still reports errors in unrelated Sliding Sync files.

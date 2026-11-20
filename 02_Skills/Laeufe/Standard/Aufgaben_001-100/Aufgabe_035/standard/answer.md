@@ -1,0 +1,3 @@
+Introduced a dedicated `Evaluator` in [storage/evaluator.go](/app/storage/evaluator.go) and moved flag evaluation out of `RuleStore`. [Server.Evaluate](/app/server/evaluator.go) now validates the request, generates a request ID when needed, records duration, and delegates to the evaluator. The SQL evaluator handles ranked rules, typed constraints, deterministic variant selection, and response fields.
+
+Added focused tests for rule rank, comparisons, and hash boundaries. `GOPROXY=off GOSUMDB=off go test ./...` and `git diff --check` passed.

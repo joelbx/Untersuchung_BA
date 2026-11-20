@@ -1,0 +1,3 @@
+Implemented digest support in `/app`: image validation now requires exactly one of tag or digest, scanning uses the full image reference, and scan results and report identifiers carry the digest. Per-image server names now use the loop index and original server name.
+
+Config, scan, report, and selected models tests pass. The full models suite remains blocked by existing vet errors and a test that needs an unavailable local vulnerability database.

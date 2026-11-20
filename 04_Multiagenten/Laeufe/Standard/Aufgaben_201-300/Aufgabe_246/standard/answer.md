@@ -1,0 +1,3 @@
+Updated lockfile scanning and vulnerability reporting so findings retain their source path. Libraries are analyzed per file, lookups use both path and name, and repeated CVEs keep findings from every lockfile. Added the requested `DummyFileInfo` and path-aware report handling.
+
+The pinned analyzer lacks `AnalyzeFile`, so the repository uses a local adapter for in-memory analysis. Relevant tests passed offline: `go test ./models ./scan ./libmanager ./report ./contrib/trivy/parser`.

@@ -1,0 +1,3 @@
+Implemented polling lifecycle management across Git, local, S3, Azure Blob, and OCI snapshot stores. Each store now retains its poller and exposes `Close()`, which safely returns when no polling is active. The poller cancels its context, stops its ticker, and waits for an active update to finish.
+
+Added lifecycle tests. The full `internal/storage/fs/...` suite and focused race tests passed with `GOPROXY=off`.

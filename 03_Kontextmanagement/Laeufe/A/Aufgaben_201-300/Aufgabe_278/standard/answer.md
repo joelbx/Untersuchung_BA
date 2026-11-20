@@ -1,0 +1,3 @@
+Fixed mailbox list reload timing and freshness handling. The list waits for tracked backend item operations to finish, discards responses that arrive during an operation, and retries failed or stale responses on separate delays. Loading now uses the current page and query parameters.
+
+Added focused coverage for overlapping actions, stale responses, in-flight responses, and fetch failures. TypeScript passed; all 4 focused tests and 12 existing mailbox tests passed.

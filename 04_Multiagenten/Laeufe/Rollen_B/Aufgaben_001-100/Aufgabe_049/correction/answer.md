@@ -1,0 +1,3 @@
+Fixed the ACP email status logic in [users.js](/app/src/controllers/admin/users.js). A user with no stored email can no longer appear Validated, and a displayed email appears Validation Pending only when the live confirmation is for that address. Added an [ACP regression test](/app/test/controllers-admin.js) covering all four statuses.
+
+The focused confirmation tests passed (6), and the ACP regression run passed (3). The full `test/user.js` run still fails at the previously reported invitation group membership assertion (173 passing, 1 failing). The broad `--grep 'email confirm'` run still selects a profile test that fails without its earlier setup.

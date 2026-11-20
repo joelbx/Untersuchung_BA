@@ -1,0 +1,3 @@
+Updated the EOL data in [config/os.go](/app/config/os.go) for Fedora 37, 38, and 40; SUSE Enterprise Desktop and Server 13 and 14; and macOS 11 and 15. Extended the Windows 10 22H2, Windows 11 22H2/23H2, and Server 2022 KB mappings in [scanner/windows.go](/app/scanner/windows.go), preserving existing entries and using named struct literals.
+
+Updated the existing tests and added checks for lifecycle dates and low and high kernel builds. `go test ./config ./scanner` and the targeted tests pass.

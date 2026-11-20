@@ -1,0 +1,3 @@
+Implemented reusable payment verification with `getDefaultVerifyPayment` and `getCreatePaymentToken`, and migrated the five requested consumers plus single-signup. Polling now stops cleanly on cancellation, approval-tab closure, and terminal token states. Saved payment tokenization also preserves `PaymentMethodID`.
+
+Type checks passed for components and account. Helper, verification modal, credits, edit card, subscription, and signup tests passed. ESLint passed with existing warnings; `git diff --check` passed.

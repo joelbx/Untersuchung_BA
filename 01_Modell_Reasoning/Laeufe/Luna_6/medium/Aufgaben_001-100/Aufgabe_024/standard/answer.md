@@ -1,0 +1,3 @@
+Updated [load_book.py](/app/openlibrary/catalog/add_book/load_book.py) with string based honorific removal, exception handling, escaped asterisks in name queries, and surname matching gated by extracted birth and death years.
+
+The existing add book tests report **17 passed, 11 failed**. Ten failures call the honorific helper using its old dictionary interface; one expects an asterisk to act as a wildcard in a name query. `git diff --check` passed. The checkpoint is in `.codex-role-output/checkpoint.md`.

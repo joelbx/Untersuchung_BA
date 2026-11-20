@@ -1,0 +1,5 @@
+Resolved the notification issue. HTML strings now render through a safe allowlist, and all notification links receive `target="_blank"` and `rel="noopener noreferrer"`; React element content remains supported in [Notification.tsx](/app/packages/components/containers/notifications/Notification.tsx).
+
+Non-success notifications now deduplicate by an explicit key, falling back to string text or the notification ID. Success notifications can repeat. The change is in [manager.tsx](/app/packages/components/containers/notifications/manager.tsx).
+
+Verification passed: 12 notification and existing link tests, the components TypeScript check, focused ESLint, and `git diff --check`. One subagent audited the implementation; another added the initial [notification tests](/app/packages/components/containers/notifications/notifications.test.tsx). I integrated and reviewed the final patch.

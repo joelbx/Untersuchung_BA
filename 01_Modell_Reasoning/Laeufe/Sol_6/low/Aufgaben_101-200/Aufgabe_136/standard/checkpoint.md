@@ -1,0 +1,1 @@
+Implemented WebKit named reply/errors constructor, escaped HTML, shared decision API, Qt5/Qt6 WebEngine wrappers and factory. WebKit tests: 5 passed. Broader WebEngine tab suite exited early with code 1 in this environment.

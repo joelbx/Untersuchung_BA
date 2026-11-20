@@ -1,0 +1,3 @@
+Updated `getObject` and `getObjects` to accept optional `fields` across Redis, MongoDB, and Postgres. An empty array returns complete objects; selected fields include `null` for absent fields, while missing keys return `null` through the wrapper methods. Added coverage for field selection, missing keys, and input order.
+
+The Redis hash suite passed **58 tests**. ESLint and `git diff --check` passed. MongoDB and Postgres integration tests were not run because those services were unavailable.

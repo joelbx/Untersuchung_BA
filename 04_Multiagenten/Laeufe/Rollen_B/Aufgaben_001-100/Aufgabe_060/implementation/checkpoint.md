@@ -1,0 +1,2 @@
+Implemented priority matching by OL key, remote IDs, then name/date; remote ID merge/conflict handling; matched-author save batching; new-author ID preservation; deterministic identifier tie break; date exemption constant and use. Added focused tests. Full add_book test suite: 155 passed; ruff check passed. Reviewing final patch.
+Final implementation includes redirect resolution for supplied OL keys and source-based suspect-date exemption. Verified add_book suite again: 155 passed; ruff check and git diff --check passed.

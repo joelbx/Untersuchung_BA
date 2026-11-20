@@ -1,0 +1,3 @@
+Updated [unarchive.py](/app/lib/ansible/modules/unarchive.py) to validate ZIP timestamps and use the 1980 ZIP epoch when a date is invalid or outside 1980–2107. Added regression tests in [test_unarchive.py](/app/test/units/modules/test_unarchive.py) covering the reported `ValueError`.
+
+Verification: compilation and `git diff --check` succeeded; all 15 unarchive unit tests passed. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

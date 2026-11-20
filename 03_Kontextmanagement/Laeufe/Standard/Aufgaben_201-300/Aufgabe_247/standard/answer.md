@@ -1,0 +1,3 @@
+`SocketPosts.getUpvoters` now checks `topics:read` for every category associated with the requested posts before returning data. A request containing any unreadable category fails with `[[error:no-privileges]]`; administrators can still fetch the list. The method returns a cutoff of 6, preserves the order of the displayed usernames, and resolves each displayed UID once.
+
+The frontend uses the server’s cutoff and enables HTML tooltips. The voting tests pass (12 passing), as do ESLint and `git diff --check`.

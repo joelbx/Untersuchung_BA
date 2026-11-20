@@ -1,0 +1,3 @@
+Fixed the password lookup in [password.py](/app/lib/ansible/plugins/lookup/password.py). It now applies inline `key=value` parameters, uses plugin options as defaults, and accepts `chars` as either a list or a comma-separated string while preserving `,,` as a literal comma.
+
+Verification: 34 unit tests passed, and the existing lookup integration playbook passed all 31 tasks, including deterministic seed checks.

@@ -1,0 +1,221 @@
+diff --git a/docs/4.4/config-reference.md b/docs/4.4/config-reference.md
+index df16d30..9f9bc07 100644
+--- a/docs/4.4/config-reference.md
++++ b/docs/4.4/config-reference.md
+@@ -319,7 +319,11 @@ proxy_service:
+     https_key_file: /var/lib/teleport/webproxy_key.pem
+     https_cert_file: /var/lib/teleport/webproxy_cert.pem
+ 
+-    # This section configures the Kubernetes proxy service
++    # Shorthand for enabling the Kubernetes proxy on this address. The port
++    # defaults to 3026 when omitted. Do not use with an enabled kubernetes block.
++    # kube_listen_addr: 0.0.0.0:3026
++
++    # This section configures the Kubernetes proxy service (legacy format).
+     kubernetes:
+         # Turns 'kubernetes' proxy on. Default is 'no'
+         enabled: yes
+diff --git a/lib/client/api.go b/lib/client/api.go
+index e1656c8..eaac417 100644
+--- a/lib/client/api.go
++++ b/lib/client/api.go
+@@ -1918,12 +1918,23 @@ func (tc *TeleportClient) applyProxySettings(proxySettings ProxySettings) error
+ 			tc.KubeProxyAddr = proxySettings.Kube.PublicAddr
+ 		// ListenAddr is the second preference.
+ 		case proxySettings.Kube.ListenAddr != "":
+-			if _, err := utils.ParseAddr(proxySettings.Kube.ListenAddr); err != nil {
++			addr, err := utils.ParseHostPortAddr(proxySettings.Kube.ListenAddr, int(defaults.KubeListenPort))
++			if err != nil {
+ 				return trace.BadParameter(
+ 					"failed to parse value received from the server: %q, contact your administrator for help",
+ 					proxySettings.Kube.ListenAddr)
+ 			}
+-			tc.KubeProxyAddr = proxySettings.Kube.ListenAddr
++			if ip := net.ParseIP(addr.Host()); ip != nil && ip.IsUnspecified() {
++				webProxyHost, _ := tc.WebProxyHostPort()
++				if proxySettings.SSH.PublicAddr != "" {
++					webAddr, err := utils.ParseAddr(proxySettings.SSH.PublicAddr)
++					if err == nil {
++						webProxyHost = webAddr.Host()
++					}
++				}
++				addr.Addr = net.JoinHostPort(webProxyHost, strconv.Itoa(addr.Port(defaults.KubeListenPort)))
++			}
++			tc.KubeProxyAddr = addr.Addr
+ 		// If neither PublicAddr nor ListenAddr are passed, use the web
+ 		// interface hostname with default k8s port as a guess.
+ 		default:
+diff --git a/lib/client/api_test.go b/lib/client/api_test.go
+index d3105cc..fca9c1e 100644
+--- a/lib/client/api_test.go
++++ b/lib/client/api_test.go
+@@ -70,6 +70,34 @@ func (s *APITestSuite) TestConfig(c *check.C) {
+ 	c.Assert(conf.SSHProxyAddr, check.Equals, "example.org:200")
+ }
+ 
++func TestKubeProxyAddressFromSettings(t *testing.T) {
++	tests := []struct {
++		name, listen, public, webPublic, want string
++	}{
++		{"wildcard ipv4", "0.0.0.0:8080", "", "", "proxy.example.com:8080"},
++		{"wildcard ipv6", "[::]:8080", "", "", "proxy.example.com:8080"},
++		{"web public", "0.0.0.0:8080", "", "public.example.com:3080", "public.example.com:8080"},
++		{"kube public", "0.0.0.0:8080", "kube.example.com:443", "public.example.com:3080", "kube.example.com:443"},
++		{"listen host", "kube.example.com:8080", "", "", "kube.example.com:8080"},
++		{"default port", "kube.example.com", "", "", "kube.example.com:3026"},
++	}
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			client := &TeleportClient{Config: Config{WebProxyAddr: "proxy.example.com:3080"}}
++			err := client.applyProxySettings(ProxySettings{
++				Kube: KubeProxySettings{Enabled: true, ListenAddr: tt.listen, PublicAddr: tt.public},
++				SSH:  SSHProxySettings{PublicAddr: tt.webPublic},
++			})
++			if err != nil {
++				t.Fatal(err)
++			}
++			if client.KubeProxyAddr != tt.want {
++				t.Fatalf("got %q, want %q", client.KubeProxyAddr, tt.want)
++			}
++		})
++	}
++}
++
+ func (s *APITestSuite) TestNew(c *check.C) {
+ 	conf := Config{
+ 		Host:      "localhost",
+diff --git a/lib/config/configuration.go b/lib/config/configuration.go
+index fe9d84a..ed34fdb 100644
+--- a/lib/config/configuration.go
++++ b/lib/config/configuration.go
+@@ -346,6 +346,9 @@ func ApplyFileConfig(fc *FileConfig, cfg *service.Config) error {
+ 			return trace.Wrap(err)
+ 		}
+ 	}
++	if cfg.Kube.Enabled && cfg.Proxy.Enabled && fc.Proxy.Kube.ListenAddress == "" && fc.Proxy.KubeListenAddr == "" {
++		log.Warn("Kubernetes service and proxy service are enabled, but proxy_service has no Kubernetes listening address (kube_listen_addr or kubernetes.listen_addr)")
++	}
+ 
+ 	return nil
+ }
+@@ -538,14 +541,27 @@ func applyProxyConfig(fc *FileConfig, cfg *service.Config) error {
+ 		cfg.Proxy.TLSCert = fc.Proxy.CertFile
+ 	}
+ 
++	// The shorthand enables the Kubernetes proxy even when the legacy block
++	// explicitly disables it. An enabled legacy block cannot be combined with it.
++	if fc.Proxy.KubeListenAddr != "" && fc.Proxy.Kube.Configured() && fc.Proxy.Kube.Enabled() {
++		return trace.BadParameter("proxy_service.kube_listen_addr conflicts with enabled proxy_service.kubernetes; configure only one Kubernetes proxy listening address")
++	}
+ 	// apply kubernetes proxy config, by default kube proxy is disabled
+ 	if fc.Proxy.Kube.Configured() {
+ 		cfg.Proxy.Kube.Enabled = fc.Proxy.Kube.Enabled()
+ 	}
++	if fc.Proxy.KubeListenAddr != "" {
++		addr, err := utils.ParseHostPortAddr(fc.Proxy.KubeListenAddr, int(defaults.KubeListenPort))
++		if err != nil {
++			return trace.BadParameter("invalid proxy_service.kube_listen_addr: %v", err)
++		}
++		cfg.Proxy.Kube.Enabled = true
++		cfg.Proxy.Kube.ListenAddr = *addr
++	}
+ 	if fc.Proxy.Kube.KubeconfigFile != "" {
+ 		cfg.Proxy.Kube.KubeconfigPath = fc.Proxy.Kube.KubeconfigFile
+ 	}
+-	if fc.Proxy.Kube.ListenAddress != "" {
++	if fc.Proxy.Kube.ListenAddress != "" && fc.Proxy.KubeListenAddr == "" {
+ 		addr, err := utils.ParseHostPortAddr(fc.Proxy.Kube.ListenAddress, int(defaults.KubeListenPort))
+ 		if err != nil {
+ 			return trace.Wrap(err)
+diff --git a/lib/config/configuration_test.go b/lib/config/configuration_test.go
+index a583a65..f5c2c70 100644
+--- a/lib/config/configuration_test.go
++++ b/lib/config/configuration_test.go
+@@ -23,6 +23,7 @@ import (
+ 	"io/ioutil"
+ 	"os"
+ 	"path/filepath"
++	"strings"
+ 	"testing"
+ 	"time"
+ 
+@@ -484,6 +485,48 @@ func (s *ConfigTestSuite) TestBackendDefaults(c *check.C) {
+ 	c.Assert(cfg.Proxy.Kube.Enabled, check.Equals, false)
+ }
+ 
++func TestProxyKubeListenAddr(t *testing.T) {
++	tests := []struct {
++		name, yaml, wantAddr   string
++		wantEnabled, wantError bool
++	}{
++		{"shorthand", "proxy_service:\n  kube_listen_addr: 0.0.0.0:8080\n", "0.0.0.0:8080", true, false},
++		{"default port", "proxy_service:\n  kube_listen_addr: kube.example.com\n", "kube.example.com:3026", true, false},
++		{"ipv6", "proxy_service:\n  kube_listen_addr: '[::]:8080'\n", "[::]:8080", true, false},
++		{"legacy", "proxy_service:\n  kubernetes:\n    enabled: yes\n    listen_addr: 0.0.0.0:8081\n", "0.0.0.0:8081", true, false},
++		{"disabled legacy", "proxy_service:\n  kube_listen_addr: 0.0.0.0:8080\n  kubernetes:\n    enabled: no\n    listen_addr: 0.0.0.0:8081\n", "0.0.0.0:8080", true, false},
++		{"conflict", "proxy_service:\n  kube_listen_addr: 0.0.0.0:8080\n  kubernetes:\n    enabled: yes\n    listen_addr: 0.0.0.0:8081\n", "", false, true},
++	}
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			fc, err := ReadConfig(bytes.NewBufferString(tt.yaml))
++			if tt.wantError && err != nil {
++				if !strings.Contains(err.Error(), "kube_listen_addr conflicts") {
++					t.Fatalf("expected conflict error, got %v", err)
++				}
++				return
++			}
++			if err != nil {
++				t.Fatal(err)
++			}
++			cfg := service.MakeDefaultConfig()
++			err = ApplyFileConfig(fc, cfg)
++			if tt.wantError {
++				if err == nil || !strings.Contains(err.Error(), "kube_listen_addr conflicts") {
++					t.Fatalf("expected conflict error, got %v", err)
++				}
++				return
++			}
++			if err != nil {
++				t.Fatal(err)
++			}
++			if cfg.Proxy.Kube.Enabled != tt.wantEnabled || cfg.Proxy.Kube.ListenAddr.Addr != tt.wantAddr {
++				t.Fatalf("got enabled=%v addr=%q, want enabled=%v addr=%q", cfg.Proxy.Kube.Enabled, cfg.Proxy.Kube.ListenAddr.Addr, tt.wantEnabled, tt.wantAddr)
++			}
++		})
++	}
++}
++
+ // TestParseKey ensures that keys are parsed correctly if they are in
+ // authorized_keys format or known_hosts format.
+ func (s *ConfigTestSuite) TestParseKey(c *check.C) {
+diff --git a/lib/config/fileconf.go b/lib/config/fileconf.go
+index ba2b6a7..2dcbecc 100644
+--- a/lib/config/fileconf.go
++++ b/lib/config/fileconf.go
+@@ -96,6 +96,7 @@ var (
+ 		"tunnel_listen_addr":      true,
+ 		"ssh_listen_addr":         true,
+ 		"listen_addr":             true,
++		"kube_listen_addr":        false,
+ 		"ca_cert_file":            false,
+ 		"https_key_file":          true,
+ 		"https_cert_file":         true,
+@@ -335,6 +336,9 @@ func (conf *FileConfig) DebugDumpToYAML() string {
+ // are supported by golang.org/x/crypto/ssh. This ensures we don't start
+ // Teleport with invalid configuration.
+ func (conf *FileConfig) Check() error {
++	if conf.Proxy.KubeListenAddr != "" && conf.Proxy.Kube.Configured() && conf.Proxy.Kube.Enabled() {
++		return trace.BadParameter("proxy_service.kube_listen_addr conflicts with enabled proxy_service.kubernetes; configure only one Kubernetes proxy listening address")
++	}
+ 	var sc ssh.Config
+ 	sc.SetDefaults()
+ 
+@@ -796,6 +800,8 @@ func (b *BPF) Parse() *bpf.Config {
+ type Proxy struct {
+ 	// Service is a generic service configuration section
+ 	Service `yaml:",inline"`
++	// KubeListenAddr enables the Kubernetes proxy on this address.
++	KubeListenAddr string `yaml:"kube_listen_addr,omitempty"`
+ 	// WebAddr is a web UI listen address
+ 	WebAddr string `yaml:"web_listen_addr,omitempty"`
+ 	// TunAddr is a reverse tunnel address

@@ -1,0 +1,1 @@
+Implemented centralized calendar URL limit, single warning priority, trimmed input and submit guard; centralized ResizeObserver mocks in Jest setup. Tests passed: calendar 2 suites/6 tests, components 1/1, mail 1/12. git diff --check passed.

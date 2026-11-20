@@ -1,0 +1,3 @@
+Updated [_parse_clixml](/app/lib/ansible/plugins/shell/powershell.py:32) to decode UTF-16 escape tokens, combine surrogate pairs, preserve lone surrogates and control characters, and join matching stream text with CRLF only between nonempty `<Objs>` blocks. Expanded the [PowerShell shell tests](/app/test/units/plugins/shell/test_powershell.py:6) for those cases.
+
+Verification: all 10 relevant tests pass; `git diff --check` passes.

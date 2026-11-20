@@ -1,0 +1,5 @@
+I traced the failure to [Modal.tsx](/app/packages/components/components/modalTwo/Modal.tsx:148): `ModalTwo` renders `<dialog>` directly, without an `open` attribute or a call to `showModal()`. In the repository’s JSDOM, its child button is present in the DOM but `queryByRole('button')` cannot find it until `open` is set. JSDOM also exposes `HTMLDialogElement` while lacking `showModal` and `close`, so checking for the constructor alone would miss this case.
+
+The likely fix is a ref-forwarding `Dialog` abstraction used by `ModalTwo`, with a substitutable host for limited DOM environments. It must preserve props, children, and the host ref used by the focus trap and hotkeys. The existing [tests](/app/packages/components/components/modalTwo/ModalTwo.test.tsx) use test-ID queries, so they do not cover role visibility. A wrapper that still renders a closed native dialog would leave the reported failure unresolved.
+
+I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). No project source or tests were changed because this run was restricted to fault localization.

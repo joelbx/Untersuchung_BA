@@ -1,0 +1,3 @@
+Updated [make_work](/app/openlibrary/plugins/upstream/addbook.py:69) so missing author fields produce an empty authors list and a valid `web.Storage` result. It now preserves supplied fields, including `cover_url`, and supplies the requested metadata defaults. The nested `make_author` has the requested types and returns the object created by `site.new`.
+
+Added regression coverage in [test_addbook.py](/app/openlibrary/plugins/upstream/tests/test_addbook.py:12). All 15 addbook tests pass, and `git diff --check` passes.

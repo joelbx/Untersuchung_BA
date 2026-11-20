@@ -1,0 +1,5 @@
+VERDICT: FIX
+CODE_DEFECT: fileSaver.ts:18-23 selects `sw` from static capability for large/unknown sizes, but fileSaver.ts:35-40 and :55-58 fall back to memory when service-worker registration fails. useDownloadMetrics.ts:85-90 therefore labels actual fallback downloads `sw`. Correct by passing the effective saver mechanism into metrics (or making selection reflect the fallback state).
+CODE_DEFECT: useDownloadProvider.tsx:94-102 marks the prebuffered path Done immediately after starting saveAsFile; a rejected save still increments the new success counter through observe. Await save and set Done/Error from the result.
+TEST_ENVIRONMENT_PROBLEM: none. Executed: yarn workspace proton-drive test:ci src/app/store/_downloads/DownloadProvider/useDownloadMetrics.test.ts src/app/store/_downloads/fileSaver/fileSaver.test.ts. Result: exit 0; 2 suites passed, 21 tests passed, 0 snapshots. Existing tests do not cover either identified case.
+No project code or tests changed during independent review.

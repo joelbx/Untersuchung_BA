@@ -1,0 +1,3 @@
+Updated the composer so replaced-room notices use paragraphs that clearly state the room is inactive. Added a reusable, accessible `CancelButton`, applied it to reply, search, and link previews, and made the reply preview name the sender.
+
+The relevant tests pass: 3 suites, 8 tests. ESLint and Stylelint pass. The full TypeScript check still reports existing errors in the Matrix SDK and room settings files; none are in the changed components.

@@ -1,0 +1,1 @@
+Correction complete. Cached products now enter the import batch when stage_import is requested; duplicate queued identifiers merge staging and upgrade priority under the PriorityQueue lock, with heap order restored. Added focused tests for both reviewer findings. `pytest -q scripts/tests/test_affiliate_server.py`: 20 passed. `git diff --check`: passed.

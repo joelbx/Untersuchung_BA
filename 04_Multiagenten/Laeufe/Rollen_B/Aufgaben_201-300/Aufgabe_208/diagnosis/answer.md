@@ -1,0 +1,5 @@
+The fault is concentrated in [src/user/email.js](/app/src/user/email.js:47). The per-user pending marker expires after `emailConfirmInterval` minutes, while the confirmation record expires after a hard-coded day. That lets an old link remain valid after pending state disappears. The email-specific pending check can also return `null` instead of a strict `false`.
+
+The fix should add `getValidationExpiry(uid)` using the store’s live millisecond TTL, add `canSendValidation(uid, email)` with an awaited pending check and the specified `ttlMs + intervalMs < expiryMs` rule, and make explicit expiry clear both keys. `sendValidationEmail` should use the configured expiry in days for the confirmation lifetime.
+
+Existing tests cover sending and confirmation, but not TTL bounds or resend timing. **Uncertainty:** `emailConfirmExpiry` is absent from the current defaults and settings template, so its configuration source needs to be established. I made no project source or test changes because this role is restricted to fault localization.

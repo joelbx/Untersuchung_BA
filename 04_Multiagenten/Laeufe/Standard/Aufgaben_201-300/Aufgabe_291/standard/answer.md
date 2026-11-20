@@ -1,0 +1,3 @@
+Resolved NVD CVSS v4.0 ingestion. [NVD conversion](/app/models/utils.go) now stores each metric’s score, vector, and severity under its source, and [score aggregation](/app/models/vulninfos.go) returns available v4.0 entries in `[Mitre, Nvd]` order. The three `CveContent` fields already existed. I updated [go.mod](/app/go.mod) to a locally cached dependency version that exposes `Nvd.Cvss40`.
+
+Added conversion and aggregation coverage. The model, detector, and reporter tests passed with network access disabled; `git diff --check` passed.

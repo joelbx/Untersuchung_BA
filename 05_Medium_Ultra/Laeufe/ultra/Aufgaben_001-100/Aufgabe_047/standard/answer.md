@@ -1,0 +1,3 @@
+Implemented per-identifier seeding in [hasher.go](/app/utils/hasher/hasher.go). Both `SetSeed` APIs now accept a string seed; hashing repeats for the same seed and input, reseeding changes the result, and restoring a seed restores the original result. Unseeded identifiers initialize automatically.
+
+A native subagent reviewed callers and added the focused tests in [hasher_test.go](/app/utils/hasher/hasher_test.go); I integrated the implementation and verified it. `go test ./utils/hasher ./db ./persistence` and `git diff --check` passed.

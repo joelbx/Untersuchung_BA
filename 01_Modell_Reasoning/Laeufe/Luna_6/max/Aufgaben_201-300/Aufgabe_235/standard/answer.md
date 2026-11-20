@@ -1,0 +1,3 @@
+Implemented alternate-script author parsing in [parse.py](/app/openlibrary/catalog/marc/parse.py). Author names from `100`, `700`, and `720` now use `name_from_list`; linked `880` names are collected into deduplicated `alternate_names`, and trailing periods are removed from parsed dates. Organization and event parsing remains unchanged.
+
+Updated the affected MARC expectations. Verification passed: `pytest -q openlibrary/catalog/marc/tests` — 120 tests. `git diff --check` also passed.

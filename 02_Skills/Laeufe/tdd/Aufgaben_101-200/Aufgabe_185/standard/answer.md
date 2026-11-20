@@ -1,0 +1,3 @@
+Fixed the cancellation expiry date. The [expiry utility](/app/packages/components/containers/payments/subscription/helpers/payment.ts) now uses the active term when cancellation is in progress or auto-renew is disabled. The cancellation screens use that date, so a scheduled future plan no longer changes the displayed end-of-service date.
+
+Regression tests passed. The component package type check passed, and the full test run passed: 160 suites and 1,155 tests, with 2 suites and 27 tests skipped by the repository.

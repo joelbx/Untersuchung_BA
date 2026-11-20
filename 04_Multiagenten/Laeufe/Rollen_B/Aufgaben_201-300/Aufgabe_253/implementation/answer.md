@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py) to stream both stdout and stderr while the process runs, suppress empty updates, and publish nonempty final reports in stdout-then-stderr order. Stderr reports use error severity.
+
+Updated [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py) to cover live stderr, final ordering, and empty reads. All 42 tests in that file pass; `git diff --check` passes.

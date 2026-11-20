@@ -1,0 +1,2 @@
+Task: Improve GUIProcess completion messages and SIGTERM handling.
+Status: Updated ProcessOutcome and GUIProcess messages, including SIGTERM classification and per-process PID. Updated existing unit expectations and added regression coverage for a different last_pid and SIGTERM. Python compilation and git diff --check pass. The relevant pytest module cannot start because PyQt5 is not installed in this environment (ModuleNotFoundError from qutebrowser/qt/core.py).

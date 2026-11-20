@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) to merge CLI and config features with QtWebEngine’s required features into one `--enable-features=` argument. QtWebKit arguments remain unchanged. Added regression tests in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+Verification: 80 Qt-args tests passed with the existing `test_new_chromium` test excluded. That test exited without a pytest summary. The full suite was interrupted after repeated end-to-end setup errors because the installed PyQt5 cannot import QtWebKit; its overall result is unknown. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

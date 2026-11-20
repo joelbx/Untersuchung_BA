@@ -1,0 +1,3 @@
+Added `ImportItem.find_staged_or_pending` in [imports.py](/app/openlibrary/core/imports.py). It builds `{source}:{identifier}` IDs using the fixed `amazon` and `idb` source tuple, then returns matching staged or pending import rows. [Edition.from_isbn](/app/openlibrary/core/models.py) now uses that lookup with both ISBN forms.
+
+Added tests for the lookup and ISBN import path. All 17 relevant tests passed; lint and diff checks passed.

@@ -1,0 +1,3 @@
+Updated the [password lookup plugin](/app/lib/ansible/plugins/lookup/password.py:285) to parse inline `key=value` parameters through `LookupModule`, use plugin options as defaults, and accept `chars` as either a comma-separated string or a list. Repeated lookups with the same inline seed produced the same password.
+
+The [lookup unit tests](/app/test/units/plugins/lookup/test_password.py:211) pass: **38 passed**. Repository-wide pytest timed out at about 18% and had reported failures outside the lookup suite; a separate first-error run stopped because `ansible_test._internal` was unavailable on its Python path.

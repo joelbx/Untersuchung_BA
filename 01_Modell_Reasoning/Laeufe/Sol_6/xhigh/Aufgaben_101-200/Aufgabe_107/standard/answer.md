@@ -1,0 +1,3 @@
+Updated optimistic mark-as handling so the reducer removes an element’s ID from `bypassFilter` when its new status matches the active Read or Unread filter. The dispatch now passes `markAsStatus`, and the new helper determines which IDs to add or remove.
+
+Focused reducer tests cover both filters and conversation mode. All 8 relevant Jest tests, targeted ESLint, Prettier, the mail TypeScript check, and `git diff --check` passed.

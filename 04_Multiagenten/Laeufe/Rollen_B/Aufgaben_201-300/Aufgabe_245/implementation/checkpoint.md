@@ -1,0 +1,1 @@
+Implementer progress: focused offline tests passed (Test_detectScanDest and Test_updatePortStatus); git diff --check passed. Patch updates detectScanDest and execPortsScan and extends destination coverage.

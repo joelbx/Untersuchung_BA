@@ -1,0 +1,3 @@
+NVD CVSS v4.0 metrics now populate source-specific `CveContent` entries and appear in `Cvss40Scores()` after MITRE entries. The required fields already existed in the model; I updated the cached `go-cve-dictionary` dependency so [NVD conversion](/app/models/utils.go:122) can read them.
+
+Added [conversion tests](/app/models/utils_test.go:11) and [aggregation tests](/app/models/vulninfos_test.go:1907). The full `models` and `detector` test suites passed offline, and `git diff --check` passed.

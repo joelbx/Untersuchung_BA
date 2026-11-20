@@ -1,0 +1,185 @@
+diff --git a/internal/ext/encoding.go b/internal/ext/encoding.go
+index 12d4fbc..0a25742 100644
+--- a/internal/ext/encoding.go
++++ b/internal/ext/encoding.go
+@@ -1,10 +1,12 @@
+ package ext
+ 
+ import (
++	"bufio"
+ 	"encoding/json"
+ 	"io"
+ 
+-	"gopkg.in/yaml.v2"
++	yamlv2 "gopkg.in/yaml.v2"
++	yamlv3 "gopkg.in/yaml.v3"
+ )
+ 
+ type Encoding string
+@@ -18,7 +20,7 @@ const (
+ func (e Encoding) NewEncoder(w io.Writer) EncodeCloser {
+ 	switch e {
+ 	case EncodingYML, EncodingYAML:
+-		return yaml.NewEncoder(w)
++		return yamlv2.NewEncoder(w)
+ 	case EncodingJSON:
+ 		return NopCloseEncoder{json.NewEncoder(w)}
+ 	}
+@@ -44,9 +46,15 @@ func (n NopCloseEncoder) Close() error { return nil }
+ func (e Encoding) NewDecoder(r io.Reader) Decoder {
+ 	switch e {
+ 	case EncodingYML, EncodingYAML:
+-		return yaml.NewDecoder(r)
++		return yamlv3.NewDecoder(r)
+ 	case EncodingJSON:
+-		return json.NewDecoder(r)
++		br := bufio.NewReader(r)
++		if first, err := br.Peek(1); err == nil && first[0] == '#' {
++			// JSON exports may have a single header line. Leave any later
++			// lines untouched so malformed JSON still fails to decode.
++			_, _ = br.ReadBytes('\n')
++		}
++		return json.NewDecoder(br)
+ 	}
+ 
+ 	return nil
+diff --git a/internal/ext/import_metadata_test.go b/internal/ext/import_metadata_test.go
+new file mode 100644
+index 0000000..3bd01a2
+--- /dev/null
++++ b/internal/ext/import_metadata_test.go
+@@ -0,0 +1,92 @@
++package ext
++
++import (
++	"context"
++	"encoding/json"
++	"strings"
++	"testing"
++
++	"github.com/stretchr/testify/require"
++	"go.flipt.io/flipt/rpc/flipt"
++	"google.golang.org/grpc/codes"
++	"google.golang.org/grpc/status"
++)
++
++func TestImportNestedMetadata(t *testing.T) {
++	tests := []struct {
++		name     string
++		encoding Encoding
++		input    string
++	}{
++		{
++			name:     "YAML",
++			encoding: EncodingYAML,
++			input: `# export header
++version: "1.4"
++namespace:
++  key: projects
++  name: Projects
++  description: Project flags
++flags:
++  - key: active
++    name: Active
++    enabled: true
++    metadata:
++      owner: team
++      settings:
++        regions: [us, eu]
++        options:
++          live: true
++          count: 2
++    variants:
++      - key: first
++        attachment:
++          nested:
++            items: [{name: example}]
++`,
++		},
++		{
++			name:     "JSON",
++			encoding: EncodingJSON,
++			input:    `{"version":"1.4","namespace":{"key":"projects","name":"Projects","description":"Project flags"},"flags":[{"key":"active","name":"Active","enabled":true,"metadata":{"owner":"team","settings":{"regions":["us","eu"],"options":{"live":true,"count":2}}},"variants":[{"key":"first","attachment":{"nested":{"items":[{"name":"example"}]}}}]}]}`,
++		},
++		{
++			name:     "JSON with header",
++			encoding: EncodingJSON,
++			input:    "# export header\n" + `{"version":"1.4","namespace":{"key":"projects","name":"Projects","description":"Project flags"},"flags":[{"key":"active","name":"Active","enabled":true,"metadata":{"owner":"team","settings":{"regions":["us","eu"],"options":{"live":true,"count":2}}},"variants":[{"key":"first","attachment":{"nested":{"items":[{"name":"example"}]}}}]}]}`,
++		},
++	}
++
++	for _, tc := range tests {
++		t.Run(tc.name, func(t *testing.T) {
++			creator := &mockCreator{getNSErr: status.Error(codes.NotFound, "missing")}
++			err := NewImporter(creator).Import(context.Background(), tc.encoding, strings.NewReader(tc.input), false)
++			require.NoError(t, err)
++			require.Equal(t, []*flipt.CreateNamespaceRequest{{Key: "projects", Name: "Projects", Description: "Project flags"}}, creator.createNSReqs)
++			require.Len(t, creator.createflagReqs, 1)
++			require.Equal(t, "projects", creator.createflagReqs[0].NamespaceKey)
++			require.Equal(t, map[string]any{
++				"owner": "team",
++				"settings": map[string]any{
++					"regions": []any{"us", "eu"},
++					"options": map[string]any{"live": true, "count": float64(2)},
++				},
++			}, creator.createflagReqs[0].Metadata.AsMap())
++			require.Len(t, creator.variantReqs, 1)
++			require.Equal(t, "projects", creator.variantReqs[0].NamespaceKey)
++			var attachment any
++			require.NoError(t, json.Unmarshal([]byte(creator.variantReqs[0].Attachment), &attachment))
++			require.Equal(t, map[string]any{"nested": map[string]any{"items": []any{map[string]any{"name": "example"}}}}, attachment)
++		})
++	}
++}
++
++func TestImportJSONSkipsOnlyFirstHeaderLine(t *testing.T) {
++	for _, input := range []string{
++		"# first\n# second\n{}",
++		" \n# later\n{}",
++	} {
++		err := NewImporter(&mockCreator{}).Import(context.Background(), EncodingJSON, strings.NewReader(input), false)
++		require.Error(t, err)
++	}
++}
+diff --git a/internal/ext/importer.go b/internal/ext/importer.go
+index 673e28f..3ba139c 100644
+--- a/internal/ext/importer.go
++++ b/internal/ext/importer.go
+@@ -196,8 +196,7 @@ func (i *Importer) Import(ctx context.Context, enc Encoding, r io.Reader, skipEx
+ 				var out []byte
+ 
+ 				if v.Attachment != nil {
+-					converted := convert(v.Attachment)
+-					out, err = json.Marshal(converted)
++					out, err = json.Marshal(v.Attachment)
+ 					if err != nil {
+ 						return fmt.Errorf("marshalling attachment: %w", err)
+ 					}
+@@ -419,27 +418,6 @@ func (i *Importer) Import(ctx context.Context, enc Encoding, r io.Reader, skipEx
+ 	return nil
+ }
+ 
+-// convert converts each encountered map[interface{}]interface{} to a map[string]interface{} value.
+-// This is necessary because the json library does not support map[interface{}]interface{} values which nested
+-// maps get unmarshalled into from the yaml library.
+-func convert(i interface{}) interface{} {
+-	switch x := i.(type) {
+-	case map[interface{}]interface{}:
+-		m := map[string]interface{}{}
+-		for k, v := range x {
+-			if sk, ok := k.(string); ok {
+-				m[sk] = convert(v)
+-			}
+-		}
+-		return m
+-	case []interface{}:
+-		for i, v := range x {
+-			x[i] = convert(v)
+-		}
+-	}
+-	return i
+-}
+-
+ func ensureFieldSupported(field string, expected, have semver.Version) error {
+ 	if have.LT(expected) {
+ 		return fmt.Errorf("%s is supported in version >=%s, found %s",

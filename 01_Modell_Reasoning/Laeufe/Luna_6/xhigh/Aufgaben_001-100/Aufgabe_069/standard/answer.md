@@ -1,0 +1,3 @@
+Implemented matcher parsing in [parse.go](/app/lib/utils/parse/parse.go:165): literal and wildcard patterns, anchored raw regexes, `regexp.match`, `regexp.not_match`, `email.local`, and static prefixes and suffixes. `Variable()` now rejects regexp matcher calls with the requested error.
+
+`go test ./lib/utils/parse` and `git diff --check` passed. The checked-out `parse_test.go` contains no matcher-specific tests.

@@ -1,0 +1,184 @@
+diff --git a/src/database/bulk-increments.js b/src/database/bulk-increments.js
+new file mode 100644
+index 0000000..cea7f56
+--- /dev/null
++++ b/src/database/bulk-increments.js
+@@ -0,0 +1,36 @@
++'use strict';
++
++module.exports = function (data, fieldToString = String) {
++	if (!Array.isArray(data)) {
++		throw new TypeError('Bulk increments must be an array of [key, increments] tuples');
++	}
++	const byKey = new Map();
++	data.forEach((item) => {
++		if (!Array.isArray(item) || item.length !== 2 || typeof item[0] !== 'string' || !item[0] ||
++			!item[1] || typeof item[1] !== 'object' || Array.isArray(item[1]) ||
++			(Object.getPrototypeOf(item[1]) !== Object.prototype && Object.getPrototypeOf(item[1]) !== null)) {
++			throw new TypeError('Bulk increments must be [key, increments] tuples');
++		}
++		const [key, increments] = item;
++		if (!byKey.has(key)) {
++			byKey.set(key, {});
++		}
++		const fields = byKey.get(key);
++		Object.entries(increments).forEach(([field, value]) => {
++			const normalized = fieldToString(field);
++			if (typeof normalized !== 'string' || !normalized ||
++				['__proto__', 'constructor', 'prototype'].includes(normalized) || /[.$]/.test(field) || /[.$]/.test(normalized)) {
++				throw new TypeError(`Invalid increment field: ${field}`);
++			}
++			if (!Number.isSafeInteger(value)) {
++				throw new TypeError(`Increment for ${field} must be a safe integer`);
++			}
++			const total = (fields[normalized] || 0) + value;
++			if (!Number.isSafeInteger(total)) {
++				throw new TypeError(`Combined increment for ${field} must be a safe integer`);
++			}
++			fields[normalized] = total;
++		});
++	});
++	return [...byKey].filter(([, fields]) => Object.keys(fields).length);
++};
+diff --git a/src/database/mongo/hash.js b/src/database/mongo/hash.js
+index 732a3e2..a616fec 100644
+--- a/src/database/mongo/hash.js
++++ b/src/database/mongo/hash.js
+@@ -2,6 +2,7 @@
+ 
+ module.exports = function (module) {
+ 	const helpers = require('./helpers');
++	const prepareBulkIncrements = require('../bulk-increments');
+ 
+ 	const cache = require('../cache').create('mongo');
+ 
+@@ -261,4 +262,30 @@ module.exports = function (module) {
+ 			throw err;
+ 		}
+ 	};
++
++	module.incrObjectFieldByBulk = async function (data) {
++		const updates = prepareBulkIncrements(data, helpers.fieldToString);
++		if (!updates.length) {
++			return;
++		}
++		const operations = updates.map(([key, increments]) => ({
++			updateOne: {
++				filter: { _key: key },
++				update: { $inc: increments },
++				upsert: true,
++			},
++		}));
++		try {
++			await module.client.collection('objects').bulkWrite(operations, { ordered: false });
++			cache.del(updates.map(([key]) => key));
++		} catch (err) {
++			// Unordered writes can succeed for other keys even when one update fails.
++			const writeErrors = err.writeErrors || (err.result && err.result.writeErrors);
++			if (Array.isArray(writeErrors)) {
++				const failed = new Set(writeErrors.map(error => error.index));
++				cache.del(updates.filter((item, index) => !failed.has(index)).map(([key]) => key));
++			}
++			throw err;
++		}
++	};
+ };
+diff --git a/src/database/redis/hash.js b/src/database/redis/hash.js
+index 1afdccd..f3ea1da 100644
+--- a/src/database/redis/hash.js
++++ b/src/database/redis/hash.js
+@@ -2,6 +2,26 @@
+ 
+ module.exports = function (module) {
+ 	const helpers = require('./helpers');
++	const prepareBulkIncrements = require('../bulk-increments');
++	const bulkIncrementScript = `
++		for i = 1, #ARGV, 2 do
++			local value = redis.call('HGET', KEYS[1], ARGV[i])
++			if value and not string.match(value, '^%-?%d+$') then
++				return redis.error_reply('Field is not an integer: ' .. ARGV[i])
++			end
++			if value then
++				local current = tonumber(value)
++				local increment = tonumber(ARGV[i + 1])
++				if not current or not increment or math.abs(current + increment) > 9007199254740991 then
++					return redis.error_reply('Increment result is out of range: ' .. ARGV[i])
++				end
++			end
++		end
++		for i = 1, #ARGV, 2 do
++			redis.call('HINCRBY', KEYS[1], ARGV[i], ARGV[i + 1])
++		end
++		return 1
++	`;
+ 
+ 	const cache = require('../cache').create('redis');
+ 
+@@ -219,4 +239,22 @@ module.exports = function (module) {
+ 		cache.del(key);
+ 		return Array.isArray(result) ? result.map(value => parseInt(value, 10)) : parseInt(result, 10);
+ 	};
++
++	module.incrObjectFieldByBulk = async function (data) {
++		const updates = prepareBulkIncrements(data);
++		if (!updates.length) {
++			return;
++		}
++		const batch = module.client.batch();
++		updates.forEach(([key, increments]) => {
++			const args = Object.entries(increments).flatMap(([field, value]) => [field, String(value)]);
++			batch.eval(bulkIncrementScript, 1, key, ...args);
++		});
++		const results = await batch.exec();
++		cache.del(updates.filter((item, index) => !results[index][0]).map(([key]) => key));
++		const failure = results.find(([err]) => err);
++		if (failure) {
++			throw failure[0];
++		}
++	};
+ };
+diff --git a/test/database/hash.js b/test/database/hash.js
+index 294e9f7..204c6ce 100644
+--- a/test/database/hash.js
++++ b/test/database/hash.js
+@@ -119,6 +119,40 @@ describe('Hash methods', () => {
+ 		});
+ 	});
+ 
++	describe('incrObjectFieldByBulk()', () => {
++		it('increments several fields and creates missing objects and fields', async () => {
++			await db.setObject('bulkIncrementExisting', { age: 12 });
++			await db.getObject('bulkIncrementExisting'); // populate the object cache
++			const result = await db.incrObjectFieldByBulk([
++				['bulkIncrementExisting', { age: 5, newField: 10 }],
++				['bulkIncrementMissing', { count: -2 }],
++			]);
++			assert.strictEqual(result, undefined);
++			const objects = await db.getObjects(['bulkIncrementExisting', 'bulkIncrementMissing']);
++			assert.strictEqual(Number(objects[0].age), 17);
++			assert.strictEqual(Number(objects[0].newField), 10);
++			assert.strictEqual(Number(objects[1].count), -2);
++		});
++
++		it('does not partially update an object with a nonnumeric field', async () => {
++			await db.setObject('bulkIncrementBad', { count: 1, invalid: 'text' });
++			await assert.rejects(db.incrObjectFieldByBulk([
++				['bulkIncrementBad', { count: 2, invalid: 3 }],
++				['bulkIncrementGood', { count: 4 }],
++			]));
++			assert.strictEqual(Number(await db.getObjectField('bulkIncrementBad', 'count')), 1);
++			assert.strictEqual(await db.getObjectField('bulkIncrementBad', 'invalid'), 'text');
++			assert.strictEqual(Number(await db.getObjectField('bulkIncrementGood', 'count')), 4);
++		});
++
++		it('rejects malformed input and unsafe increments', async () => {
++			await Promise.all([null, {}, [['key']], [['key', []]], [['key', { count: 1.5 }]],
++				[['key', { count: Number.MAX_SAFE_INTEGER + 1 }]], [['key', { 'a.b': 1 }]],
++				[['key', { constructor: 1 }]]].map(data => assert.rejects(db.incrObjectFieldByBulk(data))));
++			assert.strictEqual(await db.incrObjectFieldByBulk([]), undefined);
++		});
++	});
++
+ 	describe('setObjectField()', () => {
+ 		it('should create a new object with field', (done) => {
+ 			db.setObjectField('testObject2', 'name', 'ginger', function (err) {

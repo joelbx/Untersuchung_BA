@@ -1,0 +1,3 @@
+Fixed RPM parsing in [redhatbase.go](/app/scanner/redhatbase.go:504). Empty releases now stay in the correct field for installed and repoquery output, source versions omit a trailing release suffix when it is empty, `splitFileName` accepts the specified `-src.rpm` forms while rejecting malformed filenames, and update listings retain the correct version, release, epoch, and repository values. The parser also continues to accept tab-separated `rpm -qf` output.
+
+Three subagents handled source filename parsing, update parsing, and regression tests; I integrated and reviewed their changes. The full scanner suite passed with `GOMAXPROCS=2 GOPROXY=off GOSUMDB=off go test -p 1 -vet=off ./scanner -count=1`, and `git diff --check` passed.

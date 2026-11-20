@@ -1,0 +1,7 @@
+**Diagnosis:** [`DataLoader.load_from_file`](/app/lib/ansible/parsing/dataloader.py:80) treats `cache` as a boolean and unconditionally writes parsed data to `_FILE_CACHE`. As a result, `cache='none'` is truthy and caches the file. With the existing vault fixture, two `cache='none'` calls made only one file read and left one cache entry.
+
+The performance path is [`VariableManager`’s `vars_files` load](/app/lib/ansible/vars/manager.py:356), which passes `cache=False`: it rereads and decrypts the file on every call. The fix should make `'none'` bypass cache reads and writes, and make `'vaulted'` cache parsed vaulted files so repeated calls avoid another read and decryption. [`host_group_vars`](/app/lib/ansible/plugins/vars/host_group_vars.py:76) still passes `cache=True`, so its intended behavior needs to be accounted for.
+
+Existing [loader tests](/app/test/units/parsing/test_dataloader.py:213) cover vault parsing but not cache contents or repeated reads. The treatment of legacy boolean callers and cache entries shared across differing `json_only` values remains to be decided.
+
+I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). No project source or tests were changed; this run was limited to fault localization.

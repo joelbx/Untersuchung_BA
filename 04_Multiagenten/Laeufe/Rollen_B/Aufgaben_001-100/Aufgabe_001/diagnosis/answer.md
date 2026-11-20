@@ -1,0 +1,5 @@
+The fault is in [config/syslogconf.go](/app/config/syslogconf.go:13): `SyslogConf` and `Validate()` live in `config`, and `config/syslog` does not exist. [config/config.go](/app/config/config.go:53) stores that type and calls its validator; [reporter/syslog.go](/app/reporter/syslog.go:18) also depends on its severity and facility methods.
+
+The fix needs a public `config/syslog.Conf` with the specified fields and `Validate()`, while preserving enabled-only validation and one error per invalid protocol, port, severity, or facility. Windows needs the specified enabled-only rejection. Existing Linux tests pass (`TestSyslogConfValidate`); dedicated-package and Windows behavior are not covered by those tests.
+
+I recorded the diagnosis in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were not edited because this assignment restricts my role to fault localization.

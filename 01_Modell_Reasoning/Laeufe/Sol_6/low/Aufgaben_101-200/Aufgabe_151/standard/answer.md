@@ -1,0 +1,3 @@
+Added the file picker workaround in [webview.py](/app/qutebrowser/browser/webengine/webview.py). For runtime Qt versions 6.2.3 through 6.6.x, it resolves missing suffixes from specific MIME types and wildcards, then adds them to the accepted types passed to Qt. Existing suffixes are not added again.
+
+Added version and MIME mapping coverage in [test_webview.py](/app/tests/unit/browser/webengine/test_webview.py). The relevant test file passes: **11 tests passed**.

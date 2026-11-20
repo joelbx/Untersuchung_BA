@@ -1,0 +1,3 @@
+Updated the Solr work builder so a public IA edition takes priority for `lending_edition_s`, with a matching `lending_identifier_s`. Editions in `lendinglibrary` are now classified as borrowable. The expanded multi-edition test checks the availability flags, all IA IDs, the collection union, and multiple print-disabled edition IDs.
+
+The Solr test file passed (57 tests). The broader Python run passed 920 tests when one unrelated test file was excluded; that file fails during collection because its schema request receives a proxy 403. The exact error is recorded in the checkpoint.

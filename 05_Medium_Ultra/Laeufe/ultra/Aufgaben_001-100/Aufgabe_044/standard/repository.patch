@@ -1,0 +1,885 @@
+diff --git a/internal/server/authz/authz.go b/internal/server/authz/authz.go
+index 54de449..850d396 100644
+--- a/internal/server/authz/authz.go
++++ b/internal/server/authz/authz.go
+@@ -2,7 +2,14 @@ package authz
+ 
+ import "context"
+ 
++type contextKey string
++
++// NamespacesKey stores the namespaces visible to the authenticated requester.
++// A present, empty []string means the requester cannot view any namespaces.
++const NamespacesKey contextKey = "namespaces"
++
+ type Verifier interface {
+ 	IsAllowed(ctx context.Context, input map[string]any) (bool, error)
++	Namespaces(ctx context.Context, input map[string]any) ([]string, error)
+ 	Shutdown(ctx context.Context) error
+ }
+diff --git a/internal/server/authz/engine/bundle/engine.go b/internal/server/authz/engine/bundle/engine.go
+index 4e3de04..918dfbb 100644
+--- a/internal/server/authz/engine/bundle/engine.go
++++ b/internal/server/authz/engine/bundle/engine.go
+@@ -2,6 +2,7 @@ package bundle
+ 
+ import (
+ 	"context"
++	"fmt"
+ 	"os"
+ 	"strings"
+ 
+@@ -84,6 +85,44 @@ func (e *Engine) IsAllowed(ctx context.Context, input map[string]interface{}) (b
+ 	return allow, nil
+ }
+ 
++func (e *Engine) Namespaces(ctx context.Context, input map[string]interface{}) ([]string, error) {
++	e.logger.Debug("evaluating viewable namespaces", zap.Any("input", input))
++	dec, err := e.opa.Decision(ctx, sdk.DecisionOptions{
++		Path:  "flipt/authz/v1/viewable_namespaces",
++		Input: input,
++	})
++	if err != nil {
++		return nil, err
++	}
++	if dec.Result == nil {
++		return nil, fmt.Errorf("viewable namespaces decision is undefined")
++	}
++
++	return formatNamespaces(dec.Result)
++}
++
++func formatNamespaces(result any) ([]string, error) {
++	if namespaces, ok := result.([]string); ok {
++		return namespaces, nil
++	}
++
++	values, ok := result.([]any)
++	if !ok {
++		return nil, fmt.Errorf("viewable namespaces decision must be a list of strings, got %T", result)
++	}
++
++	namespaces := make([]string, 0, len(values))
++	for _, value := range values {
++		namespace, ok := value.(string)
++		if !ok {
++			return nil, fmt.Errorf("viewable namespaces decision contains %T instead of a string", value)
++		}
++		namespaces = append(namespaces, namespace)
++	}
++
++	return namespaces, nil
++}
++
+ func (e *Engine) Shutdown(ctx context.Context) error {
+ 	e.opa.Stop(ctx)
+ 	for _, cleanup := range e.cleanupFuncs {
+diff --git a/internal/server/authz/engine/bundle/namespaces_test.go b/internal/server/authz/engine/bundle/namespaces_test.go
+new file mode 100644
+index 0000000..9af56e3
+--- /dev/null
++++ b/internal/server/authz/engine/bundle/namespaces_test.go
+@@ -0,0 +1,116 @@
++package bundle
++
++import (
++	"context"
++	"fmt"
++	"strings"
++	"testing"
++
++	"github.com/open-policy-agent/contrib/logging/plugins/ozap"
++	"github.com/open-policy-agent/opa/sdk"
++	sdktest "github.com/open-policy-agent/opa/sdk/test"
++	"github.com/open-policy-agent/opa/storage/inmem"
++	"github.com/stretchr/testify/require"
++	"go.uber.org/zap"
++	"go.uber.org/zap/zaptest"
++)
++
++const namespacesPolicy = `package flipt.authz.v1
++import rego.v1
++
++default allow := false
++default dev_namespaces := []
++default ops_namespaces := []
++
++has_role(role) if {
++    some assigned in split(input.authentication.metadata["io.flipt.auth.role"], ",")
++    assigned == role
++}
++
++dev_namespaces := ["local", "staging"] if { has_role("devs") }
++ops_namespaces := ["production"] if { has_role("ops") }
++viewable_namespaces := array.concat(dev_namespaces, ops_namespaces)
++`
++
++func testEngineWithPolicy(t *testing.T, policy string) *Engine {
++	t.Helper()
++	ctx := context.Background()
++	server := sdktest.MustNewServer(sdktest.MockBundle("/bundles/bundle.tar.gz", map[string]string{
++		"main.rego": policy,
++	}))
++	t.Cleanup(server.Stop)
++
++	config := fmt.Sprintf(`{
++		"services": {"test": {"url": %q}},
++		"bundles": {"test": {"resource": "/bundles/bundle.tar.gz"}}
++	}`, server.URL())
++	logger := zaptest.NewLogger(t)
++	level := zap.NewAtomicLevelAt(logger.Level())
++	opa, err := sdk.New(ctx, sdk.Options{
++		Config: strings.NewReader(config),
++		Store:  inmem.New(),
++		Logger: ozap.Wrap(logger, &level),
++	})
++	require.NoError(t, err)
++
++	engine := &Engine{opa: opa, logger: logger}
++	t.Cleanup(func() { require.NoError(t, engine.Shutdown(ctx)) })
++	return engine
++}
++
++func TestEngine_Namespaces(t *testing.T) {
++	engine := testEngineWithPolicy(t, namespacesPolicy)
++	ctx := context.Background()
++	for _, tt := range []struct {
++		name     string
++		input    map[string]any
++		expected []string
++	}{
++		{name: "nil input", input: nil, expected: []string{}},
++		{name: "empty input", input: map[string]any{}, expected: []string{}},
++		{name: "no roles", input: roleInput(""), expected: []string{}},
++		{name: "devs", input: roleInput("devs"), expected: []string{"local", "staging"}},
++		{name: "ops", input: roleInput("ops"), expected: []string{"production"}},
++		{name: "devs and ops", input: roleInput("devs,ops"), expected: []string{"local", "staging", "production"}},
++	} {
++		t.Run(tt.name, func(t *testing.T) {
++			namespaces, err := engine.Namespaces(ctx, tt.input)
++			require.NoError(t, err)
++			require.Equal(t, tt.expected, namespaces)
++		})
++	}
++}
++
++func TestEngine_NamespacesInvalidDecision(t *testing.T) {
++	for _, tt := range []struct {
++		name   string
++		policy string
++	}{
++		{name: "undefined", policy: `package flipt.authz.v1
++import rego.v1
++default allow := false`},
++		{name: "scalar", policy: `package flipt.authz.v1
++import rego.v1
++default allow := false
++viewable_namespaces := 42`},
++		{name: "non-string element", policy: `package flipt.authz.v1
++import rego.v1
++default allow := false
++viewable_namespaces := ["local", 42]`},
++	} {
++		t.Run(tt.name, func(t *testing.T) {
++			engine := testEngineWithPolicy(t, tt.policy)
++			namespaces, err := engine.Namespaces(context.Background(), map[string]any{})
++			require.Error(t, err)
++			require.Nil(t, namespaces)
++		})
++	}
++}
++
++func roleInput(role string) map[string]any {
++	return map[string]any{
++		"authentication": map[string]any{
++			"metadata": map[string]any{"io.flipt.auth.role": role},
++		},
++	}
++}
+diff --git a/internal/server/authz/engine/rego/engine.go b/internal/server/authz/engine/rego/engine.go
+index 09a1ad4..e42f7c2 100644
+--- a/internal/server/authz/engine/rego/engine.go
++++ b/internal/server/authz/engine/rego/engine.go
+@@ -36,9 +36,10 @@ type DataSource CachedSource[map[string]any]
+ type Engine struct {
+ 	logger *zap.Logger
+ 
+-	mu    sync.RWMutex
+-	query rego.PreparedEvalQuery
+-	store storage.Store
++	mu              sync.RWMutex
++	query           rego.PreparedEvalQuery
++	namespacesQuery rego.PreparedEvalQuery
++	store           storage.Store
+ 
+ 	policySource PolicySource
+ 	policyHash   source.Hash
+@@ -156,6 +157,44 @@ func (e *Engine) IsAllowed(ctx context.Context, input map[string]interface{}) (b
+ 	return results[0].Expressions[0].Value.(bool), nil
+ }
+ 
++func (e *Engine) Namespaces(ctx context.Context, input map[string]any) ([]string, error) {
++	e.mu.RLock()
++	defer e.mu.RUnlock()
++
++	e.logger.Debug("evaluating viewable namespaces", zap.Any("input", input))
++	results, err := e.namespacesQuery.Eval(ctx, rego.EvalInput(input))
++	if err != nil {
++		return nil, err
++	}
++	if len(results) == 0 || len(results[0].Expressions) == 0 {
++		return nil, fmt.Errorf("viewable namespaces decision is undefined")
++	}
++
++	return formatNamespaces(results[0].Expressions[0].Value)
++}
++
++func formatNamespaces(result any) ([]string, error) {
++	if namespaces, ok := result.([]string); ok {
++		return namespaces, nil
++	}
++
++	values, ok := result.([]any)
++	if !ok {
++		return nil, fmt.Errorf("viewable namespaces decision must be a list of strings, got %T", result)
++	}
++
++	namespaces := make([]string, 0, len(values))
++	for _, value := range values {
++		namespace, ok := value.(string)
++		if !ok {
++			return nil, fmt.Errorf("viewable namespaces decision contains %T instead of a string", value)
++		}
++		namespaces = append(namespaces, namespace)
++	}
++
++	return namespaces, nil
++}
++
+ func (e *Engine) Shutdown(_ context.Context) error {
+ 	return nil
+ }
+@@ -197,6 +236,15 @@ func (e *Engine) updatePolicy(ctx context.Context) error {
+ 		return fmt.Errorf("preparing policy: %w", err)
+ 	}
+ 
++	namespacesQuery, err := rego.New(
++		rego.Query("data.flipt.authz.v1.viewable_namespaces"),
++		rego.Module("policy.rego", string(policy)),
++		rego.Store(e.store),
++	).PrepareForEval(ctx)
++	if err != nil {
++		return fmt.Errorf("preparing viewable namespaces policy: %w", err)
++	}
++
+ 	e.mu.Lock()
+ 	defer e.mu.Unlock()
+ 	if !bytes.Equal(e.policyHash, policyHash) {
+@@ -205,6 +253,7 @@ func (e *Engine) updatePolicy(ctx context.Context) error {
+ 	}
+ 	e.policyHash = hash
+ 	e.query = query
++	e.namespacesQuery = namespacesQuery
+ 
+ 	return nil
+ }
+diff --git a/internal/server/authz/engine/rego/namespaces_test.go b/internal/server/authz/engine/rego/namespaces_test.go
+new file mode 100644
+index 0000000..28f9048
+--- /dev/null
++++ b/internal/server/authz/engine/rego/namespaces_test.go
+@@ -0,0 +1,92 @@
++package rego
++
++import (
++	"context"
++	"testing"
++
++	"github.com/stretchr/testify/require"
++	"go.uber.org/zap/zaptest"
++)
++
++const namespacesPolicy = `package flipt.authz.v1
++import rego.v1
++
++default allow := false
++default dev_namespaces := []
++default ops_namespaces := []
++
++has_role(role) if {
++    some assigned in split(input.authentication.metadata["io.flipt.auth.role"], ",")
++    assigned == role
++}
++
++dev_namespaces := ["local", "staging"] if { has_role("devs") }
++ops_namespaces := ["production"] if { has_role("ops") }
++viewable_namespaces := array.concat(dev_namespaces, ops_namespaces)
++`
++
++func testEngineWithPolicy(t *testing.T, policy string) *Engine {
++	t.Helper()
++	ctx, cancel := context.WithCancel(context.Background())
++	t.Cleanup(cancel)
++	engine, err := newEngine(ctx, zaptest.NewLogger(t), withPolicySource(policySource(policy)))
++	require.NoError(t, err)
++	return engine
++}
++
++func TestEngine_Namespaces(t *testing.T) {
++	engine := testEngineWithPolicy(t, namespacesPolicy)
++	ctx := context.Background()
++	for _, tt := range []struct {
++		name     string
++		input    map[string]any
++		expected []string
++	}{
++		{name: "nil input", input: nil, expected: []string{}},
++		{name: "empty input", input: map[string]any{}, expected: []string{}},
++		{name: "no roles", input: roleInput(""), expected: []string{}},
++		{name: "devs", input: roleInput("devs"), expected: []string{"local", "staging"}},
++		{name: "ops", input: roleInput("ops"), expected: []string{"production"}},
++		{name: "devs and ops", input: roleInput("devs,ops"), expected: []string{"local", "staging", "production"}},
++	} {
++		t.Run(tt.name, func(t *testing.T) {
++			namespaces, err := engine.Namespaces(ctx, tt.input)
++			require.NoError(t, err)
++			require.Equal(t, tt.expected, namespaces)
++		})
++	}
++}
++
++func TestEngine_NamespacesInvalidDecision(t *testing.T) {
++	for _, tt := range []struct {
++		name   string
++		policy string
++	}{
++		{name: "undefined", policy: `package flipt.authz.v1
++import rego.v1
++default allow := false`},
++		{name: "scalar", policy: `package flipt.authz.v1
++import rego.v1
++default allow := false
++viewable_namespaces := 42`},
++		{name: "non-string element", policy: `package flipt.authz.v1
++import rego.v1
++default allow := false
++viewable_namespaces := ["local", 42]`},
++	} {
++		t.Run(tt.name, func(t *testing.T) {
++			engine := testEngineWithPolicy(t, tt.policy)
++			namespaces, err := engine.Namespaces(context.Background(), map[string]any{})
++			require.Error(t, err)
++			require.Nil(t, namespaces)
++		})
++	}
++}
++
++func roleInput(role string) map[string]any {
++	return map[string]any{
++		"authentication": map[string]any{
++			"metadata": map[string]any{"io.flipt.auth.role": role},
++		},
++	}
++}
+diff --git a/internal/server/authz/middleware/grpc/middleware.go b/internal/server/authz/middleware/grpc/middleware.go
+index 54c5e09..4a4725c 100644
+--- a/internal/server/authz/middleware/grpc/middleware.go
++++ b/internal/server/authz/middleware/grpc/middleware.go
+@@ -90,6 +90,18 @@ func AuthorizationRequiredInterceptor(logger *zap.Logger, policyVerifier authz.V
+ 			return ctx, errUnauthorized
+ 		}
+ 
++		if _, ok := req.(*flipt.ListNamespaceRequest); ok {
++			namespaces, err := policyVerifier.Namespaces(ctx, map[string]any{
++				"authentication": auth,
++			})
++			if err != nil {
++				logger.Error("unauthorized", zap.Error(err))
++				return ctx, errUnauthorized
++			}
++
++			return handler(context.WithValue(ctx, authz.NamespacesKey, namespaces), req)
++		}
++
+ 		for _, request := range requester.Request() {
+ 			allowed, err := policyVerifier.IsAllowed(ctx, map[string]interface{}{
+ 				"request":        request,
+diff --git a/internal/server/authz/middleware/grpc/middleware_test.go b/internal/server/authz/middleware/grpc/middleware_test.go
+index ec79524..c09035d 100644
+--- a/internal/server/authz/middleware/grpc/middleware_test.go
++++ b/internal/server/authz/middleware/grpc/middleware_test.go
+@@ -8,6 +8,7 @@ import (
+ 	"github.com/stretchr/testify/assert"
+ 	"github.com/stretchr/testify/require"
+ 	authmiddlewaregrpc "go.flipt.io/flipt/internal/server/authn/middleware/grpc"
++	"go.flipt.io/flipt/internal/server/authz"
+ 	"go.flipt.io/flipt/rpc/flipt"
+ 	authrpc "go.flipt.io/flipt/rpc/flipt/auth"
+ 	"go.uber.org/zap"
+@@ -15,16 +16,28 @@ import (
+ )
+ 
+ type mockPolicyVerifier struct {
+-	isAllowed bool
+-	wantErr   error
+-	input     map[string]any
++	isAllowed       bool
++	wantErr         error
++	input           map[string]any
++	isAllowedCalls  int
++	namespaces      []string
++	namespacesErr   error
++	namespacesInput map[string]any
++	namespacesCalls int
+ }
+ 
+ func (v *mockPolicyVerifier) IsAllowed(ctx context.Context, input map[string]any) (bool, error) {
+ 	v.input = input
++	v.isAllowedCalls++
+ 	return v.isAllowed, v.wantErr
+ }
+ 
++func (v *mockPolicyVerifier) Namespaces(ctx context.Context, input map[string]any) ([]string, error) {
++	v.namespacesInput = input
++	v.namespacesCalls++
++	return v.namespaces, v.namespacesErr
++}
++
+ func (v *mockPolicyVerifier) Shutdown(_ context.Context) error {
+ 	return nil
+ }
+@@ -162,3 +175,78 @@ func TestAuthorizationRequiredInterceptor(t *testing.T) {
+ 		})
+ 	}
+ }
++
++func TestAuthorizationRequiredInterceptor_ListNamespaces(t *testing.T) {
++	tests := []struct {
++		name       string
++		authn      *authrpc.Authentication
++		namespaces []string
++		engineErr  error
++		wantCalled bool
++		wantEval   bool
++	}{
++		{
++			name:       "accessible namespaces",
++			authn:      adminAuth,
++			namespaces: []string{"local", "staging"},
++			wantCalled: true,
++			wantEval:   true,
++		},
++		{
++			name:       "no accessible namespaces",
++			authn:      adminAuth,
++			namespaces: []string{},
++			wantCalled: true,
++			wantEval:   true,
++		},
++		{
++			name:      "evaluation error",
++			authn:     adminAuth,
++			engineErr: errors.New("invalid namespace decision"),
++			wantEval:  true,
++		},
++		{
++			name: "authentication required",
++		},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			verifier := &mockPolicyVerifier{
++				namespaces:    tt.namespaces,
++				namespacesErr: tt.engineErr,
++			}
++			ctx := authmiddlewaregrpc.ContextWithAuthentication(context.Background(), tt.authn)
++			called := false
++			handler := func(ctx context.Context, _ any) (any, error) {
++				called = true
++				namespaces, ok := ctx.Value(authz.NamespacesKey).([]string)
++				require.True(t, ok, "accessible namespaces must be present in context")
++				assert.Equal(t, tt.namespaces, namespaces)
++				return nil, nil
++			}
++
++			_, err := AuthorizationRequiredInterceptor(zap.NewNop(), verifier)(
++				ctx,
++				&flipt.ListNamespaceRequest{},
++				&grpc.UnaryServerInfo{FullMethod: flipt.Flipt_ListNamespaces_FullMethodName},
++				handler,
++			)
++
++			assert.Equal(t, tt.wantCalled, called)
++			assert.Equal(t, 0, verifier.isAllowedCalls)
++			if tt.wantEval {
++				assert.Equal(t, 1, verifier.namespacesCalls)
++				assert.Equal(t, map[string]any{"authentication": tt.authn}, verifier.namespacesInput)
++			} else {
++				assert.Equal(t, 0, verifier.namespacesCalls)
++			}
++
++			if tt.wantCalled {
++				require.NoError(t, err)
++			} else {
++				require.Equal(t, errUnauthorized, err)
++			}
++		})
++	}
++}
+diff --git a/internal/server/namespace.go b/internal/server/namespace.go
+index 3ebc429..89b68e8 100644
+--- a/internal/server/namespace.go
++++ b/internal/server/namespace.go
+@@ -2,8 +2,10 @@ package server
+ 
+ import (
+ 	"context"
++	"strconv"
+ 
+ 	"go.flipt.io/flipt/errors"
++	"go.flipt.io/flipt/internal/server/authz"
+ 	"go.flipt.io/flipt/internal/storage"
+ 	flipt "go.flipt.io/flipt/rpc/flipt"
+ 	"go.uber.org/zap"
+@@ -18,11 +20,65 @@ func (s *Server) GetNamespace(ctx context.Context, r *flipt.GetNamespaceRequest)
+ 	return namespace, err
+ }
+ 
+-// ListNamespaces lists all namespaces
++// ListNamespaces lists the namespaces visible to the caller.
+ func (s *Server) ListNamespaces(ctx context.Context, r *flipt.ListNamespaceRequest) (*flipt.NamespaceList, error) {
+ 	s.logger.Debug("list namespaces", zap.Stringer("request", r))
+ 
+ 	ref := storage.ReferenceRequest{Reference: storage.Reference(r.Reference)}
++	if value := ctx.Value(authz.NamespacesKey); value != nil {
++		accessible, ok := value.([]string)
++		if !ok {
++			return nil, errors.ErrInvalidf("invalid accessible namespaces in context")
++		}
++
++		// Apply authorization before pagination. Filtering a store page can return
++		// an empty page even when the caller has accessible namespaces later on.
++		results, err := s.store.ListNamespaces(ctx, storage.ListWithOptions(ref))
++		if err != nil {
++			return nil, err
++		}
++
++		allowed := make(map[string]struct{}, len(accessible))
++		for _, key := range accessible {
++			allowed[key] = struct{}{}
++		}
++
++		filtered := make([]*flipt.Namespace, 0, len(accessible))
++		for _, namespace := range results.Results {
++			if namespace == nil {
++				continue
++			}
++			if _, ok := allowed[namespace.Key]; ok {
++				filtered = append(filtered, namespace)
++			}
++		}
++
++		resp := &flipt.NamespaceList{TotalCount: int32(len(filtered))}
++		start := int(r.Offset)
++		if r.PageToken != "" {
++			start, err = strconv.Atoi(r.PageToken)
++			if err != nil {
++				return nil, errors.ErrInvalidf("pageToken is not valid: %q", r.PageToken)
++			}
++		}
++		if start < 0 || r.Limit < 0 {
++			return nil, errors.ErrInvalidf("invalid namespace pagination parameters")
++		}
++		if start > len(filtered) {
++			start = len(filtered)
++		}
++
++		end := len(filtered)
++		if r.Limit > 0 && int(r.Limit) < end-start {
++			end = start + int(r.Limit)
++			resp.NextPageToken = strconv.Itoa(end)
++		}
++		resp.Namespaces = filtered[start:end]
++
++		s.logger.Debug("list namespaces", zap.Stringer("response", resp))
++		return resp, nil
++	}
++
+ 	results, err := s.store.ListNamespaces(ctx, storage.ListWithParameters(ref, r))
+ 	if err != nil {
+ 		return nil, err
+diff --git a/internal/server/namespace_test.go b/internal/server/namespace_test.go
+index 16895a0..8c0d29a 100644
+--- a/internal/server/namespace_test.go
++++ b/internal/server/namespace_test.go
+@@ -9,6 +9,7 @@ import (
+ 	"github.com/stretchr/testify/mock"
+ 	"github.com/stretchr/testify/require"
+ 	"go.flipt.io/flipt/internal/common"
++	"go.flipt.io/flipt/internal/server/authz"
+ 	"go.flipt.io/flipt/internal/storage"
+ 	flipt "go.flipt.io/flipt/rpc/flipt"
+ 	"go.uber.org/zap/zaptest"
+@@ -117,6 +118,64 @@ func TestListNamespaces_PaginationPageToken(t *testing.T) {
+ 	assert.Equal(t, int32(1), got.TotalCount)
+ }
+ 
++func TestListNamespaces_Authorized(t *testing.T) {
++	store := &common.StoreMock{}
++	defer store.AssertExpectations(t)
++	s := &Server{logger: zaptest.NewLogger(t), store: store}
++	ref := storage.ReferenceRequest{}
++	store.On("ListNamespaces", mock.Anything, storage.ListWithOptions(ref)).Return(
++		storage.ResultSet[*flipt.Namespace]{Results: []*flipt.Namespace{
++			{Key: "default"}, {Key: "local"}, {Key: "production"}, {Key: "staging"},
++		}}, nil).Once()
++
++	ctx := context.WithValue(context.Background(), authz.NamespacesKey, []string{"local", "staging", "missing"})
++	got, err := s.ListNamespaces(ctx, &flipt.ListNamespaceRequest{})
++	require.NoError(t, err)
++	assert.Equal(t, int32(2), got.TotalCount)
++	assert.Equal(t, []string{"local", "staging"}, []string{got.Namespaces[0].Key, got.Namespaces[1].Key})
++	assert.Empty(t, got.NextPageToken)
++	store.AssertNotCalled(t, "CountNamespaces", mock.Anything, mock.Anything)
++}
++
++func TestListNamespaces_AuthorizedPagination(t *testing.T) {
++	store := &common.StoreMock{}
++	defer store.AssertExpectations(t)
++	s := &Server{logger: zaptest.NewLogger(t), store: store}
++	store.On("ListNamespaces", mock.Anything, storage.ListWithOptions(storage.ReferenceRequest{})).Return(
++		storage.ResultSet[*flipt.Namespace]{Results: []*flipt.Namespace{
++			{Key: "default"}, {Key: "local"}, {Key: "production"}, {Key: "staging"},
++		}}, nil).Twice()
++
++	ctx := context.WithValue(context.Background(), authz.NamespacesKey, []string{"local", "staging"})
++	first, err := s.ListNamespaces(ctx, &flipt.ListNamespaceRequest{Limit: 1})
++	require.NoError(t, err)
++	assert.Equal(t, int32(2), first.TotalCount)
++	require.Len(t, first.Namespaces, 1)
++	assert.Equal(t, "local", first.Namespaces[0].Key)
++	assert.NotEmpty(t, first.NextPageToken)
++
++	second, err := s.ListNamespaces(ctx, &flipt.ListNamespaceRequest{Limit: 1, PageToken: first.NextPageToken})
++	require.NoError(t, err)
++	assert.Equal(t, int32(2), second.TotalCount)
++	require.Len(t, second.Namespaces, 1)
++	assert.Equal(t, "staging", second.Namespaces[0].Key)
++	assert.Empty(t, second.NextPageToken)
++}
++
++func TestListNamespaces_NoAccessibleNamespaces(t *testing.T) {
++	store := &common.StoreMock{}
++	defer store.AssertExpectations(t)
++	s := &Server{logger: zaptest.NewLogger(t), store: store}
++	store.On("ListNamespaces", mock.Anything, storage.ListWithOptions(storage.ReferenceRequest{})).Return(
++		storage.ResultSet[*flipt.Namespace]{Results: []*flipt.Namespace{{Key: "default"}}}, nil).Once()
++
++	ctx := context.WithValue(context.Background(), authz.NamespacesKey, []string{})
++	got, err := s.ListNamespaces(ctx, &flipt.ListNamespaceRequest{})
++	require.NoError(t, err)
++	assert.Empty(t, got.Namespaces)
++	assert.Zero(t, got.TotalCount)
++}
++
+ func TestCreateNamespace(t *testing.T) {
+ 	var (
+ 		store  = &common.StoreMock{}
+@@ -276,7 +335,6 @@ func TestDeleteNamespace_HasFlags(t *testing.T) {
+ 	assert.Nil(t, got)
+ }
+ 
+-
+ func TestDeleteNamespace_ProtectedWithForce(t *testing.T) {
+ 	var (
+ 		store  = &common.StoreMock{}
+@@ -286,7 +344,7 @@ func TestDeleteNamespace_ProtectedWithForce(t *testing.T) {
+ 			store:  store,
+ 		}
+ 		req = &flipt.DeleteNamespaceRequest{
+-			Key: "foo",
++			Key:   "foo",
+ 			Force: true,
+ 		}
+ 	)
+@@ -302,7 +360,7 @@ func TestDeleteNamespace_ProtectedWithForce(t *testing.T) {
+ 
+ 	got, err := s.DeleteNamespace(context.TODO(), req)
+ 	require.NoError(t, err)
+-	
++
+ 	assert.NotNil(t, got)
+ }
+ 
+@@ -315,7 +373,7 @@ func TestDeleteNamespace_HasFlagsWithForce(t *testing.T) {
+ 			store:  store,
+ 		}
+ 		req = &flipt.DeleteNamespaceRequest{
+-			Key: "foo",
++			Key:   "foo",
+ 			Force: true,
+ 		}
+ 	)
+diff --git a/ui/src/app/Layout.tsx b/ui/src/app/Layout.tsx
+index 11161cf..c4eb27c 100644
+--- a/ui/src/app/Layout.tsx
++++ b/ui/src/app/Layout.tsx
+@@ -1,12 +1,6 @@
+ import { useEffect, useState } from 'react';
+ import { useSelector } from 'react-redux';
+-import {
+-  Navigate,
+-  Outlet,
+-  useLocation,
+-  useNavigate,
+-  useParams
+-} from 'react-router-dom';
++import { Navigate, Outlet, useLocation, useMatches } from 'react-router-dom';
+ import Footer from '~/components/Footer';
+ import Header from '~/components/Header';
+ import Loading from '~/components/Loading';
+@@ -20,12 +14,13 @@ import { LoadingStatus } from '~/types/Meta';
+ import { fetchInfoAsync, selectConfig } from './meta/metaSlice';
+ import {
+   currentNamespaceChanged,
+-  selectCurrentNamespace,
+   useListNamespacesQuery
+ } from './namespaces/namespacesSlice';
+ import CommandDialog from '~/components/command/CommandDialog';
+ import Banner from '~/components/Banner';
+ import { selectDismissedBanner } from './events/eventSlice';
++import { RootState } from '~/store';
++import { addNamespaceToPath } from '~/utils/helpers';
+ 
+ function InnerLayout() {
+   const { session } = useSession();
+@@ -34,27 +29,28 @@ function InnerLayout() {
+   const dismissedBanner = useSelector(selectDismissedBanner);
+   const dispatch = useAppDispatch();
+ 
+-  const { namespaceKey } = useParams();
++  const matches = useMatches();
++  const namespaceMatch = matches.find((match) => match.params.namespaceKey);
++  const namespaceKey = namespaceMatch?.params.namespaceKey;
+   const location = useLocation();
+-  const navigate = useNavigate();
+-  const currentNamespace = useSelector(selectCurrentNamespace);
++  const currentNamespaceKey = useSelector(
++    (state: RootState) => state.namespaces.currentNamespace
++  );
+   const config = useSelector(selectConfig);
++  const namespaces = useListNamespacesQuery();
+ 
+   useEffect(() => {
+-    if (!namespaceKey) {
+-      return;
+-    }
+-
+-    // if the namespaceKey in the url is not the same as the currentNamespace, then
+-    // dispatch the currentNamespaceChanged action to update the currentNamespace in the store
+-    // this allows the namespace to be changed by the url and not just the namespace dropdown,
+-    // which is required for 'deep' linking
+-    if (currentNamespace?.key !== namespaceKey) {
++    if (
++      !namespaces.isError &&
++      namespaceKey &&
++      namespaces.data?.namespaces.some(
++        (namespace) => namespace.key === namespaceKey
++      ) &&
++      currentNamespaceKey !== namespaceKey
++    ) {
+       dispatch(currentNamespaceChanged({ key: namespaceKey }));
+     }
+-  }, [namespaceKey, currentNamespace, dispatch, navigate, location.pathname]);
+-
+-  const namespaces = useListNamespacesQuery();
++  }, [namespaceKey, namespaces.data, namespaces.isError, currentNamespaceKey, dispatch]);
+ 
+   useEffect(() => {
+     dispatch(fetchInfoAsync());
+@@ -68,6 +64,47 @@ function InnerLayout() {
+     return <Loading fullScreen />;
+   }
+ 
++  const accessibleNamespaces = namespaces.isError
++    ? []
++    : (namespaces.data?.namespaces ?? []);
++  const preferredNamespace =
++    accessibleNamespaces.find(
++      (namespace) => namespace.key === currentNamespaceKey
++    ) ?? accessibleNamespaces[0];
++  const namespaceInURLIsUnavailable =
++    namespaceKey &&
++    !accessibleNamespaces.some((namespace) => namespace.key === namespaceKey);
++  const isUnscopedNamespacePage =
++    /^\/(flags|segments|console)(\/|$)/.test(location.pathname);
++
++  if (
++    preferredNamespace &&
++    (namespaceInURLIsUnavailable ||
++      (!namespaceKey && isUnscopedNamespacePage))
++  ) {
++    return (
++      <Navigate
++        to={{
++          pathname: addNamespaceToPath(
++            location.pathname,
++            preferredNamespace.key
++          ),
++          search: location.search,
++          hash: location.hash
++        }}
++        replace
++      />
++    );
++  }
++
++  if (
++    namespaceKey &&
++    accessibleNamespaces.length > 0 &&
++    currentNamespaceKey !== namespaceKey
++  ) {
++    return <Loading fullScreen />;
++  }
++
+   return (
+     <>
+       <Sidebar setSidebarOpen={setSidebarOpen} sidebarOpen={sidebarOpen} />
+diff --git a/ui/src/components/namespaces/NamespaceListbox.tsx b/ui/src/components/namespaces/NamespaceListbox.tsx
+index eaf234c..ded01a1 100644
+--- a/ui/src/components/namespaces/NamespaceListbox.tsx
++++ b/ui/src/components/namespaces/NamespaceListbox.tsx
+@@ -26,6 +26,7 @@ export default function NamespaceListbox(props: NamespaceListboxProps) {
+ 
+   const dispatch = useAppDispatch();
+   const namespaces = useSelector(selectNamespaces);
++  const selectedNamespace = namespaces.find((n) => n.key === namespace.key);
+ 
+   const location = useLocation();
+   const navigate = useNavigate();
+@@ -40,7 +41,7 @@ export default function NamespaceListbox(props: NamespaceListboxProps) {
+ 
+   return (
+     <Listbox<SelectableNamespace>
+-      disabled={disabled}
++      disabled={disabled || namespaces.length === 0}
+       id="namespaceKey"
+       name="namespaceKey"
+       className={className}
+@@ -48,10 +49,11 @@ export default function NamespaceListbox(props: NamespaceListboxProps) {
+         ...n,
+         displayValue: n.name
+       }))}
+-      selected={{
+-        ...namespace,
+-        displayValue: namespace?.name || ''
+-      }}
++      selected={
++        selectedNamespace
++          ? { ...selectedNamespace, displayValue: selectedNamespace.name }
++          : { key: '', name: '', displayValue: '' }
++      }
+       setSelected={setCurrentNamespace}
+     />
+   );

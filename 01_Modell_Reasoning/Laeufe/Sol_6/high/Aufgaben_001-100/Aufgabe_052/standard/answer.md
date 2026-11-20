@@ -1,0 +1,3 @@
+Implemented token accounting in the checked-out repository. `Chat.Complete` and `Agent.PlanAndExecute` now return a non-nil `TokenCount`; the agent accumulates prompt and completion usage across steps, including streamed responses. Assist and web usage reporting now use those totals.
+
+`go test ./lib/ai ./lib/ai/model -count=1` and `git diff --check` passed. The broader Assist tests could not build because this environment lacks required native headers and SQLite build support.

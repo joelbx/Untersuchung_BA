@@ -1,0 +1,3 @@
+Updated [FnToCLI](/app/scripts/solr_builder/solr_builder/fn_to_cli.py) to convert `Path` and typed list arguments, accept `parse_args(args)`, use `--<parameter_name>` options, and return results from both synchronous and async functions. Existing dashed option aliases remain accepted. Positional lists still allow zero values for compatibility with an existing caller.
+
+A test agent added [behavior tests](/app/scripts/solr_builder/tests/test_fn_to_cli.py), and a second agent audited local callers. Verification: **8 tests passed**, Ruff passed, and `git diff --check` passed.

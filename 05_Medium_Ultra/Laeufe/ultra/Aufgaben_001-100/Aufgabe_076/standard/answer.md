@@ -1,0 +1,3 @@
+Address parsing now splits on commas and semicolons, trims tokens, removes angle brackets, and discards empty results. Both autocomplete versions use the helper for pasted addresses. `inputToRecipient('<email@domain>')` now sets both `Name` and `Address` to the bare email while preserving display names in `Name <address>` inputs.
+
+I delegated the call-site audit and six focused tests in [recipient.spec.ts](/app/packages/shared/test/mail/recipient.spec.ts). Type checks, lint, and formatting checks passed. The shared suite passed 839 tests, including all six new cases; two unrelated cookie and file helper tests failed.

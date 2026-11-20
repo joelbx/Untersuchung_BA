@@ -1,0 +1,3 @@
+Fixed the upgrade scan errors by making nullable album image/path fields and album, artist, and share timestamps pointer fields. Added [`gg.P` and `gg.V`](/app/utils/gg/gg.go:4), updated callers to handle nil values safely, and added database round trip tests for NULL and present values.
+
+The relevant package tests pass. The full Go suite has four unrelated TagLib test failures tied to the local TagLib output and a permission fixture that this environment can read.

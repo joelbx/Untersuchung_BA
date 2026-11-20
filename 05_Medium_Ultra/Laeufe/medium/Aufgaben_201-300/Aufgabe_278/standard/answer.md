@@ -1,0 +1,3 @@
+Updated the mailbox list to wait for tracked backend actions before reloading and to discard an in-flight response if an action begins before it returns. Failed fetches now retry after 2 seconds; responses marked stale retry after 1 second without being committed. The loading selector now uses the current page and query parameters.
+
+Verification passed: 20 existing mailbox tests, the mail TypeScript check, and `git diff --check`.

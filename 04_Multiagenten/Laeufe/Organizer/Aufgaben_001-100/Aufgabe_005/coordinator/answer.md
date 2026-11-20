@@ -1,0 +1,3 @@
+Qt machinery now initializes during early startup and passes its `SelectionInfo` to the availability checker. Implicit initialization selects an importable wrapper or raises `NoWrapperAvailableError` with the exact leading message and detailed import results. I also clarified short and verbose `SelectionInfo` output, added exception types to autoselection failures, and improved diagnostic spacing and debug logging.
+
+The relevant tests passed: **50 passed**. `git diff --check` passed. No delegation was used.

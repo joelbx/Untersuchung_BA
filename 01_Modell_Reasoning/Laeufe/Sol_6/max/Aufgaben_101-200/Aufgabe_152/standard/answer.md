@@ -1,0 +1,3 @@
+Added [icx_logging.py](/app/lib/ansible/modules/network/icx/icx_logging.py) with aggregate logging management, ICX IPv6 host syntax, facilities, buffered levels, global and console toggles, check mode, and running-config idempotency. Added [unit tests](/app/test/units/modules/network/icx/test_icx_logging.py).
+
+All 105 ICX unit tests pass. Documentation YAML parses; the local module validator could not start because `voluptuous` is not installed.

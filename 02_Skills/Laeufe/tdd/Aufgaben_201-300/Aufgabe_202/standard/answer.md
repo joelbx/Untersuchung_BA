@@ -1,0 +1,3 @@
+Updated the admin upload route to check that the target is an existing directory under the configured upload path before saving a file. A missing directory now returns HTTP 500 with `[[error:invalid-path]]` and is not created.
+
+The regression test passed after failing on the original behavior. All 42 tests in `test/uploads.js` passed, as did lint. The full suite stopped after 296 passing tests on an unrelated plugin catalog test that requires an external fetch unavailable in this environment.

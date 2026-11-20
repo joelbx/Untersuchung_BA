@@ -1,0 +1,3 @@
+Added a **Polls history** button to `RoomSummaryCard`, shown only when the new `feature_poll_history` Labs setting is enabled. Clicking it opens the new `PollHistoryDialog` with the current room’s `roomId`.
+
+The focused RightPanel suite passed (3 tests), as did ESLint, Prettier, and `git diff --check`. The full type check remains blocked by an unrelated `RoomCreate.tsx` error involving `RoomState.findPredecessor`. No delegation was used.

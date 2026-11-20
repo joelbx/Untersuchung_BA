@@ -1,0 +1,3 @@
+Implemented `override-validation=true` for the import POST endpoint. The flag flows through `load()` to `validate_record()`, bypassing the publication year, independent publisher, and missing ISBN checks while keeping required-field validation active. Default validation behavior is preserved.
+
+Added the case insensitive [is_promise_item()](/app/openlibrary/catalog/utils/__init__.py) utility. All 116 selected tests passed.

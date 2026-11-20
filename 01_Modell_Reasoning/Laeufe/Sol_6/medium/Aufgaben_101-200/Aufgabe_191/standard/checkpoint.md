@@ -1,0 +1,3 @@
+Completed: Added RegistrationTokenAuthEntry and mapped stable/unstable Matrix registration token stages to it. The view has an autofocus labeled token field, help text, primary AccessibleButton, Enter/button submission, busy spinner, and alert error. It submits only type and token; SDK adds session and existing InteractiveAuth completion callback supplies the extra object.
+Updated English strings and added focused tests covering both identifiers, payload/session/completion, button submission, busy blocking, and error display.
+Verification: focused Jest suite passed (4 tests); ESLint, Prettier, and git diff --check passed. Full TypeScript check reports pre-existing Sliding Sync API errors outside changed files.

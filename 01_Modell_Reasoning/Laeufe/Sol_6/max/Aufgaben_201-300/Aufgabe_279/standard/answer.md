@@ -1,0 +1,3 @@
+Refactored [paymentTokenHelper.tsx](/app/packages/components/containers/payments/paymentTokenHelper.tsx) to expose an injectable verifier and a token creator bound to it. The five requested components and the single signup caller now use the default modal verifier. Chargeable tokens return immediately; pending tokens enter verification; initial terminal failures reject. Polling stops and cleans up on completion, tab closure, or cancellation.
+
+Type checks, lint, and the helper, modal, subscription, edit card, and PaymentStep tests pass. Two CreditsModal tests still fail on a pre-existing mismatch: they expect `PaymentMethodID` in the purchase request, while the checked-in chargeable-token path returns only the token.

@@ -1,0 +1,3 @@
+Task: centralize storage size units in `packages/shared/lib/helpers/size.ts` and migrate affected uses.
+
+Implemented `helpers/size.ts`, migrated member and organization allocation, CSV import, bonus constants, human size formatting, and remaining inline size calculations in components/shared/Drive. CSV import Jest suite passed (64 tests). Prettier and `git diff --check` passed. Shared and components TypeScript checks each report the same preexisting error in `packages/crypto/lib/worker/api.ts` from incompatible installed OpenPGP `PartialConfig` types; no changed file appeared in those diagnostics.

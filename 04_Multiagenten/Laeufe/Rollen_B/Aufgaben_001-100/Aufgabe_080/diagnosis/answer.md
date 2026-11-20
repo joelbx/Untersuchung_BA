@@ -1,0 +1,5 @@
+The likely cause is in [reader_resized.go](/app/core/artwork/reader_resized.go:84): `imaging.Fit` preserves non-square dimensions, and the resize path returns small images unchanged. [AlbumGridView.js](/app/ui/src/album/AlbumGridView.js:101) measures the cover width to set its height, so those images can affect grid layout as they load.
+
+A fix should carry `square` through the [Artwork interface](/app/core/artwork/artwork.go:22), API, URL builder, and grid call; produce a centered square PNG when requested; preserve the current shape and format otherwise; and include `square` in the resize cache key. Tests should cover non-square images, images smaller than the requested size, both cache variants, and API parameter forwarding. The exact browser shaking mechanism remains unverified.
+
+The OCI `Source` interface refers to a path absent from this Navidrome checkout and appears unrelated. Existing artwork, Subsonic, and public server tests pass. Under my fault-localization-only assignment, I changed no project source or tests; I recorded findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

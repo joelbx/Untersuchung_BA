@@ -1,0 +1,3 @@
+Collection name validation now rejects Python keywords in either segment and requires both segments to be valid Python identifiers. I removed the legacy validation helpers from [dataclasses.py](/app/lib/ansible/galaxy/dependency_resolution/dataclasses.py) and added regression cases.
+
+The collection loader tests passed (68), and the Galaxy install tests passed (30) when run separately. A combined run hit collection finder setup interference between the test files.

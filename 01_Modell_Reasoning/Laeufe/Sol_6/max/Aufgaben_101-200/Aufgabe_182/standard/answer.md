@@ -1,0 +1,3 @@
+Implemented global display deduplication. Forked calls to `display`, `warning`, and `deprecated` now send their method name and exact caller arguments through the queue. The main process invokes the corresponding method, so its warning and deprecation caches apply across workers.
+
+Regression tests cover exact forwarding and deduplication. The focused and broader display suites passed: **25 passed, 1 skipped**. Both existing warning tests pass individually; running their file together still exposes a pre-existing singleton cache leak between those tests.

@@ -1,0 +1,3 @@
+Fixed BatchEvaluate so disabled flags no longer abort the batch. It returns one entry per request in input order; disabled entries have `match=false`, an empty value, a timestamp, and their own duration. The outer response retains the total duration.
+
+Added `ErrDisabled` and `ErrDisabledf`, migrated RPC timestamp and empty types to modern protobuf packages, and preserved the unary Evaluate error mapping. `GOPROXY=off go test -mod=mod ./...` passes.

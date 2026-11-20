@@ -1,0 +1,3 @@
+Edition matching now expands both records before scoring, so callers can pass raw import records. The shared expansion code handles missing author data, generates comparable names for authors and contributors, combines ISBN variants, and filters invalid publish countries. I also added coverage for matching without ISBNs and for thresholds 875 and 515.
+
+Verification: **69 passed, 1 preexisting expected failure** in the focused tests; Ruff and `git diff --check` passed.

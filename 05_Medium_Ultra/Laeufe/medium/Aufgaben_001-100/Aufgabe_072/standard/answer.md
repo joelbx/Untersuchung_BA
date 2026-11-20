@@ -1,0 +1,3 @@
+Implemented Punycode handling for IDN URLs. [url.ts](/app/packages/components/helpers/url.ts) now provides `punycodeUrl` and `getHostnameWithRegex`; [useLinkHandler.tsx](/app/packages/components/hooks/useLinkHandler.tsx) uses the converted URL for external links and shows an error notification when it cannot extract or parse a link URL.
+
+Verification passed: 14 URL helper tests, TypeScript, ESLint, Prettier, and `git diff --check`.

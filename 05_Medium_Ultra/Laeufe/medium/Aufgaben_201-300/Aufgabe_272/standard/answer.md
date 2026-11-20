@@ -1,0 +1,3 @@
+Added a `ciphers` option to `get_url`, `uri`, and `lookup('url')`, and passed it through the shared URL code. The new `make_context` and `get_ca_certs` interfaces support cipher lists or OpenSSL cipher strings. Invalid values produce a clear error; omitted values pass through as `None`. The configured context is used for direct HTTPS requests, redirects, proxies, and Unix sockets.
+
+**Verification:** 135 relevant tests passed, and `git diff --check` passed. The CentOS 7, Python 3.10, and OpenSSL 1.1.1 combination was not available locally.

@@ -1,0 +1,3 @@
+Fixed `/lists/add` form parsing in [lists.py](/app/openlibrary/plugins/openlibrary/lists.py). When a body is present, list fields now come from the URL-encoded body without merging query parameters. Defaults no longer interfere with nested seed fields, and invalid or empty seeds are skipped. [unflatten()](/app/openlibrary/plugins/upstream/utils.py) now uses the last assignment when a simple key is written more than once.
+
+All 21 relevant tests passed. Ruff and `git diff --check` passed.

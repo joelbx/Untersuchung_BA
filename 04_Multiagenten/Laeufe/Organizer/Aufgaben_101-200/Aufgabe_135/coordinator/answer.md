@@ -1,0 +1,3 @@
+Updated [mathstuff.py](/app/lib/ansible/plugins/filter/mathstuff.py) so `min` and `max` receive the Jinja2 environment and forward all keyword arguments to Jinja2’s filters. When a helper is unavailable, calls without keywords use Python’s built-in filter; calls with keywords raise the specified `AnsibleFilterError`.
+
+Added regression coverage in [test_mathstuff.py](/app/test/units/plugins/filter/test_mathstuff.py). The focused suite passed: **57 tests**. `git diff --check` also passed. No delegation was used.

@@ -1,0 +1,3 @@
+HTTPS support is implemented for the REST API, UI, and gRPC. Configuration now accepts the protocol, separate HTTP and HTTPS ports, and certificate paths; HTTPS startup validates the paths and loads the key pair before starting listeners. HTTP remains the default.
+
+I updated the configuration docs and added tests for defaults, overrides, validation errors, and metadata handlers. `GOPROXY=off go test ./...` passes.

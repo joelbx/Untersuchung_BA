@@ -1,0 +1,3 @@
+Implemented `chat:privileged` across the global privilege set, chat middleware, messaging, and invitations. Attempts to start or invite a privileged user without that permission now return `[[error:no-privileges]]`. User profiles expose `canChat`, with the field documented in OpenAPI, and the privilege has an admin UI label.
+
+Verification passed: 79 messaging tests, 285 middleware and user tests, ESLint, and `git diff --check`.

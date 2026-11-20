@@ -1,0 +1,3 @@
+Updated [custom_headers](/app/qutebrowser/browser/shared.py:29) so XHR requests use a domain specific `Accept-Language` override when one exists, but do not apply the global value. The [WebEngine interceptor](/app/qutebrowser/browser/webengine/interceptor.py:190) keeps the global fallback for other request types.
+
+Added focused tests for the fallback and request type behavior. **29 tests passed** with Qt’s offscreen platform; `git diff --check` also passed.

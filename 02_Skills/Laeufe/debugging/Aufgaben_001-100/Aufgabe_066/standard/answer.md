@@ -1,0 +1,3 @@
+Added `transformStyleAttributes` to replace inline `height` values containing `vh` with `auto`, and called it between `transformStylesheet` and `transformRemote`. The regression test covers nested elements and preserves other inline styles.
+
+All 90 transform tests and lint passed. The full TypeScript check could not complete because Node ran out of heap; that limit is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

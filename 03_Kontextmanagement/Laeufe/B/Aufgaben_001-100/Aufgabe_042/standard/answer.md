@@ -1,0 +1,3 @@
+Added `/.well-known/webfinger` through [the controller](/app/src/controllers/well-known.js) and [the route](/app/src/routes/well-known.js), mounted at startup. It validates `resource`, checks `view:users` permission with anonymous requests evaluated as Guest, resolves the user slug, and returns a WebFinger JSON response with profile aliases and a link.
+
+The repository’s existing ESLint check, syntax checks, and local route and response smoke checks passed.

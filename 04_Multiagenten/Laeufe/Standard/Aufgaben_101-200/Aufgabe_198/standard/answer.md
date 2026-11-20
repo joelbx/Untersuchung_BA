@@ -1,0 +1,3 @@
+Updated the Red Hat family OVAL path to use the locally cached goval dictionary version with resolution data. Advisory IDs are now filtered by distribution, and package fix states flow through to scan results. Gost no longer selects its Red Hat CVE detector.
+
+Added regression tests for advisory IDs, fix states, and package status propagation. Tests passed for `./oval`, `./gost`, `./detector`, `./server`, and `./scanner`; `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated [Amazon Linux version recognition and EOL mappings](/app/config/os.go) for releases 2023, 2025, 2027, and 2029. Unrecognized releases now return `unknown` and have no EOL entry. Added [regression tests](/app/config/amazon_linux_test.go) for version parsing and support date boundaries.
+
+`GOPROXY=off GOSUMDB=off go test ./...` passed. ALAS advisory retrieval was not verified against a live host or service.

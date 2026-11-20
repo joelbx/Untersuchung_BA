@@ -1,0 +1,3 @@
+Implemented `/.well-known/webfinger` with resource validation, Guest aware `view:users` authorization, user slug lookup, and a WebFinger JSON response. The controller and router are registered at startup, and HTTP tests cover success, 400, 403, and 404 responses.
+
+The four WebFinger tests pass, lint passes, and `git diff --check` passes. The full suite stopped after 198 passing tests when an existing admin plugins test encountered a blocked external package request. A separate controller run stopped after 144 passing tests on a user data export failure. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

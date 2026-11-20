@@ -1,0 +1,3 @@
+Implemented the `.well-known` `force_disable` policy, including a named synchronous helper and an async policy resolver in [createRoom.ts](/app/src/createRoom.ts). The create room dialog now waits for policy resolution, locks the toggle when required, displays any forced value, and submits that displayed encryption state.
+
+The existing create room test suites passed: 20 tests. `yarn lint:types` reported an unrelated existing type error in [Unread.ts](/app/src/Unread.ts:167): `getLastUnthreadedReceiptFor` is missing on `Thread | Room`. Checkpoint details are in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

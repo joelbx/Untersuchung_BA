@@ -1,0 +1,3 @@
+Implemented token accounting for `Chat.Complete` and `Agent.PlanAndExecute`. Both now return a non-nil `*model.TokenCount`; the agent aggregates prompt and completion usage across steps, including streamed responses. Assist and web callers now read the totals through `CountAll()`.
+
+`go test ./lib/ai/...` passes, including new streaming and multi-step checks. Assist and web tests could not run because required native headers are missing from the environment.

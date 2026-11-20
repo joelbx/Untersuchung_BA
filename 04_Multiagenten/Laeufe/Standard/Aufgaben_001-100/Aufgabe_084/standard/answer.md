@@ -1,0 +1,3 @@
+Added the public `removeTechnicalFields` function in [EntityUtils.ts](/app/src/api/common/utils/EntityUtils.ts). It mutates an entity to remove keys starting with `_finalEncrypted`, `_defaultEncrypted`, or `_errors` at the root and in nested objects and arrays, while preserving other fields. Added coverage in [EntityUtilsTest.ts](/app/test/tests/api/common/utils/EntityUtilsTest.ts).
+
+TypeScript and formatting checks passed. The full test suite passed on rerun with 8,680 assertions; the first run had an unrelated `ConfigFileTest` timing failure.

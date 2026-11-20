@@ -1,0 +1,3 @@
+Added `parse_duration` in [utils.py](/app/qutebrowser/utils/utils.py) and wired `:later` to use it. Durations now accept decimal hours, minutes, and seconds, including `2m30s`; bare digits still mean milliseconds. Updated the command help and tests.
+
+Verification: 192 unit tests and four `:later` end-to-end scenarios passed. The existing negative-delay end-to-end scenario remains an expected failure because the command parser intercepts a leading `-`.

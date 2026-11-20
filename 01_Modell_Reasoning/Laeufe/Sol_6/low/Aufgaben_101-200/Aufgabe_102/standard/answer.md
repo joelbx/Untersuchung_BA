@@ -1,0 +1,3 @@
+Added the `locally_reachable_ips` fact to the [Linux network collector](/app/lib/ansible/module_utils/facts/network/linux.py). It reports sorted, de-duplicated IPv4 and IPv6 addresses and prefixes from Linux scope-host local routes. If a query is unavailable, that family returns an empty list with a warning.
+
+Added [unit tests](/app/test/units/module_utils/facts/network/test_linux_local.py). All 7 network fact unit tests pass.

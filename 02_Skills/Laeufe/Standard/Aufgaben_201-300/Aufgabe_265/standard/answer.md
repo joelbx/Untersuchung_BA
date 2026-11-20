@@ -1,0 +1,3 @@
+Updated `QtColor` so HSV/HSVA hue percentages scale to 359, while saturation, value, alpha, and RGB/RGBA percentages scale to 255. The parser now rejects unsupported function names and incorrect component counts. Added regression tests for those cases.
+
+All 34 focused `QtColor` tests pass. The broader configtypes test file has unrelated failures in the installed test environment; details are recorded in the [checkpoint](/app/.codex-role-output/checkpoint.md).

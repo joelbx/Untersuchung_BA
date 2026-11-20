@@ -1,0 +1,3 @@
+Updated the assistant content pipeline to use the composer message ID when preparing, rendering, and inserting content. URL restoration now keeps only links and images stored for that message, preserves visible text when removing a link, and restores `class` and `style`. The Markdown path repairs nested lists, preserves ordered-list markers, and allows list conversion. The new public `fixNestedLists` helper is in [markdown.ts](/app/applications/mail/src/app/helpers/assistant/markdown.ts).
+
+All 18 relevant tests pass. The app type check remains blocked by an OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts:579`; it reported no errors in the edited mail files. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

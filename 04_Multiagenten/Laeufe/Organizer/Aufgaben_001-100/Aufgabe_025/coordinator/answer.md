@@ -1,0 +1,3 @@
+Added `${VARIABLE_NAME}` substitution as the first configuration decode hook. Exact string references use the environment value when present; other values stay unchanged. Existing type conversion handles substituted ports and durations, and normal `FLIPT_` environment overrides retain precedence.
+
+Tests passed: `go test ./internal/config -count=1` and `go test ./config -count=1`. I solved this directly; no delegation or adoption was used.

@@ -1,0 +1,3 @@
+Implemented the resolver changes in [module_common.py](/app/lib/ansible/executor/module_common.py): dependency traversal now uses a queue, package initializer relative imports account for package level, and collection module_utils redirects generate shims with FQCN expansion, deprecation warnings, and tombstone errors. Unresolved dependency errors now list attempted dotted paths.
+
+Verification passed: 46 existing module common tests, `py_compile`, and `git diff --check`. The checkpoint is in `.codex-role-output/checkpoint.md`.

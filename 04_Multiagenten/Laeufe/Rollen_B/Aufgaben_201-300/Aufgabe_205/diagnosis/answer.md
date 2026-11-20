@@ -1,0 +1,5 @@
+The missing lifecycle interface is localized to [src/api/utils.js](/app/src/api/utils.js): it exposes only usage logging and last-seen lookup. Token creation and deletion instead use the `core.api` settings array in [src/api/users.js](/app/src/api/users.js:311), and bearer authentication reads that array in [src/routes/authentication.js](/app/src/routes/authentication.js:47).
+
+A fix should add the requested `utils.tokens` operations, persist and index tokens with numeric millisecond timestamps, hydrate single and array results consistently, and connect authentication to the new storage. Existing bearer tests in [test/authentication.js](/app/test/authentication.js:593) seed settings tokens; they do not cover the new lifecycle. Compatibility for those tokens and the result of `get` for an unknown token remain unspecified.
+
+I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). My assigned fault-localization scope prohibited project source and test edits, so the issue remains unresolved.

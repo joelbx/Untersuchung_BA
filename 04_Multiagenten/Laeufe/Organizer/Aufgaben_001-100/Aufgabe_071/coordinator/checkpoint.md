@@ -1,0 +1,2 @@
+Issue resolved in lib/ansible/plugins/shell/powershell.py. Parser is typed, filters the requested stream, concatenates entries within each XML block, separates nonempty block results with CRLF, decodes UTF-16 escape tokens and surrogate pairs, and encodes with surrogatepass. Tests in test/units/plugins/shell/test_powershell.py cover these cases. No delegation used.
+Verification: python -m pytest -q test/units/plugins/shell/test_powershell.py (9 passed); git diff --check passed.

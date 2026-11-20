@@ -1,0 +1,3 @@
+Updated the Trivy parser to store the OS version in `Release`, use `ArtifactName` for `ServerName` across OS and library scans, append `:latest` to untagged container names, and leave `Optional` nil. Package CVE detection now logs why it skips unsupported results and runs OVAL and GOST only when the new gate allows it. CVE reuse identifies Trivy scans through `ScannedBy`.
+
+Verification: `GOPROXY=off GOTOOLCHAIN=local go test ./contrib/trivy/parser/v2 ./detector` passed, and `git diff --check` passed. Results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

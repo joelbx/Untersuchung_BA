@@ -1,0 +1,1 @@
+Implemented chat settings (disable, allow, deny), safe list parsing, room and invitation enforcement, account controls, schema, and idempotent legacy migration. Empty legacy follow lists migrate to disabled incoming messages to preserve restrictions. Validation: messaging 79 passing; user 276 passing; eslint and git diff --check clean.

@@ -1,0 +1,4 @@
+Correction round: inspecting current patch and review. Focus: preserve YAML string attachment types and large JSON integers; rerun flagged tests.
+Review findings confirmed. Importer currently auto-parses all JSON-looking strings; exporter uses json.Unmarshal into interface{} and rounds integers. Plan: explicit attachment_json field for legacy JSON text; UseNumber with integral normalization for YAML.
+Fixed reviewed defects: YAML string attachments are JSON-encoded as strings; legacy JSON text uses explicit attachment_json; export decodes with UseNumber and emits int64/uint64 integers exactly. Added regressions for scalar strings, legacy marker, and large integer round trip.
+Verification: GOPROXY=off go test ./internal/ext ./cmd/flipt passed. TEST_ENVIRONMENT_PROBLEM: internal/ext/testdata YAML fixtures are absent, so exact fixture comparison was unavailable.

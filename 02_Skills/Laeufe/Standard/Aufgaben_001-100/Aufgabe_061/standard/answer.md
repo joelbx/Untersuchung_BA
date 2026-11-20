@@ -1,0 +1,3 @@
+Updated Debian and Red Hat process scanning to associate processes through package ownership. The RPM lookup now skips expected permission, unowned file, and missing file lines; rejects malformed output; and matches the installed package’s version and architecture before associating a process.
+
+Added a regression test for mixed RPM versions and architectures. `go test ./scan ./models` and `git diff --check` passed.

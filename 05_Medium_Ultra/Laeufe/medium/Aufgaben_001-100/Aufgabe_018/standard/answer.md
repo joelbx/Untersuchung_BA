@@ -1,0 +1,3 @@
+Updated [config.go](/app/internal/config/config.go) so scalar strings decode into `[]string` using whitespace as the separator. This handles repeated, leading, and trailing whitespace and produces an empty slice for an empty string. YAML sequences remain unchanged, and empty ENV values now reach the decoder.
+
+Added YAML and ENV coverage and updated the advanced config fixture. `go test ./internal/config` and `git diff --check` pass.

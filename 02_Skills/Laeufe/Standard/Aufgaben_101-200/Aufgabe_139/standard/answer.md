@@ -1,0 +1,3 @@
+Updated promise-item imports to enrich incomplete records from staged metadata, preferring ISBN-10 and then a non-ISBN Amazon ASIN. Enrichment runs before import API validation, fills only empty fields, and leaves existing values intact. The batch script stages only incomplete items and records total and incomplete gauges.
+
+Validation now accepts either a complete record or a title with a strong identifier and source record. Verification: 188 relevant tests passed; Ruff and `git diff --check` passed.

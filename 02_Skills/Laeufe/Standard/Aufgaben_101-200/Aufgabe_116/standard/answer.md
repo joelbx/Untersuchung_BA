@@ -1,0 +1,3 @@
+Added the global `chat:privileged` permission and enforced it when a user starts or invites a privileged target to a chat. Chat middleware and messaging now use array based privilege checks, and `privileges.global.can` returns a boolean for a string or an array of booleans for an array. The profile response now includes `canChat`, with an OpenAPI definition and an admin UI translation.
+
+Verification passed: 77 messaging tests, ESLint on changed JavaScript, `git diff --check`, and local YAML/JSON parsing.

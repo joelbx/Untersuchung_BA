@@ -1,0 +1,3 @@
+Voice broadcast liveness now follows playback and broadcast info state: **live** while a chunk plays, **grey** while buffering or paused, and **not live** when stopped. The playback model emits liveness changes only when the value changes, and the hook, header, and badge use the shared `VoiceBroadcastLiveness` type. I also added last-chunk detection and transition tests.
+
+All 24 voice broadcast test suites passed (218 tests). ESLint, Stylelint, and `git diff --check` passed. The full TypeScript check is blocked by an error in untouched [notifications.ts](/app/src/utils/notifications.ts:79).

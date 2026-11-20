@@ -1,0 +1,3 @@
+Added `timeOffset` support through the public and Subsonic stream handlers, streaming methods, transcoding cache keys, and FFmpeg commands. Missing, malformed, or negative HTTP offsets default to 0. Default FFmpeg templates use `%t`; custom templates without it insert `-ss` after the input path for nonzero offsets. The OpenSubsonic response now advertises support.
+
+Updated call sites and mocks. The focused tests and `git diff --check` passed.

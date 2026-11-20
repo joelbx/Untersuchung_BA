@@ -1,0 +1,3 @@
+Implemented `Path` and typed list parsing in [fn_to_cli.py](/app/scripts/solr_builder/solr_builder/fn_to_cli.py). Required lists accept positional values; optional lists accept `--<parameter>` and default to `None` when omitted. `parse_args` accepts supplied arguments, and `run` returns sync and async function results. Underscore option names are supported, with hyphenated aliases retained for compatibility.
+
+The existing FnToCLI tests pass: **4 passed**. Manual checks also verified integer positional lists and optional `Path` lists.

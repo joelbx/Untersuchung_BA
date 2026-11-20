@@ -1,0 +1,3 @@
+Updated [qtargs.py](/app/qutebrowser/config/qtargs.py) so QtWebEngine combines CLI, `qt.args`, and configuration features into one `--enable-features=` argument. QtWebKit arguments remain unchanged. Added regression coverage in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py).
+
+Verification: 79 tests passed. One existing Chromium version test was excluded because Chromium refuses to run as root without `--no-sandbox`.

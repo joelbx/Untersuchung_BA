@@ -1,0 +1,3 @@
+Added [netapp_e_drive_firmware.py](/app/lib/ansible/modules/storage/netapp/netapp_e_drive_firmware.py) with firmware upload, compatibility-based drive selection, online upgrade checks, optional completion polling, check mode, and change and progress reporting. Added [focused tests](/app/test/units/modules/storage/netapp/test_netapp_e_drive_firmware.py); all six pass.
+
+Broader verification remains red: three existing NetApp tests cannot collect because `mock` is unavailable, and repository-wide pytest stops during integration fixture collection. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md). Live controller behavior was not verified.

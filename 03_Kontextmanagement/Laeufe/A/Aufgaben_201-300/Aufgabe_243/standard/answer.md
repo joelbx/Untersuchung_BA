@@ -1,0 +1,3 @@
+Updated [forwarder.go](/app/lib/kube/proxy/forwarder.go) so session creation rejects a missing cluster, uses local credentials when available, and records the selected kube_service address while dialing through `dialEndpoint`. Remote sessions use `reversetunnel.LocalKubernetes` with the requested client certificate and RootCAs.
+
+Updated the existing tests in [forwarder_test.go](/app/lib/kube/proxy/forwarder_test.go). `go test ./lib/kube/proxy -count=1` and `git diff --check` pass.

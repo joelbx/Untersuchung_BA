@@ -1,0 +1,3 @@
+Implemented the Worksearch JSON refactor. Added [process_facet and process_facet_counts](/app/openlibrary/plugins/worksearch/code.py:229), made `run_solr_query` default `wt` to `json`, and converted search results and `get_doc` to consume JSON. Updated the existing fixtures to JSON and removed the legacy XML parser.
+
+Verification: `python -m pytest openlibrary/plugins/worksearch/tests/test_worksearch.py -q` passed (25 tests); `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented configurable OCI manifest versions. `storage.oci.manifest_version` accepts `"1.0"` or `"1.1"`, defaults to `"1.1"`, and returns the requested validation error for unsupported values. Both the server and bundle CLI pass the selected version through `WithManifestVersion` when building bundles.
+
+The relevant local tests passed, including checks that both versions build and can be fetched. `git diff --check` also passed.

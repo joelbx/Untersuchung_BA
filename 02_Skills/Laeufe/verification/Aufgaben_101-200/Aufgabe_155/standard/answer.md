@@ -1,0 +1,3 @@
+Added digest support across image configuration, scanning, scan results, and report naming. Validation now requires a name and exactly one of tag or digest. Image references use `name:tag` or `name@digest`, and per-image server names use `<index>@<originalServerName>`.
+
+The config, scan, and report tests passed with vet disabled; the focused model digest test passed. The full test run remains blocked by an existing models vet error and a failing `models.TestScan`. Both results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

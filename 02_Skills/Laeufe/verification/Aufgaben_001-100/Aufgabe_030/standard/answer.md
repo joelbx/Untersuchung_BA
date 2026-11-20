@@ -1,0 +1,3 @@
+Updated [AIX hardware facts](/app/lib/ansible/module_utils/facts/hardware/aix.py) so `processor_count` is `1`, available processor devices determine `processor_cores`, SMT threads default to `1`, `processor_vcpus` is derived from both values, and `processor` is a list. Added [AIX unit tests](/app/test/units/module_utils/facts/hardware/test_aix.py) for reported SMT, missing SMT, and no available processor.
+
+Verification: the hardware fact unit suite passed (18 tests), and `git diff --check` passed.

@@ -1,0 +1,5 @@
+The lookup belongs in [openlibrary/core/imports.py](/app/openlibrary/core/imports.py:107). `ImportItem` has a pending-only lookup and a single exact-ID lookup, but no `STAGED_SOURCES` tuple or `find_staged_or_pending` method. The method should build every `{source}:{identifier}` combination, query `import_item` for matching `ia_id` values with status `staged` or `pending`, and return the query’s `ResultSet`.
+
+[Edition.from_isbn](/app/openlibrary/core/models.py:407) already contains a narrower query hard-coded to `amazon` and `idb` for ISBN-13. It selects only the first match. There is also a scope uncertainty: its subsequent `do_import` call uses an HTTP import endpoint, so adding the requested lookup alone would not ensure fully local loading.
+
+Existing import tests pass (5/5), but do not cover this lookup. I recorded the diagnosis in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md). No project source or tests were edited because this run was restricted to fault localization.

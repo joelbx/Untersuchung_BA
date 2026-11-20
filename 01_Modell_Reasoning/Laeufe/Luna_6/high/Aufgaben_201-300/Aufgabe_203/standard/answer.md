@@ -1,0 +1,3 @@
+Implemented the reusable `ExternalLink` component with secure new-tab defaults, a decorative external-link icon, and a screen-reader cue. Migrated external links across Settings and added the localized “Link to room” accessible name to the Share dialog URL.
+
+Validation: ESLint, Stylelint, and `git diff --check` pass. The typecheck reports existing thread-related errors. Jest could not complete because setup is missing `component-index` and encounters `localStorage` undefined. No focused tests for these components were present.

@@ -1,0 +1,3 @@
+Fixed the ZIP timestamp crash in [unarchive.py](/app/lib/ansible/modules/unarchive.py:335). The new `_valid_time_stamp` method parses and validates ZIP dates, accepts years from 1980 through 2107, and uses the ZIP epoch for invalid values such as `19800000.000000`. `is_unarchived` now uses it.
+
+Added regression coverage in [test_unarchive.py](/app/test/units/modules/test_unarchive.py:23). All 15 unarchive unit tests pass.

@@ -1,0 +1,3 @@
+Implemented polling lifecycle management across the Git, local, S3, Azure Blob, and OCI snapshot stores. The [poller](/app/internal/storage/fs/poll.go) now owns a cancellable context; `Close()` waits for its loop to exit, including when called immediately after startup. Each store exposes `Close()`, and the filesystem store wrapper forwards it. Git, S3, and Azure operations now receive the poller context.
+
+`go test ./internal/storage/fs/...` and the targeted poller race tests passed. S3 and Azure service backed tests require configured endpoints and were skipped.

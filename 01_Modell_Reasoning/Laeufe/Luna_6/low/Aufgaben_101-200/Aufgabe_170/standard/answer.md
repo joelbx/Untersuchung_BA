@@ -1,0 +1,3 @@
+Implemented edition expansion and enrichment in [merge_marc.py](/app/openlibrary/catalog/merge/merge_marc.py). `editions_match` now expands raw records automatically; expansion builds title variants, consolidates ISBNs, filters invalid countries, and adds author `db_name` values. Author matching also handles missing names and compares contributors across roles.
+
+The existing merge tests passed: **7 passed, 1 xfailed**. `git diff --check` passed.

@@ -1,0 +1,3 @@
+Added the Linux `locally_reachable_ips` fact in [linux.py](/app/lib/ansible/module_utils/facts/network/linux.py). It returns sorted, deduplicated IPv4 and IPv6 local-route destinations in canonical CIDR or single-address form. Failed queries return an empty list for that family with a warning.
+
+Registered the fact for subset selection and added [unit tests](/app/test/units/module_utils/facts/network/test_linux_locally_reachable_ips.py). Verification: 146 passed, 5 skipped; `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated [config.go](/app/config/config.go) to load the three database pool options and `meta.check_for_updates`. The update-check default is now `false`; absent keys retain their `Default()` values.
+
+The [config tests](/app/config/config_test.go) cover pool values, both update-check values, and equality with `Default()` for the default fixtures. `GOPROXY=off GOSUMDB=off go test ./config -count=1` passed.

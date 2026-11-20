@@ -1,0 +1,3 @@
+Moved list behavior into `List` in [model.py](/app/openlibrary/core/lists/model.py), removed `ListMixin` references, and centralized list and changeset registration there. `core.models.List` remains available as an import alias.
+
+The targeted model tests passed: **16 passed**. The broader plugin tests hit unrelated environment issues: missing `web.ctx.env` in one test and unavailable `cookielib` during collection. `git diff --check` passed.

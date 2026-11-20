@@ -1,0 +1,3 @@
+Implemented process completion handling in [guiprocess.py](/app/qutebrowser/misc/guiprocess.py): messages now reference the finishing process’s PID, crashes include the signal name, and SIGTERM sets the state to `terminated` and is quiet unless verbose mode is enabled. Updated the existing message expectations in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py).
+
+`py_compile` and `git diff --check` passed. The focused pytest module could not run because PyQt5 is unavailable.

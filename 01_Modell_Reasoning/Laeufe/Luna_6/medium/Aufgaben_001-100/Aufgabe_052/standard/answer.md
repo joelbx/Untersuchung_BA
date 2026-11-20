@@ -1,0 +1,3 @@
+Implemented the public token counter API and changed `Chat.Complete` and `Agent.PlanAndExecute` to return aggregate counts. Agent planning requests now add prompt counts, and streamed output uses an asynchronous completion counter. The requested checkpoint is in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+`go test ./lib/ai/...` does not pass: `TestChat_PromptTokens` has expectations from the old accounting behavior, including zero usage for the predefined reply. Streaming currently counts each nonempty delta as one token, so it may not match `cl100k_base` tokenization exactly.

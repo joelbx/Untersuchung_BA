@@ -1,0 +1,3 @@
+Added the exported [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) and updated Current session and [Device Details](/app/src/components/views/settings/devices/DeviceDetails.tsx) to use it. Device Details now shows the same localized verification heading and description directly below the device name.
+
+All 49 device-related tests pass, and ESLint passes. The full TypeScript check remains blocked by existing SDK and widget type errors outside the changed files; it reports no errors in the changed files.

@@ -1,0 +1,3 @@
+QR sign-in is now controlled by the experimental `feature_qr_signin_reciprocate_show` setting, which defaults to disabled. Both settings tabs hide the QR option when it is off; when enabled, the section still requires MSC3882 and MSC3886. The “Show QR code” action continues to open the QR login view.
+
+The focused QR tests pass (61 tests). The full suite finished with 4 failures outside the changed files: three location snapshot suites and `StopGapWidget`. TypeScript checking also failed in the untouched `RoomView-test.tsx`. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

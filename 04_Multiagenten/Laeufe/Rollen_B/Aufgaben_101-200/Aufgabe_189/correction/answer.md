@@ -1,0 +1,1 @@
+The existing patch satisfies the requested behavior, so no further code change was needed. I reran the flagged webview test file with `QT_QPA_PLATFORM=offscreen`: **28 passed**. `git diff --check` also passed.

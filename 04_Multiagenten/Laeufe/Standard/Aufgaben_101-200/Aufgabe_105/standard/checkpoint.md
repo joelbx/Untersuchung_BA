@@ -1,0 +1,2 @@
+Task: Make getOpenSubsonicExtensions public while preserving JSON formatting and its three extensions.
+Status: Complete. Registered getOpenSubsonicExtensions outside the protected route group while keeping form parameter middleware on the router. Added an unauthenticated JSON request test asserting the exact three extensions and their versions. `go test ./server/subsonic/...` and `git diff --check` pass.

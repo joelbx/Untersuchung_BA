@@ -1,0 +1,3 @@
+Added a `ciphers` option to `get_url`, `uri`, and `lookup('url')`. The shared TLS context applies it to direct HTTPS requests, HTTP→HTTPS redirects, proxy tunnels, and Unix sockets. Unset ciphers preserve existing defaults; invalid values produce clear errors without echoing the value.
+
+The URL and lookup unit suite passed: **138 tests**. The requested CentOS 7, Python 3.10, and OpenSSL 1.1.1 runtime was unavailable locally.

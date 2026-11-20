@@ -1,0 +1,3 @@
+Updated [the IA importer](/app/openlibrary/plugins/importapi/code.py) to emit separate `isbn_10`, `isbn_13`, `publishers`, and `publish_places` fields. Public utilities in [upstream utils](/app/openlibrary/plugins/upstream/utils.py) handle string and list inputs, spacing, and empty values. The importer’s other field handling remains unchanged.
+
+The focused importer and utility tests passed (24 tests), as did the full import API test directory (14 tests). `git diff --check` passed. No delegation was used.

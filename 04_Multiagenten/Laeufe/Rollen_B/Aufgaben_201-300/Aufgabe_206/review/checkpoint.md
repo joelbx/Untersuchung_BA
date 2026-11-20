@@ -1,0 +1,4 @@
+VERDICT: FIX
+Reviewed the checked-out patch in src/controllers/write/topics.js and test/topics.js. CODE_DEFECT: postingLocks is an in-process Set (topics.js:14-22); loader.js:112-155 starts multiple workers, so simultaneous requests for one uid routed to separate workers can both acquire their own local lock and create topics. Use a shared atomic per-actor lock with safe release, then test across workers.
+TEST_ENVIRONMENT_PROBLEM: initial focused run failed in the root before hook with ECONNREFUSED 127.0.0.1:6379. Started the installed local Redis service without changing repository files. Retry command `./node_modules/.bin/mocha test/topics.js --grep "should accept only one concurrent topic creation"` passed (1 passing). Broader command `./node_modules/.bin/mocha test/topics.js` passed (230 passing). Both run in one worker and do not cover the defect.
+No project code or tests were changed during review.

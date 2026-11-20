@@ -1,0 +1,1 @@
+Fixed `oval.major("")` to return `""` without panicking, and added an empty-input case to the existing test. Nonempty parsing is unchanged. The full `oval` test suite passes.

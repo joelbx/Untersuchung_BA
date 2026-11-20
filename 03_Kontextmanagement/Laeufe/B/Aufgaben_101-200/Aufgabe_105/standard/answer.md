@@ -1,0 +1,1 @@
+Resolved. `getOpenSubsonicExtensions` is now outside the authentication middleware. An unauthenticated `?f=json` request returns exactly `transcodeOffset`, `formPost`, and `songLyrics`. The Subsonic package tests passed.

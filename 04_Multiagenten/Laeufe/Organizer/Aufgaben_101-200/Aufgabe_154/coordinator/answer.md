@@ -1,0 +1,3 @@
+Updated Windows SSH stderr handling to replace complete embedded CLIXML blocks with readable UTF-8 bytes, using cp437 as a fallback. Surrounding text and malformed or incomplete blocks remain unchanged. I also corrected the UTF-16-BE escape regex so valid Unicode text is preserved.
+
+The relevant SSH and PowerShell tests pass: **47 passed**. `git diff --check` also passed. I solved this directly; there were no delegations or adoption decisions.

@@ -1,0 +1,3 @@
+Added the mechanism-segmented download counter and registered it with the metrics backend. [useDownloadMetrics.ts](/app/applications/drive/src/app/store/_downloads/DownloadProvider/useDownloadMetrics.ts) now records terminal outcomes with status, retry, and mechanism labels. The file saver exposes `selectMechanismForDownload`, and preview downloads pass their size into reporting.
+
+Verification passed: 21 focused tests, Drive and metrics type checks, ESLint, and `git diff --check`.

@@ -1,0 +1,3 @@
+Added the public `DiagResult` and `Diag` interfaces and wired macOS availability to checks for signing, entitlements, biometric policy, and Secure Enclave key creation. The existing registration and passwordless login flow passes its WebAuthn end to end test when availability succeeds.
+
+`go test ./lib/auth/touchid ./lib/auth/webauthn -count=1` passed. The macOS Objective C checks could not be compiled or exercised in this Linux workspace; they still need verification on a signed Mac with Touch ID.

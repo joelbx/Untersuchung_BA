@@ -1,0 +1,3 @@
+Implemented the move-out change. [`useShouldMoveOut`](</app/applications/mail/src/app/hooks/useShouldMoveOut.ts:10>) now waits while elements load, then calls `onBack` if the active ID is missing or absent from the mailbox list. Both views receive the mailbox IDs and loading state; conversation content selects the message or conversation ID based on `isAlwaysMessageLabels`.
+
+Validation passed: `ConversationView.test.tsx` (10 tests), the mail package TypeScript check, and `git diff --check`.

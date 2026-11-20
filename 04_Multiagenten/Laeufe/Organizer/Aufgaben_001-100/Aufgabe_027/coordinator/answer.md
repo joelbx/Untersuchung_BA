@@ -1,0 +1,3 @@
+Fixed public bookmark session restoration. `getLastPersistedLocalID` now returns `number | null`, ignores keys without a numeric session suffix, leaves localStorage untouched, and preserves `0` as a valid ID. The bookmark view resumes a session when an ID exists and continues listing bookmarks when it does not.
+
+The focused Drive tests passed: 17 tests across two suites, followed by 4 tests in the updated bookmark view suite. `git diff --check` passed. No delegation was used.

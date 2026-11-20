@@ -1,0 +1,3 @@
+Added `checkEventValidity` and `CalendarEventValidity` in [CalendarUtils.ts](/app/src/calendar/date/CalendarUtils.ts). Manual creation and ICS parsing now use the same rules: reject invalid dates first, then starts before January 1, 1970, then starts that are equal to or after the end. ICS imports now reject reversed or equal end times instead of changing them.
+
+Updated the relevant tests. TypeScript checking passed, and the app suite passed with 7,991 assertions.

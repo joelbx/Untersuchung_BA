@@ -1,0 +1,3 @@
+Replaced the user-facing `:buffer` command with `:tab-select` in the command registry, tab completion providers, help, default `gt` binding, and active examples. The renamed command retains index, title and URL matching, count precedence, and cross-window selection. Historical changelog entries remain as history.
+
+Verification: 136 unit tests and 14 focused browser scenarios passed; one existing scenario was skipped. A direct registry check confirmed that `tab-select` is registered and `buffer` is absent.

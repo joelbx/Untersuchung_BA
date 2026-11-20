@@ -1,0 +1,3 @@
+Resolved the validation gap. `Validate` now returns a single error that unwraps into individual messages with file, line, and column locations. It detects unknown variants and segments, including references from boolean flags. Snapshot creation validates each file, and `flipt import` checks references before making changes, so repeated attempts report the same error.
+
+The valid fixtures were corrected, and regression tests cover reference errors and repeated imports. The relevant Go tests and `git diff --check` pass.

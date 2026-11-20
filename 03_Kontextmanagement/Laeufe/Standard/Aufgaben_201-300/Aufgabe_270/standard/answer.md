@@ -1,0 +1,3 @@
+Updated Drive public pages to select the latest valid persisted session by `persistedAt` using the shared session reader. The same session now supplies the UID and local ID for resume, authentication state, SRP, and telemetry. The old lookup helpers and their active-ping dependency were removed from this flow.
+
+The relevant Drive tests pass: **18 tests across 3 suites**. Formatting and `git diff --check` pass. The TypeScript check remains blocked by an existing `openpgp`/`pmcrypto` type mismatch in `packages/crypto/lib/worker/api.ts:579`.

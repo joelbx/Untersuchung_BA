@@ -1,0 +1,3 @@
+Implemented room-loaded button refresh and permalink focus fallback. `RoomView` dispatches `{ action: Action.RoomLoaded }` when a room loads, and `RoomViewStore` recomputes `viewRoomOpts` only in response to that action.
+
+The focused `RoomView` tests passed. One `RoomViewStore` test failed because it dispatches `ViewRoom` but expects `RoomLoaded` behavior; that assertion conflicts with the requested action-only update. I did not change the test.

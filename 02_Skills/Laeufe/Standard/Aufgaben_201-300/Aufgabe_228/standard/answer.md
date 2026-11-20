@@ -1,0 +1,3 @@
+Added `utils.parse_version` using normalized `QVersionNumber` values and updated the requested Qt, distribution, and crash dialog comparisons. Added regression tests for trailing zeros, minimum versions, and the newest-version note.
+
+The focused suite passed: **343 tests**. `git diff --check` passed. The full version test file could not complete cleanly: one WebEngine test exited without a summary, and a rerun reported an X11 connection error after its test summary.

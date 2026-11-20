@@ -1,0 +1,3 @@
+Startup now uses `release.Is` and `release.Check`. Builds tagged `dev`, `-snapshot`, `-rc`, or `-rc1` are treated as non-releases; update reporting uses `release.Info`, and telemetry is disabled for non-release builds and in CI. The changes are in [main.go](/app/cmd/flipt/main.go) and [check.go](/app/internal/release/check.go).
+
+The targeted tests pass. The full suite remains red: `TestSet`, `TestGet`, and `TestDelete` in the Redis cache package could not start their container because the Docker daemon is unavailable. This is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

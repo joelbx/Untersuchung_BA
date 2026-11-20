@@ -1,0 +1,3 @@
+Implemented session renaming for both the current session and other sessions. The new [DeviceDetailHeading](/app/src/components/views/settings/devices/DeviceDetailHeading.tsx) provides Save and Cancel, a 100-character limit, a visibility notice, a saving indicator, and the required error message. Successful saves update the name immediately through `useOwnDevices`.
+
+Verification: all 51 affected tests passed, as did targeted ESLint. The full suite had six unrelated map and beacon snapshot failures involving `Symbol(shapeMode)`. Type checking remains blocked by three `IRequest.abort` errors in the vendored Matrix SDK.

@@ -1,0 +1,3 @@
+Added per-server `nmap` scanning. A configured `scannerBinPath` enables the external scanner; servers without one continue using the built-in scanner. The change includes technique and source-port validation, capability checks for privileged scans, XML output parsing, and a commented `portscan` example in the discover template.
+
+Relevant tests pass: `go test ./config ./scanner ./subcmds`. The external scan test uses a fake scanner executable.

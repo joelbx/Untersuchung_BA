@@ -1,0 +1,3 @@
+Added per-server `nmap` scanning. The [port scan configuration](/app/config/portscan.go) now maps techniques case-insensitively and validates the scanner path, privileges, source port, and unsupported or multiple techniques. The [scanner](/app/scanner/portscan.go) uses `nmap` when a server has an external scanner path; otherwise the native TCP scanner remains in use. The discovery template includes a commented `portscan` example.
+
+Verification passed: `GOPROXY=off go test ./config ./scanner ./subcmds` and `git diff --check`.

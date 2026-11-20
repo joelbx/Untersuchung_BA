@@ -1,0 +1,3 @@
+Call sound playback now unmutes muted elements immediately before `play()`, including after a queued reload. The four sound IDs are publicly exported from [LegacyCallHandler.tsx](/app/src/LegacyCallHandler.tsx), and the requested [handleEvent listener](/app/src/legacy/LegacyCallHandler/handleEvent.ts) is available for media elements.
+
+Verification passed: 16 focused tests, TypeScript, targeted ESLint, and `git diff --check`.

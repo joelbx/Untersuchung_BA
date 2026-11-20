@@ -1,0 +1,5 @@
+Implemented forked display forwarding through `FinalQueue`. Workers set the queue before task execution; the parent strategy thread dispatches each `DisplaySend`. Parent display writes use a lock, and the worker’s late `/dev/null` redirection is removed. `TaskQueueManager.cleanup` now flushes both streams.
+
+Changes are in [display.py](/app/lib/ansible/utils/display.py:206), [task_queue_manager.py](/app/lib/ansible/executor/task_queue_manager.py:61), [worker.py](/app/lib/ansible/executor/process/worker.py:140), and [strategy/__init__.py](/app/lib/ansible/plugins/strategy/__init__.py:119).
+
+**Verification:** Focused display and callback tests passed (3 tests); the linear strategy test passed standalone; both warning tests passed individually; `git diff --check` passed. A combined test run hit shared `Display` warning deduplication and a linear test fixture `TypeError`; the linear test passed when run alone.

@@ -1,0 +1,3 @@
+Added a `ciphers` option to `get_url`, `uri`, and `lookup('url')`. It accepts an OpenSSL cipher string or an ordered list, passes the setting through the shared URL transport and TLS contexts, and reports invalid values without echoing them. When unset, internal calls pass `ciphers=None`.
+
+Verification: 134 relevant local tests passed on Python 3.11; compilation and `git diff --check` passed. The CentOS 7, Python 3.10, and OpenSSL 1.1.1 combination was not available for a runtime test.

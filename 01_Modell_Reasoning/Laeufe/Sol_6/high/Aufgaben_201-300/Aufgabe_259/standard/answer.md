@@ -1,0 +1,3 @@
+Updated the [Solr work builder](/app/openlibrary/solr/update_work.py) to prioritize public IA editions and keep `lending_edition_s` paired with the correct IA identifier. It now treats `lendinglibrary` editions as borrowable and produces a consistent `printdisabled_s` list while retaining IA IDs and collection metadata from all editions.
+
+Expanded the [tests](/app/openlibrary/tests/solr/test_update_work.py) for mixed availability and multiple print-disabled editions. **Verification:** all 61 Solr tests passed.

@@ -1,0 +1,3 @@
+Updated [vendors.py](/app/openlibrary/core/vendors.py) to include Amazon language display values when present, exclude entries marked “Original Language,” remove duplicates, and preserve the values exactly as supplied. The load cleaner now retains `languages`. Added coverage in [test_vendors.py](/app/openlibrary/tests/core/test_vendors.py).
+
+Verification: 37 vendor tests passed; Ruff and `git diff --check` passed. Black could not run because it is not installed; that check is recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

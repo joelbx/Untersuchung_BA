@@ -1,0 +1,3 @@
+Extracted `RoleMixin._build_doc` in [doc.py](/app/lib/ansible/cli/doc.py). It returns `(fqcn, doc)` with the original path, collection, and full entry point specifications, or `(fqcn, None)` when no entry points match. `_create_role_doc` now adds only returned documentation objects.
+
+Added direct and caller-level coverage in [test_doc.py](/app/test/units/cli/test_doc.py). Verification: all 20 tests in that file passed with `PYTHONPATH=lib`; `git diff --check` passed.

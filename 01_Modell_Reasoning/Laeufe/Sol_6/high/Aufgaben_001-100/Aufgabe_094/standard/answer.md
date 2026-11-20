@@ -1,0 +1,3 @@
+Updated Touch ID support with a public `DiagResult` and `Diag()` API, macOS availability checks, and a fix for selecting the allowed credential when several are present. The expanded WebAuthn test covers both passwordless login and login with multiple credentials.
+
+The Touch ID and WebAuthn test suites pass, and `git diff --check` is clean. The native macOS checks could not be exercised in this Linux workspace.

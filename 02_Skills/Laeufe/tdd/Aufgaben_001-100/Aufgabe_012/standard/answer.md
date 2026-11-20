@@ -1,0 +1,3 @@
+Updated `custom_headers` to omit the global `Accept-Language` value when `fallback_accept_language=False` and a URL has no domain override. The WebEngine interceptor now uses that setting for XHR requests, preserving a header supplied by JavaScript; other requests retain the global fallback.
+
+Regression tests and the relevant existing WebKit test pass (30 tests total). The full suite remains unverified: end to end tests failed because Chromium would not run as root without a sandbox flag, and the broader unit run exited without a summary. Details are in `.codex-role-output/checkpoint.md`.

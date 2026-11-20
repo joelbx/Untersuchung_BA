@@ -1,0 +1,590 @@
+diff --git a/lib/utils/parse/parse.go b/lib/utils/parse/parse.go
+index 033c0e5..79e4da9 100644
+--- a/lib/utils/parse/parse.go
++++ b/lib/utils/parse/parse.go
+@@ -26,9 +26,165 @@ import (
+ 	"strings"
+ 	"unicode"
+ 
++	"github.com/gravitational/teleport/lib/utils"
+ 	"github.com/gravitational/trace"
+ )
+ 
++// Matcher tests whether a string satisfies a match expression.
++type Matcher interface {
++	Match(in string) bool
++}
++
++type regexpMatcher struct {
++	re *regexp.Regexp
++}
++
++// Match reports whether in matches the compiled regular expression.
++func (m regexpMatcher) Match(in string) bool {
++	return m.re.MatchString(in)
++}
++
++type prefixSuffixMatcher struct {
++	prefix  string
++	suffix  string
++	matcher Matcher
++}
++
++// Match checks the static text around an expression before matching its content.
++func (m prefixSuffixMatcher) Match(in string) bool {
++	if len(in) < len(m.prefix)+len(m.suffix) || !strings.HasPrefix(in, m.prefix) || !strings.HasSuffix(in, m.suffix) {
++		return false
++	}
++	return m.matcher.Match(in[len(m.prefix) : len(in)-len(m.suffix)])
++}
++
++type notMatcher struct {
++	matcher Matcher
++}
++
++// Match reports the inverse of the inner matcher's result.
++func (m notMatcher) Match(in string) bool {
++	return !m.matcher.Match(in)
++}
++
++// Match parses a literal, glob, raw regular expression, or matcher template.
++// Globs and literals must match the entire input. A raw regular expression
++// starts with ^ and ends with $, while regexp.match uses regexp.MatchString
++// semantics and can match a substring.
++func Match(value string) (Matcher, error) {
++	prefix, expression, suffix, templated, err := splitMatcherTemplate(value)
++	if err != nil {
++		return nil, trace.Wrap(err)
++	}
++	if !templated {
++		pattern := value
++		if !strings.HasPrefix(value, "^") || !strings.HasSuffix(value, "$") {
++			pattern = "^" + utils.GlobToRegexp(value) + "$"
++		}
++		re, err := regexp.Compile(pattern)
++		if err != nil {
++			return nil, trace.BadParameter("failed parsing regexp %q: %v", value, err)
++		}
++		return regexpMatcher{re: re}, nil
++	}
++
++	expr, err := parser.ParseExpr(expression)
++	if err != nil {
++		return nil, invalidMatcherExpression(expression)
++	}
++	// Operators and grouped or nested expressions cannot form a single matcher.
++	switch expr.(type) {
++	case *ast.CallExpr, *ast.SelectorExpr, *ast.IndexExpr, *ast.Ident, *ast.BasicLit:
++	default:
++		return nil, invalidMatcherExpression(expression)
++	}
++	result, err := walk(expr)
++	if err != nil {
++		return nil, trace.Wrap(err)
++	}
++	if len(result.parts) != 0 || result.transform != nil || result.matcher == nil {
++		return nil, invalidMatcherExpression(expression)
++	}
++	matcher := result.matcher
++	if prefix != "" || suffix != "" {
++		matcher = prefixSuffixMatcher{prefix: prefix, suffix: suffix, matcher: matcher}
++	}
++	return matcher, nil
++}
++
++func invalidMatcherExpression(expression string) error {
++	return trace.BadParameter("%q is not a valid matcher expression - no variables and transformations are allowed", expression)
++}
++
++func malformedMatcherTemplate(value string) error {
++	return trace.BadParameter("%q is using template brackets '{{' or '}}', however expression does not parse, make sure the format is {{expression}}", value)
++}
++
++// splitMatcherTemplate finds one template while allowing braces within quoted
++// regexp arguments. A second template is an invalid matcher expression.
++func splitMatcherTemplate(value string) (prefix, expression, suffix string, templated bool, err error) {
++	open := strings.Index(value, "{{")
++	if open == -1 {
++		if strings.Contains(value, "}}") {
++			return "", "", "", false, malformedMatcherTemplate(value)
++		}
++		return "", "", "", false, nil
++	}
++	if strings.Contains(value[:open], "}}") {
++		return "", "", "", false, malformedMatcherTemplate(value)
++	}
++
++	close, nested := findTemplateClose(value, open+2)
++	if close == -1 {
++		return "", "", "", false, malformedMatcherTemplate(value)
++	}
++
++	expression = value[open+2 : close]
++	suffix = value[close+2:]
++	if nested || (strings.Contains(suffix, "{{") && strings.Contains(suffix, "}}")) {
++		return "", "", "", false, invalidMatcherExpression(value[open+2 : strings.LastIndex(value, "}}")])
++	}
++	if strings.Contains(suffix, "{{") || strings.Contains(suffix, "}}") {
++		return "", "", "", false, malformedMatcherTemplate(value)
++	}
++	return value[:open], expression, suffix, true, nil
++}
++
++func findTemplateClose(value string, start int) (close int, nested bool) {
++	quote := byte(0)
++	escaped := false
++	for i := start; i+1 < len(value); i++ {
++		ch := value[i]
++		if quote != 0 {
++			if quote != '`' && escaped {
++				escaped = false
++				continue
++			}
++			if quote != '`' && ch == '\\' {
++				escaped = true
++				continue
++			}
++			if ch == quote {
++				quote = 0
++			}
++			continue
++		}
++		if ch == '"' || ch == '\'' || ch == '`' {
++			quote = ch
++			continue
++		}
++		if ch == '{' && value[i+1] == '{' {
++			nested = true
++			i++
++			continue
++		}
++		if ch == '}' && value[i+1] == '}' {
++			return i, nested
++		}
++	}
++	return -1, nested
++}
++
+ // Expression is an expression template
+ // that can interpolate to some variables
+ type Expression struct {
+@@ -115,6 +271,10 @@ var reVariable = regexp.MustCompile(
+ // literal value like "prod". Call Interpolate on the returned Expression to
+ // get the final value based on traits or other dynamic values.
+ func Variable(variable string) (*Expression, error) {
++	input := variable
++	if containsMatcherFunctionInTemplates(variable) {
++		return nil, trace.BadParameter("matcher functions (like regexp.match) are not allowed here: %q", input)
++	}
+ 	match := reVariable.FindStringSubmatch(variable)
+ 	if len(match) == 0 {
+ 		if strings.Contains(variable, "{{") || strings.Contains(variable, "}}") {
+@@ -135,6 +295,9 @@ func Variable(variable string) (*Expression, error) {
+ 	if err != nil {
+ 		return nil, trace.NotFound("no variable found in %q: %v", variable, err)
+ 	}
++	if containsMatcherFunction(expr) {
++		return nil, trace.BadParameter("matcher functions (like regexp.match) are not allowed here: %q", input)
++	}
+ 
+ 	// walk the ast tree and gather the variable parts
+ 	result, err := walk(expr)
+@@ -156,6 +319,54 @@ func Variable(variable string) (*Expression, error) {
+ 	}, nil
+ }
+ 
++// containsMatcherFunctionInTemplates checks each complete template separately
++// so Variable rejects matcher calls even when the input has multiple templates.
++func containsMatcherFunctionInTemplates(value string) bool {
++	for start := 0; start < len(value); {
++		open := strings.Index(value[start:], "{{")
++		if open == -1 {
++			return false
++		}
++		open += start
++		close, nested := findTemplateClose(value, open+2)
++		if close == -1 {
++			return false
++		}
++		expr, err := parser.ParseExpr(value[open+2 : close])
++		if err == nil && containsMatcherFunction(expr) {
++			return true
++		}
++		if nested {
++			start = open + 2
++		} else {
++			start = close + 2
++		}
++	}
++	return false
++}
++
++func containsMatcherFunction(expr ast.Expr) bool {
++	found := false
++	ast.Inspect(expr, func(node ast.Node) bool {
++		call, ok := node.(*ast.CallExpr)
++		if !ok {
++			return true
++		}
++		selector, ok := call.Fun.(*ast.SelectorExpr)
++		if !ok {
++			return true
++		}
++		namespace, ok := selector.X.(*ast.Ident)
++		if ok && namespace.Name == RegexpNamespace &&
++			(selector.Sel.Name == RegexpMatchFnName || selector.Sel.Name == RegexpNotMatchFnName) {
++			found = true
++			return false
++		}
++		return true
++	})
++	return found
++}
++
+ const (
+ 	// LiteralNamespace is a namespace for Expressions that always return
+ 	// static literal values.
+@@ -164,6 +375,12 @@ const (
+ 	EmailNamespace = "email"
+ 	// EmailLocalFnName is a name for email.local function
+ 	EmailLocalFnName = "local"
++	// RegexpNamespace is a function namespace for regexp matchers.
++	RegexpNamespace = "regexp"
++	// RegexpMatchFnName is the positive regexp matcher function.
++	RegexpMatchFnName = "match"
++	// RegexpNotMatchFnName is the negative regexp matcher function.
++	RegexpNotMatchFnName = "not_match"
+ )
+ 
+ // transformer is an optional value transformer function that can take in
+@@ -175,9 +392,10 @@ type transformer interface {
+ type walkResult struct {
+ 	parts     []string
+ 	transform transformer
++	matcher   Matcher
+ }
+ 
+-// walk will walk the ast tree and gather all the variable parts into a slice and return it.
++// walk gathers variable parts, a transformer, or a matcher from an expression.
+ func walk(node ast.Node) (*walkResult, error) {
+ 	var result walkResult
+ 
+@@ -192,26 +410,55 @@ func walk(node ast.Node) (*walkResult, error) {
+ 			if !ok {
+ 				return nil, trace.BadParameter("expected namespace, e.g. email.local, got %v", call.X)
+ 			}
+-			// This is the part before the dot
+-			if namespace.Name != EmailNamespace {
+-				return nil, trace.BadParameter("unsupported namespace, e.g. email.local, got %v", call.X)
+-			}
+-			// This is a function name
+-			if call.Sel.Name != EmailLocalFnName {
+-				return nil, trace.BadParameter("unsupported function %v, supported functions are: email.local", call.Sel.Name)
+-			}
+-			// Because only one function is supported for now,
+-			// this makes sure that the function call has exactly one argument
+-			if len(n.Args) != 1 {
+-				return nil, trace.BadParameter("expected 1 argument for email.local got %v", len(n.Args))
+-			}
+-			result.transform = emailLocalTransformer{}
+-			ret, err := walk(n.Args[0])
+-			if err != nil {
+-				return nil, trace.Wrap(err)
++			switch namespace.Name {
++			case EmailNamespace:
++				if call.Sel.Name != EmailLocalFnName {
++					return nil, trace.BadParameter("unsupported function email.%s, supported functions are: email.local", call.Sel.Name)
++				}
++				if len(n.Args) != 1 {
++					return nil, trace.BadParameter("expected 1 argument for email.local got %v", len(n.Args))
++				}
++				if n.Ellipsis.IsValid() {
++					return nil, trace.BadParameter("variadic arguments are not supported for email.local")
++				}
++				result.transform = emailLocalTransformer{}
++				ret, err := walk(n.Args[0])
++				if err != nil {
++					return nil, trace.Wrap(err)
++				}
++				result.parts = ret.parts
++				result.matcher = ret.matcher
++				return &result, nil
++			case RegexpNamespace:
++				if call.Sel.Name != RegexpMatchFnName && call.Sel.Name != RegexpNotMatchFnName {
++					return nil, trace.BadParameter("unsupported function regexp.%s, supported functions are: regexp.match, regexp.not_match.", call.Sel.Name)
++				}
++				if len(n.Args) != 1 {
++					return nil, trace.BadParameter("expected 1 argument for regexp.%s got %v", call.Sel.Name, len(n.Args))
++				}
++				if n.Ellipsis.IsValid() {
++					return nil, trace.BadParameter("variadic arguments are not supported for regexp.%s", call.Sel.Name)
++				}
++				argument, ok := n.Args[0].(*ast.BasicLit)
++				if !ok || argument.Kind != token.STRING {
++					return nil, trace.BadParameter("expected a string literal argument for regexp.%s", call.Sel.Name)
++				}
++				pattern, err := strconv.Unquote(argument.Value)
++				if err != nil {
++					return nil, trace.BadParameter("invalid string literal %q: %v", argument.Value, err)
++				}
++				re, err := regexp.Compile(pattern)
++				if err != nil {
++					return nil, trace.BadParameter("failed parsing regexp %q: %v", pattern, err)
++				}
++				result.matcher = regexpMatcher{re: re}
++				if call.Sel.Name == RegexpNotMatchFnName {
++					result.matcher = notMatcher{matcher: result.matcher}
++				}
++				return &result, nil
++			default:
++				return nil, trace.BadParameter("unsupported function namespace %s, supported namespaces are email and regexp", namespace.Name)
+ 			}
+-			result.parts = ret.parts
+-			return &result, nil
+ 		default:
+ 			return nil, trace.BadParameter("unsupported function %T", n.Fun)
+ 		}
+diff --git a/lib/utils/parse/parse_test.go b/lib/utils/parse/parse_test.go
+index dd458ed..d81088e 100644
+--- a/lib/utils/parse/parse_test.go
++++ b/lib/utils/parse/parse_test.go
+@@ -17,6 +17,9 @@ limitations under the License.
+ package parse
+ 
+ import (
++	"fmt"
++	"regexp"
++	"strings"
+ 	"testing"
+ 
+ 	"github.com/google/go-cmp/cmp"
+@@ -117,6 +120,229 @@ func TestRoleVariable(t *testing.T) {
+ 	}
+ }
+ 
++// TestMatch checks the matcher syntax and the boundaries of each match.
++func TestMatch(t *testing.T) {
++	tests := []struct {
++		name    string
++		pattern string
++		matches []string
++		misses  []string
++	}{
++		{
++			name:    "literal",
++			pattern: "foo.bar",
++			matches: []string{"foo.bar"},
++			misses:  []string{"fooXbar", "xfoo.bar", "foo.barx"},
++		},
++		{
++			name:    "wildcard",
++			pattern: "*",
++			matches: []string{"", "foo", "foo/bar"},
++		},
++		{
++			name:    "wildcard with fixed sides",
++			pattern: "foo*bar",
++			matches: []string{"foobar", "foo-middle-bar"},
++			misses:  []string{"xfoobar", "foobarx", "foobaz"},
++		},
++		{
++			name:    "raw regular expression",
++			pattern: "^foo[0-9]+$",
++			matches: []string{"foo1", "foo123"},
++			misses:  []string{"foo", "xfoo1", "foo1x"},
++		},
++		{
++			name:    "regexp match function",
++			pattern: `{{regexp.match("^foo[0-9]+$")}}`,
++			matches: []string{"foo1", "foo123"},
++			misses:  []string{"foo", "xfoo1", "foo1x"},
++		},
++		{
++			name:    "regexp function uses regexp search semantics",
++			pattern: `{{regexp.match("foo")}}`,
++			matches: []string{"foo", "prefix-foo-suffix"},
++			misses:  []string{"bar"},
++		},
++		{
++			name:    "regexp quantifier braces inside template",
++			pattern: `{{regexp.match("^a{2}$")}}`,
++			matches: []string{"aa"},
++			misses:  []string{"a", "aaa"},
++		},
++		{
++			name:    "closing brackets inside quoted regexp",
++			pattern: `{{regexp.match("a}}b")}}`,
++			matches: []string{"a}}b"},
++			misses:  []string{"ab"},
++		},
++		{
++			name:    "regexp not match function",
++			pattern: `{{regexp.not_match("^foo$")}}`,
++			matches: []string{"", "bar", "xfoo"},
++			misses:  []string{"foo"},
++		},
++		{
++			name:    "prefix and suffix",
++			pattern: `foo-{{regexp.match("^bar$")}}-baz`,
++			matches: []string{"foo-bar-baz"},
++			misses:  []string{"bar", "foo-baz-baz", "xfoo-bar-baz", "foo-bar-bazx"},
++		},
++		{
++			name:    "prefix and suffix with negation",
++			pattern: `foo-{{regexp.not_match("^bar$")}}-baz`,
++			matches: []string{"foo-other-baz"},
++			misses:  []string{"foo-bar-baz", "other", "xfoo-other-baz"},
++		},
++		{
++			name:    "prefix and suffix cannot overlap",
++			pattern: `a{{regexp.not_match("x")}}a`,
++			matches: []string{"aa", "aba"},
++			misses:  []string{"a", "axa"},
++		},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			matcher, err := Match(tt.pattern)
++			if !assert.NoError(t, err) {
++				return
++			}
++			for _, input := range tt.matches {
++				assert.True(t, matcher.Match(input), "%q should match %q", input, tt.pattern)
++			}
++			for _, input := range tt.misses {
++				assert.False(t, matcher.Match(input), "%q should not match %q", input, tt.pattern)
++			}
++		})
++	}
++}
++
++// TestMatchErrors checks invalid matcher syntax and the documented diagnostics.
++func TestMatchErrors(t *testing.T) {
++	_, regexpErr := regexp.Compile("[")
++	tests := []struct {
++		name      string
++		pattern   string
++		wantError string
++		contains  string
++	}{
++		{
++			name:      "missing closing brackets",
++			pattern:   `foo-{{regexp.match("bar")}`,
++			wantError: `"foo-{{regexp.match(\"bar\")}" is using template brackets '{{' or '}}', however expression does not parse, make sure the format is {{expression}}`,
++		},
++		{
++			name:      "missing opening brackets",
++			pattern:   `foo-regexp.match("bar")}}`,
++			wantError: `"foo-regexp.match(\"bar\")}}" is using template brackets '{{' or '}}', however expression does not parse, make sure the format is {{expression}}`,
++		},
++		{
++			name:      "unsupported namespace",
++			pattern:   `{{other.match("foo")}}`,
++			wantError: "unsupported function namespace other, supported namespaces are email and regexp",
++		},
++		{
++			name:      "unsupported regexp function",
++			pattern:   `{{regexp.replace("foo")}}`,
++			wantError: "unsupported function regexp.replace, supported functions are: regexp.match, regexp.not_match.",
++		},
++		{
++			name:      "unsupported email function",
++			pattern:   `{{email.domain("foo")}}`,
++			wantError: "unsupported function email.domain, supported functions are: email.local",
++		},
++		{
++			name:      "invalid regexp match",
++			pattern:   `{{regexp.match("[")}}`,
++			wantError: fmt.Sprintf("failed parsing regexp %q: %v", "[", regexpErr),
++		},
++		{
++			name:      "invalid regexp not match",
++			pattern:   `{{regexp.not_match("[")}}`,
++			wantError: fmt.Sprintf("failed parsing regexp %q: %v", "[", regexpErr),
++		},
++		{
++			name:     "no arguments",
++			pattern:  `{{regexp.match()}}`,
++			contains: "argument",
++		},
++		{
++			name:     "two arguments",
++			pattern:  `{{regexp.match("foo", "bar")}}`,
++			contains: "argument",
++		},
++		{
++			name:     "variadic argument",
++			pattern:  `{{regexp.match("foo"...)}}`,
++			contains: "variadic arguments",
++		},
++		{
++			name:     "non-string argument",
++			pattern:  `{{regexp.match(42)}}`,
++			contains: "string literal",
++		},
++		{
++			name:     "variable argument",
++			pattern:  `{{regexp.match(internal.foo)}}`,
++			contains: "string literal",
++		},
++		{
++			name:     "nested function argument",
++			pattern:  `{{regexp.match(regexp.match("foo"))}}`,
++			contains: "string literal",
++		},
++		{
++			name:     "variable expression",
++			pattern:  `{{internal.foo}}`,
++			contains: "is not a valid matcher expression - no variables and transformations are allowed",
++		},
++		{
++			name:     "transformation",
++			pattern:  `{{email.local(internal.foo)}}`,
++			contains: "is not a valid matcher expression - no variables and transformations are allowed",
++		},
++		{
++			name:     "multiple expressions",
++			pattern:  `{{regexp.match("foo")}}{{regexp.match("bar")}}`,
++			contains: "is not a valid matcher expression - no variables and transformations are allowed",
++		},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			matcher, err := Match(tt.pattern)
++			assert.Nil(t, matcher)
++			if !assert.IsType(t, trace.BadParameter(""), err) {
++				return
++			}
++			if tt.wantError != "" {
++				assert.EqualError(t, err, tt.wantError)
++			}
++			if tt.contains != "" {
++				assert.True(t, strings.Contains(err.Error(), tt.contains), "%q should contain %q", err, tt.contains)
++			}
++		})
++	}
++}
++
++func TestVariableRejectsMatcherFunctions(t *testing.T) {
++	for _, input := range []string{
++		`{{regexp.match("foo")}}`,
++		`prefix-{{regexp.not_match("bar")}}-suffix`,
++		`{{regexp.match("a{2}")}}`,
++		`{{regexp.match("foo")}}{{internal.bar}}`,
++		`{{{{regexp.match("foo")}}}}`,
++	} {
++		t.Run(input, func(t *testing.T) {
++			variable, err := Variable(input)
++			assert.Nil(t, variable)
++			if assert.IsType(t, trace.BadParameter(""), err) {
++				assert.EqualError(t, err, fmt.Sprintf("matcher functions (like regexp.match) are not allowed here: %q", input))
++			}
++		})
++	}
++}
++
+ // TestInterpolate tests variable interpolation
+ func TestInterpolate(t *testing.T) {
+ 	type result struct {

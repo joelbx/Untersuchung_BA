@@ -1,0 +1,3 @@
+Resolved the PassAliases drawer issue. The provider now looks up a vault during initialization and creates one when alias options are requested. Alias fetches update the drawer state and cached list, so reopening the drawer can show the latest aliases. The drawer displays every alias and shows “No aliases” when the list is empty.
+
+Verification passed: the focused drawer tests (3 tests), TypeScript checks for components and Pass, and `git diff --check`.

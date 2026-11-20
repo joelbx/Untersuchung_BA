@@ -1,0 +1,3 @@
+Updated the OSS migration to downgrade the existing `admin` role in place. It now uses the `OSSMigratedV6` label to skip repeat migration, assigns existing users and trusted cluster mappings to `admin`, and gives legacy users the `admin` role. The downgraded role keeps broad resource access while limiting event and session permissions to read only.
+
+The focused migration test and affected service and CLI package tests pass. The full `go test ./...` run failed in unrelated integration, cgroup, reverse tunnel, and expired certificate tests; details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

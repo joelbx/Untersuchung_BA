@@ -1,0 +1,3 @@
+Host blocking now checks the request hostname and each parent domain against both blocked sets. Whitelist rules take precedence, the per-URL blocking toggle still applies, and trailing-dot hosts match their non-trailing forms. I added `widened_hostnames` in [urlutils.py](/app/qutebrowser/utils/urlutils.py) and updated the blocker in [hostblock.py](/app/qutebrowser/components/hostblock.py).
+
+Verification: the relevant suite passed (436 passed, 1 skipped). After the final trailing-dot case was added, focused tests and the full hostblock suite also passed (59 passed, 1 skipped).

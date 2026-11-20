@@ -1,0 +1,3 @@
+Reserved tags are now configurable through `meta.config.systemTags` in admin tag settings. Topic creation, editing, queued posting, and the tagging API reject unprivileged use with “You can not use this system tag.” The `isTagAllowed` check also reports reserved tags as unavailable.
+
+The topic and category suites pass (169 and 54 tests), and ESLint passes. The full `npm test` run stopped after 177 passes on an unrelated plugins API test: its external package request was blocked, causing a 500 response.

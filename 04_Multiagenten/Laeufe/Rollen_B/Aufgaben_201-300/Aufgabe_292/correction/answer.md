@@ -1,0 +1,3 @@
+Fixed both review findings. Polling now registers before its goroutine launches, so `Close()` waits for shutdown even when called immediately. The `fs.Store` wrapper now forwards `Close()` to its backend. Added tests for both cases.
+
+`GOPROXY=off GOSUMDB=off go test ./internal/storage/fs/...` passed. Git, Azure, and S3 endpoint dependent integration tests remain skipped (`TEST_ENVIRONMENT_PROBLEM`: endpoints unset).

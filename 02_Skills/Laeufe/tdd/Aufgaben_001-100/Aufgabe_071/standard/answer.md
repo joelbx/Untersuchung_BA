@@ -1,0 +1,3 @@
+Updated [_parse_clixml](/app/lib/ansible/plugins/shell/powershell.py:32) to decode CLIXML UTF-16 escapes, combine surrogate pairs, preserve control characters and unmatched surrogates, filter by stream, and join results at `<Objs>` block boundaries. Added regression tests in [test_powershell.py](/app/test/units/plugins/shell/test_powershell.py:6).
+
+The shell plugin suite passes: **15 tests**. Repository-wide verification remains incomplete: `python -m pytest -q` stops during integration-test collection, and the unit-tree run encountered CLI failures before aborting in a config test. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

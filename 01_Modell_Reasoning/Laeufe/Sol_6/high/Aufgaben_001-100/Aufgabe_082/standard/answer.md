@@ -1,0 +1,3 @@
+Fixed the auth service crash for multiple audit event backends. `MultiLog` now validates that each backend can emit events and fans events out to them. The `stdout://` backend now uses `WriterEmitter`, which writes newline-delimited JSON audit events. Close errors are aggregated.
+
+The focused `lib/events` tests and the service configuration test, including a combined `file://` and `stdout://` configuration, pass.

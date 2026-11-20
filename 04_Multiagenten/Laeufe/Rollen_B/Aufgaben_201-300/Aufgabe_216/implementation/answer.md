@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to resolve its settings through `get_option()`, including command arguments, transfer method, retries, timeout, and control path. Reset now uses the effective SSH command to check for an active persistent connection, skips the stop command when none exists, and stops it when present. Removed the duplicate SSH settings from core configuration and updated the related references and tests.
+
+Verification: `PYTHONPATH=lib pytest -q test/units/plugins/connection/test_ssh.py` — **22 passed**.

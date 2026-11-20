@@ -1,0 +1,3 @@
+Implemented `x-flipt-accept-server-version` handling in the [gRPC middleware](/app/internal/server/middleware/grpc/middleware.go). The new interceptor stores parsed versions in request context, accepts both `v1.0.0` and `1.0.0`, and falls back to `1.0.0` when the header is missing or invalid. It is registered in the [server interceptor chain](/app/internal/cmd/grpc.go).
+
+Added focused tests. `go test ./internal/server/middleware/grpc ./internal/cmd` passed.

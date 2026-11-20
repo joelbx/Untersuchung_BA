@@ -1,0 +1,3 @@
+Centralized storage units in [size.ts](/app/packages/shared/lib/helpers/size.ts) and updated the member, CSV, organization, and other storage calculations to use them. Drive plan initial allocations now use `sizeUnits.TB`.
+
+The CSV suite passed: 64 tests and 5 snapshots. Formatting and diff checks passed. Both type checks stopped at an OpenPGP type conflict in [worker/api.ts](/app/packages/crypto/lib/worker/api.ts:579); they reported no errors in the edited files.

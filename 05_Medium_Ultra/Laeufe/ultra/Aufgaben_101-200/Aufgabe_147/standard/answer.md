@@ -1,0 +1,3 @@
+Fixed DeviceConfig loading in [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts). Persisted fields now live in one config object, credentials are held in a Map, and loading leaves current-version storage untouched when a signup token exists. Migration and missing-token creation write a complete config; invalid or unavailable storage recovers with defaults.
+
+Expanded [DeviceConfigTest.ts](/app/test/client/misc/DeviceConfigTest.ts). Verification passed: `npm run testclient` (3,112 assertions), source and test TypeScript checks, and `git diff --check`. I delegated the API audit and test expansion to two native agents, then integrated and verified the patch.

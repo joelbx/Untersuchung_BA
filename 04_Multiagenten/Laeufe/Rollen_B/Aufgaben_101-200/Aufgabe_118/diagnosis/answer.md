@@ -1,0 +1,5 @@
+I localized the failure in [pip.py](/app/lib/ansible/modules/pip.py:387). `_get_pip` searches for a binary and fails when none is found, even if `pip` is importable by the current interpreter. The required fix would detect that case and return an argv launcher using `sys.executable` and `-m pip`.
+
+The related changes are in the same file: `main` currently wraps the launcher as one argv element and derives the virtualenv path prefix by splitting on `/`; `_get_packages` formats the launcher as a string for `list` and `freeze`. The importability helper does not yet exist. The existing [unit test](/app/test/units/modules/test_pip.py:14) assumes that a missing binary means failure and does not cover the reported case. All four existing pip unit tests pass.
+
+I recorded the diagnosis in `.codex-role-output/checkpoint.md`. The specialist constraints for this run prohibit source and test edits, so the repository fix remains unimplemented.

@@ -1,0 +1,3 @@
+Implemented NIOS fixed address management for IPv4 and IPv6, including present/absent states, check mode, DHCP options, comments, and extensible attributes. Added the Fixed Address WAPI constants and lookup/payload handling in [api.py](/app/lib/ansible/module_utils/net_tools/nios/api.py), the new [nios_fixed_address.py](/app/lib/ansible/modules/net_tools/nios/nios_fixed_address.py), and focused unit coverage.
+
+Verification: the focused NIOS API and module tests passed (13 tests), and `git diff --check` passed.

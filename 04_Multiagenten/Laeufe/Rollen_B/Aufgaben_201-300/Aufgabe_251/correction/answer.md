@@ -1,0 +1,3 @@
+Fixed both review findings. Malformed YAML now retains the parser’s message and source line, and a flag missing its required `key` fails validation with the field path in the result. Added regression tests for both cases.
+
+`go test ./internal/cue ./cmd/flipt` and `git diff --check` pass. A CLI probe returned exit code 1 and JSON containing both errors. The YAML parser does not provide a column for syntax errors, so those errors use column 1.

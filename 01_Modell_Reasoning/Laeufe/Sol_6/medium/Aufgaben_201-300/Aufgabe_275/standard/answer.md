@@ -1,0 +1,3 @@
+Updated [authenticate](/app/lib/kube/proxy/forwarder.go:316) to return `AccessDenied` only for access-related `setupContext` errors. It now wraps other errors, preserving their trace classification. The existing authentication tests now verify that unknown local Kubernetes clusters and remote requests without a reverse tunnel remain `BadParameter` and are not `AccessDenied`.
+
+`go test ./lib/kube/proxy -count=1` passed.

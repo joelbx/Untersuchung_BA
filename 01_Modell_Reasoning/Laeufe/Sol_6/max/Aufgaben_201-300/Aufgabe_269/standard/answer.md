@@ -1,0 +1,3 @@
+Trivy CVEs now have separate `trivy:<source>` contents. The converter and library detector preserve each source’s severity, CVSS values, references, and dates, including differing reports for the same CVE across targets. Model aggregation and TUI references now include the new source types.
+
+Regression tests and parser fixtures were updated. The relevant Trivy, model, detector, reporter, and TUI package tests pass; `git diff --check` passes.

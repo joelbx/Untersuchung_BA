@@ -1,0 +1,3 @@
+Fixed the import issue in `/app`. YAML import now uses yaml.v3, including the namespace and segment decoders. JSON import accepts one leading line that starts with `#`. Nested metadata and attachments import without map conversion, and metadata is preserved when a default variant triggers a flag update.
+
+Added regression tests for both formats, namespace fields, nested metadata, and the JSON header rule. `go test ./internal/ext` and `git diff --check` pass. The `cmd/flipt` test run was stopped during lengthy sqlite3 compilation, before its tests ran.

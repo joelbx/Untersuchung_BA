@@ -1,0 +1,3 @@
+Replaced the user-facing `:buffer` command with `:tab-select`. The command retains tab matching, count precedence, and cross-window selection. Completion now uses the public `tabs` and `other_tabs` providers; help, the default `gt` binding, examples, and affected tests reference `:tab-select`.
+
+The relevant suites reported **337 passed, 1 skipped**. Both pytest processes exited with an X11 shutdown error after their pass summaries. `git diff --check` passed.

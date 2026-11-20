@@ -1,0 +1,3 @@
+Fixed [DeviceConfig](/app/src/misc/DeviceConfig.ts) so loading a current config with a signup token leaves local storage untouched. Migration now preserves recognized fields and converts legacy credentials into a userId-keyed object; a missing token triggers a write. Added regression coverage in [DeviceConfigTest.ts](/app/test/client/misc/DeviceConfigTest.ts).
+
+Verification: TypeScript checks passed, and the client suite passed all 3,091 assertions.

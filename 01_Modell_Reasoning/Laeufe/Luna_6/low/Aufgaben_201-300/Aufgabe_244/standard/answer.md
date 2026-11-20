@@ -1,0 +1,1 @@
+I added the public `colors.webpage.darkmode.threshold.foreground` option and mapped the legacy `threshold.text` name to it. I didn’t finish the QtWebEngine version-specific backend key mapping, so the issue is only partially resolved.

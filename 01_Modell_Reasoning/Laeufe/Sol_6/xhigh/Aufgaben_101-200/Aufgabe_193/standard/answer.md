@@ -1,0 +1,3 @@
+Updated [ansible-galaxy](/app/lib/ansible/cli/galaxy.py) so an implicit `install -r` processes roles and collections in one run. Custom role paths and explicit subcommands skip the other type with the required messages. The change also handles empty requirements files, validates role file extensions, and processes role dependencies without reinstalling existing ones unless forced.
+
+Added CLI coverage and updated the empty-requirements integration assertion. **All 122 CLI unit tests pass**, and `git diff --check` is clean. The integration task was not run because it installs from Galaxy.

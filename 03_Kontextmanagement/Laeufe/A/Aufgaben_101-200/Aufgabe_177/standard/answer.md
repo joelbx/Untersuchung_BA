@@ -1,0 +1,3 @@
+Implemented chat allow and deny lists, the disable incoming chats setting, account controls, and an idempotent upgrade that seeds allow lists from existing follows. Server checks now apply to direct chat initiation, room creation, invites, and federated room creation, with explicit blocks taking precedence.
+
+Verification: 353 messaging and user tests passed; 11 federated chat tests passed. ESLint and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented the shared `pkgPs` lookup and updated Debian and Red Hat `postScan` to use it. RPM ownership now associates processes by package name, so a reported version or architecture that differs from the stored package no longer triggers a spurious lookup warning. The parser ignores the three specified diagnostics and returns an error for malformed lines.
+
+Added a focused regression test. `GOPROXY=off go test ./scan -count=1` and `git diff --check` pass.

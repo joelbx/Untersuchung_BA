@@ -1,0 +1,5 @@
+The fault is in [ZipArchive.is_unarchived](/app/lib/ansible/modules/unarchive.py:605). Its length check accepts `19800000.000000`, then `time.strptime` raises because the month and day are zero. This path runs when an archive member already exists at the destination.
+
+The fix should add `_valid_time_stamp` to extract `YYYYMMDD.HHMMSS` fields with a regular expression, validate the date and ZIP year range of 1980–2107, and return `(1980, 1, 1, 0, 0, 0, 0, 0, 0)` for invalid values. `is_unarchived` should use that sanitized value for its timestamp comparison in place of `datetime.datetime` and `time.strptime`.
+
+The existing [unit tests](/app/test/units/modules/test_unarchive.py) do not cover timestamps; the [ZIP integration test](/app/test/integration/targets/unarchive/tasks/test_zip.yml) uses valid dates. The reported XPI was not available locally, so its other members remain unverified. No project source or tests were edited under this specialist pass’s diagnosis-only instruction.

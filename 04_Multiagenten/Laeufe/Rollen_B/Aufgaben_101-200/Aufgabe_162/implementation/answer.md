@@ -1,0 +1,3 @@
+`FormatString` now accepts an optional `encoding` and raises a `ValidationError` when a template contains characters it cannot encode. The `content.headers.user_agent` setting requires ASCII; format strings without an encoding constraint retain their existing behavior.
+
+Added type and configuration tests. The config type suite passed (1,106 passed, 10 expected failures), and all 32 config data tests passed.

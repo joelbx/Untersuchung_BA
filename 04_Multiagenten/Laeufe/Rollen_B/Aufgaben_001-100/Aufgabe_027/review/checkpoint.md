@@ -1,0 +1,5 @@
+VERDICT: FIX
+Review complete. CODE DEFECT: applications/drive/src/app/utils/lastActivePersistedUserSession.ts:37-38 accepts any JSON object (including {} and []) as a persisted session; lines 67-74 then return its numeric ID. Thus ps-2='{}' yields 2 rather than null when no valid persisted session exists. applications/drive/src/app/store/_views/useBookmarksPublicView.ts:41-49 tries resumeSession for that ID, which can fail before listBookmarks runs. Validate the required session fields (at least nonempty UID/UserID, with compatible session shape) before considering a key a valid session; adjust minimal fixtures in existing tests accordingly. Ensure invalid entries do not suppress a valid one.
+TESTS: Executed from /app/applications/drive: ../../node_modules/.bin/jest --config jest.config.js --runInBand --coverage=false src/app/utils/lastActivePersistedUserSession.test.ts src/app/store/_views/useBookmarksPublicView.test.ts. Result: exit 0; 2 suites passed, 18 tests passed.
+TEST_ENVIRONMENT_PROBLEM: none.
+No project code or tests changed during review.

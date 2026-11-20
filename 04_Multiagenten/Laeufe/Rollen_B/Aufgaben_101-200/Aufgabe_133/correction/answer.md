@@ -1,0 +1,3 @@
+Fixed the OSS migration retry path. The downgraded `admin` role and its completion label are now written after users, trusted clusters, CAs, and GitHub connectors are updated. Trusted cluster migration also checks both CAs on retry, even if an earlier attempt labeled the cluster.
+
+Added a regression test for migration interrupted by a missing host CA. All three reviewer test commands and `git diff --check` passed. No remaining failures; TEST_ENVIRONMENT_PROBLEM: None.

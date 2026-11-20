@@ -1,0 +1,3 @@
+Moved tracing setup from gRPC startup into [internal/tracing/tracing.go](/app/internal/tracing/tracing.go). It now creates the resource and always-on provider, configures Jaeger, Zipkin, and OTLP exporters, and guards exporter shutdown. [grpc.go](/app/internal/cmd/grpc.go) uses those functions and registers their shutdown callbacks.
+
+Three subagents handled the tracing implementation, gRPC integration, and isolated tests. I reviewed the combined patch and added a tracing-enabled server test. Offline tests passed for `./internal/tracing` and `./internal/cmd` with capped Go build concurrency.

@@ -1,0 +1,3 @@
+Implemented `.well-known` `force_disable` for new rooms. The shared policy helper now resolves server and `.well-known` settings, with server policy taking precedence on conflicts. The room dialog disables the encryption control while that decision is pending, displays any enforced value, and submits the value shown.
+
+The focused tests pass: 28 tests across two suites. ESLint, Prettier, and `git diff --check` pass. The full TypeScript check remains blocked by an unrelated existing error in [Unread.ts](/app/src/Unread.ts:167).

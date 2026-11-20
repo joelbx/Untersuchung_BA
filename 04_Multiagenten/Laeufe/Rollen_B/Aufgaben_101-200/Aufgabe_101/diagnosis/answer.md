@@ -1,0 +1,3 @@
+The fault is in the three backend implementations of `listRemoveAll`: [Redis](/app/src/database/redis/list.js:25) passes the array to one `LREM` call; [MongoDB](/app/src/database/mongo/list.js:53) converts it to one string before `$pull`; and [PostgreSQL](/app/src/database/postgres/list.js:93) uses `array_remove` with a scalar parameter. Each needs to process every requested string while preserving the order of the remaining list and completing before a subsequent read.
+
+[Existing tests](/app/test/database/list.js:159) cover one removal value and a missing key, but not an array. The diagnosis is based on code inspection; I did not run tests. Source and tests remain unchanged under my fault-localization instructions, so the issue is not yet resolved.

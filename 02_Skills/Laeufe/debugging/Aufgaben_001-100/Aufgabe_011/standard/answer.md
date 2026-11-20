@@ -1,0 +1,3 @@
+Fixed the reported behaviors in `/app`: unset module values and `fail_json` traceback handling, legacy YAML constructors, `None` Templar overrides, lookup error messages, deprecation configuration and messaging, Boolean `timedout` results, and early CLI error output. Added regression tests.
+
+The relevant suites passed: **145 passed, 1 skipped**, plus **65 error tests passed**. A combined display and error handler run still has two order dependent failures; both tests pass when the error suite runs separately. The commands and results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

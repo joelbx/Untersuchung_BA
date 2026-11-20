@@ -1,0 +1,3 @@
+Updated the email confirmation flow to store a UID-to-code mapping and an explicit expiry timestamp. ACP validation can now find a pending email when the profile email is empty, expired codes cannot be used, and account deletion removes both confirmation keys. The user list now shows **Validated**, **Validation Pending**, **Validation Expired**, or **(no email)**.
+
+Verification: 5 focused confirmation tests passed; ESLint and `git diff --check` passed.

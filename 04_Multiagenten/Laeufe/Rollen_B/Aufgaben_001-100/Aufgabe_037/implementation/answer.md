@@ -1,0 +1,3 @@
+Fixed the undefined-variable YAML error. `AnsibleDumper` now triggers Jinja’s named undefined error; `to_yaml` and `to_nice_yaml` report failures as `AnsibleFilterError` while preserving the cause; and templating surfaces undefined values as `AnsibleUndefinedVariable`.
+
+Added coverage for top-level and nested undefined values, both filters, and the template path. The relevant local suite passed: **66 tests**.

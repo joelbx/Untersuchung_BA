@@ -1,0 +1,3 @@
+Implemented the QtWebEngine 5.15.3 locale workaround. The new `qt.workarounds.locale` setting defaults to `false` and is available only with the QtWebEngine backend. When enabled on Linux with exactly QtWebEngine 5.15.3, startup checks for the locale `.pak` file and adds `--lang` only if a fallback is needed.
+
+Added tests for locale mappings, fallback behavior, version and platform guards, and argument emission. The relevant test suites pass: **178 passed**.

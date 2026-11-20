@@ -1,0 +1,7 @@
+The broadcast originates in [server/events/sse.go](/app/server/events/sse.go:80): `SendMessage` receives no request context, and the broker queues every event for every subscriber. Subscribers also have no client unique ID to compare with the sender.
+
+The fix needs a per-window UUID sent by [httpClient.js](/app/ui/src/dataProvider/httpClient.js:8), header and cookie middleware registered before the loggers in [server.go](/app/server/server.go:56), and context helpers in [request.go](/app/model/request/request.go:11). The SSE connection uses `EventSource`, which cannot set a custom header; its preceding keepalive request can establish the cookie. Delivery filtering then belongs in the broker, with request contexts passed from [media_annotation.go](/app/server/subsonic/media_annotation.go:77) and the intended broadcast contexts chosen in [scanner.go](/app/scanner/scanner.go:101).
+
+One integration detail needs care: native API authentication stores `User` in context, while Subsonic also stores `Username`. Filtering must use the authenticated username for both paths.
+
+I inspected code and existing tests and recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md). I did not edit project source or tests because my assigned role is fault localization only, so the issue remains unresolved.

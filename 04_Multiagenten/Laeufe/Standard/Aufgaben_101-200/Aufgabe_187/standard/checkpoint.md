@@ -1,0 +1,3 @@
+Task: Resolve Kubernetes exec failures caused by missing uploader initialization and forwarder session state caching.
+Implemented: Kubernetes service starts the session uploader before accepting sessions; ForwarderConfig fields now name their responsibilities; Forwarder exposes ServeHTTP through an internal router; cluster sessions are built per request while valid short-lived TLS credentials are cached and CSR requests serialized; audit events and recorder close use the forwarder lifetime context; exec response errors are logged and emitted as failures.
+Verification: go test ./lib/kube/proxy ./lib/service passed; git diff --check passed.

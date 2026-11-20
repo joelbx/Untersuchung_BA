@@ -1,0 +1,3 @@
+Forked `Display.display` calls now send `DisplaySend` events through `FinalQueue`; the parent results thread writes them under a lock. Worker shutdown no longer redirects stdout and stderr to `/dev/null`, and cleanup flushes both streams. The results reader waits for workers before stopping so it can receive their final messages.
+
+Validation: 11 tests passed, 9 existing tests skipped; `git diff --check` passed.

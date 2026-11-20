@@ -1,0 +1,3 @@
+Deprecated both `safe_eval` entry points with a runtime notice targeting 2.21. Updated `check_type_dict` to use JSON, literal parsing, and validated `key=value` pairs without calling `safe_eval`; added a changelog entry and regression tests.
+
+The focused tests pass (91 tests), and `git diff --check` passes. The broader `module_utils.basic` suite has 24 failures involving shared warning state and `exit_json` expectations; an existing warning test also fails in isolation. I recorded the commands and results in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

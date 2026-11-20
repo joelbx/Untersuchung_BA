@@ -1,0 +1,3 @@
+Added `SetSeed` to the global API and `Hasher`, with per-ID seed storage and automatic initialization. Reseeding changes an ID’s hash; setting its earlier seed restores the earlier result. Seed access is synchronized for concurrent use.
+
+The hasher, database, and persistence tests pass, including the hasher race test. Because Go’s `maphash` seed is process wide, restored hashes are reproducible within a process; they may differ after a restart.

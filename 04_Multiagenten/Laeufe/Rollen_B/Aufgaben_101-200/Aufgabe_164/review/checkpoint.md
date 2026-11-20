@@ -1,0 +1,2 @@
+VERDICT: ACCEPT
+Reviewed current diff in internal/ext/encoding.go, importer.go, importer_test.go and namespace/CLI import flow. YAML v3 decoder preserves nested map and array values for metadata and attachments; JSON skips only an initial # line. Existing import coverage checks namespace key/name/description and JSON header behavior. Tests: go test ./internal/ext ./cmd/flipt => exit 0; internal/ext ok, cmd/flipt has no test files. git diff --check => exit 0. No code defects or TEST_ENVIRONMENT_PROBLEM found.

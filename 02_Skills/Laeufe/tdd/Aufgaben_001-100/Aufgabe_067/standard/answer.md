@@ -1,0 +1,3 @@
+Added `scrolling.bar=overlay`. It enables Chromium’s `OverlayScrollbar` flag only on non-macOS QtWebEngine with Qt 5.11 or newer. Legacy `False` values now migrate to `overlay`, and `@js_headers` tests skip the affected Qt 5.12–5.14 range.
+
+Focused verification: **357 passed, 1 skipped**. Full-suite collection succeeds, but the full run timed out amid end-to-end startup failures because QtWebKit is unavailable. The separate `TestDarkMode::test_new_chromium` check also exits without a pytest summary. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

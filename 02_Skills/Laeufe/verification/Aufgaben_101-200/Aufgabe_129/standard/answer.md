@@ -1,0 +1,3 @@
+Added the current-session kebab menu with accessible open and close behavior, destructive sign-out actions, and a bulk action that targets only other sessions. Updated the styles, translation string, tests, and snapshots.
+
+Verification: 55 focused tests and 9 snapshots passed; ESLint, Stylelint, and `git diff --check` passed. The full TypeScript check remains blocked by unrelated errors elsewhere in the checkout, recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

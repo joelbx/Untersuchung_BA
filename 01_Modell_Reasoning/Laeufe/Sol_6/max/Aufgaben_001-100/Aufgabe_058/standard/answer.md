@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts:68) to validate configuration before enabling tracking, enforce DNT and anonymity across capture and identification, await captures, hash IDs, redact URLs by mode, and provide the requested state and logout methods. Expanded [the tests](/app/test/PosthogAnalytics-test.ts) for those behaviors.
+
+Verification: 28 PosthogAnalytics tests, file lint, focused TypeScript check, and diff check passed. The repository-wide TypeScript check still fails on errors outside this module.

@@ -1,0 +1,1 @@
+Implemented ProcessOutcome.was_sigterm, signal-specific crash messages, terminated state, PID-specific completion messages, and quiet SIGTERM handling unless verbose. Updated existing GUI process tests, including SIGTERM coverage. Validation: compileall and git diff --check passed. pytest could not load tests because PyQt5 is absent (ModuleNotFoundError).

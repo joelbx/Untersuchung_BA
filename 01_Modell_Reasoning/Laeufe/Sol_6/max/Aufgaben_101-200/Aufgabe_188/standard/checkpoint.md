@@ -1,0 +1,5 @@
+# Storage size constants
+
+Inventory complete: `humanSize.ts` owns the current `sizeUnits` object, `constants.ts` duplicates `BASE_SIZE`/`GIGA`, and member flows, CSV import, bonus allocations, offer copy, Drive and preview limits use those definitions or inline byte multipliers. Moving the definitions to `size.ts`, changing the Drive organization default to `sizeUnits.TB` per the issue, then running existing CSV and shared size tests plus type checks.
+
+Implementation complete in checked-out files. CSV Jest tests: 64 passed. Existing shared `humanSize` spec via Jest: 15 passed. Existing shared preview spec via Jest: 18 passed. Prettier and `git diff --check` passed. Shared and component `tsc` each fail in unchanged `packages/crypto/lib/worker/api.ts` because its OpenPGP types resolve from two package instances; neither reported an edited-file error. Shared Karma runner has no usable local Chromium binary; the relevant specs ran through the repository's Jest setup instead. Focused ESLint exceeded Node's default heap before producing a result.

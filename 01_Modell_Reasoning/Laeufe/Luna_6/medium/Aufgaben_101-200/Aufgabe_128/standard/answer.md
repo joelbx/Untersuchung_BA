@@ -1,0 +1,3 @@
+Implemented ipset matching in [iptables.py](/app/lib/ansible/modules/iptables.py): `match_set` and `match_set_flags` must be provided together, flags are restricted to the four requested values, and the module emits the set match whether or not `match: ['set']` is specified. A leading `!` on `match_set` inverts the match.
+
+Added unit coverage for implicit and explicit set matches, inversion, option ordering, and validation. The existing iptables unit suite passes: **25 passed**.

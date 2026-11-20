@@ -1,0 +1,7 @@
+I localized the issue, but did not implement the fix: this specialist assignment restricts me to inspecting code and tests. I recorded the findings in [checkpoint.md](/app/.codex-role-output/checkpoint.md).
+
+The likely fix spans [the OCI store](/app/internal/oci/file.go:105), where `Fetch` retains a local OCI target that can miss external tag changes; a new `internal/storage/fs/oci/source.go` for digest-aware `Get` and polling `Subscribe`; and [the snapshot interface](/app/internal/storage/fs/store.go:15), whose `Get` currently has no context parameter. The local, Git, and S3 sources and their callers also use that signature.
+
+`fetchFiles` currently accepts only namespace layers, does not apply the layer’s namespace annotation, and does not handle gzip. [SnapshotFromFiles](/app/internal/storage/fs/snapshot.go:119) is the downstream file consumer. If configured OCI storage must work end to end, [gRPC store construction](/app/internal/cmd/grpc.go:150) also needs an OCI case.
+
+The existing OCI tests cover initial fetches and unchanged digest matches, but not external retagging or subscriptions. That leaves the precise stale-reference behavior unverified by a test. The current baseline passes: `go test ./internal/oci ./internal/storage/fs/...` with dependency downloads disabled.

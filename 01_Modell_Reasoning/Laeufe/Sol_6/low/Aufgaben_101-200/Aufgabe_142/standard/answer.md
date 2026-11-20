@@ -1,0 +1,3 @@
+I replaced the expression walk with AST nodes for literals, variables, nested string functions, and boolean regex predicates. I also updated role and PAM interpolation to validate variable namespaces and names through the new callback.
+
+Verification is incomplete. The existing parse tests compile, but structural equality assertions fail because parsed expressions now retain AST nodes. The services and server test runs are blocked by missing native build dependencies (`linux/hidraw.h` and related CGO types). The checkpoint is in `.codex-role-output/checkpoint.md`.

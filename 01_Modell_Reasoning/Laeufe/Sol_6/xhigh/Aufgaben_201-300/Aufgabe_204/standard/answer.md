@@ -1,0 +1,3 @@
+Implemented `guessDateFromText` in [property.ts](/app/packages/shared/lib/contacts/property.ts:146) and wired it into [CSV import](/app/packages/shared/lib/contacts/helpers/csvFormat.ts:591) and vCard date conversion. It parses the requested formats, leaves unparseable dates unset, and preserves calendar values in vCard serialization.
+
+Type checking passed, and all 14 focused contact tests passed. The full shared suite passed 871 of 873 tests; the two failures were in cookie expiry and empty-file base64 tests.

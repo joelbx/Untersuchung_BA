@@ -1,0 +1,6 @@
+VERDICT: FIX
+Independent review completed. Code defects in openlibrary/catalog/add_book/load_book.py:
+- Lines 137-143 require empty and populated dates to be equal. An exact-name lookup for Jane Writer with no input birth date returns None when the stored Jane Writer has birth_date=1902, causing a duplicate. Existing author_dates_match skipped comparisons where either field was absent. Compare extracted years only where both dates are present.
+- Lines 201-230 merge original and flipped-name results, then choose by lowest key. With input Smith, John and stored Smith, John (/authors/OL9A) and John Smith (/authors/OL1A), find_entity returns /authors/OL1A. Preserve exact-name priority by selecting the first successful matching tier before trying flipped names.
+- Lines 233-244: Dr.  Seuss (two spaces) is reduced to Seuss because exception normalization retains repeated whitespace. Normalize whitespace alongside punctuation/case for exception lookup.
+Tests: pytest -q openlibrary/catalog/add_book/tests/test_load_book.py openlibrary/tests/core/test_helpers.py => 54 passed. pytest -q openlibrary/tests/catalog/test_utils.py => 85 passed. Additional read-only Python reproduction confirmed all three cases. No test environment problem. No project code or tests were changed by this review.

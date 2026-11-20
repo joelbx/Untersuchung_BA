@@ -1,0 +1,7 @@
+The fault is in [webview.py](/app/qutebrowser/browser/webengine/webview.py:263). `extra_suffixes_workaround` is still a static method, and `chooseFiles` calls it through `self`. The handler also appends extras without deduplicating suffixes already repeated in the input.
+
+The helper’s existing version gate (`>= 6.2.3` and `< 6.7.0`), wildcard lookup through `mimetypes.types_map`, and subtraction of original suffixes appear to cover those parts of the requirement. The likely change is to move that method to module scope, call it directly from `chooseFiles`, and pass a deduplicated union as the third positional argument to `super().chooseFiles(...)`.
+
+There is one scope question: [chooseFiles](/app/qutebrowser/browser/webengine/webview.py:291) currently uses `shared.choose_file` for a recognized external file picker, so an *unconditional* superclass passthrough would change that behavior. [Existing tests](/app/tests/unit/browser/webengine/test_webview.py:110) cover the static method and default picker path, but not module-level access, `None` as `self`, duplicates, or version boundaries.
+
+I recorded the diagnosis in [checkpoint.md](/app/.codex-role-output/checkpoint.md). Project source and tests were left unchanged under this run’s fault-localization restriction; no tests were run.

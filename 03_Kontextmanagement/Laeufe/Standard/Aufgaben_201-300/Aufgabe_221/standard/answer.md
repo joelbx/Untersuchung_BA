@@ -1,0 +1,3 @@
+Implemented Best Book Awards in the checked-out repository: persistent nominations with read and uniqueness checks, add/update/remove and count JSON endpoints, Work helpers, and redirect and account anonymization updates.
+
+Verification: 49 relevant tests passed; Ruff and `git diff --check` passed. Existing databases need the new table from [schema.sql](/app/openlibrary/core/schema.sql) applied before the endpoints can use it.

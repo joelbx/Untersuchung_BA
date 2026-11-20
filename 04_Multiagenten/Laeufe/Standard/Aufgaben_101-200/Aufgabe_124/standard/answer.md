@@ -1,0 +1,3 @@
+Implemented DynamoDB `billing_mode` support. New tables default to `pay_per_request`, with no provisioned throughput; `provisioned` uses the configured capacity units. Initialization skips auto scaling and logs why when a table is on demand. I also updated the documentation and tests.
+
+Verification passed: the DynamoDB package tests, the tagged billing tests, and `git diff --check`. The AWS integration tests were not run.

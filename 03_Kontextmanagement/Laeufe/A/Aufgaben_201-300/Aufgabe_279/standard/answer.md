@@ -1,0 +1,3 @@
+Implemented reusable payment token verification in [paymentTokenHelper.tsx](/app/packages/components/containers/payments/paymentTokenHelper.tsx). The five requested components and the additional signup caller now use a bound `createPaymentToken`. Polling uses cancellable timers, cleans up resources, and requires a chargeable status before submission.
+
+The helper tests, EditCardModal tests, SubscriptionModal tests, both TypeScript checks, lint, and formatting pass. CreditsModal has two existing failures: its saved method tests expect `PaymentMethodID` in the final request, while the original chargeable token path returns only a token payment method.

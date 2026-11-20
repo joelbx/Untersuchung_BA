@@ -1,0 +1,3 @@
+Added a registration token entry view to InteractiveAuth and routed both the stable and unstable stage identifiers to it. The view submits the advertised type and entered token, and includes the requested focus, help text, busy state, and accessible error message.
+
+All 8 relevant tests pass. ESLint, Prettier, and `git diff --check` pass. The full TypeScript check still reports existing Sliding Sync errors in unrelated files.

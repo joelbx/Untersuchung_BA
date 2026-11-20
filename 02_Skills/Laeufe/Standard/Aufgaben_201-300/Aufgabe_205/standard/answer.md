@@ -1,0 +1,3 @@
+Implemented the token lifecycle interface in [src/api/utils.js](/app/src/api/utils.js) and added coverage in [test/api-utils-tokens.js](/app/test/api-utils-tokens.js). It supports creation, ordered listing, single and array retrieval, description updates, deletion, usage logging, and last-seen lookup. Existing API usage methods remain available.
+
+Verification passed: 2 new lifecycle tests, 4 existing authentication token tests, ESLint, and `git diff --check`.

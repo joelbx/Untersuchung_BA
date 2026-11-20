@@ -1,0 +1,5 @@
+The Kubernetes service now initializes the session uploader before serving requests, so the streaming directory needed by `kubectl exec` is created at startup. Uploader initialization runs once when multiple services share a process. See [kubernetes.go](/app/lib/service/kubernetes.go:199) and [service.go](/app/lib/service/service.go:1844).
+
+The [forwarder](/app/lib/kube/proxy/forwarder.go:62) now builds a fresh cluster session per request, caches only short lived credentials, uses the forwarder context for audit events after client disconnects, and records exec stream failures and response errors. It also exposes `ServeHTTP` through its internal router.
+
+Proxy and service tests passed, including focused race tests. The integration package compiled; a live `kubectl exec` test requires an external Kubernetes cluster and was not run.

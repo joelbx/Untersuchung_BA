@@ -1,0 +1,1 @@
+Implemented backlink synchronization, event visibility, admin toggle, and English localization. Added event ID mapping so edits remove stale events. Topic event tests pass (8), and targeted ESLint passed before final review.

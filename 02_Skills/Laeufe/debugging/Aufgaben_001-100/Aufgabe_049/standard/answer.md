@@ -1,0 +1,3 @@
+Implemented the email validation fix in `/app`. Confirmation data now uses a per-user code mapping and an explicit expiry timestamp. Resends handle expired confirmations, reject an already pending validation unless forced, and use the pending email when the profile has none. The ACP shows the four requested statuses, and user deletion removes the related confirmation keys.
+
+Verification: 182 user tests outside the invitation suite, 2 admin socket tests, ESLint, and `git diff --check` passed. The full user test file still fails at an invitation group membership assertion; that suite also fails when run alone. The commands and results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

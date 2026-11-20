@@ -1,0 +1,3 @@
+Added `/.well-known/webfinger` through a dedicated [controller](/app/src/controllers/well-known.js) and [route](/app/src/routes/well-known.js). It validates the `resource`, checks the global user viewing permission as Guest for anonymous requests, resolves the user, and returns a WebFinger JSON response with a subject, aliases, and a profile link.
+
+Isolated handler and route checks, ESLint, and `git diff --check` passed. The existing controller suite was not run because its bootstrap reads and prints private configuration.

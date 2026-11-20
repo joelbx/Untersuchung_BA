@@ -1,0 +1,3 @@
+Implemented Redis cache TLS configuration in [/app/internal/cache/redis/client.go](/app/internal/cache/redis/client.go). `NewClient` supports CA certificates from a file or inline data, system CAs when neither is supplied, optional certificate verification bypass, and a minimum of TLS 1.2. Configuration rejects both CA options together with the required error message.
+
+I wired the client into cache startup, added the YAML fixtures and schema fields, and registered a TLS Redis integration case under the exact matrix name `api/cachetls`. The focused tests and the full short config and Redis test suites pass. The command and integration packages compile; the container based integration case was not run locally.

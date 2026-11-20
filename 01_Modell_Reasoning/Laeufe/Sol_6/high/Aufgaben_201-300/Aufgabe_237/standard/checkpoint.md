@@ -1,0 +1,3 @@
+# Checkpoint
+
+Completed the chat message editing requirements in `/app`. The repository has no `LinkProvider` or `DirectedGraph`; the concrete requirement list concerns chat. Implemented the v3 edit controller and route, `Messaging.messageExists`, missing and wrong-room ID checks, client PUT edit call, translation, and socket deprecation warning with input validation. Added integration coverage for valid edits, invalid content, missing IDs, ownership, system messages, and room mismatch. `./node_modules/.bin/mocha test/messaging.js` passes (76 tests). Targeted ESLint and `git diff --check` pass. The temporary Redis instance used for the test run has been shut down.

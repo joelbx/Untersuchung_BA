@@ -1,0 +1,3 @@
+Implemented upload cleanup on post purge. Files with no remaining post references are deleted; the new **Preserve uploaded files after their posts are purged** option in ACP upload settings keeps them on disk. `Posts.uploads.deleteFromDisk` accepts a path or array, rejects other top-level inputs, and ignores invalid or traversal paths.
+
+Added upload tests. ESLint and diff checks pass. The existing upload test suite could not run because Redis refused the connection at `127.0.0.1:6379`.

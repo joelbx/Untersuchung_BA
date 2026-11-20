@@ -1,0 +1,3 @@
+AlbumGrid now requests square covers. The artwork pipeline centers non-square images on a square PNG canvas for those requests and uses separate cache keys for square and regular versions.
+
+The relevant Go tests, all 45 UI tests, formatting checks, and `git diff --check` pass. The requested OCI `Source` interface was not added: its path does not exist in this Navidrome repository and is unrelated to the album-cover issue.

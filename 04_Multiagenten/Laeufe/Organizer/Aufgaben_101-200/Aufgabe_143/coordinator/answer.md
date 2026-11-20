@@ -1,0 +1,3 @@
+Centralized `add_db_name` in [catalog utils](/app/openlibrary/catalog/utils/__init__.py) and made `expand_record` apply it to every author. Existing editions now carry author names and birth/death dates into expansion, where the same identifier is generated. Updated tests cover missing dates and matching without manually supplied identifiers.
+
+**Verification:** 129 passed, 2 xfailed, 1 xpassed; Ruff and `git diff --check` passed. I solved this directly without delegation.

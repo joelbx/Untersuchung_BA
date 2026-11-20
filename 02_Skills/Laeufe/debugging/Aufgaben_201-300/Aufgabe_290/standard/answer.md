@@ -1,0 +1,3 @@
+Fixed call sound playback in [LegacyCallHandler.tsx](/app/src/LegacyCallHandler.tsx): ring, ringback, busy, and call-end audio is unmuted before playback, including queued replays. Already-unmuted elements play without a mute state change. The sound IDs are now public, and [handleEvent.ts](/app/src/legacy/LegacyCallHandler/handleEvent.ts) provides the requested media event listener.
+
+Verification passed: 18 targeted tests, TypeScript checking, lint, and `git diff --check`.

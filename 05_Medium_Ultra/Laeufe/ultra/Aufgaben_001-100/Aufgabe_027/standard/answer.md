@@ -1,0 +1,3 @@
+Fixed public bookmark session lookup in [lastActivePersistedUserSession.ts](/app/applications/drive/src/app/utils/lastActivePersistedUserSession.ts:26). It now returns `number | null`, ignores keys without a numeric session ID, preserves valid ID `0`, and leaves local storage unchanged. The [bookmark hook](/app/applications/drive/src/app/store/_views/useBookmarksPublicView.ts:41) resumes a session only when an ID exists, so an empty store no longer stops bookmark listing.
+
+I delegated the handshake trace and test updates. The focused Drive tests passed: **2 suites, 19 tests**. Prettier and `git diff --check` passed. Drive type checking still fails in untouched `packages/crypto/lib/worker/api.ts` because the installed OpenPGP types conflict.

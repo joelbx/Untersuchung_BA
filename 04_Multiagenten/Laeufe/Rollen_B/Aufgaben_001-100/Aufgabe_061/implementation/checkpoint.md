@@ -1,0 +1,1 @@
+Implemented shared pkgPs; Debian and Red Hat postScan use package-name ownership lookup. RPM parser ignores known diagnostics and errors on malformed output; added focused test. GOPROXY=off go test ./scan -count=1 passed. git diff --check passed.

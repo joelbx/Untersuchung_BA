@@ -1,0 +1,5 @@
+The failure is in [server/evaluator.go](/app/server/evaluator.go:65). `evaluate` returns `ErrInvalid` for a disabled flag, and `batchEvaluate` aborts on that error before appending the flag’s response or processing later flags. It also measures each flag’s duration from the start of the batch, so those durations are cumulative.
+
+The fix should add `ErrDisabled` and `ErrDisabledf` in [errors/errors.go](/app/errors/errors.go:24), return that type from `evaluate`, and use `errors.As` in `batchEvaluate` to append disabled responses in input order while still aborting on other errors. The response schema has no explicit disabled field, so the intended disabled-status values need to be settled. The protobuf migration also reaches the generated RPC files and the seven RPC methods returning empty results.
+
+Existing tests do not cover a mixed enabled and disabled batch. I recorded the diagnosis in `.codex-role-output/checkpoint.md`. **No project source or tests were changed:** this run was restricted to fault localization. Offline server and RPC tests could not start because required gRPC checksums are missing from `go.sum`.

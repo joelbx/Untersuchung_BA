@@ -1,0 +1,3 @@
+Implemented album image file tracking. Scans now collect image names by directory and pass the complete directory map through album refreshes. Refreshed albums store the full image paths in `image_files`, joined with the system list separator. Added `MediaFiles.Dirs()` and a migration that adds the column and forces a full rescan.
+
+Verification passed: `go test ./model ./scanner ./persistence ./db/migration` and `git diff --check`.

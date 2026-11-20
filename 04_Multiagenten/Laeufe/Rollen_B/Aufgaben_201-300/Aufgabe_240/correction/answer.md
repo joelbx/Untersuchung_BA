@@ -1,0 +1,3 @@
+Updated `upgrade_list()` to treat `offline=True` or `available=False` as inaccessible, even when a drive’s status is `optimal`. It now fails by default or skips the drive when `ignore_inaccessible_drives=True`. Added regression tests for both fields and both behaviors.
+
+Both test commands from the review pass: drive firmware **9 passed**; E-Series facts **3 passed** with two deprecation warnings. TEST_ENVIRONMENT_PROBLEM: None.

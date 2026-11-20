@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` for [MongoDB](/app/src/database/mongo/hash.js:266) and [Redis](/app/src/database/redis/hash.js:274). Shared [validation](/app/src/database/validateBulkIncrements.js:3) enforces tuple input, safe integer increments, and safe field names. Each key updates atomically; successful keys have their cache entries invalidated, while failed keys remain unchanged.
+
+The [hash tests](/app/test/database/hash.js:662) pass against Redis. Lint, syntax, and focused Mongo checks pass. Live Mongo testing was unavailable because `mongod` is not installed.

@@ -1,0 +1,1 @@
+Progress: Updated the Jenkins subject indexing command to use --chunk_size, --solr_base_url, and --skip_id_check, matching FnToCLI's direct parameter-name mapping. The exact reviewer test command passed (13 tests). A direct parse of the subject command arguments also succeeded, and git diff --check passed. No remaining failures or missing dependencies.

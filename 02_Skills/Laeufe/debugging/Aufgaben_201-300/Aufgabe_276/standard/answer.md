@@ -1,0 +1,3 @@
+Fixed startup validation for enabled GitHub authentication and configured OIDC providers. Missing or blank `client_id`, `client_secret`, and `redirect_address` values now return the required provider-specific error. GitHub’s `read:org` scope error also includes the required provider and field names.
+
+The reproduction test failed before the fix and passed afterward. `go test ./internal/config -count=1` and `go test ./internal/server/auth/... ./internal/cmd/... -count=1` both passed.

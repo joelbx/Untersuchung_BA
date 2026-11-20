@@ -1,0 +1,3 @@
+Added `/.well-known/webfinger` through the new [controller](/app/src/controllers/well-known.js) and [route](/app/src/routes/well-known.js). It validates the `acct:` resource and hostname, checks `view:users` access using the Guest role for anonymous requests, resolves the user slug, and returns a WebFinger JSON document with UID and profile aliases plus an HTML profile link. I also added [integration tests](/app/test/controllers.js).
+
+ESLint, syntax checks, and isolated handler checks pass. The targeted Mocha tests could not start because the configured Redis server refused the connection at `127.0.0.1:6379`.

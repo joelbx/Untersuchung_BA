@@ -1,0 +1,3 @@
+Fixed `/lists/add` form parsing. When a request has a body, [ListRecord.from_input](/app/openlibrary/plugins/openlibrary/lists.py:52) uses the first value for each URL-encoded field and keeps query parameters out of the list data. Nested seed fields no longer conflict with defaults; invalid seeds are ignored. [Unflattening](/app/openlibrary/plugins/upstream/utils.py:269) now lets later assignments win.
+
+Verification: 18 relevant tests passed; Ruff and `git diff --check` passed.

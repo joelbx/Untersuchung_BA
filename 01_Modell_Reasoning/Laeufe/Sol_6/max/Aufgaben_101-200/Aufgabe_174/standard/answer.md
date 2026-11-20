@@ -1,0 +1,3 @@
+Forked worker display calls now travel through `FinalQueue` as `DisplaySend` events, and the parent replays them under a display lock. Worker startup protects the fork boundary, the late stdout/stderr redirection is removed, and cleanup flushes both streams. The changes are in [display.py](/app/lib/ansible/utils/display.py), [task_queue_manager.py](/app/lib/ansible/executor/task_queue_manager.py), [worker.py](/app/lib/ansible/executor/process/worker.py), and the [strategy result loop](/app/lib/ansible/plugins/strategy/__init__.py).
+
+Verification: 83 relevant tests passed, 9 were skipped. A four-fork playbook completed with debug output enabled and showed all four worker exit messages.

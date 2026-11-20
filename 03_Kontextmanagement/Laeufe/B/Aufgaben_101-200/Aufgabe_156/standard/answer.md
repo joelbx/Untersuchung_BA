@@ -1,0 +1,3 @@
+Implemented separate no-log sanitizers: `remove_values` masks string values without changing keys, and `sanitize_keys` recursively masks mapping keys while honoring ignored and `_ansible` keys. The `uri` module now applies key sanitization when it has `no_log_values`.
+
+The focused tests passed (**29 passed**), as did compilation and `git diff --check`. The broader `basic` suite still has warning-state leakage failures that also occur when the affected test files run independently.

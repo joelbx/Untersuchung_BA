@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) to provide the same localized verified or unverified message in Current session and [Device details](/app/src/components/views/settings/devices/DeviceDetails.tsx). The card appears immediately after the details heading and remains below expanded details in Current session.
+
+The focused tests pass: 12 tests and 6 snapshots. Lint passes. The full TypeScript check still fails on errors in `matrix-js-sdk` and unrelated files; it reports none in the changed device files.

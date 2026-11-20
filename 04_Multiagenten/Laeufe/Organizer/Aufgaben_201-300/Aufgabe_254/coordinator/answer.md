@@ -1,0 +1,3 @@
+Updated [ec2.go](/app/lib/utils/ec2.go) so availability checks retrieve the instance ID through IMDS, apply a 250 ms deadline, and accept only valid EC2 instance IDs. The constructor now accepts functional options, including `WithIMDSClient`.
+
+Added tests for valid IDs, captive portal HTML, invalid responses, option errors, and timeout behavior. `go test ./lib/utils -count=1` and `go test ./lib/labels/ec2 -count=1` passed with downloads disabled. No delegation was used.

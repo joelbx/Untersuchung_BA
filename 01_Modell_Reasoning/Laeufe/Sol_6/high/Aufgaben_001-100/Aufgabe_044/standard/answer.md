@@ -1,0 +1,3 @@
+Resolved the namespace access issue. `ListNamespaces` now uses the authorization engines’ `viewable_namespaces` decision, returns only accessible namespaces, and reports an accessible total count. The UI selects an authorized namespace and redirects routes that point to an inaccessible one.
+
+The relevant Go tests pass, and the command package compiles. UI tests could not run because local UI dependencies are absent.

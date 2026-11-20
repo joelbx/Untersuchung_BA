@@ -1,0 +1,3 @@
+Fixed the role documentation renderer so an entry point with a `None` specification displays without raising `AttributeError`. `_build_doc` still returns the original specification value. Added a regression test.
+
+The repository test command passed: `PYTHONPATH=lib pytest -q test/units/cli/test_doc.py` (22 passed). `git diff --check` passed. **TEST_ENVIRONMENT_PROBLEM:** the unprefixed pytest command imports an installed Ansible package instead of `/app/lib`, causing 7 failures.

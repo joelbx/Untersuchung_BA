@@ -1,0 +1,13 @@
+# Checkpoint
+
+Investigating RPM parsing issue. `rg` is unavailable (`/bin/bash: rg: command not found`); using local grep/find. No code changes yet.
+
+Root cause evidence: installed-line parsers and Amazon 2 dispatch use `strings.Fields`, which collapses adjacent spaces. `splitFileName` only checks for delimiters, not a `.rpm` suffix or nonempty components, and treats the hyphenated `-src.rpm` suffix as a release. Existing normal-case tests establish that binary Package.Version excludes release while SrcPackage.Version includes release only when nonempty. Hypothesis: preserving literal query-format separators and validating source RPM component boundaries fixes the reported cases. Regression tests added; initial Go test is compiling a cold dependency cache.
+
+Regression run before patch failed as expected on empty-release installed lines and malformed filenames. First patch exposed a wrong Amazon 2 dispatch assumption: empty fields replace values, so normal and empty-release records have the same field count. Corrected dispatch and focused tests passed. A new dotted-version `-src.rpm` regression then failed because the final dot in the version was mistaken for the architecture separator; the suffix detection order is now corrected, and relevant tests are rerunning.
+
+Architectural reassessment after three failed verification rounds: the parser has two input layouts (`rpm -qa` and repoquery) and a second caller (`rpm -qf`) with tab separators. The failures arose from treating whitespace as either fully normalized or wholly literal. The stable boundary is the query-format delimiter: normalize tabs to one space, then split on literal spaces so adjacent separators still represent an empty field. Keep package-version semantics from existing tests; do not merge binary and source version fields. Filename parsing has a separate ambiguity when both names and releases contain hyphens; the patch uses numeric version boundaries, and tests cover the reported forms. Remaining uncertainty: ambiguous filenames with numeric name components and numeric hyphenated release components cannot always be distinguished from the filename alone.
+
+Full `go test ./scanner -count=1` failed at `Test_redhatBase_parseRpmQfLine/valid_line`: input has tab separators; `strings.Split(..., " ")` rejected it. The next change addresses this exact compatibility case.
+
+Final verification: `go test ./scanner -count=1` passed (`ok github.com/future-architect/vuls/scanner 0.093s`); `git diff --check` passed. Regression tests cover empty release for rpm and repoquery with 0, `(none)`, and nonzero epochs; source filenames with hyphenated releases and empty release; malformed filenames; `(none)` epoch in update candidates. No external tooling or downloads used.

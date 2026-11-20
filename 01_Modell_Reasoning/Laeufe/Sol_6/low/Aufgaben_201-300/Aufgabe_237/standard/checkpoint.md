@@ -1,0 +1,1 @@
+Implemented chat edit REST route/controller, messageExists and edit existence guard, client PUT edit, socket deprecation and validation, and invalid-mid localization. Existing messaging suite: 71 passing. Graph classes named in issue are absent from this checkout. Existing untracked appendonly.aof was untouched.

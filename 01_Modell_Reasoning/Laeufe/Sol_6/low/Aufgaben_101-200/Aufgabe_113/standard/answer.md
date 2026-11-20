@@ -1,0 +1,3 @@
+Added `route_targets` support to [nxos_vrf_af.py](/app/lib/ansible/modules/network/nxos/nxos_vrf_af.py). It accepts multiple entries with an `rt`, a direction (`import`, `export`, or `both`), and a per-entry state (`present` or `absent`). Changes are scoped to the selected VRF and address family and are idempotent.
+
+Added tests for mixed additions and removals, scoping, and address-family removal. All 5 relevant unit tests pass.

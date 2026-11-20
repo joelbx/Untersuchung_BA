@@ -1,0 +1,3 @@
+Implemented the reported fixes across module parameter handling, YAML legacy constructors, templar overrides, lookup errors, CLI error output, and the `timedout` test.
+
+**Verification:** 377 targeted tests passed. `git diff --check` passed. A broader warning collection run had three failures in module warning collection tests; their existing warning and deprecation messages appeared, and that code path was left unchanged.

@@ -1,0 +1,3 @@
+Added an OCI snapshot source that reads local and remote repositories, refreshes local layouts on each fetch, and publishes snapshots only when the digest changes. Updated `SnapshotSource.Get` to accept a context and wired OCI storage into server startup.
+
+The affected package tests pass. The full `go test ./...` run failed only in Redis tests `TestSet`, `TestGet`, and `TestDelete` because the Docker daemon is unavailable. I recorded that limitation in `.codex-role-output/checkpoint.md`.

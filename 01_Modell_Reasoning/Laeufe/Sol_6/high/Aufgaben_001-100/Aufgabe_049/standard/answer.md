@@ -1,0 +1,3 @@
+Implemented the email validation fix in the checked-out repository. Confirmations now use `confirm:byUid:<uid>` and a `confirm:<code>` object with an explicit millisecond expiry. ACP actions can recover an address from a confirmation record, the user list shows all four requested statuses, and account deletion removes both confirmation keys. I also fixed confirmation by code for email changes.
+
+Focused email, ACP socket, and ACP status tests pass; ESLint and `git diff --check` pass. The broader suites stopped on invitation group membership and edit/email 404 assertions outside the changed flow.

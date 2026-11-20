@@ -1,0 +1,3 @@
+Added ipset support to the [iptables module](/app/lib/ansible/modules/iptables.py). `match_set` and `match_set_flags` now generate `-m set --match-set <name> <flags>` with or without an explicit `set` match. The module requires both parameters, accepts the four specified flag values, and supports `!` inversion.
+
+Added coverage in [test_iptables.py](/app/test/units/modules/test_iptables.py). All 27 relevant tests pass.

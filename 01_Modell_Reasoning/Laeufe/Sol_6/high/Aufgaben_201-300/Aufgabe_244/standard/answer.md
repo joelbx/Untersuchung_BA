@@ -1,0 +1,3 @@
+Fixed the dark mode foreground threshold. `colors.webpage.darkmode.threshold.foreground` is an Int option with default `256`; WebEngine versions before 6.4 send `TextBrightnessThreshold`, and 6.4+ send `ForegroundBrightnessThreshold`. Existing `threshold.text` settings work as an alias, including in `config.py`, and saved YAML settings migrate to the new name.
+
+Updated the [settings reference](/app/doc/help/settings.asciidoc) and added regression tests. The relevant suites passed: **438 passed, 1 skipped**.

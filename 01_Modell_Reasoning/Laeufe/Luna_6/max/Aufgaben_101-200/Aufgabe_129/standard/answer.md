@@ -1,0 +1,3 @@
+Implemented the current session kebab menu with accessible keyboard behavior, focus return, localized sign-out options, and destructive styling. “Sign out all other sessions” uses the existing bulk flow with only non-current device IDs. Shared context menus now close on clicks inside them.
+
+**Verification:** 59 focused tests and 54 related context-menu tests passed. ESLint, Stylelint, and `git diff --check` passed. `yarn lint:types` reports errors in unrelated files and matrix-js-sdk types; it reported no errors in the changed files.

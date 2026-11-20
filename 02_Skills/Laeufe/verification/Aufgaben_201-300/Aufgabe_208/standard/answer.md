@@ -1,0 +1,3 @@
+Updated email confirmation handling in [email.js](/app/src/user/email.js). Pending checks now return strict booleans, `getValidationExpiry` returns the live TTL in milliseconds or `null`, and resend eligibility uses the configured interval. Both confirmation keys use the configured expiry; explicit expiry clears both, and expired codes are rejected.
+
+Added the one-day default and regression tests. Verification: `test/user.js` passed **256 tests**; ESLint and `git diff --check` passed.

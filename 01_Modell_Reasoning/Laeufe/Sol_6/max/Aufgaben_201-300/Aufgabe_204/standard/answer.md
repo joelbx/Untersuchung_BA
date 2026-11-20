@@ -1,0 +1,3 @@
+Implemented `guessDateFromText` in [property.ts](/app/packages/shared/lib/contacts/property.ts:131) and wired it into [CSV date conversion](/app/packages/shared/lib/contacts/helpers/csvFormat.ts:591) and vCard text conversion. It handles ISO, month-name, and slash dates while leaving unparseable dates unset. Regression tests cover parsing and vCard calendar-day serialization.
+
+All 40 focused contact tests passed, along with TypeScript, ESLint, and Prettier checks. The full shared suite had two unrelated browser-environment failures.

@@ -1,0 +1,3 @@
+NVD CVSS v4.0 metrics are now converted into `CveContent` by metric source, and `Cvss40Scores()` returns available MITRE and NVD entries in that order. The model’s v4.0 fields were already present. I updated the CVE dictionary dependency to a locally cached version that exposes NVD v4.0 metrics and added regression tests for conversion and aggregation.
+
+Verification passed: `GOPROXY=off GOSUMDB=off go test ./...` and `git diff --check`.

@@ -1,0 +1,3 @@
+Added `checkEventValidity` and `CalendarEventValidity` in [CalendarUtils.ts](/app/src/calendar/date/CalendarUtils.ts). Manual saves and ICS imports now use the same rules: reject invalid dates first, then starts before January 1, 1970, then starts that are equal to or after the end. ICS parsing also preserves seconds so valid one-second events remain valid.
+
+Verification passed: `npm run types`, `npm run test:app` (7,990 assertions), and `git diff --check`.

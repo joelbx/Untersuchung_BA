@@ -1,0 +1,3 @@
+Resolved the user scoping issue. Every `UserPropsRepository` read and write now requires an explicit `userId`; the mock uses composite keys. LastFM uses that ID for link status, unlinking, session keys, now playing, and scrobbling. Its callback now verifies signed, expiring state issued during an authenticated link request, and the UI sends that state.
+
+Offline Go tests for the affected packages passed, along with targeted UI lint, formatting, and diff checks.

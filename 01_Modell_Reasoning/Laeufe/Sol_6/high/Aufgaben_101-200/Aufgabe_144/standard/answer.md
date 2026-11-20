@@ -1,0 +1,3 @@
+Moved edition expansion into the public [`expand_record()` function](/app/openlibrary/catalog/utils/__init__.py) and updated add book matching, tests, and merge documentation to use it. The old `build_marc()` function is removed; `build_titles()` remains importable from its previous location for compatibility.
+
+Validation: 82 catalog tests passed, 8 skipped, 2 expected failures; 17 utility tests passed. Ruff and `git diff --check` passed.

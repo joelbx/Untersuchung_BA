@@ -1,0 +1,5 @@
+**Diagnosis:** `removeTechnicalFields` is absent from [EntityUtils.ts](/app/src/api/common/utils/EntityUtils.ts). [InstanceMapper.ts](/app/src/api/worker/crypto/InstanceMapper.ts:36) adds `_errors`, `_finalEncrypted_*`, and `_defaultEncrypted_*` during decryption, including in nested aggregates. The generic [clone function](/app/packages/tutanota-utils/lib/Utils.ts:131) copies those properties, so they remain on a copy.
+
+The likely fix belongs in `EntityUtils.ts`: a public `void` function that mutates the supplied entity, deletes keys beginning with any of the three prefixes, and traverses nested objects and arrays while preserving other attributes. [EntityUtilsTest.ts](/app/test/tests/api/common/utils/EntityUtilsTest.ts:30) covers creation without `_errors`, but has no stripping coverage.
+
+**Uncertainty:** I found no dedicated new entity cloning call site; the reported behavior may involve callers outside the paths inspected. No project source or tests were changed, and no tests were run.

@@ -1,0 +1,3 @@
+Implemented structured external profiles for Wikidata entities and displayed them in the author infobox. Wikipedia links use the requested language with an English fallback; Google Scholar produces one link per valid P1960 identifier. I also restored the author’s Wikidata lookup and added the three icon assets.
+
+Verification: 38 targeted tests passed, and the infobox rendered the profiles in a local check. Ruff, Stylelint, SVG parsing, and diff checks passed.

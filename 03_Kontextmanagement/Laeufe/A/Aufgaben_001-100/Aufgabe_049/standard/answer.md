@@ -1,0 +1,3 @@
+Implemented the email confirmation refactor in [email.js](/app/src/user/email.js): confirmations now have a per-user code mapping and explicit expiry, with email fallback lookup and cleanup. ACP validation and resend use that fallback, and the [user management view](/app/src/views/admin/manage/users.tpl) shows the four requested statuses. Deletion and password reset also remove confirmation data.
+
+ESLint and `git diff --check` pass. The full user suite had **173 passing tests and one failing invitation group test**; all email confirmation tests passed.

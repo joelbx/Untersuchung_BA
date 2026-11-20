@@ -1,0 +1,3 @@
+Updated `getLastPersistedLocalID` to return `null` when no valid ID is found, ignore keys without a numeric suffix, and preserve valid ID `0`. The public bookmark hook now calls `resumeSession` only when an ID exists.
+
+The regression tests pass (13/13), and `git diff --check` passes. The Drive type check remains blocked by an unrelated OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts:579`; I recorded the command and error in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

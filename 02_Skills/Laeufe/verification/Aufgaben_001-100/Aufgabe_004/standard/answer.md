@@ -1,0 +1,3 @@
+Resolved the PassAliases drawer issue. The provider now renders the fetched alias list or an explicit “No aliases” state, and the creation action can open the modal even when the user has no vault. Vault lookup no longer creates a vault; creation happens when alias options are requested. Alias updates are cached for reopening the drawer.
+
+Verification: all 8 PassAliases tests passed. Type checks for `components` and `pass`, ESLint on changed code, and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Added `destination_ports` to [iptables.py](/app/lib/ansible/modules/iptables.py), with an empty-list default, `-m multiport --dports` rule generation, and validation for tcp, udp, udplite, dccp, and sctp. Added documentation, an example, and a [changelog fragment](/app/changelogs/fragments/iptables-destination-ports.yml).
+
+Verification: `python -m pytest -q test/units/modules/test_iptables.py` passed (21 tests); `git diff --check` passed.

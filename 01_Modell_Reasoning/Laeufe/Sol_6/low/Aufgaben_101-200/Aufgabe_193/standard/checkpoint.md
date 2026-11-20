@@ -1,0 +1,1 @@
+Implemented mixed role/collection requirements install dispatch, path-sensitive skip messages, empty requirements handling, and separated installers. Galaxy CLI unit tests and mixed dispatch smoke check run.

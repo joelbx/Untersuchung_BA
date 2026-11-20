@@ -1,0 +1,3 @@
+Fixed `/lists/add` so a nonempty POST body is parsed as URL-encoded form data and takes precedence over query parameters. The parsing also preserves indexed `seeds` fields, skips incomplete seed entries, and lets the last assignment win during unflattening.
+
+The focused tests pass: **18 passed**. Ruff and `git diff --check` pass. The adjacent `test_listapi.py` suite could not collect because it imports the unavailable Python 2 `cookielib` module.

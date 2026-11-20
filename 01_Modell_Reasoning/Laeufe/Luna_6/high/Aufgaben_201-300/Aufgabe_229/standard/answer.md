@@ -1,0 +1,3 @@
+Implemented image cleanup across group cover removal, user cover/avatar removal, and account deletion. User image deletion is centralized in [src/user/picture.js](/app/src/user/picture.js), with UID and upload path validation, support for png, jpeg, jpg, and bmp files, and graceful handling of missing files. Socket removal handlers retain their plugin hooks.
+
+ESLint and `git diff --check` passed. The existing user and group tests could not run because Redis was unavailable at `127.0.0.1:6379`; zero tests ran.

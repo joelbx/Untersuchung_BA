@@ -1,0 +1,3 @@
+Added [SimpleCache[V]](/app/utils/cache/simple_cache.go) and migrated the HTTP, genre, and now playing caches to typed operations. TTL handling is centralized, expired keys are excluded from `Keys`, and callers no longer need type assertions. The HTTP cache keeps its 100 entry limit.
+
+Added cache behavior tests. `go test ./utils/cache ./scanner ./core/scrobbler` and `git diff --check` passed. No delegation was used.

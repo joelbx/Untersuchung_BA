@@ -1,0 +1,1 @@
+Implementer complete: added WriterEmitter with JSON-line emission and single writer close; NewMultiLog now validates emitters and embeds MultiEmitter; stdout uses WriterEmitter. Added focused events tests and service tests for stdout and mixed URI list. `go test ./lib/events ./lib/service` passes; `git diff --check` passes.

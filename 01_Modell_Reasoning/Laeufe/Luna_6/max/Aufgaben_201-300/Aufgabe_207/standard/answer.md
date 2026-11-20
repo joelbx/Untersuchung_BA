@@ -1,0 +1,3 @@
+QtWebEngine now combines user feature flags from CLI and `qt.args` with configuration-required features into one `--enable-features=` argument. Other backends keep their arguments unchanged. Regression cases are in [test_qtargs.py](/app/tests/unit/config/test_qtargs.py:90).
+
+**Verification:** 81 tests passed with `test_new_chromium` excluded. That test segfaults during QtWebEngine user-agent initialization. `git diff --check` passed; flake8 is unavailable in the environment.

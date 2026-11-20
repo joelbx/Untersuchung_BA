@@ -1,0 +1,3 @@
+Updated Vuls to use every CVE content source mapped to an OS family. Ubuntu reports now include `UbuntuAPI` details alongside `Ubuntu` details across change detection, source URLs, vulnerability fields, titles, summaries, and CVSS v3 scores. `NEGLIGIBLE` now maps to the low CVSS range and rough score. The new mapping is in [cvecontents.go](/app/models/cvecontents.go); single-source mapping remains supported.
+
+Three subagents handled source mapping, report details, and change detection. I reviewed and integrated their edits. Offline tests passed for `models`, `detector`, `reporter`, and `gost`; `git diff --check` passed.

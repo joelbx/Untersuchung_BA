@@ -1,0 +1,3 @@
+Fixed stale bypass entries in the mail view. The mark-as action now carries its status, and the reducer adds an element’s ID to `bypassFilter` only when its new status conflicts with the active read or unread filter. When the status matches the filter, it removes the ID. The logic is in [elementsReducers.ts](/app/applications/mail/src/app/logic/elements/elementsReducers.ts) and the new [elementBypassFilters.ts](/app/applications/mail/src/app/logic/elements/helpers/elementBypassFilters.ts).
+
+Verification passed: 8 relevant Jest tests, the TypeScript check, Prettier, and `git diff --check`.

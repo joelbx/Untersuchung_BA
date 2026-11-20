@@ -1,0 +1,3 @@
+Added Safari 17+ HEIC/HEIF and JXL support for thumbnails and previews on macOS and iOS. [MIME detection](/app/packages/drive-store/store/_uploads/mimeTypeParser/mimeTypeParser.ts) now uses a specific file type first, then the extension, without reading file content. The [JXL MIME type and extension mapping](/app/packages/shared/lib/drive/constants.ts) and [browser checks](/app/packages/shared/lib/helpers/mimetype.ts) are in place.
+
+The six relevant existing tests pass; formatting and diff checks pass. Package type checks remain blocked by errors outside the changed files, including a crypto type mismatch and missing Drive exports and config modules.

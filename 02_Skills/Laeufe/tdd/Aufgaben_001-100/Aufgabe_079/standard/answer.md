@@ -1,0 +1,3 @@
+Restored direct OS filesystem traversal in the scanner, with absolute paths, existing ignore and audio detection behavior, and the new [`utils.IsDirReadable`](/app/utils/paths.go) helper.
+
+`go test ./scanner ./utils` passes. The full `go test ./...` run remains red on three untouched TagLib tests involving fixture permissions and duplicate m4a gain values; details are in the [checkpoint](/app/.codex-role-output/checkpoint.md).

@@ -1,0 +1,3 @@
+Updated [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts) to keep persisted fields in one config object. Loading a current config with a signup token now makes no storage write; migration and missing-token generation write only after all fields are restored. V2 credentials migrate to an object keyed by user ID and load into a Map.
+
+Added regression coverage in [DeviceConfigTest.ts](/app/test/client/misc/DeviceConfigTest.ts). Source and test type checks passed, and the client suite passed with 3,071 assertions.

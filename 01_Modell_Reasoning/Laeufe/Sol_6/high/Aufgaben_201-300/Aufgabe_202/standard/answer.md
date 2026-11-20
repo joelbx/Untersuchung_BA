@@ -1,0 +1,3 @@
+The admin file upload endpoint now checks that the requested folder exists as a directory under the configured upload path before saving. Missing folders, paths that point to files, and omitted folders return HTTP 500 with `[[error:invalid-path]]`. I added integration coverage for those cases.
+
+The upload suite passed (44 tests), as did ESLint. A broader run stopped on an existing file permission test: it expects copying to a read-only file to fail, but the copy succeeds when run as root.

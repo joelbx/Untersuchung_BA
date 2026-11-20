@@ -1,0 +1,3 @@
+Replaced the scanner’s `fs.FS` traversal with OS filesystem calls and absolute traversal paths. The change preserves audio detection, ignored directory rules, and traversal logging; it also prevents an error-channel deadlock. Added [utils.IsDirReadable](/app/utils/paths.go) for the directory-open check.
+
+`go test ./scanner ./utils` and `git diff --check` passed. Windows-specific tests were updated but could not be run on Linux.

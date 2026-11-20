@@ -1,0 +1,3 @@
+Implemented centralized liveness mapping in [determineVoiceBroadcastLiveness.ts](/app/src/voice-broadcast/utils/determineVoiceBroadcastLiveness.ts). `VoiceBroadcastPlayback` now derives liveness only in `setInfoState`; playback actions and chunk updates don’t change it independently. The utility is exported from [index.ts](/app/src/voice-broadcast/index.ts), and the resumed broadcast expectation is updated in the existing playback test.
+
+**Verification:** The playback test passed (40 tests), and ESLint passed on the changed source and test files. TypeScript checking reports five unrelated `MatrixClient` typing errors in other files.

@@ -1,0 +1,3 @@
+Implemented the email confirmation refactor, including the UID-to-code mapping, explicit expiry timestamps, pending checks, fallback email lookup, ACP validation and resend handling, four email status labels, and confirmation-key cleanup on validation and account deletion.
+
+ESLint and `git diff --check` pass. The focused existing user tests could not run because Redis at `127.0.0.1:6379` refused the connection. The checkpoint is recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

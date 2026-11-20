@@ -1,0 +1,3 @@
+Implemented session renaming for both the current session and other sessions. The new [DeviceDetailHeading](/app/src/components/views/settings/devices/DeviceDetailHeading.tsx) provides save, cancel, progress, and error states; [useOwnDevices](/app/src/components/views/settings/devices/useOwnDevices.ts) persists names through the SDK and updates the UI immediately.
+
+Relevant tests and lint pass. TypeScript reports only three existing `IRequest.abort` errors in `matrix-js-sdk`.

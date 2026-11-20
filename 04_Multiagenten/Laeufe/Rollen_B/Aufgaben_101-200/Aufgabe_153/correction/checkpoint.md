@@ -1,0 +1,3 @@
+Correction round: inspected current patch and reviewer findings. Next: guard absent share lookups against inherited object keys in both store copies and both member views; add focused coverage and rerun flagged checks.
+Applied own-property guards to getters and view reads in both source copies. Added regression coverage for inherited property names and a stored share using one such name. Running the review's exact checks.
+Verification complete: shareStores.test.ts passes (3 tests); @proton/drive-store and proton-drive check-types both pass; git diff --check passes. No remaining failures or environment problems.

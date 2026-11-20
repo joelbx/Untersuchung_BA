@@ -1,0 +1,5 @@
+The crash originates in [Play.load](/app/lib/ansible/playbook/play.py:105): it joins `hosts` into `name` before validation, raising a raw `TypeError` for a list containing a mapping or `None`. An explicit `name` also bypasses its current hosts checks.
+
+The fix belongs in [Play.get_name and a new `_validate_hosts`](/app/lib/ansible/playbook/play.py:100). `load` should leave `name` untouched; `get_name` should derive it dynamically; validation should run for every *present* `hosts` key and raise the specified `AnsibleParserError` messages. [Base.validate](/app/lib/ansible/playbook/base.py:280) already dispatches `_validate_hosts`. The existing [integration assertion](/app/test/integration/targets/playbook/runme.sh:38) expects the old empty-host wording.
+
+One requirement needs reconciliation: this checkout defines `is_sequence` in `ansible.module_utils.common.collections`, but does not export it from `ansible.utils.collection_loader`. I reproduced the `TypeError` locally. No project source or tests were changed because this run was limited to fault localization.

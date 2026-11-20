@@ -1,0 +1,5 @@
+Diagnosis: [elements.ts](/app/applications/mail/src/app/helpers/elements.ts) lacks `isFromProton`. It should return `element.IsProton === 1` for both messages and conversations; `0` should return `false`.
+
+The flag is also absent from the current [Message type](/app/packages/shared/lib/interfaces/mail/Message.ts), [Conversation type](/app/applications/mail/src/app/models/conversation.ts), and encrypted search message type. Those types need review so the helper can accept `Element` safely. [elements.test.ts](/app/applications/mail/src/app/helpers/elements.test.ts) has no coverage for either object type or flag value.
+
+The specified `VerifiedBadge.tsx` is absent in this checkout. The existing badge is controlled by sender allowlisting and a DMARC check in [Item.tsx](/app/applications/mail/src/app/components/list/Item.tsx), so UI integration scope is uncertain. This was a diagnosis-only pass; no project source or tests were changed.

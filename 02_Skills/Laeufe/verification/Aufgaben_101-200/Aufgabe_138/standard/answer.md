@@ -1,0 +1,3 @@
+OCI bundle creation now uses the configured `storage.oci.manifest_version`. Configuration loading accepts `"1.0"` and `"1.1"`, defaults to `"1.1"`, and returns the requested error for unsupported values. The new `WithManifestVersion` option passes the selected version to ORAS.
+
+A fresh offline test run passed for configuration, OCI bundles, OCI storage, and schemas: `GOPROXY=off GOSUMDB=off go test -count=1 ./internal/config ./internal/oci ./internal/storage/fs/oci ./internal/storage/fs/store ./config`. AWS ECR was not tested directly.

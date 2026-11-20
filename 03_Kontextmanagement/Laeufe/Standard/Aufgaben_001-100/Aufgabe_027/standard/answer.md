@@ -1,0 +1,3 @@
+Updated `getLastPersistedLocalID` to return a number or `null`. It now ignores invalid session keys, preserves a valid ID of `0`, and returns `null` for missing or malformed data without changing storage. The [bookmark view](/app/applications/drive/src/app/store/_views/useBookmarksPublicView.ts) now resumes a session only when an ID exists, while continuing to load bookmarks when none does.
+
+Verification passed: 18 focused tests, Prettier, and `git diff --check`.

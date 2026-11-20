@@ -1,0 +1,3 @@
+Implemented a synchronous, per-member admin action lock in [UserInfo.tsx](/app/src/components/views/right_panel/UserInfo.tsx:615). Kick, Ban, and Mute now disable all three controls with `disabled` and `aria-disabled="true"` before opening confirmation dialogs, and release the lock on cancel, success, or failure. Failures show one error dialog.
+
+The focused `UserInfo` suite passed (68 tests), ESLint passed, and `git diff --check` passed. The full TypeScript check remains blocked by existing dependency and SDK type errors elsewhere; it reported no errors in `UserInfo.tsx`.

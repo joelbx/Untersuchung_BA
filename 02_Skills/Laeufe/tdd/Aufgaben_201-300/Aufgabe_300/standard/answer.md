@@ -1,0 +1,3 @@
+Implemented `override-validation=true` for the import API. The flag is read from the URL query and passed through `load()` to `validate_record()`, where it bypasses the publication-year, independently published, and missing-ISBN checks. Other required-field checks remain active. Added the case-insensitive `is_promise_item()` utility.
+
+Verification: **1,542 tests passed** with the offline-dependent test file excluded. That file could not be collected because it fetches a GitHub schema and the proxy returned 403. `git diff --check` passed.

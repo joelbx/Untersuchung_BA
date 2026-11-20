@@ -1,0 +1,3 @@
+Updated [parse.py](/app/openlibrary/catalog/marc/parse.py) so author entries from `100`, `700`, and `720` can collect all distinct names from linked `880` fields. Added the public `name_from_list` normalizer and kept the existing organization and event parsing logic unchanged. I also added focused [tests](/app/openlibrary/catalog/marc/tests/test_parse.py) and updated affected fixture expectations.
+
+Two subagents helped inspect the parser and fixtures, then added tests and updated expectations. Verification passed: **128 MARC tests**, **7 merge tests** (1 expected failure), and `git diff --check`.

@@ -1,0 +1,3 @@
+Updated [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts) so loading preserves persisted fields, migrates legacy credentials into a userId-keyed object, and writes during initialization only when the config changes. Added regression coverage in [DeviceConfigTest.ts](/app/test/client/misc/DeviceConfigTest.ts).
+
+Verification passed: the client suite reported 3064 assertions, both TypeScript checks passed, and `git diff --check` passed.

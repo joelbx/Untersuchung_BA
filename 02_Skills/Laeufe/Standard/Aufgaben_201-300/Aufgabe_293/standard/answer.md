@@ -1,0 +1,3 @@
+Resolved the OCI storage configuration issue. The loader now validates repository schemes with the required error, requires a repository, and parses `bundles_directory`, authentication, and duration based `poll_interval`. The server passes those settings to the OCI store and source. `NewStore` now uses its `dir` argument, and `DefaultBundleDir` creates a path under Flipt’s data directory. I also added `fs/oci` to the integration test and CI matrices.
+
+The focused Go tests, build/testing compilation, schema JSON check, and `git diff --check` passed. The Dagger backed `fs/oci` suite was registered and compiled but was not run locally.

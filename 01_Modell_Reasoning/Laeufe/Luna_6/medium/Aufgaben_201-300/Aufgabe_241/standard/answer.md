@@ -1,0 +1,3 @@
+Updated [VoiceBroadcastPreRecordingPip.tsx](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx) to guard repeated “Go live” activations, disable the button while startup is pending, and ignore repeated microphone-line activations while the device menu is open. Selecting a device closes the menu and updates the displayed label through the audio-device hook.
+
+The existing component test passed: 1 suite, 6 tests. Prettier check passed.

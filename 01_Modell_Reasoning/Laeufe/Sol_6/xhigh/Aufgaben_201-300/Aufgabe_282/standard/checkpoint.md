@@ -1,0 +1,2 @@
+Task: Add source and message glob exclusions for JavaScript messages shown in the UI.
+Status: Implemented `.levels` and `.excludes`, UI filtering, and migration for the old setting. Regenerated setting documentation and added focused unit tests. Verified 112 tests pass with `DISPLAY=:0 QT_QPA_PLATFORM=offscreen pytest --no-xvfb -q --tb=short --no-header tests/unit/browser/test_shared.py tests/unit/config/test_configdata.py tests/unit/config/test_configfiles.py::TestYamlMigrations`. `git diff --check` passes. Flake8 is unavailable in the environment.

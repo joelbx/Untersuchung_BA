@@ -1,0 +1,3 @@
+MARC imports now map supported `$e` terms and `$4` codes to readable contributor roles, with `$4` taking precedence. New works preserve each role alongside its author key in order and raise an exception when the edition and record author counts differ.
+
+Verification: **290 tests passed**, Ruff lint passed, and `git diff --check` passed. `ruff format --check` reported existing single-quote style differences across the checked files; no broad formatting rewrite was applied.

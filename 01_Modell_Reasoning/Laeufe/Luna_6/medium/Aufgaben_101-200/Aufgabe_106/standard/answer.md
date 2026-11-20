@@ -1,0 +1,3 @@
+Updated [wordpress.go](/app/wordpress/wordpress.go) so `searchCache` takes a map directly, treats missing or empty values as cache misses, and package filtering reads `WordPress.IgnoreInactive` from the server’s configuration. Existing inactive filtering removes packages with `Status == "inactive"` and retains active packages.
+
+Updated the cache tests for the new function signature. `go test ./wordpress` passes.

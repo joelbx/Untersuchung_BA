@@ -1,0 +1,3 @@
+Updated [async_wrapper.py](/app/lib/ansible/modules/async_wrapper.py) so stdout exit responses are structured JSON, job files are replaced atomically, and job records carry a consistent ID and lifecycle state. Fork, setup, module, and timeout failures now produce structured errors; timeout records include the child PID. Temporary-directory cleanup follows the configured policy.
+
+Expanded [test_async_wrapper.py](/app/test/units/modules/test_async_wrapper.py) to cover those paths with real forked runs. **Verification:** 14 focused tests passed; syntax and diff checks passed.

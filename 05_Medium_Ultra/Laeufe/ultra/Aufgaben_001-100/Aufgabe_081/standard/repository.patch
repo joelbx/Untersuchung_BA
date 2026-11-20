@@ -1,0 +1,303 @@
+diff --git a/internal/config/authentication.go b/internal/config/authentication.go
+index b01cd05..7f2af95 100644
+--- a/internal/config/authentication.go
++++ b/internal/config/authentication.go
+@@ -2,6 +2,7 @@ package config
+ 
+ import (
+ 	"fmt"
++	"net/url"
+ 	"strings"
+ 	"time"
+ 
+@@ -108,10 +109,30 @@ func (c *AuthenticationConfig) validate() error {
+ 			return fmt.Errorf("when session compatible auth method enabled: %w", err)
+ 		}
+ 	}
++	if c.Session.Domain != "" {
++		hostname, err := getHostname(c.Session.Domain)
++		if err != nil {
++			return err
++		}
++		c.Session.Domain = hostname
++	}
+ 
+ 	return nil
+ }
+ 
++func getHostname(rawurl string) (string, error) {
++	if !strings.Contains(rawurl, "://") {
++		rawurl = "http://" + rawurl
++	}
++
++	parsed, err := url.Parse(rawurl)
++	if err != nil {
++		return "", err
++	}
++
++	return parsed.Hostname(), nil
++}
++
+ // AuthenticationSession configures the session produced for browsers when
+ // establishing authentication via HTTP.
+ type AuthenticationSession struct {
+diff --git a/internal/config/authentication_test.go b/internal/config/authentication_test.go
+new file mode 100644
+index 0000000..f2ab79d
+--- /dev/null
++++ b/internal/config/authentication_test.go
+@@ -0,0 +1,51 @@
++package config
++
++import (
++	"testing"
++
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++)
++
++func TestAuthenticationConfigValidateSessionDomain(t *testing.T) {
++	tests := []struct {
++		name   string
++		domain string
++		want   string
++	}{
++		{name: "HTTP URL with port", domain: "http://localhost:8080", want: "localhost"},
++		{name: "HTTPS URL with port", domain: "https://auth.flipt.io:8443", want: "auth.flipt.io"},
++		{name: "host with port", domain: "auth.flipt.io:8080", want: "auth.flipt.io"},
++		{name: "host only", domain: "auth.flipt.io", want: "auth.flipt.io"},
++		{name: "localhost", domain: "localhost", want: "localhost"},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			cfg := AuthenticationConfig{
++				Session: AuthenticationSession{Domain: tt.domain},
++				Methods: AuthenticationMethods{
++					OIDC: AuthenticationMethod[AuthenticationMethodOIDCConfig]{Enabled: true},
++				},
++			}
++
++			require.NoError(t, cfg.validate())
++			assert.Equal(t, tt.want, cfg.Session.Domain)
++		})
++	}
++}
++
++func TestAuthenticationConfigValidateSessionDomainParseError(t *testing.T) {
++	const malformedDomain = "http://%zz"
++	_, parseErr := getHostname(malformedDomain)
++	require.Error(t, parseErr)
++
++	cfg := AuthenticationConfig{
++		Session: AuthenticationSession{Domain: malformedDomain},
++		Methods: AuthenticationMethods{
++			OIDC: AuthenticationMethod[AuthenticationMethodOIDCConfig]{Enabled: true},
++		},
++	}
++
++	require.EqualError(t, cfg.validate(), parseErr.Error())
++}
+diff --git a/internal/server/auth/method/oidc/http.go b/internal/server/auth/method/oidc/http.go
+index a877596..5bdffcc 100644
+--- a/internal/server/auth/method/oidc/http.go
++++ b/internal/server/auth/method/oidc/http.go
+@@ -62,7 +62,7 @@ func (m Middleware) ForwardResponseOption(ctx context.Context, w http.ResponseWr
+ 		cookie := &http.Cookie{
+ 			Name:     tokenCookieKey,
+ 			Value:    r.ClientToken,
+-			Domain:   m.Config.Domain,
++			Domain:   sessionCookieDomain(m.Config.Domain),
+ 			Path:     "/",
+ 			Expires:  time.Now().Add(m.Config.TokenLifetime),
+ 			Secure:   m.Config.Secure,
+@@ -125,7 +125,7 @@ func (m Middleware) Handler(next http.Handler) http.Handler {
+ 			http.SetCookie(w, &http.Cookie{
+ 				Name:   stateCookieKey,
+ 				Value:  encoded,
+-				Domain: m.Config.Domain,
++				Domain: sessionCookieDomain(m.Config.Domain),
+ 				// bind state cookie to provider callback
+ 				Path:     "/auth/v1/method/oidc/" + provider + "/callback",
+ 				Expires:  time.Now().Add(m.Config.StateLifetime),
+@@ -159,3 +159,11 @@ func generateSecurityToken() string {
+ 
+ 	return base64.URLEncoding.EncodeToString(token[:])
+ }
++
++func sessionCookieDomain(domain string) string {
++	if domain == "localhost" {
++		return ""
++	}
++
++	return domain
++}
+diff --git a/internal/server/auth/method/oidc/http_internal_test.go b/internal/server/auth/method/oidc/http_internal_test.go
+new file mode 100644
+index 0000000..3a4995f
+--- /dev/null
++++ b/internal/server/auth/method/oidc/http_internal_test.go
+@@ -0,0 +1,90 @@
++package oidc
++
++import (
++	"context"
++	"net/http"
++	"net/http/httptest"
++	"strings"
++	"testing"
++	"time"
++
++	"go.flipt.io/flipt/internal/config"
++	"go.flipt.io/flipt/rpc/flipt/auth"
++)
++
++func TestMiddlewareHandlerStateCookie(t *testing.T) {
++	for _, tc := range []struct {
++		name       string
++		domain     string
++		wantDomain string
++	}{
++		{name: "localhost", domain: "localhost"},
++		{name: "other host", domain: "auth.example.com", wantDomain: "auth.example.com"},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			m := NewHTTPMiddleware(config.AuthenticationSession{Domain: tc.domain, StateLifetime: time.Minute})
++			var state string
++			handler := m.Handler(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
++				state = r.URL.Query().Get("state")
++			}))
++			recorder := httptest.NewRecorder()
++			request := httptest.NewRequest(http.MethodGet, "/auth/v1/method/oidc/google/authorize?state=original", nil)
++
++			handler.ServeHTTP(recorder, request)
++
++			cookies := recorder.Result().Cookies()
++			if len(cookies) != 1 {
++				t.Fatalf("got %d cookies, want 1", len(cookies))
++			}
++			cookie := cookies[0]
++			if cookie.Name != stateCookieKey || cookie.Value == "" || cookie.Value != state {
++				t.Errorf("state cookie does not match request state: cookie=%q state=%q", cookie.Value, state)
++			}
++			if cookie.Path != "/auth/v1/method/oidc/google/callback" {
++				t.Errorf("cookie path = %q", cookie.Path)
++			}
++			if cookie.Domain != tc.wantDomain {
++				t.Errorf("cookie domain = %q, want %q", cookie.Domain, tc.wantDomain)
++			}
++			if got := strings.Contains(recorder.Header().Get("Set-Cookie"), "Domain="); got != (tc.wantDomain != "") {
++				t.Errorf("Domain attribute present = %t", got)
++			}
++		})
++	}
++}
++
++func TestMiddlewareForwardResponseTokenCookie(t *testing.T) {
++	for _, tc := range []struct {
++		name       string
++		domain     string
++		wantDomain string
++	}{
++		{name: "localhost", domain: "localhost"},
++		{name: "other host", domain: "auth.example.com", wantDomain: "auth.example.com"},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			m := NewHTTPMiddleware(config.AuthenticationSession{Domain: tc.domain, TokenLifetime: time.Minute})
++			recorder := httptest.NewRecorder()
++			response := &auth.CallbackResponse{ClientToken: "token"}
++
++			if err := m.ForwardResponseOption(context.Background(), recorder, response); err != nil {
++				t.Fatal(err)
++			}
++
++			cookies := recorder.Result().Cookies()
++			if len(cookies) != 1 {
++				t.Fatalf("got %d cookies, want 1", len(cookies))
++			}
++			cookie := cookies[0]
++			if cookie.Name != tokenCookieKey || cookie.Value != "token" || cookie.Path != "/" {
++				t.Errorf("unexpected token cookie: %#v", cookie)
++			}
++			if cookie.Domain != tc.wantDomain {
++				t.Errorf("cookie domain = %q, want %q", cookie.Domain, tc.wantDomain)
++			}
++			if got := strings.Contains(recorder.Header().Get("Set-Cookie"), "Domain="); got != (tc.wantDomain != "") {
++				t.Errorf("Domain attribute present = %t", got)
++			}
++		})
++	}
++}
+diff --git a/internal/server/auth/method/oidc/server.go b/internal/server/auth/method/oidc/server.go
+index 938c02a..37bd68e 100644
+--- a/internal/server/auth/method/oidc/server.go
++++ b/internal/server/auth/method/oidc/server.go
+@@ -3,6 +3,7 @@ package oidc
+ import (
+ 	"context"
+ 	"fmt"
++	"strings"
+ 	"time"
+ 
+ 	"github.com/coreos/go-oidc/v3/oidc"
+@@ -158,7 +159,7 @@ func (s *Server) Callback(ctx context.Context, req *auth.CallbackRequest) (_ *au
+ }
+ 
+ func callbackURL(host, provider string) string {
+-	return host + "/auth/v1/method/oidc/" + provider + "/callback"
++	return strings.TrimSuffix(host, "/") + "/auth/v1/method/oidc/" + provider + "/callback"
+ }
+ 
+ func (s *Server) providerFor(provider string, state string) (*capoidc.Provider, *capoidc.Req, error) {
+diff --git a/internal/server/auth/method/oidc/server_internal_test.go b/internal/server/auth/method/oidc/server_internal_test.go
+new file mode 100644
+index 0000000..3a32236
+--- /dev/null
++++ b/internal/server/auth/method/oidc/server_internal_test.go
+@@ -0,0 +1,33 @@
++package oidc
++
++import "testing"
++
++func TestCallbackURL(t *testing.T) {
++	for _, tc := range []struct {
++		name string
++		host string
++		want string
++	}{
++		{
++			name: "scheme and port",
++			host: "http://localhost:8080",
++			want: "http://localhost:8080/auth/v1/method/oidc/google/callback",
++		},
++		{
++			name: "one trailing slash",
++			host: "https://auth.example.com:8443/",
++			want: "https://auth.example.com:8443/auth/v1/method/oidc/google/callback",
++		},
++		{
++			name: "only one slash removed",
++			host: "https://auth.example.com:8443//",
++			want: "https://auth.example.com:8443//auth/v1/method/oidc/google/callback",
++		},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			if got := callbackURL(tc.host, "google"); got != tc.want {
++				t.Errorf("callbackURL(%q, %q) = %q, want %q", tc.host, "google", got, tc.want)
++			}
++		})
++	}
++}
+diff --git a/internal/server/auth/method/oidc/server_test.go b/internal/server/auth/method/oidc/server_test.go
+index c14f909..c128b71 100644
+--- a/internal/server/auth/method/oidc/server_test.go
++++ b/internal/server/auth/method/oidc/server_test.go
+@@ -109,7 +109,7 @@ func Test_Server(t *testing.T) {
+ 								IssuerURL:       tp.Addr(),
+ 								ClientID:        id,
+ 								ClientSecret:    secret,
+-								RedirectAddress: clientAddress,
++								RedirectAddress: clientAddress + "/",
+ 							},
+ 						},
+ 					},

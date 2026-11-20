@@ -1,0 +1,3 @@
+Fixed Kubernetes proxy error classification in [forwarder.go](/app/lib/kube/proxy/forwarder.go). `authenticate` now preserves non-access errors from authorization and context setup, while access-related failures remain `AccessDenied`. The existing no-tunnel `BadParameter` in `setupContext` is unchanged.
+
+Added the requested configurable error-writer handlers in [httplib.go](/app/lib/httplib/httplib.go) and updated classification tests. Both affected test packages passed; the updated `TestAuthenticate` also passed.

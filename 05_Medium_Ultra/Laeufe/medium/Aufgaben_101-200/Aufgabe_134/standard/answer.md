@@ -1,0 +1,3 @@
+Updated work search documents to expose `id_project_runeberg` as an array for every work, using `[]` when no identifier is present. Added and registered `ProjectRunebergProvider`, plus its [Read button](/app/openlibrary/templates/book_providers/runeberg_read_button.html) and [download options](/app/openlibrary/templates/book_providers/runeberg_download_options.html) templates.
+
+All 51 relevant tests passed.

@@ -1,0 +1,1 @@
+Updated [config.go](/app/internal/config/config.go) so scalar strings targeting `[]string` split on whitespace, with empty strings decoding to an empty slice. Empty ENV values now reach the decoder. YAML, ENV, sequence, and empty-value cases pass `go test ./internal/config`; `git diff --check` also passes.

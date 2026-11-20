@@ -1,0 +1,5 @@
+The fault is in [useLinksListing.tsx](/app/applications/drive/src/app/store/links/useLinksListing.tsx:591): the provider does not expose `getCachedChildrenCount`. Its existing `getCachedChildren` getter counts only decrypted links, so its result can undercount cached children.
+
+The proposed method should return `linksState.getChildren(shareId, parentLinkId).length`. [useLinksState.tsx](/app/applications/drive/src/app/store/links/useLinksState.tsx:79) already retrieves cached children for that share and parent, including children awaiting decryption. Existing [listing tests](/app/applications/drive/src/app/store/links/useLinksListing.test.tsx:82) cover fetched children but not a count; useful cases are an empty cache, multiple fetched pages, and children awaiting decryption.
+
+This is a code-based diagnosis; I did not run tests. The developer instruction for this specialist role prohibits changing project source or tests, so I recorded the finding in the required checkpoint note and left the fix for the coordinator.

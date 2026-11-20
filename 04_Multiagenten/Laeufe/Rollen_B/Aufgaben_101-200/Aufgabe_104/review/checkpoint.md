@@ -1,0 +1,2 @@
+VERDICT: ACCEPT
+Reviewed the applied configuration patch. `Config.Metadata.CheckForUpdates` defaults to true and is loaded from `metadata.check_for_updates` in YAML and JSON; existing validation remains in the load path. No code defect found. Tests: `GOPROXY=off GOSUMDB=off go test ./config` passed; `GOPROXY=off GOSUMDB=off go test ./cmd/flipt` passed (package has no test files; sqlite3 emitted a compiler warning). No TEST_ENVIRONMENT_PROBLEM.

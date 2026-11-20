@@ -1,0 +1,3 @@
+Added opt-out anonymous telemetry with a persistent UUID, a `flipt.ping` report every four hours, and a timestamp updated after successful reports. Config and environment variables control telemetry and its state directory. Startup logs telemetry errors and continues. I also added `internal/info.Flipt.ServeHTTP` and disabled telemetry in the advanced config example.
+
+`GOPROXY=off go test ./...` and `git diff --check` passed. The remote telemetry endpoint was not contacted because external checks were disallowed.

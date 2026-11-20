@@ -1,0 +1,7 @@
+Fault localization complete (source/tests unchanged).
+- src/privileges/global.js defines only `chat` and global.can returns a scalar via isAllowedTo(...,[0])[0]; helper already supports privilege arrays when cid is scalar 0.
+- src/messaging/index.js canMessageUser checks sender `chat` and recipient settings, never recipient isPrivileged; user.isPrivileged covers administrator/global moderator/category moderator. create and invite in src/api/chats.js already call canMessageUser for each target.
+- src/middleware/user.js canChat and other messaging paths use scalar `chat`; src/routes/write/chats.js applies canChat to all write chat routes. Requirement asks array ['chat','chat:privileged'] with includes(true), apparently OR for general access; target restriction still requires specific chat:privileged.
+- Profile route uses src/controllers/accounts/helpers.js getUserDataByUserSlug; it has messaging.hasPrivateChat but no canChat. Profile schema is UserObjectFull within public/openapi/components/schemas/UserObject.yaml. api.users.get is a separate v3 response using UserObject.
+- English privilege label at public/language/en-US/admin/manage/privileges.json. Default groups in src/install.js; grant policy for new privilege needs deliberate choice.
+- Existing tests: test/messaging.js covers restricted user, admin override, create/invite API, but no privileged-recipient gate or profile canChat.

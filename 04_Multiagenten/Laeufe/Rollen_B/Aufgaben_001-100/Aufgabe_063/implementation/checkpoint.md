@@ -1,0 +1,1 @@
+Implemented kube_listen_addr shorthand, conflict validation, Kubernetes service listen parsing, missing-listener warning, and client wildcard address resolution. Added focused config/client tests. go test ./lib/config ./lib/client -run TestConfig\|TestClientAPI -count=1 passed; git diff --check passed.

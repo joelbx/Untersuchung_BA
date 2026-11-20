@@ -1,0 +1,3 @@
+Updated the single and batch loaders, cache, and Mail details call sites to pass supplied owner-encrypted session keys to entities before decryption. Added tests for key application and cache forwarding, including the fourth `undefined` batch argument.
+
+Type checks passed. Focused tests reported **40/40** for `EntityRestClient`, **108/108** for the entity rest cache, and **29/29** for `MailIndexer`. The test runner also printed unrelated `LoginFacadeTest` import-time errors, so these results do not establish that the full suite is clean. Details are in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

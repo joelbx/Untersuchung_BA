@@ -1,0 +1,3 @@
+Album scans now collect image file names and store their full paths in the new `Album.ImageFiles` field, joined with the system list separator. `MediaFiles.Dirs()` returns sorted, unique directories, and album refreshes use the complete directory map, including during incremental scans and folder deletions. The database migration adds `album.image_files` and triggers a full rescan.
+
+Regression tests and the relevant existing tests passed with `GOPROXY=off go test ./model ./scanner ./persistence ./db/... -count=1`.

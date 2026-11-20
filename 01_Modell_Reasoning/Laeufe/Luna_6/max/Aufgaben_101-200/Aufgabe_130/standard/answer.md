@@ -1,0 +1,5 @@
+Implemented the device limit handling. `FakeDeviceService` now supports toggling the limit, and `RunAdmin` returns the registered device and outcome when enrollment fails. The CLI formatter also handles a nil device without panicking.
+
+The limit regression test passes with `go test ./lib/devicetrust/enroll`. The focused `tsh/common` test could not build because required Linux and glibc headers are missing in the container. Formatting and `git diff --check` passed.
+
+Changes are in [fake_device_service.go](/app/lib/devicetrust/testenv/fake_device_service.go:44), [testenv.go](/app/lib/devicetrust/testenv/testenv.go:44), [enroll.go](/app/lib/devicetrust/enroll/enroll.go:157), and [device.go](/app/tool/tsh/common/device.go:127). Regression tests were added in [enroll_test.go](/app/lib/devicetrust/enroll/enroll_test.go:85) and [device_test.go](/app/tool/tsh/common/device_test.go:27).

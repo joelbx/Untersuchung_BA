@@ -1,0 +1,3 @@
+`tsh` now reads `TELEPORT_KUBE_CLUSTER` into `KubernetesCluster` when no CLI cluster value is present. The existing `TELEPORT_CLUSTER`/`TELEPORT_SITE` precedence and `TELEPORT_HOME` override and path cleanup are covered by the updated [tests](/app/tool/tsh/tsh_test.go:659).
+
+I delegated the code and test edits to two agents, then reviewed the combined patch. The focused `tsh` tests passed offline with vendored dependencies; `git diff --check` also passed.

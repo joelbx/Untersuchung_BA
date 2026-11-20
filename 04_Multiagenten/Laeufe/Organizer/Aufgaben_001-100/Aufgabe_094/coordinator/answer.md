@@ -1,0 +1,3 @@
+Added the public `DiagResult` and `Diag` API. On macOS, availability now checks the code signature, entitlements, biometric policy, and Secure Enclave access before `Register` or `Login` proceeds. The existing WebAuthn flow was verified with tests for both passwordless login and login using an allowed credential.
+
+`go test ./lib/auth/touchid -count=1` and `git diff --check` passed. Apple Security framework behavior could not be exercised in this Linux environment. No delegation was used.

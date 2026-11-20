@@ -1,0 +1,3 @@
+Implemented `removeTechnicalFields` in [EntityUtils.ts](/app/src/api/common/utils/EntityUtils.ts:134). It recursively removes keys starting with `_finalEncrypted`, `_defaultEncrypted`, and `_errors`, while preserving other properties. Added tests for root and nested fields and for clean entities remaining unchanged.
+
+Verification passed: focused test runner (8,679 assertions), TypeScript type check, and `git diff --check`.

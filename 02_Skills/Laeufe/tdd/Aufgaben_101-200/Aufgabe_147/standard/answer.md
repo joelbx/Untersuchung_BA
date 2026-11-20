@@ -1,0 +1,3 @@
+Fixed `DeviceConfig` so loading an existing current-version config with a signup token does not write to storage. Persisted fields now live in one config object; migration converts legacy credential arrays into a userId-keyed object, while credentials remain a Map in memory. Missing tokens trigger a write, and unavailable or invalid storage is handled without throwing.
+
+Updated [DeviceConfig tests](/app/test/client/misc/DeviceConfigTest.ts). Type checking and the full `npm test` suite passed.

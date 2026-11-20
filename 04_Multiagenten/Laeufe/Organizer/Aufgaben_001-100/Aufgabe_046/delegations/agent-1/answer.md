@@ -1,0 +1,3 @@
+Implemented the dependency resolver patch in [module_common.py](/app/lib/ansible/executor/module_common.py). It uses queue processing, adds legacy and collection locators, handles collection routing and redirects, and fixes package imports and missing import diagnostics. Focused tests are in [test_recursive_finder.py](/app/test/units/executor/module_common/test_recursive_finder.py).
+
+Verification: `python -m pytest -q test/units/executor/module_common` passed **55 tests**; `git diff --check` passed.

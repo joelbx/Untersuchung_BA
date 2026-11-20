@@ -1,0 +1,3 @@
+Implemented transparent gzip decoding for `uri`, `get_url`, and the shared URL utilities. Both modules now expose `decompress` with a default of `True`; setting it to `False` preserves compressed response bytes. The shared reader also handles gzip encoded HTTP error bodies and closes the underlying stream.
+
+Verification: all 88 URL utility tests pass. A local HTTP test decoded 12,000 bytes from a 76 byte gzip response with the compressed `Content-Length` header.

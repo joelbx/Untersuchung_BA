@@ -1,0 +1,3 @@
+Updated [admin/uploads.js](/app/src/controllers/admin/uploads.js) to check that the requested destination is a directory under the configured upload path before saving. Invalid targets return `[[error:invalid-path]]`, with HTTP 500 handled by the existing error path. Added a regression test in [test/uploads.js](/app/test/uploads.js).
+
+Lint and `git diff --check` pass. The upload tests could not initialize because Redis was unavailable at `127.0.0.1:6379`. The checkpoint is recorded in `.codex-role-output/checkpoint.md`.

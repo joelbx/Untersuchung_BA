@@ -1,0 +1,3 @@
+Updated author matching in the checked-out repository. Exact and alternate names now require matching extracted birth and death years when dates are present; surname matching requires both years. Honorific removal handles name strings and edge cases, searches escape asterisks, and new author records retain the input fields. The existing `extract_year` function already met the requested behavior.
+
+Verification: 126 relevant tests passed; Ruff and `git diff --check` passed.

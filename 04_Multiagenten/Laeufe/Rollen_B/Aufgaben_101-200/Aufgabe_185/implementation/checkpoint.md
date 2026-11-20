@@ -1,0 +1,4 @@
+Implementer progress: verified subscriptionExpires currently prefers UpcomingSubscription and has no cancellation context. Inspecting cancellation displays and existing tests before patching.
+Patched subscriptionExpires with optional cancellation boolean; current disabled renewal also uses active term. Updated modal and B2C/B2B cancellation expiry displays to call it. Added regression assertions for distinct terms and free-plan preservation. Running targeted tests.
+Targeted helper, cancellation modal, and B2C/B2B confirmation tests pass (37 tests total). Package type check passed before final cleanup. Found post-cancellation redirection modal also displayed end-of-service date directly; routed it through helper as well, then restarted type check.
+Final verification: 37 targeted tests passed; package TypeScript check passed after all source edits; Prettier check and git diff --check passed. Patch complete.

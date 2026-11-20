@@ -1,0 +1,3 @@
+Implemented tracing configuration and applied it at startup. `samplingRatio` defaults to `1`, accepts values from `0` through `1`, and controls the sampler. `propagators` defaults to tracecontext and baggage, validates the eight supported options, and selects the active propagation formats. The JSON and CUE schemas now accept both settings.
+
+The config, schema, command, and tracing tests pass. The full `go test ./...` run still fails in Redis tests because Docker is unavailable and in a Git submodule test because the external URL returns Forbidden. A standalone build outside the Go workspace remains unverified because required dependencies are unavailable offline.

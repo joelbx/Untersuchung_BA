@@ -1,0 +1,3 @@
+Implemented peer address propagation and wildcard address rewriting. The controller replaces an unspecified heartbeat host with the stream peer’s host while preserving the original port.
+
+`go test ./lib/inventory` passed. `api/client` tests could not run because the required `github.com/gogo/protobuf@v1.3.2` module is unavailable with `GOPROXY=off`. The root-level `go test ./api/client ./lib/inventory` command also cannot target `api/client` because it is a separate Go module.

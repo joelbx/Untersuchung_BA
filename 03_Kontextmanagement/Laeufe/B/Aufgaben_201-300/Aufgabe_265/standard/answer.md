@@ -1,0 +1,3 @@
+Updated [QtColor](/app/qutebrowser/config/configtypes.py:990) so HSV/HSVA hue percentages scale to 359, while other percentage components scale to 255. Function names and component counts are now validated before conversion. I updated the [existing tests](/app/tests/unit/config/test_configtypes.py:1235).
+
+All **33 focused QtColor tests pass**. The full configtypes file has 60 failures outside `QtColor`; its first failure is an unrelated Hypothesis fixture health check.

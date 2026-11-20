@@ -1,0 +1,3 @@
+Exported `DefaultConfig` and `DecodeHooks` in `internal/config`, and updated `Load` to compose the exported hooks. Storage `Local` and `Git` fields now use pointers, with validation for missing selected configurations. Existing tests now use the exported defaults.
+
+Verification passed: `go test ./internal/config`, `go test ./internal/cmd ./internal/cue`, and `git diff --check`. No delegation was used.

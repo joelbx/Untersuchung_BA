@@ -1,0 +1,3 @@
+Fixed the Kubernetes exec session failure. Kubernetes service now initializes the session uploader before accepting sessions, creating the required upload directories. The forwarder now caches only valid short lived credentials, builds a fresh `clusterSession` for each request, keeps audit recording active after client disconnects, and exposes `ServeHTTP` through its internal router. I also renamed the forwarder configuration fields and updated the TLS heartbeat announcer.
+
+Verification passed: `go test ./lib/kube/proxy ./lib/service` and `git diff --check`.

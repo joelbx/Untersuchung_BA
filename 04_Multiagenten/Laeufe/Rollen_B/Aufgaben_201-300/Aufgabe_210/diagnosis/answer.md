@@ -1,0 +1,5 @@
+I located the duplicate evaluation, but did not edit project source or tests because this run is restricted to fault localization.
+
+`VariableManager.get_vars()` resolves delegation by evaluating loop items in `_get_delegated_vars()` ([manager.py](/app/lib/ansible/vars/manager.py:439)). `TaskExecutor.run()` then calls `_get_loop_items()` again ([task_executor.py](/app/lib/ansible/executor/task_executor.py:109)). Its private loop cache only prevents that second evaluation in some cases ([task_executor.py](/app/lib/ansible/executor/task_executor.py:218)), so a random loop can produce items that differ from those used to prepare delegated variables.
+
+The likely fix spans those files plus [worker.py](/app/lib/ansible/executor/process/worker.py:179), which has a variable manager but does not pass it to `TaskExecutor`, and [task.py](/app/lib/ansible/playbook/task.py:90), which lacks `get_play()`. The behavior to preserve is item-dependent `delegate_to`; the requested pre-loop resolution order leaves its exact handling uncertain. I recorded the trace in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

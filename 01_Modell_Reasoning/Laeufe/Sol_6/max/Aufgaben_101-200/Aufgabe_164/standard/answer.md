@@ -1,0 +1,3 @@
+Fixed the import issue in [encoding.go](/app/internal/ext/encoding.go) and [importer.go](/app/internal/ext/importer.go). YAML imports now use the v3 decoder, JSON imports skip exactly one initial line when it starts with `#`, and variant attachments serialize without the conversion workaround.
+
+Added [regression tests](/app/internal/ext/importer_test.go) for nested metadata, namespace fields, attachments, and JSON header handling. `go test ./internal/ext`, `go test ./cmd/flipt`, and `git diff --check` pass.

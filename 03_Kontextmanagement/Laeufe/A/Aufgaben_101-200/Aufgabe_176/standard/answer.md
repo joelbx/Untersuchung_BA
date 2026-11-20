@@ -1,0 +1,3 @@
+Updated [incdec_number](/app/qutebrowser/utils/urlutils.py:554) to skip digits in percent escapes, preserve encoded URL segments, leave ports untouched, validate counts, reject decrements below zero, and retain zero padding. It now defaults to the path and uses the specified path, query, anchor, host priority, changing the first eligible number.
+
+Updated the [tests](/app/tests/unit/utils/test_urlutils.py:619). The full URL test file passed: **354 passed, 1 skipped**.

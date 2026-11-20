@@ -1,0 +1,3 @@
+Added the global `chat:privileged` permission and enforced it when a user starts a chat with an administrator or moderator, including through invitations. The shared privilege check now accepts a string or an array, and the profile response exposes `canChat`; the admin label and OpenAPI schema are updated.
+
+ESLint and `git diff --check` passed. The messaging test could not run because Redis was unavailable at `127.0.0.1:6379`.

@@ -1,0 +1,3 @@
+Added `.well-known` `force_disable` support for new private rooms. The shared policy helper gives server force-on precedence when policies conflict; the creation dialog shows and submits the enforced encryption value with a disabled toggle. The private-room default also honors force-off.
+
+Verification: 28 focused tests passed; ESLint, Prettier, and `git diff --check` passed. The full type check remains blocked by an error in untouched `src/Unread.ts:167`.

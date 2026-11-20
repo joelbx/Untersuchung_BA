@@ -1,0 +1,1 @@
+Implemented CALENDAR_URL limit, unified modal submit guard and warning priority, removed counter/maxLength, and centralized ResizeObserver mocks in calendar, components, and mail Jest setups. Added modal tests with a default-export useGetCalendarSetup mock. Verified focused modal tests (3), calendar specs (6), mail spec (12), Prettier, and git diff --check.

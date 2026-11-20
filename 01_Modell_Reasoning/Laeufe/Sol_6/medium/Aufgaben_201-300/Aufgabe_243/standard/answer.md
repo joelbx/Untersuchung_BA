@@ -1,0 +1,3 @@
+Updated Kubernetes session routing in [forwarder.go](/app/lib/kube/proxy/forwarder.go). Session creation now returns `trace.NotFound` for a missing or unknown Kubernetes cluster, prefers configured local credentials, routes remote clusters through `reversetunnel.LocalKubernetes`, and discovers kube_service endpoints with their address and server ID. Dials use `dialEndpoint` and record the selected `kubeAddress`; an empty endpoint set returns `trace.BadParameter`.
+
+Added coverage in [forwarder_test.go](/app/lib/kube/proxy/forwarder_test.go). `go test ./lib/kube/proxy -count=1` passed.

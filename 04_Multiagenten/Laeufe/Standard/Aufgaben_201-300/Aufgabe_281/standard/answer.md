@@ -1,0 +1,3 @@
+Implemented `incrObjectFieldByBulk` in the Mongo and Redis hash backends. It validates tuple input and safe integer increments, updates multiple fields atomically per key, creates missing objects and fields, and invalidates cache entries for successful writes. Failed keys leave their fields unchanged while other keys can proceed.
+
+Verification: the Redis-backed hash suite passed (67 tests), ESLint and `git diff --check` passed, and a local mock check covered the Mongo bulk call.

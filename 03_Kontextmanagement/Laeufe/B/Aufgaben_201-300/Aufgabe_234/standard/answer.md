@@ -1,0 +1,3 @@
+The repository issue is resolved using a single `*sql.DB`. I added the requested SQLite connection settings in [db.go](/app/db/db.go) and changed [persistence.go](/app/persistence/persistence.go) so `WithTx()` uses the connection passed to `New()`.
+
+The checkout already had no read/write interface or routing builder. I followed the issue’s simplification goal rather than the conflicting interface section. Tests passed: `go test ./db ./persistence ./cmd ./scanner`.

@@ -1,0 +1,3 @@
+Implemented the `chat:privileged` gate across chat permission checks. Requests to start a chat with or invite a privileged user now return `[[error:no-privileges]]` unless the initiator has that privilege. The profile response includes `canChat`, and the privilege appears in the admin UI and OpenAPI schema.
+
+Verification: the messaging suite passed (78 tests), and targeted ESLint, JSON, and diff checks passed.

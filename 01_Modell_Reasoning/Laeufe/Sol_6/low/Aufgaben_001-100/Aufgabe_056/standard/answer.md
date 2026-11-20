@@ -1,0 +1,3 @@
+Added JXL MIME support and gated HEIC, HEIF, and JXL previews on macOS or iOS Safari 17+. Both Drive upload parsers now use the file’s MIME type when available and fall back to its extension without reading file contents.
+
+`git diff --check` passed. The existing upload test could not start because this checkout lacks `drive-store/config`; the shared type check failed on an unrelated OpenPGP type mismatch.

@@ -1,0 +1,3 @@
+Implemented a per member pending lock in [UserInfo.tsx](/app/src/components/views/right_panel/UserInfo.tsx). Kick, Ban, and Mute now disable together as soon as one is activated, including while confirmation is open. Cancel and request settlement release the lock; request failures show the existing error dialog.
+
+The UserInfo test suite passed: 68 tests. Type checking remains blocked by existing dependency and type errors in unrelated files. `git diff --check` passed.

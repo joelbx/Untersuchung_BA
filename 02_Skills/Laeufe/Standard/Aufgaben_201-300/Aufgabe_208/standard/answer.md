@@ -1,0 +1,3 @@
+Fixed email confirmation expiry and resend behavior. Pending checks now return strict booleans, `getValidationExpiry` returns the live TTL in milliseconds or `null`, and resends use the configured interval. Expiring a confirmation clears both records and allows an immediate new request; stale codes are rejected.
+
+The focused email tests passed (7), the user suite passed (255), and ESLint and `git diff --check` passed.

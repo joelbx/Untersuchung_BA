@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to resolve its settings through `get_option()` for command construction, file transfers, retries, timeouts, and persistent connections. Reset now checks for a socket with the effective SSH parameters and sends `-O stop` only when the check succeeds. I also removed the SSH-specific core configuration definitions and fixed the default transport lookup to load the plugin options first.
+
+Verification: 25 relevant tests passed, and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Resolved the OCI storage configuration issue. Invalid repository schemes and missing repositories now produce the required errors; bundle directory, authentication, and duration based polling are parsed and passed to the OCI backend. `NewStore` uses its supplied directory, `DefaultBundleDir` creates a path under Flipt’s data directory, and `fs/oci` is registered in both integration matrices.
+
+The targeted Go tests and integration package compile check passed. The Dagger integration suite was registered but not run.

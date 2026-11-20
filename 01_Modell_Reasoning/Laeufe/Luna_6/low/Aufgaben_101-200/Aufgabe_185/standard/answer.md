@@ -1,0 +1,3 @@
+Cancellation confirmations now source the service end date through `subscriptionExpires` in cancellation context, which selects the active term and reports renewal disabled. The optional context preserves scheduled-term behavior when omitted, and free-plan output is unchanged.
+
+The helper test suite passed (29/29), and formatting checks passed. The component type check did not finish within the available run, so its result is unverified.

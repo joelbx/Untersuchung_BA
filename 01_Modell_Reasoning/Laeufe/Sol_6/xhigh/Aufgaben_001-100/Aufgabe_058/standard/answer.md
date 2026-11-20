@@ -1,0 +1,3 @@
+Updated [PosthogAnalytics.ts](/app/src/PosthogAnalytics.ts) to validate configuration before initialization, enforce anonymous mode under DNT, gate captures on enabled and initialized state, hash user and room IDs, and redact URLs using the current anonymity mode. Added state accessors and logout behavior, with coverage in [PosthogAnalytics-test.ts](/app/test/PosthogAnalytics-test.ts).
+
+All 18 focused tests pass. Changed-file lint, targeted TypeScript checking, and `git diff --check` pass. The repository-wide TypeScript check still reports errors in unrelated SDK and dependency files.

@@ -1,0 +1,3 @@
+Updated [forwarder.go](/app/lib/kube/proxy/forwarder.go) so session creation returns a clear `trace.NotFound` for a missing or unknown Kubernetes cluster, uses local credentials before service discovery, and dials remote and kube_service clusters through selected endpoints. The session’s selected address is also used for request URLs and audit metadata. Added coverage in [forwarder_test.go](/app/lib/kube/proxy/forwarder_test.go) for these paths and endpoint failover.
+
+Verification passed: `GOPROXY=off GOSUMDB=off go test ./lib/kube/proxy -count=1` and `git diff --check`.

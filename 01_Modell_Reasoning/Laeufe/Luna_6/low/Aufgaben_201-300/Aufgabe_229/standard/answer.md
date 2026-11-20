@@ -1,0 +1,3 @@
+Implemented image cleanup across group cover removal, user cover/avatar removal, and account deletion. User image paths are validated against the configured profile uploads URL and directory; cleanup handles the supported extensions and missing files. Existing plugin action hooks are preserved.
+
+ESLint and `git diff --check` pass. The targeted user removal tests could not run because Redis is unavailable (`ECONNREFUSED 127.0.0.1:6379`).

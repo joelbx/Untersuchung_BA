@@ -1,0 +1,3 @@
+Added a dedicated `KEVs` field to vulnerabilities, with CISA and VulnCheck types and source-specific details. The detector now populates it from either source, normalizes placeholder due dates, and supports KEV summaries and stable JSON ordering. Updated go-kev to a locally cached version that provides VulnCheck data.
+
+Verification passed offline: `go test -mod=readonly ./models ./detector -count=1` and `git diff --check`.

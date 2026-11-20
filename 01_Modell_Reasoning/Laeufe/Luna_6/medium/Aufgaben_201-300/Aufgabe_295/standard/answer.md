@@ -1,0 +1,3 @@
+Added [DeviceVerificationStatusCard.tsx](/app/src/components/views/settings/devices/DeviceVerificationStatusCard.tsx) to centralize the verified and unverified copy. Current session delegates to it after the optional details; Device Details now accepts `DeviceWithVerification` and renders the card immediately below its heading.
+
+Updated the affected snapshots. Both relevant test suites pass (7 tests), and ESLint and `git diff --check` pass.

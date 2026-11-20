@@ -1,0 +1,3 @@
+Added `@proton/metrics` to the [mail package](/app/applications/mail/package.json:40) and [lockfile](/app/yarn.lock:35945). The new [mail metrics helper](/app/applications/mail/src/app/metrics/mailMetricsHelper.ts:5) preserves built-in mailbox IDs, returns `custom` for other IDs, and converts page sizes to `"50"`, `"100"`, or `"200"` with `"50"` as the fallback.
+
+Verification passed: 24 focused label tests, the mail TypeScript check, formatting, diff checks, and direct helper smoke checks. One subagent handled the dependency entries; another reviewed local types and test conventions. I integrated and verified the patch.

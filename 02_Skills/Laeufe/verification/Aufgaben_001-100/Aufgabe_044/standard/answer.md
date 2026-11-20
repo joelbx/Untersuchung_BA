@@ -1,0 +1,3 @@
+Implemented namespace listing for users without access to `default`. Both authorization engines now evaluate viewable namespaces; middleware passes the result to `ListNamespaces`, which filters the response and reports an accessible namespace count. Added tests for role mappings, empty and malformed decisions, middleware handoff, and endpoint filtering.
+
+Verification: `GOTOOLCHAIN=local GOPROXY=off go test ./internal/server/... -count=1` and `git diff --check` both passed.

@@ -1,0 +1,3 @@
+Task: Fix nullable timestamps and image_files scan errors after upgrade.
+State: Implemented gg.P and gg.V; changed album and artist metadata timestamps, share expiry and last visit timestamps, and album image_files to nullable pointers. Updated reads and writes in scanner, core, artwork, and API. Added helper and SQL NULL regression tests.
+Verification: Relevant packages pass: go test ./utils/gg ./model ./persistence ./core ./core/artwork ./scanner ./server/public ./server/subsonic; git diff --check passes. Full go test ./... fails only in scanner/metadata/taglib (4 fixture/permission tests unrelated to changes).

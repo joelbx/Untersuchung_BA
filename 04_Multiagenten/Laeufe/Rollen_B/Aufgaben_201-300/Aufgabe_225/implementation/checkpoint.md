@@ -1,0 +1,1 @@
+Implemented dedicated KEV model and source details, upgraded go-kev to cached version supporting VulnCheck, mapped HTTP and DB ingestion, added summary and sorting, and verified with full models/detector tests plus focused new tests (offline). No known blockers.

@@ -1,0 +1,3 @@
+Implemented native DynamoDB `FieldsMap` storage for new audit events, with reads that continue to support legacy `Fields` records. Added a batched, resumable migration with conversion validation, progress logging, a distributed lock, and a completion flag. See [event storage](/app/lib/events/dynamoevents/dynamoevents.go), [migration](/app/lib/events/dynamoevents/fields_migration.go), and [FlagKey](/app/lib/backend/helpers.go:34).
+
+Offline tests passed for `./lib/events/dynamoevents` and `./lib/backend`. The AWS-dependent integration test requires the repository’s AWS test setting and did not run.

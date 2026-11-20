@@ -1,0 +1,5 @@
+Updated the mail assistant conversion path so the composer’s `messageID` follows content through model preparation, result rendering, and editor insertion. URL placeholders now restore only for their originating message; unmatched links lose their URL while keeping visible text, and unmatched images are removed. Link and image `class` and `style` survive the round trip. The new `fixNestedLists` helper repairs invalid list nesting, and Markdown conversion retains list hierarchy and markers.
+
+**Verification:** 7 assistant tests passed, edited-file ESLint passed, and `git diff --check` passed. The mail type check remains blocked by an OpenPGP type mismatch in `packages/crypto/lib/worker/api.ts`; it reported no errors in the edited mail files.
+
+I completed the changes directly, with no delegation or adoption.

@@ -1,0 +1,3 @@
+Enabled GitHub and OIDC authentication now fails configuration loading when `client_id`, `client_secret`, or `redirect_address` is missing or blank. Errors name the provider and field in the requested format; OIDC errors preserve the exact YAML provider key. The GitHub `read:org` check now returns the requested message.
+
+Updated validation and load tests in [internal/config](/app/internal/config/authentication.go). The config tests pass, and `cmd/flipt` builds with `go test` (it has no test files).

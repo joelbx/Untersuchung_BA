@@ -1,0 +1,3 @@
+Implemented the version-aware canvas workaround. The setting now accepts `always`, `auto`, and `never`, with `auto` as the default. In `auto`, the flag is added only on Qt 6 with a known Chromium major below 111; unknown versions also pass through the full argument path without an assertion.
+
+Added tests for the requested Qt version boundaries and unknown Chromium versions. **Validation:** 142 relevant tests passed, and `git diff --check` passed.

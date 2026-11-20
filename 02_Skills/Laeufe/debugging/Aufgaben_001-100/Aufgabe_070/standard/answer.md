@@ -1,0 +1,3 @@
+Updated [format_languages](/app/openlibrary/catalog/utils/__init__.py:455) to resolve two letter codes and English or native language names to canonical MARC keys. It now removes duplicates while preserving first occurrence and raises `InvalidLanguage` for missing or ambiguous matches.
+
+Added regression cases in [test_utils.py](/app/openlibrary/tests/catalog/test_utils.py:455). **Verification:** 151 related tests passed; Ruff and `git diff --check` passed.

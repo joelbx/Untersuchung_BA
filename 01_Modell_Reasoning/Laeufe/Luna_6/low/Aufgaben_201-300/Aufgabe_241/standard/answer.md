@@ -1,0 +1,3 @@
+Updated [VoiceBroadcastPreRecordingPip.tsx](/app/src/voice-broadcast/components/molecules/VoiceBroadcastPreRecordingPip.tsx) to disable “Go live” immediately and ignore repeat activations until `start()` settles (or the current tick ends for synchronous starts). The microphone line also avoids reopening the menu while it’s already open; device selection and label updates continue through the existing audio device hook.
+
+The focused Jest suite passed: 6 tests. `yarn lint:types` reported existing `MatrixClient` typing errors in unrelated files; none referenced the modified component. Checkpoint recorded in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

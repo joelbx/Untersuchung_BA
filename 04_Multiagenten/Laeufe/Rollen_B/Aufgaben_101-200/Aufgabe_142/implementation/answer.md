@@ -1,0 +1,3 @@
+Implemented a typed expression AST in [lib/utils/parse](/app/lib/utils/parse/ast.go). Parsing now supports nested string functions, constant inputs, strict variable shapes and namespaces, typed matcher predicates, and bounded template parsing. Trait and PAM interpolation validate each variable through a callback.
+
+`go test ./lib/utils/parse` passes, and `git diff --check` is clean. I could not complete the broader `lib/services` and `lib/srv` tests: the local build lacks `linux/hidraw.h`, and disabling CGO causes HID, PKCS#11, and BPF compile errors.

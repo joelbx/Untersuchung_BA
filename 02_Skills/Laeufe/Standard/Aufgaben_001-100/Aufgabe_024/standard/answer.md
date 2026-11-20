@@ -1,0 +1,3 @@
+Updated author matching so exact names and alternate names are checked against extracted birth and death years before surname fallback. Surname matching now requires both years, and name searches treat asterisks literally. Honorific removal accepts a string, preserves exception names and honorific-only names, and runs before import. New author records retain the input fields.
+
+Verified with **135 passing tests**, Ruff, and `git diff --check`.

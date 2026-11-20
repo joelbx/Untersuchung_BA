@@ -1,0 +1,3 @@
+Updated the Kubernetes backend to export `NamespaceEnv` and `ReleaseNameEnv` and use them when reading the namespace and release name. `NewWithClient()` validates both required variables and returns the specified error when either is empty. The tests now set the required environment variables explicitly and cover the constructor’s configuration and error cases.
+
+The existing Kubernetes backend test suite passes: `go test ./lib/backend/kubernetes` with downloads disabled.

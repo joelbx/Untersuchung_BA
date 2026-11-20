@@ -1,0 +1,5 @@
+I found the likely fault in [usePopper.ts](/app/packages/components/components/popper/usePopper.ts:130): it exposes Floating UI’s placement directly, and its middleware list has no RTL placement reporting step. Tooltip, Dropdown, Spotlight, and Info turn that value into styling classes.
+
+The likely fix belongs in [utils.ts](/app/packages/components/components/popper/utils.ts:137): add `getInvertedRTLPlacement(placement, rtl)` and an `rtlPlacement()` middleware that reads the floating element’s effective direction and reports the adjusted *resolved* placement through middleware data. The helper should swap `start` and `end` only for `top` and `bottom` in RTL; all other cases stay unchanged. The hook should use that reported value while preserving `hidden`.
+
+[utils.test.ts](/app/packages/components/components/popper/utils.test.ts:1) covers fallback order but has no RTL cases. I did not run tests. Per the assigned fault-localization scope, I updated only [checkpoint.md](/app/.codex-role-output/checkpoint.md); project source and tests remain unedited.

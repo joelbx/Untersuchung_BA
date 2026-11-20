@@ -1,0 +1,434 @@
+diff --git a/lib/backend/helpers.go b/lib/backend/helpers.go
+index c8b5af3..f2f122e 100644
+--- a/lib/backend/helpers.go
++++ b/lib/backend/helpers.go
+@@ -29,6 +29,11 @@ import (
+ 
+ const locksPrefix = ".locks"
+ 
++// FlagKey builds a backend key for an internal feature or migration flag.
++func FlagKey(parts ...string) []byte {
++	return Key(append([]string{".flags"}, parts...)...)
++}
++
+ type Lock struct {
+ 	key []byte
+ 	id  []byte
+diff --git a/lib/backend/helpers_flags_test.go b/lib/backend/helpers_flags_test.go
+new file mode 100644
+index 0000000..c3671f4
+--- /dev/null
++++ b/lib/backend/helpers_flags_test.go
+@@ -0,0 +1,11 @@
++package backend
++
++import (
++	"testing"
++
++	"github.com/stretchr/testify/require"
++)
++
++func TestFlagKeyUsesInternalPrefix(t *testing.T) {
++	require.Equal(t, []byte("/.flags/dynamoEvents/fieldsMap"), FlagKey("dynamoEvents", "fieldsMap"))
++}
+diff --git a/lib/events/dynamoevents/dynamoevents.go b/lib/events/dynamoevents/dynamoevents.go
+index 11ea93a..e44c924 100644
+--- a/lib/events/dynamoevents/dynamoevents.go
++++ b/lib/events/dynamoevents/dynamoevents.go
+@@ -18,13 +18,16 @@ limitations under the License.
+ package dynamoevents
+ 
+ import (
++	"bytes"
+ 	"context"
+ 	"crypto/sha256"
+ 	"encoding/hex"
+ 	"encoding/json"
+ 	"fmt"
++	"io"
+ 	"math"
+ 	"net/url"
++	"reflect"
+ 	"sort"
+ 	"strings"
+ 	"sync"
+@@ -89,6 +92,7 @@ var tableSchema = []*dynamodb.AttributeDefinition{
+ const indexV2CreationLock = "dynamoEvents/indexV2Creation"
+ const rfd24MigrationLock = "dynamoEvents/rfd24Migration"
+ const rfd24MigrationLockTTL = 5 * time.Minute
++const fieldsMapMigrationLock = "dynamoEvents/fieldsMapMigration"
+ 
+ // Config structure represents DynamoDB confniguration as appears in `storage` section
+ // of Teleport YAML
+@@ -196,6 +200,121 @@ type event struct {
+ 	CreatedAtDate  string
+ }
+ 
++// fieldsAttribute converts the JSON representation into DynamoDB's native map.
++// UseNumber preserves integers that cannot be represented exactly by float64.
++func fieldsAttribute(data []byte) (*dynamodb.AttributeValue, error) {
++	var fields map[string]interface{}
++	decoder := json.NewDecoder(bytes.NewReader(data))
++	decoder.UseNumber()
++	if err := decoder.Decode(&fields); err != nil {
++		return nil, trace.Wrap(err)
++	}
++	var trailing interface{}
++	if err := decoder.Decode(&trailing); err != io.EOF {
++		return nil, trace.BadParameter("event fields contain trailing JSON: %v", err)
++	}
++	if fields == nil {
++		return nil, trace.BadParameter("event fields must be a JSON object")
++	}
++	encoder := dynamodbattribute.NewEncoder(func(e *dynamodbattribute.Encoder) {
++		e.NullEmptyString = false
++	})
++	return encoder.Encode(convertNumbers(fields, true))
++}
++
++func convertNumbers(value interface{}, toDynamo bool) interface{} {
++	switch v := value.(type) {
++	case json.Number:
++		if toDynamo {
++			return dynamodbattribute.Number(v)
++		}
++	case dynamodbattribute.Number:
++		if !toDynamo {
++			return json.Number(v)
++		}
++	case map[string]interface{}:
++		for key, child := range v {
++			v[key] = convertNumbers(child, toDynamo)
++		}
++	case []interface{}:
++		for i, child := range v {
++			v[i] = convertNumbers(child, toDynamo)
++		}
++	}
++	return value
++}
++
++func marshalEvent(e event) (map[string]*dynamodb.AttributeValue, error) {
++	item, err := dynamodbattribute.MarshalMap(e)
++	if err != nil {
++		return nil, trace.Wrap(err)
++	}
++	fields, err := fieldsAttribute([]byte(e.Fields))
++	if err != nil {
++		return nil, trace.Wrap(err)
++	}
++	item["FieldsMap"] = fields
++	delete(item, "Fields")
++	return item, nil
++}
++
++// fieldsJSON reads either format while older nodes are still writing Fields.
++func fieldsJSON(item map[string]*dynamodb.AttributeValue) ([]byte, error) {
++	if fields := item["FieldsMap"]; fields != nil {
++		var value map[string]interface{}
++		decoder := dynamodbattribute.NewDecoder(func(d *dynamodbattribute.Decoder) { d.UseNumber = true })
++		if err := decoder.Decode(fields, &value); err != nil {
++			return nil, trace.Wrap(err)
++		}
++		if value == nil {
++			return nil, trace.BadParameter("FieldsMap is not a map")
++		}
++		return json.Marshal(convertNumbers(value, false))
++	}
++	if fields := item["Fields"]; fields != nil && fields.S != nil {
++		return []byte(*fields.S), nil
++	}
++	return nil, trace.BadParameter("event has neither FieldsMap nor Fields")
++}
++
++// migrateFieldsItem changes one legacy record without touching its keys or other metadata.
++func migrateFieldsItem(item map[string]*dynamodb.AttributeValue) (bool, error) {
++	if item["FieldsMap"] != nil {
++		return false, nil
++	}
++	legacy := item["Fields"]
++	if legacy == nil || legacy.S == nil {
++		return false, trace.BadParameter("event has no legacy Fields string")
++	}
++	fields, err := fieldsAttribute([]byte(*legacy.S))
++	if err != nil {
++		return false, trace.Wrap(err)
++	}
++	// Verify semantic equality before replacing the legacy attribute.
++	converted, err := fieldsJSON(map[string]*dynamodb.AttributeValue{"FieldsMap": fields})
++	if err != nil {
++		return false, trace.Wrap(err)
++	}
++	var before, after interface{}
++	decode := func(data []byte, target *interface{}) error {
++		d := json.NewDecoder(bytes.NewReader(data))
++		d.UseNumber()
++		return d.Decode(target)
++	}
++	if err := decode([]byte(*legacy.S), &before); err != nil {
++		return false, trace.Wrap(err)
++	}
++	if err := decode(converted, &after); err != nil {
++		return false, trace.Wrap(err)
++	}
++	if !reflect.DeepEqual(before, after) {
++		return false, trace.BadParameter("FieldsMap conversion changed event metadata")
++	}
++	item["FieldsMap"] = fields
++	delete(item, "Fields")
++	return true, nil
++}
++
+ const (
+ 	// keyExpires is a key used for TTL specification
+ 	keyExpires = "Expires"
+@@ -296,7 +415,12 @@ func New(ctx context.Context, cfg Config, backend backend.Backend) (*Log, error)
+ 	}
+ 
+ 	// Migrate the table according to RFD 24 if it still has the old schema.
+-	go b.migrateRFD24WithRetry(ctx)
++	go func() {
++		b.migrateRFD24WithRetry(ctx)
++		if ctx.Err() == nil {
++			b.migrateFieldsMapWithRetry(ctx)
++		}
++	}()
+ 
+ 	// Enable continuous backups if requested.
+ 	if b.Config.EnableContinuousBackups {
+@@ -363,6 +487,71 @@ func (l *Log) migrateRFD24WithRetry(ctx context.Context) {
+ 	}
+ }
+ 
++// migrateFieldsMapWithRetry resumes after transient DynamoDB or backend errors.
++func (l *Log) migrateFieldsMapWithRetry(ctx context.Context) {
++	for ctx.Err() == nil {
++		if err := l.migrateFieldsMap(ctx); err == nil {
++			return
++		} else {
++			l.WithError(err).Error("FieldsMap migration failed; retrying")
++		}
++		select {
++		case <-time.After(utils.HalfJitter(time.Minute)):
++		case <-ctx.Done():
++			return
++		}
++	}
++}
++
++// migrateFieldsMap converts legacy rows in batches. A consistent scan and the
++// absence filter allow a subsequent run to pick up every unfinished row.
++func (l *Log) migrateFieldsMap(ctx context.Context) error {
++	return backend.RunWhileLocked(ctx, l.backend, fieldsMapMigrationLock, rfd24MigrationLockTTL, func(ctx context.Context) error {
++		var startKey map[string]*dynamodb.AttributeValue
++		processed := 0
++		for {
++			if err := ctx.Err(); err != nil {
++				return trace.Wrap(err)
++			}
++			out, err := l.svc.ScanWithContext(ctx, &dynamodb.ScanInput{
++				TableName:         aws.String(l.Tablename),
++				ConsistentRead:    aws.Bool(true),
++				ExclusiveStartKey: startKey,
++				Limit:             aws.Int64(DynamoBatchSize),
++				FilterExpression:  aws.String("attribute_exists(Fields) AND attribute_not_exists(FieldsMap)"),
++			})
++			if err != nil {
++				return trace.Wrap(convertError(err))
++			}
++			batch := make([]*dynamodb.WriteRequest, 0, len(out.Items))
++			for _, item := range out.Items {
++				changed, err := migrateFieldsItem(item)
++				if err != nil {
++					l.WithError(err).WithField("key", map[string]*dynamodb.AttributeValue{keySessionID: item[keySessionID], keyEventIndex: item[keyEventIndex]}).Error("Failed to convert event Fields")
++					return trace.Wrap(err)
++				}
++				if changed {
++					batch = append(batch, &dynamodb.WriteRequest{PutRequest: &dynamodb.PutRequest{Item: item}})
++				}
++			}
++			if len(batch) != 0 {
++				if err := l.uploadBatch(ctx, batch); err != nil {
++					return trace.Wrap(err)
++				}
++				processed += len(batch)
++				if processed%DynamoBatchSize == 0 {
++					l.Infof("Migrated %d events to FieldsMap", processed)
++				}
++			}
++			startKey = out.LastEvaluatedKey
++			if len(startKey) == 0 {
++				l.Infof("FieldsMap migration complete: %d events converted", processed)
++				return nil
++			}
++		}
++	})
++}
++
+ // migrateRFD24 checks if any migration actions need to be performed
+ // as specified in RFD 24 and applies them as needed.
+ //
+@@ -469,7 +658,7 @@ func (l *Log) EmitAuditEvent(ctx context.Context, in apievents.AuditEvent) error
+ 		CreatedAtDate:  in.GetTime().Format(iso8601DateFormat),
+ 	}
+ 	l.setExpiry(&e)
+-	av, err := dynamodbattribute.MarshalMap(e)
++	av, err := marshalEvent(e)
+ 	if err != nil {
+ 		return trace.Wrap(err)
+ 	}
+@@ -516,7 +705,7 @@ func (l *Log) EmitAuditEventLegacy(ev events.Event, fields events.EventFields) e
+ 		CreatedAtDate:  created.Format(iso8601DateFormat),
+ 	}
+ 	l.setExpiry(&e)
+-	av, err := dynamodbattribute.MarshalMap(e)
++	av, err := marshalEvent(e)
+ 	if err != nil {
+ 		return trace.Wrap(err)
+ 	}
+@@ -568,7 +757,7 @@ func (l *Log) PostSessionSlice(slice events.SessionSlice) error {
+ 			CreatedAtDate:  timeAt.Format(iso8601DateFormat),
+ 		}
+ 		l.setExpiry(&event)
+-		item, err := dynamodbattribute.MarshalMap(event)
++		item, err := marshalEvent(event)
+ 		if err != nil {
+ 			return trace.Wrap(err)
+ 		}
+@@ -641,8 +830,11 @@ func (l *Log) GetSessionEvents(namespace string, sid session.ID, after int, inlc
+ 		if err := dynamodbattribute.UnmarshalMap(item, &e); err != nil {
+ 			return nil, trace.BadParameter("failed to unmarshal event for session %q: %v", string(sid), err)
+ 		}
++		data, err := fieldsJSON(item)
++		if err != nil {
++			return nil, trace.Wrap(err)
++		}
+ 		var fields events.EventFields
+-		data := []byte(e.Fields)
+ 		if err := json.Unmarshal(data, &fields); err != nil {
+ 			return nil, trace.BadParameter("failed to unmarshal event for session %q: %v", string(sid), err)
+ 		}
+@@ -886,8 +1078,12 @@ dateLoop:
+ 				if err := dynamodbattribute.UnmarshalMap(item, &e); err != nil {
+ 					return nil, "", trace.WrapWithMessage(err, "failed to unmarshal event")
+ 				}
++				data, err := fieldsJSON(item)
++				if err != nil {
++					return nil, "", trace.Wrap(err)
++				}
++				e.Fields = string(data)
+ 				var fields events.EventFields
+-				data := []byte(e.Fields)
+ 				if err := json.Unmarshal(data, &fields); err != nil {
+ 					return nil, "", trace.BadParameter("failed to unmarshal event %v", err)
+ 				}
+@@ -1264,7 +1460,7 @@ func (l *Log) migrateDateAttribute(ctx context.Context) error {
+ 				defer workerBarrier.Done()
+ 				amountProcessed := len(batch)
+ 
+-				if err := l.uploadBatch(batch); err != nil {
++				if err := l.uploadBatch(ctx, batch); err != nil {
+ 					workerErrors <- trace.Wrap(err)
+ 					return
+ 				}
+@@ -1299,13 +1495,13 @@ func (l *Log) migrateDateAttribute(ctx context.Context) error {
+ }
+ 
+ // uploadBatch creates or updates a batch of `DynamoBatchSize` events or less in one API call.
+-func (l *Log) uploadBatch(writeRequests []*dynamodb.WriteRequest) error {
++func (l *Log) uploadBatch(ctx context.Context, writeRequests []*dynamodb.WriteRequest) error {
+ 	for {
+ 		c := &dynamodb.BatchWriteItemInput{
+ 			RequestItems: map[string][]*dynamodb.WriteRequest{l.Tablename: writeRequests},
+ 		}
+ 
+-		out, err := l.svc.BatchWriteItem(c)
++		out, err := l.svc.BatchWriteItemWithContext(ctx, c)
+ 		if err != nil {
+ 			return trace.Wrap(err)
+ 		}
+diff --git a/lib/events/dynamoevents/dynamoevents_test.go b/lib/events/dynamoevents/dynamoevents_test.go
+index c386adb..90db6de 100644
+--- a/lib/events/dynamoevents/dynamoevents_test.go
++++ b/lib/events/dynamoevents/dynamoevents_test.go
+@@ -57,6 +57,61 @@ func TestMain(m *testing.M) {
+ 
+ func TestDynamoevents(t *testing.T) { check.TestingT(t) }
+ 
++// A write that still serializes Fields as a string breaks DynamoDB field expressions.
++func TestEventFieldsUseDynamoMap(t *testing.T) {
++	e := event{Fields: `{"user":"alice","success":true,"nested":{"count":2}}`}
++	item, err := marshalEvent(e)
++	require.NoError(t, err)
++	require.Nil(t, item["Fields"])
++	require.Equal(t, "alice", aws.StringValue(item["FieldsMap"].M["user"].S))
++	require.Equal(t, "2", aws.StringValue(item["FieldsMap"].M["nested"].M["count"].N))
++}
++
++func TestMigrateFieldsItemPreservesMetadata(t *testing.T) {
++	item := map[string]*dynamodb.AttributeValue{
++		"SessionID": {S: aws.String("session")},
++		"Fields":    {S: aws.String(`{"user":"alice","count":9007199254740993,"nested":[true,null]}`)},
++	}
++	changed, err := migrateFieldsItem(item)
++	require.NoError(t, err)
++	require.True(t, changed)
++	require.Nil(t, item["Fields"])
++	require.Equal(t, "session", aws.StringValue(item["SessionID"].S))
++	require.Equal(t, "9007199254740993", aws.StringValue(item["FieldsMap"].M["count"].N))
++	data, err := fieldsJSON(item)
++	require.NoError(t, err)
++	var got, want interface{}
++	require.NoError(t, json.Unmarshal(data, &got))
++	require.NoError(t, json.Unmarshal([]byte(`{"user":"alice","count":9007199254740993,"nested":[true,null]}`), &want))
++	require.Equal(t, want, got)
++	changed, err = migrateFieldsItem(item)
++	require.NoError(t, err)
++	require.False(t, changed)
++}
++
++func TestMigrateFieldsItemRejectsMalformedJSON(t *testing.T) {
++	item := map[string]*dynamodb.AttributeValue{"Fields": {S: aws.String("{broken")}}
++	_, err := migrateFieldsItem(item)
++	require.Error(t, err)
++	require.Nil(t, item["FieldsMap"])
++}
++
++func TestMigrateFieldsItemRejectsTrailingJSON(t *testing.T) {
++	item := map[string]*dynamodb.AttributeValue{"Fields": {S: aws.String(`{"user":"alice"} {"user":"bob"}`)}}
++	_, err := migrateFieldsItem(item)
++	require.Error(t, err)
++	require.Nil(t, item["FieldsMap"])
++}
++
++func TestMigrateFieldsItemPreservesEmptyString(t *testing.T) {
++	item := map[string]*dynamodb.AttributeValue{"Fields": {S: aws.String(`{"reason":""}`)}}
++	changed, err := migrateFieldsItem(item)
++	require.NoError(t, err)
++	require.True(t, changed)
++	require.Equal(t, "", aws.StringValue(item["FieldsMap"].M["reason"].S))
++	require.Nil(t, item["FieldsMap"].M["reason"].NULL)
++}
++
+ type DynamoeventsSuite struct {
+ 	log *Log
+ 	test.EventsSuite
+@@ -264,6 +319,18 @@ func (s *DynamoeventsSuite) TestEventMigration(c *check.C) {
+ 	c.Error("Events failed to migrate within 5 minutes")
+ }
+ 
++func (s *DynamoeventsSuite) TestFieldsMapMigration(c *check.C) {
++	legacy := preRFD24event{SessionID: uuid.New(), EventIndex: 1, EventType: "test.event", CreatedAt: time.Now().Unix(), Fields: `{"user":"alice","count":9007199254740993}`, EventNamespace: "default"}
++	c.Assert(s.log.emitTestAuditEventPreRFD24(context.Background(), legacy), check.IsNil)
++	c.Assert(s.log.migrateFieldsMap(context.Background()), check.IsNil)
++	// Running again must be safe after an interrupted or completed migration.
++	c.Assert(s.log.migrateFieldsMap(context.Background()), check.IsNil)
++	out, err := s.log.svc.GetItem(&dynamodb.GetItemInput{TableName: aws.String(s.log.Tablename), Key: map[string]*dynamodb.AttributeValue{"SessionID": {S: aws.String(legacy.SessionID)}, "EventIndex": {N: aws.String("1")}}})
++	c.Assert(err, check.IsNil)
++	c.Assert(out.Item["Fields"], check.IsNil)
++	c.Assert(aws.StringValue(out.Item["FieldsMap"].M["count"].N), check.Equals, "9007199254740993")
++}
++
+ type byTimeAndIndexRaw []event
+ 
+ func (f byTimeAndIndexRaw) Len() int {

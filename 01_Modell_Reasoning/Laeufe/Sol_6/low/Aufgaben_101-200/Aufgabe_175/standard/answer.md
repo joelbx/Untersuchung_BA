@@ -1,0 +1,3 @@
+Implemented native SQLite backups in the checked-out repository. Navidrome now supports `backup create`, `backup prune`, and `backup restore`, plus scheduled backups and retention through `backup.path`, `backup.schedule`, and `backup.count`. Restore checks the backup’s integrity and requires confirmation unless `--force` is passed; pruning with a count of zero has the same confirmation safeguard.
+
+Added a backup, restore, and prune test. `go test ./db ./cmd ./conf` passes.

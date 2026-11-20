@@ -1,0 +1,3 @@
+Refactored Drive’s extended-attribute helpers to use `XAttrCreateParams`, added `DeepPartial` and `MaybeExtendedAttributes`, and updated the upload caller. Creation now returns immutable attributes with correct block sizes and canonical digest keys. Parsing returns a neutral structure for malformed or partial input. The old module path remains available through a re-export.
+
+Verification: 5 focused Jest tests passed, the Drive strict TypeScript check passed, and Prettier and `git diff --check` passed. No delegation was used.

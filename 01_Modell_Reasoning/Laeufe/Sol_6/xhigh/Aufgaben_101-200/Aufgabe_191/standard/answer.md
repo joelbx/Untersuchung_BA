@@ -1,0 +1,3 @@
+InteractiveAuth now supports both stable and unstable registration token stages. The new [token entry view](/app/src/components/views/auth/InteractiveAuthEntryComponents.tsx:192) accepts Enter or a primary button click, prevents duplicate submissions, and shows busy and error states. The authentication flow retains the server’s advertised stage type and adds the session before sending the request.
+
+The [new tests](/app/test/components/structures/InteractiveAuth-test.tsx:26) and existing auth tests pass: 9 tests total. Lint and formatting pass. The repository-wide TypeScript check still fails on unrelated Sliding Sync type errors; it reports none in the changed files.

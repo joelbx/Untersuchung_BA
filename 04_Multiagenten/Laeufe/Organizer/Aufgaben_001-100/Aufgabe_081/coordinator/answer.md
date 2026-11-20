@@ -1,0 +1,3 @@
+Updated OIDC login handling: validation now reduces the session domain to a hostname and propagates URL parsing errors; localhost state and token cookies omit the `Domain` attribute; and callback URLs remove one trailing slash from the host before adding the path.
+
+Added focused tests. `GOPROXY=off go test ./internal/config ./internal/server/auth/method/oidc` and `git diff --check` passed. No delegation was used.

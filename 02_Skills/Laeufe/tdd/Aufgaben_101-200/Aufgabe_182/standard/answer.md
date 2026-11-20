@@ -1,0 +1,3 @@
+Forked calls to `Display.display`, `warning`, and `deprecated` now go through the queue with their method name and exact caller arguments. The main process dispatches each call to the corresponding method, so warning and deprecation deduplication applies across workers.
+
+The focused tests passed (17 passed, 1 skipped), as did the executor and strategy checks (96 passed, 7 skipped). A clean full-suite result is unavailable: the full run exited 137, and broader unit runs stopped at `test_with_command` and `test_warning`. The latter warning test file also fails on its own when its two tests run together. These results are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

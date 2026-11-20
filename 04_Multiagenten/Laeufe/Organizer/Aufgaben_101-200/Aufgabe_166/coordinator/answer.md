@@ -1,0 +1,3 @@
+Updated `DataLoader.load_from_file` so `cache='none'` bypasses cache reads and writes, while `cache='vaulted'` stores and reuses parsed vaulted files. The vars manager now uses vaulted caching for vars files. Boolean cache behavior remains compatible.
+
+Added regression tests. The DataLoader and variable manager suites passed: **43 tests**. `git diff --check` passed. I completed the work directly; no delegation was used.

@@ -1,0 +1,3 @@
+Updated `authenticate` to preserve non-access errors from authorization and `setupContext`, while keeping access-related failures classified as `AccessDenied`. Expanded [TestAuthenticate](/app/lib/kube/proxy/forwarder_test.go) to check both classifications, including unknown local clusters and remote requests without a tunnel.
+
+Verification passed: `git diff --check` and `GOPROXY=off GOSUMDB=off go test ./lib/kube/proxy -count=1`.

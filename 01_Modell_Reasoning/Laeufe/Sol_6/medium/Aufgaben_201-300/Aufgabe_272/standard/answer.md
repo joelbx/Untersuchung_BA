@@ -1,0 +1,3 @@
+Added TLS cipher configuration to `get_url`, `uri`, and `lookup('url')`. It accepts an OpenSSL cipher string or an ordered list, passes the setting through `fetch_url`, `open_url`, and `Request`, and applies it to HTTPS connections and redirects. Invalid values produce a clear error; requests without `ciphers` retain their existing defaults.
+
+Verification: 131 URL utility and lookup unit tests passed, and `git diff --check` passed.

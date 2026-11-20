@@ -1,0 +1,3 @@
+Startup now uses `release.Is` and `release.Check` for release status and update information. `-rc`, `-snapshot`, and `dev` builds are treated as non-releases, and telemetry is disabled for those builds and in CI. Update messages use the returned release information; a failed check logs a warning and lets startup continue.
+
+Verification passed: `GOPROXY=off go test ./internal/release ./cmd/flipt ./internal/info ./internal/telemetry ./internal/server/metadata`.

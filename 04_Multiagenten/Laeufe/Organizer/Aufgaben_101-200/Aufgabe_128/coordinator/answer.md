@@ -1,0 +1,3 @@
+Added `match_set` and `match_set_flags` to the iptables module. They must be supplied together, and the module now builds `-m set --match-set` rules with or without an explicit `match: ['set']`. A `!` prefix on the set name inverts the match. Documentation, an example, unit tests, and a changelog entry are included.
+
+Verification: the iptables unit suite passed (25 tests), and `git diff --check` passed. No delegation was used.

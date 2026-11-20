@@ -1,0 +1,3 @@
+Loaded MIME mappings and lossless extensions from [mime_types.yaml](/app/resources/mime_types.yaml) through a `conf.AddHook`. The loader registers configured extensions, plus `.js` and `.css`, and provides `mime.LosslessFormats` for the UI and model MIME classification. Removed the old definitions from `consts/mime_types.go`.
+
+Verification passed: `go test ./server ./mime`, `go test ./model ./core`, `go test ./scanner ./cmd`, and `git diff --check`.

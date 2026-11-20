@@ -1,0 +1,3 @@
+Updated [MerakiModule.request](/app/lib/ansible/module_utils/network/meraki/meraki.py) to retry HTTP 429, 500, and 502 up to three times with backoff. Other HTTP errors raise `HTTPError` immediately. The module exposes the latest response through `status`; rate limit retries produce a task warning with the retry count, and exhaustion raises `RateLimitException`. Added the public `RateLimitException` and `InternalErrorException` classes.
+
+The [Meraki unit tests](/app/test/units/module_utils/network/meraki/test_meraki.py) cover immediate errors, recovery, retry exhaustion, status, and warnings. **All 13 tests pass.**

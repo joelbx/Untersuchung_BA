@@ -1,0 +1,3 @@
+Fixed the `--current-device` panic. `RunAdmin` now returns the registered device when enrollment fails at the limit, and `printEnrollOutcome` handles a nil device safely. The fake service exposes a device-limit toggle and returns the requested AccessDenied message.
+
+The enrollment regression test passes, including a successful retry after the limit is cleared. The `tsh/common` build check remains unverified because this environment lacks `linux/hidraw.h` and `gnu/libc-version.h`; the exact errors are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

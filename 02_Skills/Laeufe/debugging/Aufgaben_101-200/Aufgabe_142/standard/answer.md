@@ -1,0 +1,3 @@
+Replaced the parser’s flat expression walk with a typed AST. Nested string functions now compose, variables are validated throughout the expression, and matchers use boolean AST nodes. Updated trait and PAM interpolation to validate namespaces at their call sites.
+
+`go test ./lib/utils/parse -count=1` and `git diff --check` passed. Service and PAM tests remain unverified because local HID, BPF, PKCS#11, and shell build dependencies prevented those packages from compiling; the commands and errors are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

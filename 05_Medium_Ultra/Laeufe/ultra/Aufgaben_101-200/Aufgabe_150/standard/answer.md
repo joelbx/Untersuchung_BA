@@ -1,0 +1,3 @@
+Updated collection manifest handling so an omitted `manifest` uses `Sentinel` and the file walk, preserving `build_ignore`. Explicit `manifest: {}` and `manifest: null` now select the default manifest directives. The files manifest also excludes symlinks pointing outside the collection and lists internal links under their linked paths. I updated the [configuration help](/app/lib/ansible/galaxy/data/collections_galaxy_meta.yml:113) and [regression tests](/app/test/units/galaxy/test_collection.py:552).
+
+Two read-only subagents audited the configuration flow and test coverage. **Verification:** all 214 Galaxy unit tests passed, and `git diff --check` passed. `distlib` is unavailable locally, so the explicit manifest path was tested with a mocked manifest processor.

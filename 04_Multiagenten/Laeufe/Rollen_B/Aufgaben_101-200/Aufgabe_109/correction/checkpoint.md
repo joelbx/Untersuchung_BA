@@ -1,0 +1,2 @@
+Correction complete. The poll history patch matches the requested flag, button, dialog, and roomId interface. Fixed the review-reported RoomCreate TypeScript error by calling findPredecessor() on the current Room inside the useRoomState mapper, preserving state update refreshes.
+Checks: exact reviewer RightPanel Jest command passed (4/4); exact reviewer tsc command passed; git diff --check passed. Existing RoomCreate Jest command passed (4/4, snapshot passed). No remaining failures or test environment problems.

@@ -1,0 +1,5 @@
+Updated the Zustand member and invitation stores to key data by `shareId`, with separate per-share handling for internal and external invitations. The new member view now reads and updates only the active share. Added `getExistingEmails` and used it in both member views.
+
+**Verification:** Type check passed; targeted lint reported no errors (four existing hook dependency warnings); the existing `_shares` suite passed (7 suites, 28 tests); `git diff --check` passed. The repository has no dedicated tests for these Zustand stores.
+
+Changed files: [invitation store](/app/packages/drive-store/zustand/share/invitations.store.ts), [member store](/app/packages/drive-store/zustand/share/members.store.ts), [Zustand member view](/app/packages/drive-store/store/_views/useShareMemberViewZustand.tsx), [email utility](/app/packages/drive-store/utils/share.ts).

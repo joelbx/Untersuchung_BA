@@ -1,0 +1,3 @@
+Trivy results now store the OS version from `Metadata.OS.Name` in `Release` and use `ArtifactName` for `ServerName`, adding `:latest` to untagged container image names. The parser leaves `Optional` nil. Package CVE detection now skips OVAL and GOST for Trivy results and other unsupported cases, while CVE reuse identifies Trivy results through `ScannedBy`.
+
+The updated parser and detector tests pass: `GOPROXY=off go test ./contrib/trivy/parser/v2 ./detector`. I completed the changes without delegation.

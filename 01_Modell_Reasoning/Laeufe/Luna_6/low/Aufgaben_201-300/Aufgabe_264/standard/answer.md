@@ -1,0 +1,3 @@
+Implemented bounded retries for HTTP 429, 500, and 502 in the Meraki request helper. Other HTTP errors now raise `HTTPError` immediately; exhausted retries raise `RateLimitException` or `InternalErrorException`. The public `status` attribute reflects the latest response, and exhausted 429 retries produce a warning with the retry count.
+
+Updated the existing unit tests. Verification: **7 passed** with `python -m pytest -q test/units/module_utils/network/meraki/test_meraki.py`; `git diff --check` passed.

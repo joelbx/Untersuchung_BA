@@ -1,0 +1,3 @@
+DynamoDB event writes now store metadata in a native `FieldsMap`. Reads accept both `FieldsMap` and legacy `Fields` during migration. A background migration converts legacy rows in batches, validates their content, logs progress and errors, and uses a distributed lock so it can resume safely after interruption. I also added `backend.FlagKey`.
+
+`go test ./lib/events/dynamoevents ./lib/backend -count=1` passed. The AWS-dependent integration suite was skipped because its test environment is unavailable locally.

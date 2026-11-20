@@ -1,0 +1,1 @@
+Implementer progress: unified *sql.DB path retained; SQLite DSN normalizes required settings for default, in-memory, and custom paths. Transactions now use the supplied connection and callback tx in affected callers. Added focused regression tests. go test ./db ./persistence ./core/scrobbler ./server passes; git diff --check passes.

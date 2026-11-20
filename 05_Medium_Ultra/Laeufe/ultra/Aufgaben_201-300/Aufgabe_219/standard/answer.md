@@ -1,0 +1,3 @@
+Added `token` to the audit event checker and its wildcard mapping, so `token:created` and `token:deleted` can be enabled through audit configuration. gRPC initialization now passes the checker’s `token:deleted` result to the authentication server. Token deletion events are emitted only when enabled and after a successful deletion.
+
+I delegated the checker changes, authentication wiring, and a read-only coverage review, then reviewed the combined patch. Tests passed for `./internal/server/audit`, `./internal/server/auth`, `./internal/server/middleware/grpc`, and `./internal/cmd`.

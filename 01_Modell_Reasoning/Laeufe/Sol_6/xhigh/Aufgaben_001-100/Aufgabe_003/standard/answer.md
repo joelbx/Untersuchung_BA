@@ -1,0 +1,3 @@
+Added `timeOffset` support through the public and Subsonic stream handlers, media streamer, cache keys, and FFmpeg command generation. The handlers default missing or invalid offsets to 0, and OpenSubsonic now advertises the `transcodeOffset` extension. Updated call sites, mocks, and tests.
+
+Verification passed: `go test ./core/ffmpeg ./core ./server/public ./server/subsonic` and `git diff --check`.

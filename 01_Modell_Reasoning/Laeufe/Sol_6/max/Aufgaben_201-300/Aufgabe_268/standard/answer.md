@@ -1,0 +1,3 @@
+Updated [guiprocess.py](/app/qutebrowser/misc/guiprocess.py:83) so process errors identify the capitalized process name, the exact command in single quotes, the error type, and Qt’s error detail. Failed starts on non-Windows also show the executable hint when the detail indicates a missing file or permission denial. Detached startup failures use the same message format, and crashes produce one message.
+
+Updated the [process tests](/app/tests/unit/misc/test_guiprocess.py:225). Verification: **84 passed, 4 skipped** across the process and editor test files.

@@ -1,0 +1,3 @@
+Implemented the centralized state mapping in [determineVoiceBroadcastLiveness.ts](/app/src/voice-broadcast/utils/determineVoiceBroadcastLiveness.ts) and exported it from the voice-broadcast module. [VoiceBroadcastPlayback.ts](/app/src/voice-broadcast/models/VoiceBroadcastPlayback.ts) now updates liveness only through `setInfoState`; playback controls, seeking, and chunk boundaries no longer recalculate it. Change events still emit only when liveness changes.
+
+The focused Jest suites passed: **47 tests**. ESLint, Prettier, and `git diff --check` passed. `yarn lint:types` reports existing `MatrixClient` API type errors in unrelated chat and device-listener files; it reported none in the changed files.

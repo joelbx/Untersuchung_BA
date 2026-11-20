@@ -1,0 +1,3 @@
+Resolved the OCI configuration issue in `/app`. The loader now parses `bundles_directory`, authentication credentials, and duration based `poll_interval`; requires a repository; and returns the specified error for unsupported schemes. `DefaultBundleDir()` creates the bundle directory, `NewStore` uses its `dir` argument, and server startup passes the configured OCI settings through. I also registered `fs/oci` in the integration matrix and CI workflow.
+
+The relevant Go tests pass, and a local CLI check built and listed a bundle using the configured directory. The Dagger integration suite was registered but not run locally.

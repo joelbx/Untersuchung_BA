@@ -1,0 +1,3 @@
+Resolved the namespace access issue in `/app`. Both authorization engines now return accessible namespaces; middleware passes that list to the endpoint, which filters results and reports the filtered total. The UI redirects users to an accessible namespace.
+
+All tests in `./internal/server/authz/...` and `./internal/server` passed. The UI build could not run because dependencies are not installed. Work item complete.

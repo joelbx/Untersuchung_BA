@@ -1,0 +1,3 @@
+Fixed the `tsh device enroll --current-device` panic at the device limit. `RunAdmin` now returns the registered device and `DeviceRegistered` outcome when enrollment fails, and the CLI printer handles a nil device safely. The fake service exposes a device-limit toggle, with a regression test covering the failure and a successful retry after the limit is cleared.
+
+The device trust tests pass. The `tsh/common` compile check could not finish because this environment lacks `linux/hidraw.h` and `gnu/libc-version.h`.

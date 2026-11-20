@@ -1,0 +1,3 @@
+Updated [pip.py](/app/lib/ansible/modules/pip.py) to detect whether the current interpreter can import pip, fall back to `[sys.executable, '-m', 'pip']` when no executable is found, and normalize launchers to argv lists. Package listing prefers `list --format=freeze`, falls back to `freeze`, and returns the final command as a string. Virtualenv PATH handling now uses `os.path.join`.
+
+Verification: `pytest -q test/units/modules/test_pip.py` passed (4 tests).

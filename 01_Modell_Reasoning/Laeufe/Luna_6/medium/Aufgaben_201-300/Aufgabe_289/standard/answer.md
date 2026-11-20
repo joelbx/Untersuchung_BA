@@ -1,0 +1,3 @@
+Implemented the exported `DefaultConfig()` and `DecodeHooks`, and updated `Load` to compose hooks from the exported slice. Storage sub-configurations now use pointers, with nil checks added to validation and command handling.
+
+Verification passed: `go test ./internal/config ./internal/cmd` and `git diff --check`. Checkpoint details are in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

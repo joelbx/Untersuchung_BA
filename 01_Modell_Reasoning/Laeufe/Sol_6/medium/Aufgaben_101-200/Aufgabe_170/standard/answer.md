@@ -1,0 +1,3 @@
+Edition matching now accepts raw records. `expand_record` builds the title, ISBN, country, and author fields used for comparison; matching also handles missing author data and compares contributors. The add-book path now includes page count, which makes the existing title match without a shared ISBN pass.
+
+Verification: 132 tests passed, with one pre-existing expected failure. Ruff and `git diff --check` passed.

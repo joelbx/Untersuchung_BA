@@ -1,0 +1,3 @@
+Resolved the user scoping issue. `UserPropsRepository` and its mock now require an explicit user ID for every read and write. LastFM uses that ID for session keys, link status, unlink, now playing, and scrobbling. The auth callback now requires a single-use, ten-minute state issued to the authenticated user, so a callback cannot save a key under another user’s ID.
+
+Added isolation and callback replay tests. `go test ./...`, UI ESLint and Prettier checks, and `git diff --check` all pass.

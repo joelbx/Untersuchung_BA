@@ -1,0 +1,3 @@
+Implemented the foreground threshold option with default `256`, plus a migration from the legacy `threshold.text` name in [configdata.yml](/app/qutebrowser/config/configdata.yml:3337). [darkmode.py](/app/qutebrowser/browser/webengine/darkmode.py:382) now selects `TextBrightnessThreshold` below Qt WebEngine 6.4 and `ForegroundBrightnessThreshold` from 6.4 onward. Updated the settings documentation and added coverage for both version mappings and the migration.
+
+Verification passed: **298 passed, 1 skipped** with `QT_QPA_PLATFORM=offscreen`; `git diff --check` was clean.

@@ -1,0 +1,5 @@
+Implemented the Qt wrapper initialization and error reporting changes in [machinery.py](/app/qutebrowser/qt/machinery.py), [earlyinit.py](/app/qutebrowser/misc/earlyinit.py), and [qutebrowser.py](/app/qutebrowser/qutebrowser.py).
+
+`machinery.init()` now returns its `SelectionInfo`. Implicit initialization selects an importable wrapper or raises `NoWrapperAvailableError`; startup passes the selection info to the early availability checker. Selection formatting, failure details, and debug logging now include clearer context.
+
+Verification: `compileall` succeeded, and the early-init tests passed. The machinery test file had 5 failures because its existing assertions expect the old error text, failure details, and implicit initialization behavior. Checkpoint details are in [.codex-role-output/checkpoint.md](/app/.codex-role-output/checkpoint.md).

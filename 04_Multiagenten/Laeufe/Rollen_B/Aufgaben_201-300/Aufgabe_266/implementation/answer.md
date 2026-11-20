@@ -1,0 +1,3 @@
+Added `STAGED_SOURCES` and `ImportItem.find_staged_or_pending` to return all matching staged or pending rows as a `ResultSet`. `Edition.from_isbn` now uses the lookup for both ISBN forms.
+
+The relevant tests pass (16 total), and Ruff passes. A matched record still goes through the application’s import API to create a catalog edition; this change makes the staged record lookup local, but does not make catalog ingestion fully local.

@@ -1,0 +1,3 @@
+Added `qt.workarounds.locale` as a disabled-by-default QtWebEngine setting. When enabled on Linux with QtWebEngine 5.15.3, startup checks for the locale’s `.pak` file and adds a Chromium-compatible `--lang` fallback if it is missing. The change includes locale mapping and startup argument tests.
+
+Verification: 178 relevant tests passed with `QT_QPA_PLATFORM=offscreen`; `git diff --check` passed. The installed Qt runtime is 5.15.2, so the 5.15.3 crash itself could not be reproduced here.

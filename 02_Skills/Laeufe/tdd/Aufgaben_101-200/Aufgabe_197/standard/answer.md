@@ -1,0 +1,3 @@
+Fixed the Qt 6.4+ dark mode mapping: a text threshold of `100` now emits `("ForegroundBrightnessThreshold", "100")`. Qt 6.3 retains its existing key. Added a version-boundary regression test.
+
+The focused dark mode suite passed (38 tests). The full suite could not complete because QtWebEngine failed during end-to-end setup in this environment; the details are recorded in [checkpoint.md](/app/.codex-role-output/checkpoint.md).

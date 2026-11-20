@@ -1,0 +1,3 @@
+Updated group and user image removal so local cover, thumbnail, and avatar files are deleted before their database fields are cleared. Account deletion now cleans up both user image types, including legacy and timestamped `.png`, `.jpeg`, `.jpg`, and `.bmp` files. Socket removal hooks remain in place.
+
+ESLint, syntax checks, and `git diff --check` passed. The targeted existing Mocha tests could not start because the configured Redis test database refused the connection.

@@ -1,0 +1,3 @@
+Implemented trusted reverse proxy login. Navidrome now checks the original connection address against `ReverseProxyWhitelist`, reads the username from `ReverseProxyUserHeader` (default `Remote-User`), creates users on first login, and returns authentication data to the frontend only for trusted requests. The frontend stores the resulting session, and log redaction now covers sensitive values in nested maps. Configuration and its security implications are documented in [README.md](/app/README.md).
+
+I delegated IP validation, frontend session handling, and log redaction, then integrated and reviewed their changes. The relevant Go tests, all 38 UI tests, UI lint and formatting checks, and `git diff --check` passed.

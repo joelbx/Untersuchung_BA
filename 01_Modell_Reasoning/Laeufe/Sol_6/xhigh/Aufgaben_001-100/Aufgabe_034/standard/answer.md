@@ -1,0 +1,3 @@
+Updated the IA importer to separate ISBN-10 and ISBN-13 values and split `Place: Publisher` entries into `publish_places` and `publishers`. Empty values are omitted, and the remaining edition fields retain their existing behavior. The reusable functions are in [upstream/utils.py](/app/openlibrary/plugins/upstream/utils.py).
+
+Updated the import and utility tests. **34 tests passed**, and flake8 and `git diff --check` passed.

@@ -1,0 +1,3 @@
+Implemented the download mechanism success rate metric. Terminal stateful and preview downloads now emit status, retry, and mechanism labels; both paths supply file size to the shared mechanism selector. The counter and schema are registered in the existing metrics infrastructure.
+
+Validation passed: 21 Drive tests, the metrics counter test, Drive and metrics type checks, ESLint, Prettier, and `git diff --check`.

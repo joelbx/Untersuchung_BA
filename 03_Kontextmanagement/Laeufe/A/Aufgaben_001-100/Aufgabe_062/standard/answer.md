@@ -1,0 +1,3 @@
+Fixed the Bash terminal lock after `tsh login`. `ContextReader` now restores the terminal when a password read is canceled or closed, resets canceled reads so later reads can proceed, and returns `context.DeadlineExceeded` with an empty result on timeout. `NotifyExit` closes the global stdin reader, and `tsh` calls it when `Run` exits.
+
+The prompt package tests and the `tsh` package compile check passed.

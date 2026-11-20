@@ -1,0 +1,3 @@
+Added `destination_ports` to the iptables module with an empty-list default. Nonempty lists generate a multiport match with comma-separated ports and ranges, and require `tcp`, `udp`, `udplite`, `dccp`, or `sctp`. Added documentation, an example, and unit coverage.
+
+Verification: all 23 iptables unit tests passed with `PYTHONPATH=/app/lib`; `git diff --check` passed. `ansible-test` could not run because its selected Python 3.8 environment lacks pytest.

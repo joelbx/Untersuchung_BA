@@ -1,0 +1,158 @@
+diff --git a/lib/backend/dynamo/dynamodbbk.go b/lib/backend/dynamo/dynamodbbk.go
+index 506994b..094ee25 100644
+--- a/lib/backend/dynamo/dynamodbbk.go
++++ b/lib/backend/dynamo/dynamodbbk.go
+@@ -57,6 +57,8 @@ type Config struct {
+ 	SecretKey string `json:"secret_key,omitempty"`
+ 	// TableName where to store K/V in DynamoDB
+ 	TableName string `json:"table_name,omitempty"`
++	// BillingMode controls capacity for newly created tables.
++	BillingMode string `json:"billing_mode,omitempty"`
+ 	// ReadCapacityUnits is Dynamodb read capacity units
+ 	ReadCapacityUnits int64 `json:"read_capacity_units"`
+ 	// WriteCapacityUnits is Dynamodb write capacity units
+@@ -101,6 +103,12 @@ func (cfg *Config) CheckAndSetDefaults() error {
+ 	if cfg.TableName == "" {
+ 		return trace.BadParameter("DynamoDB: table_name is not specified")
+ 	}
++	if cfg.BillingMode == "" {
++		cfg.BillingMode = "pay_per_request"
++	}
++	if cfg.BillingMode != "pay_per_request" && cfg.BillingMode != "provisioned" {
++		return trace.BadParameter("DynamoDB: invalid billing_mode %q", cfg.BillingMode)
++	}
+ 
+ 	if cfg.ReadCapacityUnits == 0 {
+ 		cfg.ReadCapacityUnits = DefaultReadCapacityUnits
+@@ -262,7 +270,7 @@ func New(ctx context.Context, params backend.Params) (*Backend, error) {
+ 	b.streams = streams
+ 
+ 	// check if the table exists?
+-	ts, err := b.getTableStatus(ctx, b.TableName)
++	ts, billingMode, err := b.getTableStatus(ctx, b.TableName)
+ 	if err != nil {
+ 		return nil, trace.Wrap(err)
+ 	}
+@@ -270,6 +278,13 @@ func New(ctx context.Context, params backend.Params) (*Backend, error) {
+ 	case tableStatusOK:
+ 		break
+ 	case tableStatusMissing:
++		if b.BillingMode == "pay_per_request" {
++			billingMode = dynamodb.BillingModePayPerRequest
++			if b.Config.EnableAutoScaling {
++				b.Infof("auto_scaling is ignored because the table will be on-demand")
++				b.Config.EnableAutoScaling = false
++			}
++		}
+ 		err = b.createTable(ctx, b.TableName, fullPathKey)
+ 	case tableStatusNeedsMigration:
+ 		return nil, trace.BadParameter("unsupported schema")
+@@ -277,6 +292,10 @@ func New(ctx context.Context, params backend.Params) (*Backend, error) {
+ 	if err != nil {
+ 		return nil, trace.Wrap(err)
+ 	}
++	if billingMode == dynamodb.BillingModePayPerRequest && b.Config.EnableAutoScaling {
++		b.Infof("auto_scaling is ignored because the table is on-demand")
++		b.Config.EnableAutoScaling = false
++	}
+ 
+ 	// Enable TTL on table.
+ 	err = TurnOnTimeToLive(ctx, b.svc, b.TableName, ttlKey)
+@@ -624,23 +643,26 @@ func (b *Backend) newLease(item backend.Item) *backend.Lease {
+ }
+ 
+ // getTableStatus checks if a given table exists
+-func (b *Backend) getTableStatus(ctx context.Context, tableName string) (tableStatus, error) {
++func (b *Backend) getTableStatus(ctx context.Context, tableName string) (tableStatus, string, error) {
+ 	td, err := b.svc.DescribeTableWithContext(ctx, &dynamodb.DescribeTableInput{
+ 		TableName: aws.String(tableName),
+ 	})
+ 	err = convertError(err)
+ 	if err != nil {
+ 		if trace.IsNotFound(err) {
+-			return tableStatusMissing, nil
++			return tableStatusMissing, "", nil
+ 		}
+-		return tableStatusError, trace.Wrap(err)
++		return tableStatusError, "", trace.Wrap(err)
+ 	}
+ 	for _, attr := range td.Table.AttributeDefinitions {
+ 		if *attr.AttributeName == oldPathAttr {
+-			return tableStatusNeedsMigration, nil
++			return tableStatusNeedsMigration, "", nil
+ 		}
+ 	}
+-	return tableStatusOK, nil
++	if td.Table.BillingModeSummary != nil {
++		return tableStatusOK, aws.StringValue(td.Table.BillingModeSummary.BillingMode), nil
++	}
++	return tableStatusOK, dynamodb.BillingModeProvisioned, nil
+ }
+ 
+ // createTable creates a DynamoDB table with a requested name and applies
+@@ -655,10 +677,6 @@ func (b *Backend) getTableStatus(ctx context.Context, tableName string) (tableSt
+ // following docs partial:
+ // docs/pages/includes/dynamodb-iam-policy.mdx
+ func (b *Backend) createTable(ctx context.Context, tableName string, rangeKey string) error {
+-	pThroughput := dynamodb.ProvisionedThroughput{
+-		ReadCapacityUnits:  aws.Int64(b.ReadCapacityUnits),
+-		WriteCapacityUnits: aws.Int64(b.WriteCapacityUnits),
+-	}
+ 	def := []*dynamodb.AttributeDefinition{
+ 		{
+ 			AttributeName: aws.String(hashKeyKey),
+@@ -680,10 +698,18 @@ func (b *Backend) createTable(ctx context.Context, tableName string, rangeKey st
+ 		},
+ 	}
+ 	c := dynamodb.CreateTableInput{
+-		TableName:             aws.String(tableName),
+-		AttributeDefinitions:  def,
+-		KeySchema:             elems,
+-		ProvisionedThroughput: &pThroughput,
++		TableName:            aws.String(tableName),
++		AttributeDefinitions: def,
++		KeySchema:            elems,
++	}
++	if b.BillingMode == "pay_per_request" {
++		c.BillingMode = aws.String(dynamodb.BillingModePayPerRequest)
++	} else {
++		c.BillingMode = aws.String(dynamodb.BillingModeProvisioned)
++		c.ProvisionedThroughput = &dynamodb.ProvisionedThroughput{
++			ReadCapacityUnits:  aws.Int64(b.ReadCapacityUnits),
++			WriteCapacityUnits: aws.Int64(b.WriteCapacityUnits),
++		}
+ 	}
+ 	_, err := b.svc.CreateTableWithContext(ctx, &c)
+ 	if err != nil {
+diff --git a/lib/backend/dynamo/dynamodbbk_test.go b/lib/backend/dynamo/dynamodbbk_test.go
+index aba1104..5a5b403 100644
+--- a/lib/backend/dynamo/dynamodbbk_test.go
++++ b/lib/backend/dynamo/dynamodbbk_test.go
+@@ -44,6 +44,27 @@ func ensureTestsEnabled(t *testing.T) {
+ 	}
+ }
+ 
++func TestBillingModeDefaults(t *testing.T) {
++	for _, tc := range []struct {
++		input, want string
++		valid       bool
++	}{
++		{"", "pay_per_request", true},
++		{"pay_per_request", "pay_per_request", true},
++		{"provisioned", "provisioned", true},
++		{"invalid", "", false},
++	} {
++		cfg := Config{TableName: tableName, BillingMode: tc.input}
++		err := cfg.CheckAndSetDefaults()
++		if (err == nil) != tc.valid {
++			t.Errorf("billing mode %q: unexpected error %v", tc.input, err)
++		}
++		if tc.valid && cfg.BillingMode != tc.want {
++			t.Errorf("billing mode %q: got %q, want %q", tc.input, cfg.BillingMode, tc.want)
++		}
++	}
++}
++
+ func TestDynamoDB(t *testing.T) {
+ 	ensureTestsEnabled(t)
+ 

@@ -1,0 +1,3 @@
+Implemented `preview=true` for the import and IA import endpoints. Preview runs the import pipeline without saves, cover uploads, or Archive.org writeback, and returns `preview: true`, temporary keys, and an `edits` list of the records that would be written. Cover hosts are checked against a case insensitive allowlist; author and edition conversion use the new public functions.
+
+The relevant tests passed: **131 passed**. Ruff and `git diff --check` also passed.

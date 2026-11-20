@@ -1,0 +1,3 @@
+Updated Qt startup to initialize the wrapper machinery early and pass its `SelectionInfo` to the availability check. If no wrapper imports, `NoWrapperAvailableError` now includes the import failures and the current selection info. The change also clarifies selection formatting and debug output.
+
+The relevant tests pass: **42 passed**, and `git diff --check` is clean. The full version test module stopped at its real Chromium check; the affected version-report tests pass when run directly.

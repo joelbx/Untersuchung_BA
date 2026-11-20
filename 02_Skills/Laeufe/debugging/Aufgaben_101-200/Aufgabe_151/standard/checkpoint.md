@@ -1,0 +1,12 @@
+# Debugging checkpoint
+
+- Task: Restore missing image suffixes in Qt WebEngine file pickers for Qt 6.2.3 through 6.6.x.
+- Phase 1 started. `rg` is unavailable (`/bin/bash: rg: command not found`); use local `grep`/`find` for repository inspection.
+- No code changes or tests yet.
+- Phase 1: `WebEnginePage.chooseFiles` forwards `accepted_mimetypes` unchanged in its default and unsupported-mode paths. The requested helper does not exist. Python's local MIME database maps JPEG to `.jpg`, `.jpe`, `.jpeg`, `.jfif` and MP4 to `.mp4`, `.mpg4`, `.m4v`; exact results therefore depend on the MIME database.
+- Phase 2: `qtutils.version_check` checks compiled versions by default, so this workaround must pass `compiled=False` for both runtime boundaries. No existing MIME expansion helper or chooseFiles unit coverage was found.
+- Phase 3 hypothesis: Qt's affected runtime fails to expand MIME entries into all file suffixes, and supplying Python-resolved suffixes alongside the original accept entries restores the filter. Test the mapping and version boundaries with deterministic MIME data before implementation.
+- Phase 4 reproduction: `python -m pytest -q tests/unit/browser/webengine/test_webview.py` failed 6 new cases with the expected `AttributeError` because `extra_suffixes_workaround` does not exist. Six prior tests passed.
+- Initial implementation: the 12 helper and existing tests passed. A new `chooseFiles` integration test then aborted during the `pytest-qt` `qapp` fixture setup, before reaching the tested method: `python -m pytest -q tests/unit/browser/webengine/test_webview.py` exited 134 with `Fatal Python error: Aborted`. Retry with an offscreen Qt platform to isolate the environment.
+- Offscreen retry `QT_QPA_PLATFORM=offscreen python -m pytest -q tests/unit/browser/webengine/test_webview.py` exited 1 after 12 tests: Chromium reported `Running as root without --no-sandbox is not supported` (zygote_host_impl_linux.cc:100). This was a test-environment issue before the picker assertion.
+- Verification: `QT_QPA_PLATFORM=offscreen QTWEBENGINE_DISABLE_SANDBOX=1 python -m pytest -q tests/unit/browser/webengine/test_webview.py` passed 13 tests. The broader `QT_QPA_PLATFORM=offscreen QTWEBENGINE_DISABLE_SANDBOX=1 python -m pytest -q tests/unit/browser/webengine` passed 129 tests (1 rerun). `git diff --check` passed. The only remaining uncertainty is a real graphical picker run; the unit test verifies the accepted types sent to Qt's parent implementation.

@@ -1,0 +1,845 @@
+"""Docker environment provider."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import posixpath
+import re
+import secrets
+import shlex
+import shutil
+import tempfile
+import uuid
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
+from typing import Any
+
+from agentcompass.environments.utils.exec import with_exec_workdir
+from agentcompass.environments.utils.files import download_directory
+from agentcompass.errors import EnvironmentInteractionError
+from agentcompass.runtime import (ENVIRONMENTS, BaseEnvironment, EnvironmentSession, ExecResult, ExecutionPlan,
+                                  RunRequest)
+from agentcompass.runtime.base import EnvRecord, close_environment_resource
+from agentcompass.runtime.config import (RuntimeEnvironmentConfig, config_field, parse_list, parse_mapping,
+                                         parse_positive_float)
+from agentcompass.runtime.network import NetworkAllowlistEntryType, NetworkMode, NetworkPolicy
+from agentcompass.runtime.resources import ResourceField, ResourceRequirements
+
+logger = logging.getLogger(__name__)
+
+_EGRESS_PROXY_PORT = 8080
+
+
+def _redact_environment_values(message: str, env: dict[str, str]) -> str:
+    """Mask every injected value, including shell/exception-escaped diagnostics."""
+    values: set[str] = set()
+    for value in env.values():
+        if value:
+            quoted = shlex.quote(value)
+            values.update((value, quoted, repr(value)[1:-1], json.dumps(value)[1:-1]))
+            if quoted.startswith("'"):
+                values.add(quoted[1:-1])
+    if not values:
+        return message
+    pattern = "|".join(re.escape(value) for value in sorted(values, key=len, reverse=True))
+    return re.sub(pattern, "<redacted-env>", message)
+
+
+def _is_unsupported_storage_limit_error(stderr: str) -> bool:
+    """Return whether Docker rejected a per-container storage quota."""
+
+    message = str(stderr or "").lower()
+    return (("storage-opt" in message and ("not supported" in message or "supported only" in message))
+            or ("project quota" in message and ("not supported" in message or "operation not permitted" in message)))
+
+
+def _write_proxy_policy(policy_dir: Path, policy: NetworkPolicy) -> None:
+    payload = NetworkPolicy.from_value(policy).model_dump()
+    (policy_dir / "policy.json").write_text(
+        json.dumps(payload, separators=(",", ":")),
+        encoding="utf-8",
+    )
+
+
+async def _run_subprocess(
+    argv: list[str],
+    *,
+    input_text: str | None = None,
+    timeout: float | None = None,
+) -> ExecResult:
+    process = await asyncio.create_subprocess_exec(
+        *argv,
+        stdin=asyncio.subprocess.PIPE if input_text is not None else None,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    input_bytes = input_text.encode("utf-8") if input_text is not None else None
+    try:
+        if timeout is not None:
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(process.communicate(input=input_bytes), timeout=timeout)
+        else:
+            stdout_bytes, stderr_bytes = await process.communicate(input=input_bytes)
+        return ExecResult(
+            returncode=process.returncode,
+            stdout=stdout_bytes.decode("utf-8", errors="replace"),
+            stderr=stderr_bytes.decode("utf-8", errors="replace"),
+        )
+    except asyncio.TimeoutError:
+        try:
+            process.kill()
+            stdout_bytes, stderr_bytes = await process.communicate()
+        except ProcessLookupError:
+            stdout_bytes, stderr_bytes = b"", b""
+        return ExecResult(
+            returncode=124,
+            stdout=stdout_bytes.decode("utf-8", errors="replace"),
+            stderr=stderr_bytes.decode("utf-8", errors="replace"),
+            timed_out=True,
+        )
+    except asyncio.CancelledError:
+        try:
+            process.kill()
+        except ProcessLookupError:
+            pass
+        await process.communicate()
+        raise
+
+
+class DockerSession(EnvironmentSession):
+    """Long-lived docker container used as an execution session."""
+
+    def __init__(
+        self,
+        container_id: str,
+        workdir: str | None = None,
+        docker_command: list[str] | None = None,
+        egress_proxy_container_id: str | None = None,
+        internal_network_name: str | None = None,
+        egress_policy_dir: Path | None = None,
+        external_network_name: str = "bridge",
+        external_network_connected: bool = True,
+        network_policy: NetworkPolicy | None = None,
+    ):
+        self.container_id = container_id
+        self.default_workdir = workdir
+        self.docker_command = list(docker_command or ["docker"])
+        self.egress_proxy_container_id = str(egress_proxy_container_id or "") or None
+        self.internal_network_name = str(internal_network_name or "") or None
+        self.egress_policy_dir = egress_policy_dir
+        self.external_network_name = str(external_network_name or "bridge")
+        self.external_network_connected = bool(external_network_connected)
+        self.network_policy = NetworkPolicy.from_value(network_policy)
+
+    async def set_network_policy(self, policy: NetworkPolicy) -> None:
+        policy = NetworkPolicy.from_value(policy)
+        if policy == self.network_policy:
+            return
+        if not self.egress_policy_dir or not self.internal_network_name:
+            raise RuntimeError("Docker dynamic network policy resources were not initialized")
+
+        _write_proxy_policy(self.egress_policy_dir, policy)
+        if policy.network_mode == NetworkMode.PUBLIC and not self.external_network_connected:
+            result = await self._run([
+                *self.docker_command,
+                "network",
+                "connect",
+                self.external_network_name,
+                self.container_id,
+            ])
+            if result.returncode != 0 and "already exists" not in result.stderr.lower():
+                raise RuntimeError(f"failed to restore Docker public network: {result.stderr.strip()}")
+            self.external_network_connected = True
+        elif policy.network_mode != NetworkMode.PUBLIC and self.external_network_connected:
+            result = await self._run([
+                *self.docker_command,
+                "network",
+                "disconnect",
+                self.external_network_name,
+                self.container_id,
+            ])
+            if result.returncode != 0 and "not connected" not in result.stderr.lower():
+                raise RuntimeError(f"failed to restrict Docker network: {result.stderr.strip()}")
+            self.external_network_connected = False
+        self.network_policy = policy
+
+    async def _run(
+        self,
+        argv: list[str],
+        input_text: str | None = None,
+        timeout: float | None = None,
+    ) -> ExecResult:
+        return await _run_subprocess(argv, input_text=input_text, timeout=timeout)
+
+    @with_exec_workdir
+    async def exec(
+        self,
+        command: list[str] | str,
+        *,
+        shell: bool = False,
+        cwd: str | None = None,
+        env: dict[str, str] | None = None,
+        required_env: dict[str, str] | None = None,
+        timeout: float | None = None,
+        detach: bool = False,
+        flags: dict[str, Any] | None = None,
+    ) -> ExecResult:
+        command = self._validate_exec_command(command, shell=shell)
+        env = self._merge_exec_env(env, required_env=required_env)
+        docker_exec = [*self.docker_command, "exec"]
+        if detach:
+            docker_exec.append("-d")
+        if cwd:
+            docker_exec.extend(["-w", cwd])
+        if env is not None:
+            for k, v in env.items():
+                docker_exec.extend(["-e", f"{k}={v}"])
+        docker_exec.append(self.container_id)
+        if shell:
+            docker_exec.extend(["/bin/sh", "-c", command])
+        else:
+            docker_exec.extend(command)
+        return await self._run(docker_exec, timeout=timeout)
+
+    async def _copy_path(self, path: str) -> str:
+        """Prevent docker cp's lexical cleaning from changing symlink/.. paths.
+
+        Resolve the parent with the container's filesystem, not host-side
+        normpath. Keep the last component (including '.' or a trailing slash)
+        so docker cp retains its usual file/directory copy semantics.
+        """
+        if ".." not in path.split("/"):
+            return path
+        parent, name = posixpath.split(path)
+        result = await self.exec([
+            "/bin/sh",
+            "-c",
+            'CDPATH= cd -P -- "$1" && printf "%s/%s" "${PWD%/}" "$2"',
+            "agentcompass-copy-path",
+            parent,
+            name,
+        ],
+                                 cwd="/",
+                                 timeout=30)
+        if result.returncode != 0 or result.timed_out:
+            raise RuntimeError(f"failed to resolve Docker copy path {path}: {result.stderr.strip()}")
+        if not result.stdout.startswith("/") or "\0" in result.stdout:
+            raise RuntimeError(f"invalid Docker copy path for {path}: {result.stdout!r}")
+        return result.stdout
+
+    async def upload(self, src: str, dst: str) -> None:
+        resolved_dst = await self.resolve_path(dst)
+        parent = posixpath.dirname(resolved_dst)
+        if parent and parent != ".":
+            mkdir_result = await self.exec(["mkdir", "-p", parent])
+            if mkdir_result.returncode != 0:
+                raise RuntimeError(f"docker mkdir before upload failed: {mkdir_result.stderr.strip()}")
+        resolved_dst = await self._copy_path(resolved_dst)
+        result = await self._run([*self.docker_command, "cp", src, f"{self.container_id}:{resolved_dst}"])
+        if result.returncode != 0:
+            raise RuntimeError(f"docker cp upload failed: {result.stderr.strip()}")
+
+    async def download(self, src: str, dst: str) -> None:
+        source = await self._copy_path(await self.resolve_path(src))
+        result = await self._run([*self.docker_command, "cp", f"{self.container_id}:{source}", dst])
+        if result.returncode != 0:
+            raise RuntimeError(f"docker cp download failed: {result.stderr.strip()}")
+
+    def _sync_write_temp(self, content: str) -> str:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as tmp:
+            tmp.write(content)
+            return tmp.name
+
+    async def write_text(self, path: str, content: str) -> None:
+        tmp_path = await asyncio.to_thread(self._sync_write_temp, content)
+        try:
+            await self.upload(tmp_path, path)
+        finally:
+            await asyncio.to_thread(Path(tmp_path).unlink, missing_ok=True)
+
+    async def read_text(self, path: str) -> str:
+        resolved = await self.resolve_path(path)
+        result = await self.exec(["cat", resolved])
+        if result.returncode != 0 or result.timed_out:
+            child = PurePosixPath(resolved)
+            for parent in child.parents:
+                listing = await self.exec(["find", "-H", str(parent), "-maxdepth", "1", "-mindepth", "1", "-print0"])
+                if listing.timed_out:
+                    break
+                if listing.returncode == 0:
+                    if listing.stdout and not listing.stdout.endswith("\0"):
+                        break
+                    if str(child) not in listing.stdout.split("\0"):
+                        raise FileNotFoundError(path)
+                    break
+                child = parent
+            raise EnvironmentInteractionError(f"failed to read {path} from docker container: {result.stderr.strip()}")
+        return result.stdout
+
+    async def upload_dir(self, src: Path | str, dst: str) -> None:
+        dst = await self.resolve_path(dst)
+        source_dir = Path(src).resolve()
+        if not source_dir.exists():
+            raise FileNotFoundError(f"Source directory does not exist: {source_dir}")
+        if not source_dir.is_dir():
+            raise NotADirectoryError(f"Source path is not a directory: {source_dir}")
+
+        base = dst.rstrip("/")
+        for file_path in source_dir.rglob("*"):
+            if file_path.is_file():
+                rel_path = file_path.relative_to(source_dir).as_posix()
+                await self.upload(str(file_path), f"{base}/{rel_path}")
+
+    async def download_dir(self, src: str, dst: Path | str) -> None:
+        await download_directory(self, src, dst)
+
+    async def endpoint(self) -> str | None:
+        return None
+
+    async def get_host_port(self, container_port: int, protocol: str = "tcp") -> int:
+        """Return the host port published for a container port."""
+
+        port = int(container_port)
+        if port < 1 or port > 65535:
+            raise ValueError("container_port must be between 1 and 65535")
+        normalized_protocol = str(protocol or "tcp").strip().lower()
+        if normalized_protocol not in {"tcp", "udp", "sctp"}:
+            raise ValueError("protocol must be one of: tcp, udp, sctp")
+
+        result = await self._run([
+            *self.docker_command,
+            "port",
+            self.container_id,
+            f"{port}/{normalized_protocol}",
+        ])
+        if result.returncode == 0:
+            for line in result.stdout.splitlines():
+                match = re.search(r":([0-9]+)$", line.strip())
+                if match:
+                    return int(match.group(1))
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(f"failed to inspect published Docker port {port}/{normalized_protocol}: {detail}")
+
+
+@dataclass(slots=True)
+class DockerEnvironmentConfig(RuntimeEnvironmentConfig):
+    """Resolved adapter settings for the docker environment provider."""
+
+    name: str = config_field(default="", description="Container name.")
+    platform: str = config_field(default="", description="Container platform.")
+    command: list[str] | str = config_field(
+        default_factory=lambda: ["tail", "-f", "/dev/null"],
+        description="Command that keeps the container alive for interactive task execution.",
+    )
+    mounts: list[Any] = config_field(default_factory=list, description="Container mounts.")
+    ports: list[str] = config_field(
+        default_factory=list,
+        description="Docker publish specifications passed through --publish.",
+    )
+    devices: list[str] = config_field(
+        default_factory=list,
+        description="Host device mappings passed through --device.",
+    )
+    cap_add: list[str] = config_field(
+        default_factory=list,
+        description="Linux capabilities added with --cap-add.",
+    )
+    resources: dict[str, Any] = config_field(
+        default_factory=dict,
+        description="Unified AgentCompass resource requirements.",
+    )
+    use_sudo_docker: bool = config_field(default=False, description="Whether to invoke Docker through sudo.")
+    network: str = config_field(
+        default="",
+        description=("Optional Docker network name used by public-policy containers and by the egress proxy's "
+                     "external connection."),
+    )
+    allowlist_proxy_image: str = config_field(
+        default="python:3.12-alpine",
+        description="Minimal Python image used for the Docker network-policy egress proxy sidecar.",
+    )
+    allowlist_proxy_start_timeout: float = config_field(
+        default=60.0,
+        description="Seconds to wait for the Docker network-policy egress proxy to become ready.",
+    )
+
+    image: str = config_field(default="", description="Container image.")
+    workdir: str = config_field(default="", description="Working directory inside the container.")
+    env: dict[str, Any] = config_field(
+        default_factory=dict,
+        description="Environment variables injected into the container.",
+    )
+    resources: dict[str, Any] = config_field(
+        default_factory=dict,
+        description="Unified AgentCompass resource requirements.",
+    )
+
+    def __post_init__(self) -> None:
+        self.image = str(self.image or "").strip()
+        self.name = str(self.name or "").strip()
+        self.platform = str(self.platform or "").strip()
+        self.workdir = str(self.workdir or "").strip()
+        if isinstance(self.command, str):
+            self.command = self.command.strip()
+        elif isinstance(self.command, list):
+            self.command = [str(item) for item in self.command]
+        else:
+            raise ValueError("command must be a string or list")
+        self.env = parse_mapping(self.env, "env")
+        self.mounts = parse_list(self.mounts, "mounts")
+        self.ports = self._normalize_option_list(self.ports, "ports")
+        self.devices = self._normalize_option_list(self.devices, "devices")
+        self.cap_add = self._normalize_option_list(self.cap_add, "cap_add")
+        self.resources = ResourceRequirements.from_value(self.resources)
+        if isinstance(self.use_sudo_docker, str):
+            self.use_sudo_docker = self.use_sudo_docker.strip().lower() in {"1", "true", "yes", "y", "on"}
+        else:
+            self.use_sudo_docker = bool(self.use_sudo_docker)
+        self.network = str(self.network or "").strip()
+        self.allowlist_proxy_image = str(self.allowlist_proxy_image or "").strip()
+        self.allowlist_proxy_start_timeout = parse_positive_float(
+            self.allowlist_proxy_start_timeout,
+            "allowlist_proxy_start_timeout",
+        )
+
+    @staticmethod
+    def _normalize_option_list(value: Any, field_name: str) -> list[str]:
+        items = parse_list(value, field_name)
+        normalized = [str(item).strip() for item in items]
+        if any(not item for item in normalized):
+            raise ValueError(f"{field_name} entries must be non-empty strings")
+        return normalized
+
+
+@ENVIRONMENTS.register()
+class DockerEnvironment(BaseEnvironment):
+    """Start an isolated docker container per task."""
+
+    setup_image_parameter = "image"
+    setup_workdir_parameter = "workdir"
+    supports_task_env = True
+    supports_startup_env = True
+    env_variables_param = "env"
+
+    id = "docker"
+    supported_operating_systems = frozenset({"linux"})
+    config_class = DockerEnvironmentConfig
+    supported_network_modes = frozenset({
+        NetworkMode.PUBLIC,
+        NetworkMode.NO_NETWORK,
+        NetworkMode.ALLOWLIST,
+        NetworkMode.DENYLIST,
+    })
+    supported_allowlist_entry_types = frozenset(NetworkAllowlistEntryType)
+    supports_network_target_ports = True
+    supports_dynamic_network_policy = True
+    supported_resource_fields = frozenset({
+        ResourceField.CPU,
+        ResourceField.MEMORY_MB,
+        ResourceField.STORAGE_MB,
+        ResourceField.GPU,
+    })
+
+    def validate_open_config(self, config: DockerEnvironmentConfig) -> None:
+        if not config.image:
+            raise ValueError("docker environment requires image")
+        if not config.allowlist_proxy_image:
+            raise ValueError("allowlist_proxy_image is required")
+
+    @classmethod
+    def _docker_command(cls, config: DockerEnvironmentConfig) -> list[str]:
+        if config.use_sudo_docker:
+            return ["sudo", "-n", "docker"]
+        return ["docker"]
+
+    @staticmethod
+    def _container_command(command: list[str], image_config: dict[str, Any]) -> list[str]:
+        """Pass the adapter's keepalive command through a bare shell ENTRYPOINT."""
+        entrypoint = image_config.get("Entrypoint") or []
+        if len(entrypoint) == 1 and entrypoint[0] in {"bash", "/bin/bash", "sh", "/bin/sh"}:
+            return ["-c", shlex.join(command)]
+        return command
+
+    @staticmethod
+    def _resource_arguments(config: DockerEnvironmentConfig) -> list[str]:
+        arguments: list[str] = []
+        resources = config.resources
+        if resources.cpu is not None:
+            arguments.extend(["--cpus", format(resources.cpu, "g")])
+        if resources.memory_mb:
+            arguments.extend(["--memory", f"{resources.memory_mb}m"])
+        if resources.storage_mb:
+            arguments.extend(["--storage-opt", f"size={resources.storage_mb}m"])
+        if resources.gpu:
+            arguments.extend(["--gpus", str(resources.gpu)])
+        return arguments
+
+    @staticmethod
+    def _proxy_environment(token: str, proxy_host: str) -> dict[str, str]:
+        proxy_url = f"http://agentcompass:{token}@{proxy_host}:{_EGRESS_PROXY_PORT}"
+        return {
+            "HTTP_PROXY": proxy_url,
+            "HTTPS_PROXY": proxy_url,
+            "ALL_PROXY": proxy_url,
+            "http_proxy": proxy_url,
+            "https_proxy": proxy_url,
+            "all_proxy": proxy_url,
+            "NO_PROXY": "localhost,127.0.0.1,::1",
+            "no_proxy": "localhost,127.0.0.1,::1",
+        }
+
+    @staticmethod
+    async def _remove_container(docker_command: list[str], container_id: str, *, resource: str) -> None:
+        result = await _run_subprocess([*docker_command, "rm", "-f", container_id])
+        if result.returncode != 0 and "no such container" not in result.stderr.lower():
+            raise RuntimeError(
+                f"remove Docker {resource} failed: container={container_id}; error={result.stderr.strip()}")
+
+    @staticmethod
+    async def _remove_network(docker_command: list[str], network_name: str) -> None:
+        result = await _run_subprocess([*docker_command, "network", "rm", network_name])
+        if result.returncode != 0 and "not found" not in result.stderr.lower():
+            raise RuntimeError("remove Docker egress-control network failed: "
+                               f"network={network_name}; error={result.stderr.strip()}")
+
+    async def _start_egress_proxy(
+        self,
+        config: DockerEnvironmentConfig,
+        docker_command: list[str],
+        policy: NetworkPolicy,
+        resource_suffix: str,
+    ) -> tuple[str, str, dict[str, str], Path]:
+        network_name = f"agentcompass-egress-{resource_suffix}"
+        proxy_name = f"agentcompass-egress-proxy-{resource_suffix}"
+        token = secrets.token_urlsafe(24)
+        proxy_container_id: str | None = None
+        close_params: dict[str, Any] | None = None
+        policy_dir = Path(tempfile.mkdtemp(prefix="agentcompass-egress-policy-"))
+
+        try:
+            policy_dir.chmod(0o755)
+            _write_proxy_policy(policy_dir, policy)
+            create_network = await _run_subprocess([
+                *docker_command,
+                "network",
+                "create",
+                "--internal",
+                network_name,
+            ])
+            if create_network.returncode != 0:
+                raise RuntimeError(f"failed to create Docker egress-control network: {create_network.stderr.strip()}")
+            close_params = {
+                "container_id": None,
+                "proxy_container_id": None,
+                "network_name": network_name,
+                "policy_dir": str(policy_dir),
+            }
+            proxy_script = Path(__file__).with_name("docker_egress_proxy.py").resolve()
+            if not proxy_script.is_file():
+                raise RuntimeError(f"Docker egress proxy script is missing: {proxy_script}")
+            egress_network = config.network or "bridge"
+            proxy_command = [
+                *docker_command,
+                "run",
+                "-d",
+                "--rm",
+                "--name",
+                proxy_name,
+                "--network",
+                egress_network,
+                "--read-only",
+                "--user",
+                "65534:65534",
+                "--cap-drop",
+                "ALL",
+                "--security-opt",
+                "no-new-privileges",
+                "--pids-limit",
+                "64",
+                "--memory",
+                "128m",
+                "-e",
+                "PYTHONDONTWRITEBYTECODE=1",
+                "-e",
+                f"AGENTCOMPASS_PROXY_TOKEN={token}",
+                "-e",
+                "AGENTCOMPASS_POLICY_PATH=/opt/agentcompass/policy/policy.json",
+                "-e",
+                f"AGENTCOMPASS_PROXY_PORT={_EGRESS_PROXY_PORT}",
+                "-v",
+                f"{proxy_script}:/opt/agentcompass/docker_egress_proxy.py:ro",
+                "-v",
+                f"{policy_dir}:/opt/agentcompass/policy:ro",
+                config.allowlist_proxy_image,
+                "python",
+                "/opt/agentcompass/docker_egress_proxy.py",
+            ]
+            proxy_result = await _run_subprocess(proxy_command)
+            if proxy_result.returncode != 0:
+                raise RuntimeError(f"failed to start Docker egress proxy: {proxy_result.stderr.strip()}")
+            proxy_container_id = proxy_result.stdout.strip()
+            if not proxy_container_id:
+                raise RuntimeError("Docker egress proxy did not return a container id")
+            close_params["proxy_container_id"] = proxy_container_id
+
+            connect_result = await _run_subprocess([
+                *docker_command,
+                "network",
+                "connect",
+                network_name,
+                proxy_container_id,
+            ])
+            if connect_result.returncode != 0:
+                raise RuntimeError(f"failed to connect Docker egress proxy: {connect_result.stderr.strip()}")
+
+            deadline = asyncio.get_running_loop().time() + config.allowlist_proxy_start_timeout
+            health_command = [
+                *docker_command,
+                "exec",
+                proxy_container_id,
+                "python",
+                "-c",
+                ("import socket; s=socket.create_connection(('127.0.0.1', "
+                 f"{_EGRESS_PROXY_PORT}), timeout=1); s.close()"),
+            ]
+            while True:
+                health = await _run_subprocess(health_command, timeout=3)
+                if health.returncode == 0:
+                    break
+                if asyncio.get_running_loop().time() >= deadline:
+                    logs = await _run_subprocess([*docker_command, "logs", "--tail", "50", proxy_container_id])
+                    detail = (logs.stderr or logs.stdout or health.stderr).strip()
+                    raise RuntimeError(f"Docker egress proxy did not become ready: {detail}")
+                await asyncio.sleep(0.25)
+
+            return proxy_container_id, network_name, self._proxy_environment(token, proxy_name), policy_dir
+        except BaseException as exc:
+            if close_params is not None:
+                await close_environment_resource(self, close_params)
+            else:
+                shutil.rmtree(policy_dir, ignore_errors=True)
+            if isinstance(exc, Exception):
+                detail = _redact_environment_values(str(exc), {"AGENTCOMPASS_PROXY_TOKEN": token})
+                if detail != str(exc):
+                    raise RuntimeError(detail) from None
+            raise
+
+    async def open(self, req: RunRequest, plan: ExecutionPlan) -> DockerSession:
+        config = self.build_config(req, plan)
+        if not isinstance(config, DockerEnvironmentConfig):
+            raise TypeError("docker requires DockerEnvironmentConfig")
+        self.validate_open_config(config)
+        image = config.image
+
+        workdir = config.workdir
+        run_command = config.command
+        if isinstance(run_command, str):
+            run_command = ["bash", "-lc", run_command]
+
+        resource_suffix = uuid.uuid4().hex[:12]
+        container_name = config.name or f"agentcompass-{req.benchmark.id}-{resource_suffix}"
+        docker_command = self._docker_command(config)
+        self._docker_cli_command = docker_command
+        inspect_result = await _run_subprocess([*docker_command, "image", "inspect", image])
+        if inspect_result.returncode != 0 and "no such image" in inspect_result.stderr.lower():
+            logger.info("Pulling Docker image %s before resolving its entrypoint", image)
+            pull_command = [*docker_command, "pull"]
+            if config.platform:
+                pull_command.extend(["--platform", config.platform])
+            pull_result = await _run_subprocess([*pull_command, image])
+            if pull_result.returncode != 0:
+                raise RuntimeError(f"docker pull failed: {pull_result.stderr.strip()}")
+            inspect_result = await _run_subprocess([*docker_command, "image", "inspect", image])
+        if inspect_result.returncode != 0:
+            raise RuntimeError(f"docker image inspect failed: {inspect_result.stderr.strip()}")
+        image_details = json.loads(inspect_result.stdout or "[]")
+        if image_details:
+            image_config = image_details[0].get("Config") or {}
+            run_command = self._container_command(run_command, image_config)
+
+        docker_cmd = [*docker_command, "run", "-d", "--rm", "--name", container_name]
+        if workdir:
+            docker_cmd.extend(["--workdir", workdir])
+        docker_cmd.extend(self._resource_arguments(config))
+        for published_port in config.ports:
+            docker_cmd.extend(["--publish", published_port])
+        for device in config.devices:
+            docker_cmd.extend(["--device", device])
+        for capability in config.cap_add:
+            docker_cmd.extend(["--cap-add", capability])
+
+        policy = self.resolve_network_policy(plan.environment.baseline_network_policy)
+        phase_policies = [self.resolve_network_policy(plan.run_network_policy)]
+        if plan.evaluation_environment is None:
+            phase_policies.append(self.resolve_network_policy(plan.evaluation_network_policy))
+        requires_dynamic_policy = any(phase_policy != policy for phase_policy in phase_policies)
+        use_egress_proxy = (policy.network_mode in {NetworkMode.ALLOWLIST, NetworkMode.DENYLIST}
+                            or requires_dynamic_policy)
+        proxy_container_id: str | None = None
+        internal_network_name: str | None = None
+        policy_dir: Path | None = None
+        close_params: dict[str, Any] | None = None
+        env_record: EnvRecord | None = None
+        policy_env: dict[str, str] = {}
+        external_network_name = config.network or "bridge"
+        if use_egress_proxy:
+            if external_network_name in {"none", "host"} or external_network_name.startswith("container:"):
+                raise ValueError("Docker phase network policies require a bridge-style external network; "
+                                 f"network={external_network_name!r} cannot be switched dynamically")
+            (proxy_container_id, internal_network_name, policy_env,
+             policy_dir) = await self._start_egress_proxy(config, docker_command, policy, resource_suffix)
+            close_params = {
+                "container_id": None,
+                "proxy_container_id": proxy_container_id,
+                "network_name": internal_network_name,
+                "policy_dir": str(policy_dir),
+            }
+
+        container_id: str | None = None
+        try:
+            network = "none" if policy.network_mode == NetworkMode.NO_NETWORK else config.network
+            if use_egress_proxy and policy.network_mode != NetworkMode.PUBLIC:
+                network = internal_network_name or ""
+            if network:
+                docker_cmd.extend(["--network", network])
+
+            platform = config.platform
+            if platform:
+                docker_cmd.extend(["--platform", str(platform)])
+
+            env_vars = {**dict(config.env or {}), **policy_env}
+            for key, value in env_vars.items():
+                docker_cmd.extend(["-e", f"{key}={value}"])
+
+            mounts = config.mounts or []
+            for mount in mounts:
+                if isinstance(mount, str):
+                    docker_cmd.extend(["-v", mount])
+                    continue
+                if isinstance(mount, dict):
+                    source = str(mount.get("source") or "").strip()
+                    target_path = str(mount.get("target") or "").strip()
+                    if not source or not target_path:
+                        continue
+                    mode = str(mount.get("mode") or "").strip()
+                    value = f"{source}:{target_path}"
+                    if mode:
+                        value = f"{value}:{mode}"
+                    docker_cmd.extend(["-v", value])
+
+            docker_cmd.append(image)
+            docker_cmd.extend(list(run_command))
+
+            run_result = await _run_subprocess(docker_cmd)
+            if (run_result.returncode != 0 and config.resources.storage_mb is not None
+                    and _is_unsupported_storage_limit_error(run_result.stderr)):
+                logger.warning(
+                    "Ignoring resources.storage_mb=%s because this Docker daemon cannot enforce per-container "
+                    "storage limits: %s",
+                    config.resources.storage_mb,
+                    _redact_environment_values(run_result.stderr.strip(), env_vars),
+                )
+                storage_option_index = docker_cmd.index("--storage-opt")
+                docker_cmd = [
+                    *docker_cmd[:storage_option_index],
+                    *docker_cmd[storage_option_index + 2:],
+                ]
+                run_result = await _run_subprocess(docker_cmd)
+            if run_result.returncode != 0:
+                quoted = " ".join(shlex.quote(part) for part in docker_cmd)
+                raise RuntimeError(f"docker run failed: {run_result.stderr.strip()} (cmd: {quoted})")
+            container_id = run_result.stdout.strip()
+            if not container_id:
+                raise RuntimeError("docker run did not return a container id")
+            close_params = {
+                "container_id": container_id,
+                "proxy_container_id": proxy_container_id,
+                "network_name": internal_network_name,
+                "policy_dir": str(policy_dir) if policy_dir else None,
+            }
+            env_record = EnvRecord.create(self, close_params)
+            if use_egress_proxy and policy.network_mode == NetworkMode.PUBLIC:
+                connect_result = await _run_subprocess([
+                    *docker_command,
+                    "network",
+                    "connect",
+                    internal_network_name or "",
+                    container_id,
+                ])
+                if connect_result.returncode != 0:
+                    raise RuntimeError("failed to connect Docker task container to the egress-control network: "
+                                       f"{connect_result.stderr.strip()}")
+        except BaseException as exc:
+            if not container_id and isinstance(exc, asyncio.CancelledError) and not config.name:
+                close_params = {
+                    **(close_params or {}),
+                    "container_id": container_name,
+                    "proxy_container_id": proxy_container_id,
+                    "network_name": internal_network_name,
+                    "policy_dir": str(policy_dir) if policy_dir is not None else None,
+                }
+            if env_record is not None:
+                await env_record.close()
+            elif close_params is not None:
+                await close_environment_resource(self, close_params)
+            if isinstance(exc, Exception):
+                detail = _redact_environment_values(str(exc), env_vars)
+                if detail != str(exc):
+                    # Do not expose the original argv through exception chaining.
+                    raise RuntimeError(detail) from None
+            raise
+
+        session = DockerSession(
+            container_id=container_id,
+            workdir=workdir or None,
+            docker_command=docker_command,
+            egress_proxy_container_id=proxy_container_id,
+            internal_network_name=internal_network_name,
+            egress_policy_dir=policy_dir,
+            external_network_name=external_network_name,
+            external_network_connected=policy.network_mode == NetworkMode.PUBLIC,
+            network_policy=policy,
+        )
+        session.env_record = env_record
+        return session
+
+    async def close(
+        self,
+        *,
+        container_id: str | None = None,
+        proxy_container_id: str | None = None,
+        network_name: str | None = None,
+        policy_dir: str | None = None,
+    ) -> None:
+        docker_command = getattr(self, "_docker_cli_command", None)
+        if docker_command is None:
+            config = self.config
+            if not isinstance(config, DockerEnvironmentConfig):
+                raise RuntimeError("docker environment is not configured")
+            docker_command = self._docker_command(config)
+        errors: list[str] = []
+        if container_id:
+            try:
+                await self._remove_container(docker_command, container_id, resource="task container")
+            except Exception as exc:
+                errors.append(str(exc))
+        if proxy_container_id:
+            try:
+                await self._remove_container(docker_command, proxy_container_id, resource="egress proxy")
+            except Exception as exc:
+                errors.append(str(exc))
+        if network_name:
+            try:
+                await self._remove_network(docker_command, network_name)
+            except Exception as exc:
+                errors.append(str(exc))
+        if policy_dir:
+            try:
+                shutil.rmtree(Path(policy_dir), ignore_errors=False)
+            except FileNotFoundError:
+                pass
+            except Exception as exc:
+                errors.append(f"remove Docker egress policy directory failed: {exc}")
+        if errors:
+            raise RuntimeError("; ".join(errors))

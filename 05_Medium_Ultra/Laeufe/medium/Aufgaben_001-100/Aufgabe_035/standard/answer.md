@@ -1,0 +1,3 @@
+Implemented the evaluator split. `Server.Evaluate` now delegates to `storage.Evaluator`, and [EvaluatorStorage](/app/storage/evaluator.go) owns flag lookup, constraint matching, and variant selection. The evaluation path now preserves rule rank, handles case insensitive operators and trimmed strings, and uses deterministic CRC32 rollout cutoffs.
+
+Updated the mocks and added focused evaluator tests. `GOPROXY=off go test ./storage ./server` passes.

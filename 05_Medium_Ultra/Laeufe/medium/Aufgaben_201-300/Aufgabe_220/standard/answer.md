@@ -1,0 +1,3 @@
+Added `qcolor_to_qsscolor` in [qtutils.py](/app/qutebrowser/utils/qtutils.py) to produce `rgba(r, g, b, a)` strings, including opaque alpha for named and RGB colors. WebView and TabBar now use it in their background QSS templates. Added tests for named, RGB, and RGBA inputs.
+
+All 123 `qtutils` tests pass. TabWidget tests are blocked by an existing float-to-`QSize` error before they reach the changed code; WebView could not be imported because PyQtWebKit is unavailable in this environment.

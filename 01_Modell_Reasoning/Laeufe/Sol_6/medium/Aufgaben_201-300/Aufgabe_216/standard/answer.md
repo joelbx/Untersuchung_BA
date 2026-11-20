@@ -1,0 +1,3 @@
+Updated the SSH connection plugin to resolve its runtime options through `get_option()`, including command arguments, retries, transfer method, and connection settings. Removed the SSH-specific settings from core configuration. Reset now checks for a live persistent socket with the effective SSH command and skips the stop command when no socket is found.
+
+Added tests for option precedence, transfer selection, and reset behavior. The SSH and PlayContext suites pass: **23 tests passed**.

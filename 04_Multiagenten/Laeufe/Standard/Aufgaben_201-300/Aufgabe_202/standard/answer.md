@@ -1,0 +1,3 @@
+The admin file upload endpoint now checks that the target folder is an existing directory under the configured upload path before saving. A missing folder or a file used as the folder returns HTTP 500 with `[[error:invalid-path]]`. I added integration tests for both cases.
+
+ESLint and an isolated runtime check passed. The upload integration tests could not reach their assertions because Redis at `127.0.0.1:6379` refused the connection.

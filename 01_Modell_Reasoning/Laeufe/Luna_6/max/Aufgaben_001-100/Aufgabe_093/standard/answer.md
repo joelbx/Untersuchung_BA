@@ -1,0 +1,3 @@
+Implemented RTL placement reporting. `getInvertedRTLPlacement` swaps `start` and `end` for top and bottom placements in RTL, and the new `rtlPlacement` middleware detects direction from the floating element. `usePopper` now returns the adjusted placement, and both helpers are exported from the Popper entry point.
+
+Validation passed: the existing Popper utility tests (5 tests), the components type check, and `git diff --check`.

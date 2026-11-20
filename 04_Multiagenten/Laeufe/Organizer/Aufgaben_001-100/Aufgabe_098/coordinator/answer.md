@@ -1,0 +1,3 @@
+Updated anonymous telemetry to version `1.3`. The `flipt` payload now includes `audit: {"sinks":[...]}` when the log file or webhook audit sink is enabled, and omits `audit` when neither is enabled. Existing telemetry fields retain their structure and behavior.
+
+The existing ping tests now cover log only, webhook only, both sinks, and no sinks. `go test ./internal/telemetry` and `git diff --check` passed. No delegation was used.

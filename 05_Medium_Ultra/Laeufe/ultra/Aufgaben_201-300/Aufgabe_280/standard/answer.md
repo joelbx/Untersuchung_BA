@@ -1,0 +1,3 @@
+Updated the Kubernetes backend to export `NamespaceEnv` and `ReleaseNameEnv` and use them when reading the namespace and release name. [The tests](/app/lib/backend/kubernetes/kubernetes_test.go) now set the required variables explicitly, check the exact missing-variable errors, and verify the resulting configuration and Helm annotations.
+
+`GOPROXY=off GOSUMDB=off GOTOOLCHAIN=local go test ./lib/backend/kubernetes` passed. Two subagents reviewed the backend and tests; one updated the tests, and I integrated and verified the patch.

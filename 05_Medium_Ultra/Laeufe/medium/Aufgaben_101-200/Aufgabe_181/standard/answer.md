@@ -1,0 +1,3 @@
+Updated [GUIProcess](/app/qutebrowser/misc/guiprocess.py) to include the finished process’s PID in outcome messages, name crash signals, and classify SIGTERM as `terminated`. SIGTERM now produces no completion message unless verbose mode is enabled. Added regression coverage in [test_guiprocess.py](/app/tests/unit/misc/test_guiprocess.py).
+
+Syntax compilation and `git diff --check` passed. The relevant pytest module could not start because PyQt5 is missing from the environment.

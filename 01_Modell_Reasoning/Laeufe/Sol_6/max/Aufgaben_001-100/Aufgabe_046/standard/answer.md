@@ -1,0 +1,3 @@
+Resolved the `module_common` dependency issue in [module_common.py](/app/lib/ansible/executor/module_common.py). It now uses a queue and separate legacy and collection locators to bundle redirects, follow imports in package initializers, synthesize missing `__init__.py` files, and report attempted paths when resolution fails.
+
+Added [regression tests](/app/test/units/executor/module_common/test_module_util_locators.py), including a generated zip import check. The focused executor and collection loader suites passed: **110 tests**.

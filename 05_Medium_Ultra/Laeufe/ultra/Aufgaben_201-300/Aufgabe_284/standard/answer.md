@@ -1,0 +1,3 @@
+Resolved the `reversetunnel.Server` issue. [srv.go](/app/lib/reversetunnel/srv.go:93) now keeps one persistent `localSite` for connection registration, lookups, reconnect advisories, and proxy fan-out. Service connections reject empty or mismatched certificate cluster names. [localsite.go](/app/lib/reversetunnel/localsite.go:46) reuses the proxy’s existing access point and clients instead of creating a second resource cache.
+
+I delegated the server refactor, constructor change, and test coverage to subagents, then reviewed the combined patch. The full `lib/reversetunnel` test suite passed offline; formatting and diff checks also passed.

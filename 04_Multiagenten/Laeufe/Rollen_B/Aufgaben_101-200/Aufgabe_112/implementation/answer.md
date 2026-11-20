@@ -1,0 +1,3 @@
+Implemented Fortinet CVE detection and enrichment. Fortinet-only CVEs now pass CPE filtering, Fortinet detection methods contribute to confidence, and advisories populate CVE contents and advisory IDs. Reports can show Fortinet titles, summaries, CVSS v3 data, references, CWE IDs, dates, and advisory links. The scan and HTTP paths both use the new enrichment function.
+
+Updated `go-cve-dictionary` to a Fortinet-capable version and added focused tests. Offline tests passed: `go test ./detector ./models ./server`.

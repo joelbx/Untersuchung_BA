@@ -1,0 +1,3 @@
+MIME mappings and lossless formats now load at startup from [mime_types.yaml](/app/resources/mime_types.yaml). Operators can override the file at `<DataFolder>/resources/mime_types.yaml`. The startup hook in [mime.go](/app/mime/mime.go) registers the mappings and explicit `.js` and `.css` types; the server UI now renders `mime.LosslessFormats` as an uppercase, comma-separated string. The old hardcoded definitions were removed.
+
+Two subagents handled the loader and consumer updates; I integrated and verified the patch. Focused MIME, model, and server tests passed. The full suite had two failures in unchanged native TagLib gain-tag tests, where duplicate values were returned; all other packages passed.

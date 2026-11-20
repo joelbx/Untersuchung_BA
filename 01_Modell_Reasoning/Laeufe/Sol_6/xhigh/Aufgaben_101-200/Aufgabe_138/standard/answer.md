@@ -1,0 +1,3 @@
+Added `storage.oci.manifest_version` with valid values `"1.0"` and `"1.1"`. It defaults to `"1.1"`; unsupported values fail configuration loading with the requested error. Bundle creation now passes the selected version through `WithManifestVersion`.
+
+Configuration, schema, OCI, and bundle command tests passed. The tests verify the generated 1.0 and default 1.1 manifests; a live ECR upload was not tested.

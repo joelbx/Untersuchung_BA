@@ -1,0 +1,3 @@
+Updated [DeviceConfig.ts](/app/src/misc/DeviceConfig.ts) so loading a current config with a signup token makes no storage write. Persisted fields now live in one config object; migration preserves settings and converts credentials to a user ID keyed object, while memory uses a Map. Added coverage in [DeviceConfigTest.ts](/app/test/client/misc/DeviceConfigTest.ts).
+
+Source and test TypeScript checks passed. The client suite could not run: its build failed while compiling the existing `better-sqlite3` dependency.

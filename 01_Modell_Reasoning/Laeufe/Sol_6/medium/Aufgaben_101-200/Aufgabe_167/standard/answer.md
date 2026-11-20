@@ -1,0 +1,3 @@
+Added an OCI snapshot source that fetches from local OCI directories and remote registries, reopens local layouts on each fetch, reuses snapshots when the digest is unchanged, and polls for changes. Updated `SnapshotSource.Get` and its callers to accept a context. OCI layer handling now supports gzip and namespace annotations.
+
+Verification passed: `go test ./internal/oci ./internal/storage/fs/...` and `git diff --check`.

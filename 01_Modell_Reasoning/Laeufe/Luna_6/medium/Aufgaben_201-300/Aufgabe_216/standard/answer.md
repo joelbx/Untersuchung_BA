@@ -1,0 +1,3 @@
+Updated SSH option resolution to use plugin `get_option()` for configuration, environment, inventory, and CLI sources. Transfer selection, retries, command arguments, and control path settings now use those resolved values. Core SSH-specific configuration entries were removed, and reset now checks the effective ControlPath before stopping a persistent connection, logging when no socket exists.
+
+Validation passed: 20 SSH and play-context unit tests; `git diff --check` passed.

@@ -1,0 +1,3 @@
+Updated the repository so `vuls report` can decode legacy `listenPorts` string arrays. Scanning now uses `ListenPortStats` and the new `PortStat` and `NewPortStat` interfaces for destination selection and reachability. Report views handle legacy ports and avoid showing duplicate entries when structured stats are present.
+
+Added regression tests for legacy JSON, port parsing, and wildcard destination deduplication. `GOPROXY=off GOSUMDB=off go test ./models ./scan ./report` and `git diff --check` passed.

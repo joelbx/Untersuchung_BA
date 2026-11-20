@@ -1,0 +1,3 @@
+Resolved the PassAliases drawer issue. It now shows the full aliases list or a clear “No aliases” state, and “Get an alias” opens the creation modal. The new [setup hook](/app/packages/components/components/drawer/views/SecurityCenter/PassAliases/usePassAliasesProviderSetup.ts) and [helpers](/app/packages/components/components/drawer/views/SecurityCenter/PassAliases/PassAliasesProvider.helpers.ts) manage loading, creation, refresh, and cached aliases. The [bridge](/app/packages/pass/lib/bridge/PassBridgeFactory.ts) now looks up a vault without creating one until the creation flow needs it.
+
+Verification passed: 7 PassAliases tests, type checks for both affected packages, lint, and formatting.
