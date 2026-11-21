@@ -51,6 +51,6 @@ und ist keine zusätzliche Benchmark-Versuchsreihe.
 
 ## Anforderungsaufnahme
 
-[07_Anforderungsaufnahme] enthält die übergebenen Dateien für die Anforderungsaufnahme.
-Darunter sind Mockups sowie Anforderungen und die Aufteilung der Funktionen über die 
-zwei Systeme Theo und Dynamics 365 Sales.
+[07_Anforderungsaufnahme](07_Anforderungsaufnahme/) enthält die übergebenen Dateien 
+für die Anforderungsaufnahme. Darunter liegen Mockups sowie Anforderungen und die 
+Aufteilung der Funktionen über die zwei Systeme Theo und Dynamics 365 Sales.
