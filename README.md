@@ -48,3 +48,9 @@ oder Bewertungen gestartet. Alle Originale im ursprünglichen Labor bleiben erha
 `guided-software-development`-Skill mit seinen fünf Unter-Skills, Referenzen,
 Vorlagen und lokalen Prüftests. Der Ordner dokumentiert den abgeleiteten Workflow
 und ist keine zusätzliche Benchmark-Versuchsreihe.
+
+## Anforderungsaufnahme
+
+[07_Anforderungsaufnahme] enthält die übergebenen Dateien für die Anforderungsaufnahme.
+Darunter sind Mockups sowie Anforderungen und die Aufteilung der Funktionen über die 
+zwei Systeme Theo und Dynamics 365 Sales.
